@@ -24,7 +24,12 @@ import os
 import sys
 import configparser
 import faulthandler
-import numpy as np
+
+try:
+    import numpy as np
+except ImportError:
+    print("Missing dependencies. Run: pip install -r requirements.txt")
+    sys.exit(1)
 
 faulthandler.enable(open("faulthandler.log", "w"))
 
