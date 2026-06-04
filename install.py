@@ -431,6 +431,17 @@ _T = {
         "ko": "venv \ubaa8\ub4c8\uc5d0\ub294 python3-venv \ub610\ub294 python3.13-venv \ud328\ud0a4\uc9c0\uac00 \ud544\uc694\ud569\ub2c8\ub2e4. \uba3c\uc800 \uc124\uce58\ud558\uc138\uc694.",
         "zh": "venv \u6a21\u5757\u9700\u8981 python3-venv \u6216 python3.13-venv \u5305\u3002\u8bf7\u5148\u5b89\u88c5\u3002",
     },
+    "cc_warn": {
+        "en": "WARNING: No C compiler found. Some packages may need compilation. Install build-essential or gcc.",
+        "it": "ATTENZIONE: Nessun compilatore C trovato. Alcuni pacchetti potrebbero richiedere compilazione. Installa build-essential o gcc.",
+        "de": "WARNUNG: Kein C-Compiler gefunden. Einige Pakete benoetigen moeglicherweise Kompilierung. Installieren Sie build-essential oder gcc.",
+        "fr": "ATTENTION: Aucun compilateur C trouve. Certains paquets peuvent necessiter une compilation. Installez build-essential ou gcc.",
+        "es": "ATENCION: No se encontro compilador C. Algunos paquetes pueden necesitar compilacion. Instala build-essential o gcc.",
+        "pt": "ATENCAO: Nenhum compilador C encontrado. Alguns pacotes podem precisar de compilacao. Instale build-essential ou gcc.",
+        "ja": "\u8b66\u544a: C\u30b3\u30f3\u30d1\u30a4\u30e9\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3002\u4e00\u90e8\u306e\u30d1\u30c3\u30b1\u30fc\u30b8\u306f\u30b3\u30f3\u30d1\u30a4\u30eb\u304c\u5fc5\u8981\u3067\u3059\u3002build-essential\u307e\u305f\u306fgcc\u3092\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+        "ko": "\uacbd\uace0: C \ucef4\ud30c\uc77c\ub7ec\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \uc77c\ubd80 \ud328\ud0a4\uc9c0\ub294 \ucef4\ud30c\uc77c\uc774 \ud544\uc694\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4. build-essential \ub610\ub294 gcc\ub97c \uc124\uce58\ud558\uc138\uc694.",
+        "zh": "\u8b66\u544a: \u672a\u627e\u5230 C \u7f16\u8bd1\u5668\u3002\u67d0\u4e9b\u5305\u53ef\u80fd\u9700\u8981\u7f16\u8bd1\u3002\u8bf7\u5b89\u88c5 build-essential \u6216 gcc\u3002",
+    },
     "venv_pip_upgrade": {
         "en": "Upgrading pip in venv...",
         "it": "Aggiornamento pip nel venv...",
@@ -906,6 +917,16 @@ def main():
         print(f"  {C_RED}{_('pip_err')}{C_RESET}")
         sys.exit(1)
     print(f"  {C_GREEN}{_('pip_ok')}{C_RESET}")
+
+    if sys.platform != "win32":
+        cc_ok = False
+        for cc in ["cc", "gcc", "clang"]:
+            rc, _out, _err = run([cc, "--version"])
+            if rc == 0:
+                cc_ok = True
+                break
+        if not cc_ok:
+            print(f"  {C_YELLOW}{_('cc_warn')}{C_RESET}")
 
     if sys.platform == "win32":
         print(f"  {C_DIM}{_('system_win')}{C_RESET}")
