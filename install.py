@@ -880,7 +880,7 @@ def main():
         sys.exit(1)
     print(f"  {C_GREEN}{_('py_ok', py_ver.major, py_ver.minor, py_ver.micro)}{C_RESET}")
 
-    rc, _, _ = run([sys.executable, "-m", "pip", "--version"])
+    rc, _out, _err = run([sys.executable, "-m", "pip", "--version"])
     if rc != 0:
         print(f"  {C_RED}{_('pip_err')}{C_RESET}")
         sys.exit(1)
