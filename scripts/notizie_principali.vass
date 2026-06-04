@@ -1,0 +1,6 @@
+$num = 10
+say("Recupero le principali notizie")
+$html1 = ai("vai su https://www.ilfattoquotidiano.it e leggi le prime {$num} notizie. Solo testo semplice senza formattazione")
+say($html1)
+$html2 = ai("vai su https://www.ilsole24ore.com e leggi le prime {$num} notizie. Solo testo semplice senza formattazione")
+say($html2)

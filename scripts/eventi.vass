@@ -1,0 +1,4 @@
+# eventi.vass
+$e = listevents("2026-12-31")
+$text = prettyevents($e)
+say("Prossimi eventi: {$text}",0.85)

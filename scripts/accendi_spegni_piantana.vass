@@ -1,0 +1,4 @@
+# accendi_spegni_piantana.vass
+say("ehi google , accendi piantana",0.75)
+wait(15)
+say("ehi google , spegni piantana",0.75)

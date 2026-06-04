@@ -1,0 +1,257 @@
+{
+  "gui": {
+    "states": {
+      "listening": "Esperando",
+      "recording": "Escuchando",
+      "waiting": "Esperando IA",
+      "playing": "Reproduciendo",
+      "paused": "Pausa",
+      "loading": "Inicializando...",
+      "running_script": "Ejecutando script",
+      "waiting_resources": "Waiting for resources"
+    },
+    "menu": {
+      "menu": "Menú",
+      "commands": "Comandos",
+      "settings": "Ajustes",
+      "scripts": "Scripts",
+      "exit": "Salir",
+      "history": "History"
+    },
+    "dialog": {
+      "exit_title": "Salir",
+      "exit_message": "¿Salir de la aplicación?"
+    },
+    "mode": {
+      "chat": "Modo chat",
+      "trascrizione": "Modo transcripción"
+    },
+    "auth": {
+      "title": "Autorización requerida",
+      "allow_once": "Autorizar una vez",
+      "allow_func": "Autorizar Función",
+      "allow_all": "Autorizar Script",
+      "func_descriptions": {
+        "ai": "Envía un prompt a la IA (puede ejecutar herramientas MCP como leer archivos, navegar sitios web)",
+        "say": "Lee el texto en voz alta mediante síntesis de voz",
+        "run": "Ejecuta un comando PowerShell o ejecutable en el sistema",
+        "screen_search": "Lee el texto visible en la pantalla y busca elementos",
+        "screen_click": "Simula un clic del ratón en las coordenadas especificadas",
+        "screen_highlight": "Resalta brevemente un área de la pantalla",
+        "listen": "Graba tu voz y devuelve el texto transcrito",
+        "sendtext": "Simulates typing text on the keyboard",
+        "setactivewindow": "Activates a window by process name or title"
+      }
+    },
+    "bar": {
+      "memory": "Memory usage",
+      "volume": "Volume",
+      "script": "Script progress",
+      "bytes": "bytes",
+      "lines": "lines"
+    },
+    "memory_mode": {
+      "full": "Memory: Full",
+      "limited": "Memory: Limited",
+      "none": "Memory: None"
+    },
+    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move"
+  },
+  "settings_editor": {
+    "title": "Ajustes de VASS",
+    "field_labels": {
+      "x": "Posición X",
+      "y": "Posición Y",
+      "width": "Ancho",
+      "height": "Alto",
+      "font_family": "Fuente",
+      "font_size": "Tamaño fuente",
+      "wakeword": "Palabra de activación",
+      "volume": "Volumen",
+      "api_key": "Clave API",
+      "command": "Comando reproductor",
+      "sensitivity": "Sensibilidad",
+      "similarity": "Umbral similitud",
+      "url": "URL API",
+      "model": "Modelo IA",
+      "system_message": "Mensaje sistema",
+      "mcp_server_url": "URL servidor MCP",
+      "memory_tokens": "Tokens memoria",
+      "blacklist": "Lista negra",
+      "llama_server_path": "Ruta de llama-server.exe",
+      "llama_server_working_directory": "Directorio de trabajo",
+      "llama_server_arguments": "Argumentos de inicio",
+      "tts_engine": "TTS Engine",
+      "cpu_max": "CPU threshold (%)",
+      "ram_max": "RAM threshold (%)",
+      "gpu_max": "GPU threshold (%)",
+      "vram_max": "VRAM threshold (%)",
+      "resource_timeout": "Wait timeout (sec)"
+    },
+    "field_descriptions": {
+      "x": "Posición X en pantalla",
+      "y": "Posición Y en pantalla",
+      "width": "Ancho en píxeles (200-400)",
+      "height": "Alto en píxeles (32-64)",
+      "font_family": "Nombre de fuente (ej. Segoe UI)",
+      "font_size": "Tamaño de texto en píxeles",
+      "wakeword": "Palabra de activación (ej. vass, ordenador)",
+      "volume": "0.0-1.0, más alto = más fuerte",
+      "api_key": "Clave API para autenticación (dejar vacía si no es necesaria)",
+      "language": "Idioma de la interfaz",
+      "command": "Comando y flags para el reproductor",
+      "sensitivity": "Menor = más sensible (0.003-0.01)",
+      "similarity": "0.0-1.0, alto = coincidencia exacta",
+      "url": "URL API compatible con OpenAI",
+      "model": "Nombre del modelo IA (ej. gemma, llama)",
+      "system_message": "Prompt de sistema para la IA",
+      "mcp_server_url": "URL del servidor MCP (ej. http://127.0.0.1:8444/mcp)",
+      "memory_tokens": "Tokens máximos para historial (~4 chars/token)",
+      "blacklist": "Palabras prohibidas separadas por comas. Bloquea la solicitud si se encuentran.",
+      "llama_server_path": "Ruta completa a la carpeta con llama-server.exe",
+      "llama_server_working_directory": "Directorio de trabajo del proceso (default: llama_server_path)",
+      "llama_server_arguments": "Argumentos para llama-server.exe",
+      "tts_engine": "kokoro = AI multilingual synthesis",
+      "cpu_max": "Maximum CPU usage percentage. If exceeded, AI requests wait until below threshold",
+      "ram_max": "Maximum RAM usage percentage. If exceeded, AI requests wait until below threshold",
+      "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
+      "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
+      "resource_timeout": "Maximum seconds to wait before sending the AI request anyway"
+    },
+    "section_labels": {
+      "gui": "Ventana",
+      "player": "Reproducción audio",
+      "wakeword": "Wakeword",
+      "commands": "Comandos voz",
+      "tts": "Síntesis de voz (TTS)",
+      "ai": "Agente IA",
+      "llamacpp": "Llama.cpp",
+      "resources": "System resources"
+    },
+    "buttons": {
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    },
+    "dialog": {
+      "error": "Error",
+      "info": "Información",
+      "warning": "Advertencia"
+    },
+    "errors": {
+      "width_range": "El ancho debe estar entre 200 y 400.",
+      "height_range": "El alto debe estar entre 32 y 64.",
+      "positive_number": "El valor debe ser un número positivo.",
+      "restart_required": "Reinicia la aplicación para que el cambio de wakeword surta efecto.",
+      "save_ok": "Ajustes guardados correctamente.",
+      "pct_range": "{key} must be between 0 and 100.",
+      "invalid_number": "The value entered is not a valid number."
+    }
+  },
+  "scripts_editor": {
+    "title": "Editor de scripts VASS",
+    "left_panel": "Scripts",
+    "right_panel": "Editor",
+    "buttons": {
+      "new": "New",
+      "delete": "Delete",
+      "permissions": "Permissions",
+      "template": "Insert template ▾",
+      "save": "Save (Ctrl+S)",
+      "test": "Test"
+    },
+    "permissions": {
+      "title": "Script permissions",
+      "no_permissions": "No permissions stored.",
+      "stored": "Scripts with stored permissions:",
+      "revoke": "Revoke selected",
+      "revoke_all": "Revoke all",
+      "close": "Close",
+      "revoke_confirm": "Revoke permissions for '{name}'?",
+      "revoke_all_confirm": "Revoke ALL stored permissions?",
+      "all_revoked": "All permissions have been revoked."
+    },
+    "close": {
+      "title": "Save?",
+      "message": "Save changes before closing?"
+    }
+  },
+  "commands_editor": {
+    "title": "Editor de comandos VASS",
+    "list_label": "Comandos",
+    "form_label": "Detalle del comando",
+    "section_label": "Sección",
+    "keyword_label": "Palabra clave",
+    "command_label": "Comando",
+    "command_desc": "Comando PowerShell o ejecutable",
+    "buttons": {
+      "add": "Añadir",
+      "update": "Actualizar",
+      "delete": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "dialog": {
+      "error": "Error"
+    },
+    "errors": {
+      "keyword_empty": "La palabra clave no puede estar vacía.",
+      "command_empty": "El comando no puede estar vacío.",
+      "keyword_exists": "La palabra clave '{keyword}' ya existe.",
+      "select_first": "Selecciona un comando de la lista."
+    },
+    "confirm": {
+      "title": "Confirmar",
+      "delete": "¿Eliminar '{key}'?"
+    }
+  },
+  "whisper": {
+    "language": "es",
+    "initial_prompt_wakeword": "erika",
+    "initial_prompt_transcription": "Esta es una transcripción en español. Los comandos comunes incluyen: abrir navegador, cerrar ventana, apagar, reiniciar, calculadora, bloc de notas.",
+    "wake_variants": [
+      "erika",
+      "hey erika",
+      "hola erika"
+    ]
+  },
+  "ai": {
+    "date_prefix": "Fecha y hora actual: ",
+    "error": "Error de conexión con la inteligencia artificial.",
+    "blacklisted": "Solicitud bloqueada: contiene palabras no permitidas."
+  },
+  "tts": {
+    "fallback_language": "es-ES"
+  },
+  "scripts": {
+    "not_found": "Script {name} not found."
+  },
+  "events": {
+    "reminder_message": "Recordatorio: {description} a las {time}",
+    "time_refs": {
+      "expired": "expired",
+      "in": "in",
+      "minute_s": "min",
+      "hour_s": "hours",
+      "hour_h": "h",
+      "days": "days",
+      "tomorrow": "tomorrow",
+      "weeks": "weeks",
+      "week_s": "week",
+      "months": "months",
+      "month_s": "month",
+      "at": "at",
+      "every": "every",
+      "unknown_date": "unknown date"
+    },
+    "schedule_started": "Procedimiento programado {description} iniciado",
+    "schedule_done": "Procedimiento {description} ejecutado!",
+    "schedule_failed": "Procedimiento {description} fallido!"
+  },
+  "history_viewer": {
+    "title": "Conversation History",
+    "copy": "Copy",
+    "resend": "Resend",
+    "resend_sent": "Request sent to AI. VASS will process it.",
+    "read": "Leer",
+    "filter": "Filter messages..."
+  }
+}

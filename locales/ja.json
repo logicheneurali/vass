@@ -1,0 +1,257 @@
+{
+  "gui": {
+    "states": {
+      "listening": "待機中",
+      "recording": "聴き取り中",
+      "waiting": "AI待機中",
+      "playing": "再生中",
+      "paused": "一時停止",
+      "loading": "初期化中...",
+      "running_script": "スクリプト実行",
+      "waiting_resources": "Waiting for resources"
+    },
+    "menu": {
+      "menu": "メニュー",
+      "commands": "コマンド",
+      "settings": "設定",
+      "scripts": "スクリプト",
+      "exit": "終了",
+      "history": "History"
+    },
+    "dialog": {
+      "exit_title": "終了",
+      "exit_message": "アプリケーションを終了しますか?"
+    },
+    "mode": {
+      "chat": "チャットモード",
+      "trascrizione": "文字起こしモード"
+    },
+    "auth": {
+      "title": "認証が必要です",
+      "allow_once": "1回だけ許可",
+      "allow_func": "関数を許可",
+      "allow_all": "スクリプトを許可",
+      "func_descriptions": {
+        "ai": "AIにプロンプトを送信（ファイル読み込みやWebサイト閲覧などのMCPツールを実行可能）",
+        "say": "テキストを音声合成で読み上げる",
+        "run": "PowerShellコマンドまたは実行可能ファイルをシステム上で実行",
+        "screen_search": "画面上の表示テキストを読み取り、要素を検索",
+        "screen_click": "指定された座標でマウスクリックをシミュレート",
+        "screen_highlight": "画面上の領域を一時的に強調表示",
+        "listen": "音声を録音し、文字起こしテキストを返す",
+        "sendtext": "Simulates typing text on the keyboard",
+        "setactivewindow": "Activates a window by process name or title"
+      }
+    },
+    "bar": {
+      "memory": "Memory usage",
+      "volume": "Volume",
+      "script": "Script progress",
+      "bytes": "bytes",
+      "lines": "lines"
+    },
+    "memory_mode": {
+      "full": "Memory: Full",
+      "limited": "Memory: Limited",
+      "none": "Memory: None"
+    },
+    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move"
+  },
+  "settings_editor": {
+    "title": "VASS 設定",
+    "field_labels": {
+      "x": "X 位置",
+      "y": "Y 位置",
+      "width": "幅",
+      "height": "高さ",
+      "font_family": "フォント",
+      "font_size": "フォントサイズ",
+      "wakeword": "ウェイクワード",
+      "volume": "音量",
+      "api_key": "API キー",
+      "command": "プレイヤーコマンド",
+      "sensitivity": "感度",
+      "similarity": "類似度しきい値",
+      "url": "API URL",
+      "model": "AI モデル",
+      "system_message": "システムメッセージ",
+      "mcp_server_url": "MCP サーバーURL",
+      "memory_tokens": "メモリトークン数",
+      "blacklist": "ブラックリスト",
+      "llama_server_path": "llama-server.exe のパス",
+      "llama_server_working_directory": "作業ディレクトリ",
+      "llama_server_arguments": "起動引数",
+      "tts_engine": "TTS Engine",
+      "cpu_max": "CPU threshold (%)",
+      "ram_max": "RAM threshold (%)",
+      "gpu_max": "GPU threshold (%)",
+      "vram_max": "VRAM threshold (%)",
+      "resource_timeout": "Wait timeout (sec)"
+    },
+    "field_descriptions": {
+      "x": "画面上のX位置",
+      "y": "画面上のY位置",
+      "width": "幅（ピクセル、200-400）",
+      "height": "高さ（ピクセル、32-64）",
+      "font_family": "フォント名（例：Segoe UI）",
+      "font_size": "テキストサイズ（ピクセル）",
+      "wakeword": "ウェイクワード（例：vass, computer）",
+      "volume": "0.0-1.0、高いほど音量が大きい",
+      "api_key": "認証用のAPIキー（不要な場合は空欄）",
+      "language": "インターフェース言語",
+      "command": "オーディオプレイヤーのコマンドとフラグ",
+      "sensitivity": "低いほど敏感（0.003-0.01）",
+      "similarity": "0.0-1.0、高いほど完全一致",
+      "url": "OpenAI 互換 API URL",
+      "model": "AI モデル名（例：gemma, llama）",
+      "system_message": "AI のシステムプロンプト",
+      "mcp_server_url": "MCP サーバーURL（例：http://127.0.0.1:8444/mcp）",
+      "memory_tokens": "会話履歴の最大トークン数（約4文字/トークン）",
+      "blacklist": "禁止ワード（カンマ区切り）。含まれる場合リクエストをブロック。",
+      "llama_server_path": "llama-server.exe を含むフォルダのフルパス",
+      "llama_server_working_directory": "プロセスの作業ディレクトリ（デフォルト: llama_server_path）",
+      "llama_server_arguments": "llama-server.exe に渡す引数",
+      "tts_engine": "kokoro = AI multilingual synthesis",
+      "cpu_max": "Maximum CPU usage percentage. If exceeded, AI requests wait until below threshold",
+      "ram_max": "Maximum RAM usage percentage. If exceeded, AI requests wait until below threshold",
+      "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
+      "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
+      "resource_timeout": "Maximum seconds to wait before sending the AI request anyway"
+    },
+    "section_labels": {
+      "gui": "ウィンドウ",
+      "player": "オーディオ再生",
+      "wakeword": "ウェイクワード",
+      "commands": "音声コマンド",
+      "tts": "音声合成",
+      "ai": "AI エージェント",
+      "llamacpp": "Llama.cpp",
+      "resources": "System resources"
+    },
+    "buttons": {
+      "save": "保存",
+      "cancel": "キャンセル"
+    },
+    "dialog": {
+      "error": "エラー",
+      "info": "情報",
+      "warning": "警告"
+    },
+    "errors": {
+      "width_range": "ウィンドウ幅は200〜400の間でなければなりません。",
+      "height_range": "ウィンドウ高さは32〜64の間でなければなりません。",
+      "positive_number": "値は正の数でなければなりません。",
+      "restart_required": "ウェイクワードの変更を有効にするにはアプリケーションを再起動してください。",
+      "save_ok": "設定を保存しました。",
+      "pct_range": "{key} must be between 0 and 100.",
+      "invalid_number": "The value entered is not a valid number."
+    }
+  },
+  "scripts_editor": {
+    "title": "VASS スクリプトエディタ",
+    "left_panel": "Scripts",
+    "right_panel": "Editor",
+    "buttons": {
+      "new": "New",
+      "delete": "Delete",
+      "permissions": "Permissions",
+      "template": "Insert template ▾",
+      "save": "Save (Ctrl+S)",
+      "test": "Test"
+    },
+    "permissions": {
+      "title": "Script permissions",
+      "no_permissions": "No permissions stored.",
+      "stored": "Scripts with stored permissions:",
+      "revoke": "Revoke selected",
+      "revoke_all": "Revoke all",
+      "close": "Close",
+      "revoke_confirm": "Revoke permissions for '{name}'?",
+      "revoke_all_confirm": "Revoke ALL stored permissions?",
+      "all_revoked": "All permissions have been revoked."
+    },
+    "close": {
+      "title": "Save?",
+      "message": "Save changes before closing?"
+    }
+  },
+  "commands_editor": {
+    "title": "VASS コマンドエディタ",
+    "list_label": "コマンド",
+    "form_label": "コマンド詳細",
+    "section_label": "セクション",
+    "keyword_label": "キーワード",
+    "command_label": "コマンド",
+    "command_desc": "PowerShell コマンドまたは実行ファイル",
+    "buttons": {
+      "add": "追加",
+      "update": "更新",
+      "delete": "削除",
+      "cancel": "キャンセル"
+    },
+    "dialog": {
+      "error": "エラー"
+    },
+    "errors": {
+      "keyword_empty": "キーワードを入力してください。",
+      "command_empty": "コマンドを入力してください。",
+      "keyword_exists": "キーワード '{keyword}' は既に存在します。",
+      "select_first": "リストからコマンドを選択してください。"
+    },
+    "confirm": {
+      "title": "確認",
+      "delete": "'{key}' を削除しますか？"
+    }
+  },
+  "whisper": {
+    "language": "ja",
+    "initial_prompt_wakeword": "erika",
+    "initial_prompt_transcription": "これは日本語の文字起こしです。よく使われるコマンド：ブラウザを開いて、ウィンドウを閉じて、シャットダウン、再起動、電卓、メモ帳。",
+    "wake_variants": [
+      "erika",
+      "ねえ erika",
+      "こんにちは erika"
+    ]
+  },
+  "ai": {
+    "date_prefix": "現在の日時：",
+    "error": "人工知能との接続エラー。",
+    "blacklisted": "リクエストがブロックされました：禁止ワードが含まれています。"
+  },
+  "tts": {
+    "fallback_language": "ja-JP"
+  },
+  "scripts": {
+    "not_found": "Script {name} not found."
+  },
+  "events": {
+    "reminder_message": "Reminder: {description} at {time}",
+    "time_refs": {
+      "expired": "expired",
+      "in": "in",
+      "minute_s": "min",
+      "hour_s": "hours",
+      "hour_h": "h",
+      "days": "days",
+      "tomorrow": "tomorrow",
+      "weeks": "weeks",
+      "week_s": "week",
+      "months": "months",
+      "month_s": "month",
+      "at": "at",
+      "every": "every",
+      "unknown_date": "unknown date"
+    },
+    "schedule_started": "スケジュールされた手順 {description} が開始されました",
+    "schedule_done": "手順 {description} が完了しました！",
+    "schedule_failed": "手順 {description} が失敗しました！"
+  },
+  "history_viewer": {
+    "title": "Conversation History",
+    "copy": "Copy",
+    "resend": "Resend",
+    "resend_sent": "Request sent to AI. VASS will process it.",
+    "read": "読む",
+    "filter": "Filter messages..."
+  }
+}

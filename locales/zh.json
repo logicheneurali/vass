@@ -1,0 +1,257 @@
+{
+  "gui": {
+    "states": {
+      "listening": "等待中",
+      "recording": "正在听",
+      "waiting": "等待AI",
+      "playing": "播放中",
+      "paused": "暂停",
+      "loading": "初始化中...",
+      "running_script": "执行脚本",
+      "waiting_resources": "Waiting for resources"
+    },
+    "menu": {
+      "menu": "菜单",
+      "commands": "命令",
+      "settings": "设置",
+      "scripts": "脚本",
+      "exit": "退出",
+      "history": "History"
+    },
+    "dialog": {
+      "exit_title": "退出",
+      "exit_message": "确定要退出应用程序吗?"
+    },
+    "mode": {
+      "chat": "聊天模式",
+      "trascrizione": "转录模式"
+    },
+    "auth": {
+      "title": "需要授权",
+      "allow_once": "授权一次",
+      "allow_func": "授权功能",
+      "allow_all": "授权脚本",
+      "func_descriptions": {
+        "ai": "向AI发送提示（可执行MCP工具，如读取文件、浏览网站）",
+        "say": "通过语音合成朗读文本",
+        "run": "在系统上执行PowerShell命令或可执行文件",
+        "screen_search": "读取屏幕上可见文本并搜索元素",
+        "screen_click": "在指定坐标处模拟鼠标点击",
+        "screen_highlight": "短暂高亮屏幕上的某个区域",
+        "listen": "录制您的语音并返回转录文本",
+        "sendtext": "Simulates typing text on the keyboard",
+        "setactivewindow": "Activates a window by process name or title"
+      }
+    },
+    "bar": {
+      "memory": "Memory usage",
+      "volume": "Volume",
+      "script": "Script progress",
+      "bytes": "bytes",
+      "lines": "lines"
+    },
+    "memory_mode": {
+      "full": "Memory: Full",
+      "limited": "Memory: Limited",
+      "none": "Memory: None"
+    },
+    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move"
+  },
+  "settings_editor": {
+    "title": "VASS 设置",
+    "field_labels": {
+      "x": "X 位置",
+      "y": "Y 位置",
+      "width": "宽度",
+      "height": "高度",
+      "font_family": "字体",
+      "font_size": "字号",
+      "wakeword": "唤醒词",
+      "volume": "音量",
+      "api_key": "API 密钥",
+      "command": "播放器命令",
+      "sensitivity": "灵敏度",
+      "similarity": "相似度阈值",
+      "url": "API 地址",
+      "model": "AI 模型",
+      "system_message": "系统提示",
+      "mcp_server_url": "MCP 服务器地址",
+      "memory_tokens": "记忆令牌数",
+      "blacklist": "黑名单",
+      "llama_server_path": "llama-server.exe 路径",
+      "llama_server_working_directory": "工作目录",
+      "llama_server_arguments": "启动参数",
+      "tts_engine": "TTS Engine",
+      "cpu_max": "CPU threshold (%)",
+      "ram_max": "RAM threshold (%)",
+      "gpu_max": "GPU threshold (%)",
+      "vram_max": "VRAM threshold (%)",
+      "resource_timeout": "Wait timeout (sec)"
+    },
+    "field_descriptions": {
+      "x": "屏幕 X 位置",
+      "y": "屏幕 Y 位置",
+      "width": "宽度（像素，200-400）",
+      "height": "高度（像素，32-64）",
+      "font_family": "字体名称（如 Segoe UI）",
+      "font_size": "文字大小（像素）",
+      "wakeword": "唤醒词（如 vass, computer）",
+      "volume": "0.0-1.0，越高越响亮",
+      "api_key": "API 密钥，用于身份验证（不需要则留空）",
+      "language": "界面语言",
+      "command": "音频播放器命令及参数",
+      "sensitivity": "数值越低越灵敏（0.003-0.01）",
+      "similarity": "0.0-1.0，越高匹配越精确",
+      "url": "OpenAI 兼容 API 地址",
+      "model": "AI 模型名称（如 gemma, llama）",
+      "system_message": "AI 系统提示",
+      "mcp_server_url": "MCP 服务器地址（如 http://127.0.0.1:8444/mcp）",
+      "memory_tokens": "对话历史最大令牌数（约4字符/令牌）",
+      "blacklist": "禁用词，用逗号分隔。包含这些词的请求将被阻止。",
+      "llama_server_path": "包含 llama-server.exe 的文件夹完整路径",
+      "llama_server_working_directory": "进程工作目录（默认：llama_server_path）",
+      "llama_server_arguments": "传递给 llama-server.exe 的参数",
+      "tts_engine": "kokoro = AI multilingual synthesis",
+      "cpu_max": "Maximum CPU usage percentage. If exceeded, AI requests wait until below threshold",
+      "ram_max": "Maximum RAM usage percentage. If exceeded, AI requests wait until below threshold",
+      "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
+      "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
+      "resource_timeout": "Maximum seconds to wait before sending the AI request anyway"
+    },
+    "section_labels": {
+      "gui": "窗口",
+      "player": "音频播放",
+      "wakeword": "唤醒词",
+      "commands": "语音命令",
+      "tts": "语音合成",
+      "ai": "AI 代理",
+      "llamacpp": "Llama.cpp",
+      "resources": "System resources"
+    },
+    "buttons": {
+      "save": "保存",
+      "cancel": "取消"
+    },
+    "dialog": {
+      "error": "错误",
+      "info": "信息",
+      "warning": "警告"
+    },
+    "errors": {
+      "width_range": "窗口宽度必须在200到400之间。",
+      "height_range": "窗口高度必须在32到64之间。",
+      "positive_number": "值必须为正数。",
+      "restart_required": "重启应用程序以使唤醒词更改生效。",
+      "save_ok": "设置已成功保存。",
+      "pct_range": "{key} must be between 0 and 100.",
+      "invalid_number": "The value entered is not a valid number."
+    }
+  },
+  "scripts_editor": {
+    "title": "VASS 脚本编辑器",
+    "left_panel": "Scripts",
+    "right_panel": "Editor",
+    "buttons": {
+      "new": "New",
+      "delete": "Delete",
+      "permissions": "Permissions",
+      "template": "Insert template ▾",
+      "save": "Save (Ctrl+S)",
+      "test": "Test"
+    },
+    "permissions": {
+      "title": "Script permissions",
+      "no_permissions": "No permissions stored.",
+      "stored": "Scripts with stored permissions:",
+      "revoke": "Revoke selected",
+      "revoke_all": "Revoke all",
+      "close": "Close",
+      "revoke_confirm": "Revoke permissions for '{name}'?",
+      "revoke_all_confirm": "Revoke ALL stored permissions?",
+      "all_revoked": "All permissions have been revoked."
+    },
+    "close": {
+      "title": "Save?",
+      "message": "Save changes before closing?"
+    }
+  },
+  "commands_editor": {
+    "title": "VASS 命令编辑器",
+    "list_label": "命令",
+    "form_label": "命令详情",
+    "section_label": "分组",
+    "keyword_label": "关键词",
+    "command_label": "命令",
+    "command_desc": "PowerShell 命令或可执行文件",
+    "buttons": {
+      "add": "添加",
+      "update": "更新",
+      "delete": "删除",
+      "cancel": "取消"
+    },
+    "dialog": {
+      "error": "错误"
+    },
+    "errors": {
+      "keyword_empty": "关键词不能为空。",
+      "command_empty": "命令不能为空。",
+      "keyword_exists": "关键词 '{keyword}' 已存在。",
+      "select_first": "请从列表中选择一个命令。"
+    },
+    "confirm": {
+      "title": "确认",
+      "delete": "删除 '{key}' 吗？"
+    }
+  },
+  "whisper": {
+    "language": "zh",
+    "initial_prompt_wakeword": "erika",
+    "initial_prompt_transcription": "这是中文转录。常见命令包括：打开浏览器、关闭窗口、关机、重启、计算器、记事本。",
+    "wake_variants": [
+      "erika",
+      "嘿 erika",
+      "你好 erika"
+    ]
+  },
+  "ai": {
+    "date_prefix": "当前日期和时间：",
+    "error": "与人工智能的连接出错。",
+    "blacklisted": "请求被阻止：包含禁用词。"
+  },
+  "tts": {
+    "fallback_language": "zh-CN"
+  },
+  "scripts": {
+    "not_found": "Script {name} not found."
+  },
+  "events": {
+    "reminder_message": "Reminder: {description} at {time}",
+    "time_refs": {
+      "expired": "expired",
+      "in": "in",
+      "minute_s": "min",
+      "hour_s": "hours",
+      "hour_h": "h",
+      "days": "days",
+      "tomorrow": "tomorrow",
+      "weeks": "weeks",
+      "week_s": "week",
+      "months": "months",
+      "month_s": "month",
+      "at": "at",
+      "every": "every",
+      "unknown_date": "unknown date"
+    },
+    "schedule_started": "计划程序 {description} 已启动",
+    "schedule_done": "程序 {description} 已执行!",
+    "schedule_failed": "程序 {description} 失败!"
+  },
+  "history_viewer": {
+    "title": "Conversation History",
+    "copy": "Copy",
+    "resend": "Resend",
+    "resend_sent": "Request sent to AI. VASS will process it.",
+    "read": "阅读",
+    "filter": "Filter messages..."
+  }
+}

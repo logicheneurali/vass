@@ -1,0 +1,46 @@
+tools:
+  browse:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  read_file:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  write_file:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  current_time:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  calculate:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  execute:
+    whitelist: []
+    blacklist: ["*"]
+  disk_space:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  script:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  interact:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  readinfo:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  writeinfo:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  clipboardget:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  clipboardset:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  websearch:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  webfetch:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []

@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.geany
+
+# VASS - backups
+bk/
+
+# VASS - runtime data (personal/conversations)
+Allowed_root/memory/
+Allowed_root/memory.json
+Allowed_root/events.json
+Allowed_root/schedule.json
+Allowed_root/.history_view.json
+Allowed_root/backup_memory.json
+Allowed_root/bk_memory.json
+Allowed_root/news.json
+
+# VASS - user config (use settings.example.ini as template)
+settings.ini
+commands.ini
+
+# VASS - temporary files
+tts_output_*.wav
+*.log
+mcp_server/LOG/
+
+# VASS - dev files
+plan.md
+todo.txt
+readme.txt
+xxx.json
+lastcommands.txt
+
+# VASS - TTS models (too large)
+tts/*.onnx
+tts/*.onnx.json
+
+# Secrets
+google_client_secret.json
+
+# OS
+Thumbs.db
+.DS_Store

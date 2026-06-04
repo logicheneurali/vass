@@ -1,0 +1,257 @@
+{
+  "gui": {
+    "states": {
+      "listening": "대기 중",
+      "recording": "듣고 있음",
+      "waiting": "AI 기다림",
+      "playing": "재생 중",
+      "paused": "일시 정지",
+      "loading": "초기화 중...",
+      "running_script": "스크립트 실행",
+      "waiting_resources": "Waiting for resources"
+    },
+    "menu": {
+      "menu": "메뉴",
+      "commands": "명령",
+      "settings": "설정",
+      "scripts": "스크립트",
+      "exit": "종료",
+      "history": "History"
+    },
+    "dialog": {
+      "exit_title": "종료",
+      "exit_message": "애플리케이션을 종료하시겠습니까?"
+    },
+    "mode": {
+      "chat": "채팅 모드",
+      "trascrizione": "받아쓰기 모드"
+    },
+    "auth": {
+      "title": "인증 필요",
+      "allow_once": "한 번 허용",
+      "allow_func": "기능 허용",
+      "allow_all": "스크립트 허용",
+      "func_descriptions": {
+        "ai": "AI에 프롬프트 전송 (파일 읽기, 웹사이트 탐색 등 MCP 도구 실행 가능)",
+        "say": "음성 합성으로 텍스트를 소리내어 읽기",
+        "run": "시스템에서 PowerShell 명령 또는 실행 파일 실행",
+        "screen_search": "화면에 보이는 텍스트를 읽고 요소 검색",
+        "screen_click": "지정된 좌표에서 마우스 클릭 시뮬레이션",
+        "screen_highlight": "화면 영역을 잠시 강조 표시",
+        "listen": "음성을 녹음하고 전사된 텍스트 반환",
+        "sendtext": "Simulates typing text on the keyboard",
+        "setactivewindow": "Activates a window by process name or title"
+      }
+    },
+    "bar": {
+      "memory": "Memory usage",
+      "volume": "Volume",
+      "script": "Script progress",
+      "bytes": "bytes",
+      "lines": "lines"
+    },
+    "memory_mode": {
+      "full": "Memory: Full",
+      "limited": "Memory: Limited",
+      "none": "Memory: None"
+    },
+    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move"
+  },
+  "settings_editor": {
+    "title": "VASS 설정",
+    "field_labels": {
+      "x": "X 위치",
+      "y": "Y 위치",
+      "width": "너비",
+      "height": "높이",
+      "font_family": "글꼴",
+      "font_size": "글꼴 크기",
+      "wakeword": "웨이크워드",
+      "volume": "볼륨",
+      "api_key": "API 키",
+      "command": "플레이어 명령",
+      "sensitivity": "민감도",
+      "similarity": "유사도 임계값",
+      "url": "API URL",
+      "model": "AI 모델",
+      "system_message": "시스템 메시지",
+      "mcp_server_url": "MCP 서버 URL",
+      "memory_tokens": "메모리 토큰",
+      "blacklist": "블랙리스트",
+      "llama_server_path": "llama-server.exe 경로",
+      "llama_server_working_directory": "작업 디렉터리",
+      "llama_server_arguments": "시작 인수",
+      "tts_engine": "TTS Engine",
+      "cpu_max": "CPU threshold (%)",
+      "ram_max": "RAM threshold (%)",
+      "gpu_max": "GPU threshold (%)",
+      "vram_max": "VRAM threshold (%)",
+      "resource_timeout": "Wait timeout (sec)"
+    },
+    "field_descriptions": {
+      "x": "화면 X 위치",
+      "y": "화면 Y 위치",
+      "width": "너비 (픽셀, 200-400)",
+      "height": "높이 (픽셀, 32-64)",
+      "font_family": "글꼴 이름 (예: Segoe UI)",
+      "font_size": "텍스트 크기 (픽셀)",
+      "wakeword": "웨이크워드 (예: vass, computer)",
+      "volume": "0.0-1.0, 높을수록 큼",
+      "api_key": "인증을 위한 API 키 (필요하지 않으면 비워둠)",
+      "language": "인터페이스 언어",
+      "command": "오디오 플레이어 명령 및 플래그",
+      "sensitivity": "낮을수록 민감 (0.003-0.01)",
+      "similarity": "0.0-1.0, 높을수록 정확 일치",
+      "url": "OpenAI 호환 API URL",
+      "model": "AI 모델 이름 (예: gemma, llama)",
+      "system_message": "AI 시스템 프롬프트",
+      "mcp_server_url": "MCP 서버 URL (예: http://127.0.0.1:8444/mcp)",
+      "memory_tokens": "대화 기록 최대 토큰 (~4자/토큰)",
+      "blacklist": "쉼표로 구분된 금지어. 포함된 경우 요청이 차단됩니다.",
+      "llama_server_path": "llama-server.exe가 포함된 폴더 전체 경로",
+      "llama_server_working_directory": "프로세스 작업 디렉터리 (기본값: llama_server_path)",
+      "llama_server_arguments": "llama-server.exe에 전달할 인수",
+      "tts_engine": "kokoro = AI multilingual synthesis",
+      "cpu_max": "Maximum CPU usage percentage. If exceeded, AI requests wait until below threshold",
+      "ram_max": "Maximum RAM usage percentage. If exceeded, AI requests wait until below threshold",
+      "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
+      "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
+      "resource_timeout": "Maximum seconds to wait before sending the AI request anyway"
+    },
+    "section_labels": {
+      "gui": "창",
+      "player": "오디오 재생",
+      "wakeword": "웨이크워드",
+      "commands": "음성 명령",
+      "tts": "음성 합성",
+      "ai": "AI 에이전트",
+      "llamacpp": "Llama.cpp",
+      "resources": "System resources"
+    },
+    "buttons": {
+      "save": "저장",
+      "cancel": "취소"
+    },
+    "dialog": {
+      "error": "오류",
+      "info": "정보",
+      "warning": "경고"
+    },
+    "errors": {
+      "width_range": "창 너비는 200~400 사이여야 합니다.",
+      "height_range": "창 높이는 32~64 사이여야 합니다.",
+      "positive_number": "값은 양수여야 합니다.",
+      "restart_required": "웨이크워드 변경을 적용하려면 애플리케이션을 다시 시작하세요.",
+      "save_ok": "설정이 저장되었습니다.",
+      "pct_range": "{key} must be between 0 and 100.",
+      "invalid_number": "The value entered is not a valid number."
+    }
+  },
+  "scripts_editor": {
+    "title": "VASS 스크립트 편집기",
+    "left_panel": "Scripts",
+    "right_panel": "Editor",
+    "buttons": {
+      "new": "New",
+      "delete": "Delete",
+      "permissions": "Permissions",
+      "template": "Insert template ▾",
+      "save": "Save (Ctrl+S)",
+      "test": "Test"
+    },
+    "permissions": {
+      "title": "Script permissions",
+      "no_permissions": "No permissions stored.",
+      "stored": "Scripts with stored permissions:",
+      "revoke": "Revoke selected",
+      "revoke_all": "Revoke all",
+      "close": "Close",
+      "revoke_confirm": "Revoke permissions for '{name}'?",
+      "revoke_all_confirm": "Revoke ALL stored permissions?",
+      "all_revoked": "All permissions have been revoked."
+    },
+    "close": {
+      "title": "Save?",
+      "message": "Save changes before closing?"
+    }
+  },
+  "commands_editor": {
+    "title": "VASS 명령 편집기",
+    "list_label": "명령",
+    "form_label": "명령 상세",
+    "section_label": "섹션",
+    "keyword_label": "키워드",
+    "command_label": "명령",
+    "command_desc": "PowerShell 명령 또는 실행 파일",
+    "buttons": {
+      "add": "추가",
+      "update": "업데이트",
+      "delete": "삭제",
+      "cancel": "취소"
+    },
+    "dialog": {
+      "error": "오류"
+    },
+    "errors": {
+      "keyword_empty": "키워드를 입력하세요.",
+      "command_empty": "명령을 입력하세요.",
+      "keyword_exists": "키워드 '{keyword}'가 이미 존재합니다.",
+      "select_first": "목록에서 명령을 선택하세요."
+    },
+    "confirm": {
+      "title": "확인",
+      "delete": "'{key}'을(를) 삭제하시겠습니까?"
+    }
+  },
+  "whisper": {
+    "language": "ko",
+    "initial_prompt_wakeword": "erika",
+    "initial_prompt_transcription": "한국어 전사입니다. 일반적인 명령: 브라우저 열기, 창 닫기, 종료, 다시 시작, 계산기, 메모장.",
+    "wake_variants": [
+      "erika",
+      "헤이 erika",
+      "안녕 erika"
+    ]
+  },
+  "ai": {
+    "date_prefix": "현재 날짜 및 시간: ",
+    "error": "인공지능 연결 오류.",
+    "blacklisted": "요청이 차단되었습니다: 금지어가 포함되어 있습니다."
+  },
+  "tts": {
+    "fallback_language": "ko-KR"
+  },
+  "scripts": {
+    "not_found": "Script {name} not found."
+  },
+  "events": {
+    "reminder_message": "Reminder: {description} at {time}",
+    "time_refs": {
+      "expired": "expired",
+      "in": "in",
+      "minute_s": "min",
+      "hour_s": "hours",
+      "hour_h": "h",
+      "days": "days",
+      "tomorrow": "tomorrow",
+      "weeks": "weeks",
+      "week_s": "week",
+      "months": "months",
+      "month_s": "month",
+      "at": "at",
+      "every": "every",
+      "unknown_date": "unknown date"
+    },
+    "schedule_started": "예약된 절차 {description} 시작됨",
+    "schedule_done": "절차 {description} 완료됨!",
+    "schedule_failed": "절차 {description} 실패함!"
+  },
+  "history_viewer": {
+    "title": "Conversation History",
+    "copy": "Copy",
+    "resend": "Resend",
+    "resend_sent": "Request sent to AI. VASS will process it.",
+    "read": "읽기",
+    "filter": "Filter messages..."
+  }
+}

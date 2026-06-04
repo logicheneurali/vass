@@ -1,0 +1,2 @@
+say("Procedo")
+ai("scarica la pagina https://localhost:8443/webhook/homev3 e controlla la lista di notizie. suggeriscimi le 10 che secondo te sono le più importanti")
