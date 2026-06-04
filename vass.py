@@ -511,12 +511,7 @@ class VassApp:
     def _start_mcp_server(self):
         mcp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_server")
         script = os.path.join(mcp_dir, "run_server.py")
-        # Kill any stale process on port 9988 before starting fresh
-        subprocess.run(
-            ["powershell", "-Command",
-             "Get-Process -Id (Get-NetTCPConnection -LocalPort 9988 -ErrorAction SilentlyContinue).OwningProcess "
-             "-ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"],
-            capture_output=True)
+        self._kill_port(9988)
         time.sleep(1)
         print(f"[MCP] Starting MCPGoal server from {script}")
         self.mcp_process = subprocess.Popen(
@@ -524,6 +519,24 @@ class VassApp:
             cwd=mcp_dir
         )
         time.sleep(2)
+
+    @staticmethod
+    def _kill_port(port):
+        try:
+            if sys.platform == "win32":
+                r = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
+                for line in r.stdout.splitlines():
+                    if f":{port}" in line and "LISTENING" in line:
+                        pid = line.strip().split()[-1]
+                        subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+            elif sys.platform == "darwin":
+                r = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
+                for pid in r.stdout.strip().split():
+                    subprocess.run(["kill", "-9", pid])
+            else:
+                subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
+        except Exception:
+            pass
 
     def _start_llamacpp(self):
         path = self.llama_server_path.strip()
