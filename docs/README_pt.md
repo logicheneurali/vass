@@ -32,9 +32,10 @@ O VASS é um assistente de voz para Windows, macOS e Linux. Responde a comandos 
 
 ### Instalação guiada
 
-A forma mais simples é usar o script de instalação:
+Descarregue ou clone o projeto, depois entre na pasta e execute o script:
 
 ```bash
+cd vass
 python install.py
 ```
 

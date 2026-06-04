@@ -32,9 +32,10 @@ VASS 是一个适用于 Windows、macOS 和 Linux 的语音助手。它响应语
 
 ### 引导安装
 
-最简单的方式是使用安装脚本：
+下载或克隆项目，然后进入文件夹并运行脚本：
 
 ```bash
+cd vass
 python install.py
 ```
 

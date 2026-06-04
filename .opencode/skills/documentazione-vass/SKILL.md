@@ -70,6 +70,7 @@ Read these files to extract all relevant information:
 ## Utilizzo quotidiano
 - **Wake word flow**: VASS beeps AFTER detecting the wake word to signal readiness. The user speaks the command AFTER the beep. NEVER document it as "say wakeword followed by command, then beep" — the sequence is: wakeword → beep → command.
 - **commands.ini format**: Standard INI `key = value`. The KEY is the voice phrase, the VALUE is the action. Example: `cerca {termine} = script:ricerca`. NEVER document it with `pattern =` / `action =` sub-keys — that is WRONG. The section name is the category (e.g. `[general]`, `[system]`).
+- **Install command**: Always include `cd vass` before `python install.py`. The user must be in the project directory first. Document as: "Download or clone the project, then enter the folder and run the script" followed by `cd vass` + `python install.py`.
 - Modalità (full/limited/none memory)
 - Come creare script VASScript
 - Come aggiungere eventi/schedule
