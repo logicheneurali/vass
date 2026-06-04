@@ -541,16 +541,11 @@ class VassApp:
 
     def _health_check_loop(self):
         import httpx
-        from urllib.parse import urlparse, urlunparse
         while self.running:
             time.sleep(60)
             if not self.running:
                 break
-            try:
-                parsed = urlparse(self.ai_url)
-                health_url = urlunparse((parsed.scheme, parsed.netloc, "/health", "", "", ""))
-            except Exception:
-                continue
+            health_url = f"{self.ai_url.rstrip('/')}/health"
             try:
                 r = httpx.get(health_url, timeout=5)
                 if r.status_code != 200:
