@@ -880,8 +880,15 @@ def main():
         sys.exit(1)
     print(f"  {C_GREEN}{_('py_ok', py_ver.major, py_ver.minor, py_ver.micro)}{C_RESET}")
 
-    rc, _out, _err = run([sys.executable, "-m", "pip", "--version"])
-    if rc != 0:
+    pip_ok = False
+    for pip_cmd in ([sys.executable, "-m", "pip", "--version"],
+                    ["pip3", "--version"],
+                    ["pip", "--version"]):
+        rc, _out, _err = run(pip_cmd)
+        if rc == 0:
+            pip_ok = True
+            break
+    if not pip_ok:
         print(f"  {C_RED}{_('pip_err')}{C_RESET}")
         sys.exit(1)
     print(f"  {C_GREEN}{_('pip_ok')}{C_RESET}")
