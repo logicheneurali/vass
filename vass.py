@@ -548,10 +548,12 @@ class VassApp:
             health_url = f"{self.ai_url.rstrip('/')}/health"
             try:
                 r = httpx.get(health_url, timeout=5)
-                if r.status_code != 200:
-                    print(f"[Health] Server {health_url} returned {r.status_code}")
-            except Exception:
-                print(f"[Health] Server {health_url} unreachable")
+                ok = r.status_code == 200
+                print(f"[Health] {health_url} -> {r.status_code}")
+            except Exception as e:
+                ok = False
+                print(f"[Health] {health_url} unreachable: {e}")
+            self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
 
     def _start_llamacpp(self):
         path = self.llama_server_path.strip()

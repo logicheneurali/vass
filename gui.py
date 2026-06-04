@@ -175,6 +175,9 @@ class VassGUI(QMainWindow):
         self.language = language
         from i18n import t
         self._t = lambda path: t(path, self.language)
+        self._health_ok = True
+        self._current_state = "listening"
+        self._current_detail = ""
 
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
@@ -439,19 +442,22 @@ class VassGUI(QMainWindow):
         self.set_state_signal.emit(state, detail)
 
     def _on_set_state(self, state, detail=""):
+        self._current_state = state
+        self._current_detail = detail
         if state == "loading":
             self.stacked.setCurrentWidget(self.loading_widget)
             return
         color = self.COLORS.get(state, "#1e1e1e")
+        text_color = "#888888" if not self._health_ok else "white"
         text = self._t(f"gui.states.{state}")
         if detail:
             text = f"{text} {detail}"
         self.btn.setText(text)
         self.btn.setStyleSheet(
-            "QPushButton { background-color: %s; color: white; "
+            "QPushButton { background-color: %s; color: %s; "
             "border: none; border-radius: 0; }"
             "QPushButton:hover { background-color: %s; }"
-            % (color, QColor(color).darker(120).name())
+            % (color, text_color, QColor(color).darker(120).name())
         )
         self.stacked.setCurrentWidget(self.btn)
         if state == "recording":
@@ -485,6 +491,12 @@ class VassGUI(QMainWindow):
         self.memory_bar._tip_max = 1
         self.memory_bar._update_tooltip()
         self.memory_bar.set_level(level)
+
+    def set_health_status(self, ok):
+        if self._health_ok != ok:
+            self._health_ok = ok
+            # Re-apply current state styles to update text color
+            self._on_set_state(self._current_state, self._current_detail)
 
     def update_memory_bar(self):
         self.update_memory_signal.emit()
