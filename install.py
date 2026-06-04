@@ -1068,15 +1068,17 @@ def main():
         launcher = dest / "vass.command"
         with open(launcher, "w", encoding="utf-8") as f:
             f.write('#!/bin/bash\n')
-            f.write(f'cd "$(dirname "$0")"\n')
-            f.write(f'exec ".venv/bin/python" "vass.py"\n')
+            f.write('cd "$(dirname "$0")"\n')
+            f.write('source ".venv/bin/activate"\n')
+            f.write('exec python vass.py\n')
         os.chmod(launcher, 0o755)
     else:
         launcher = dest / "vass.sh"
         with open(launcher, "w", encoding="utf-8") as f:
             f.write('#!/bin/bash\n')
-            f.write(f'cd "$(dirname "$0")"\n')
-            f.write(f'exec ".venv/bin/python" "vass.py"\n')
+            f.write('cd "$(dirname "$0")"\n')
+            f.write('source ".venv/bin/activate"\n')
+            f.write('exec python vass.py\n')
         os.chmod(launcher, 0o755)
 
     print(f"  {C_GREEN}{_('launcher_ok', launcher.name)}{C_RESET}")
