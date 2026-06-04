@@ -7,7 +7,19 @@ import warnings
 warnings.filterwarnings("ignore", message=".*dropout option.*")
 warnings.filterwarnings("ignore", message=".*num_layers.*")
 warnings.filterwarnings("ignore", message=".*weight_norm.*deprecated.*")
-import winsound
+try:
+    import winsound
+    def _beep(freq=1000, dur=200):
+        winsound.Beep(freq, dur)
+except ImportError:
+    def _beep(freq=1000, dur=200):
+        import numpy as np
+        import sounddevice as sd
+        sr = 22050
+        t = np.linspace(0, dur / 1000, int(sr * dur / 1000), False)
+        tone = 0.3 * np.sin(2 * np.pi * freq * t)
+        sd.play(tone, sr)
+        sd.wait()
 import os
 import sys
 import configparser
@@ -428,9 +440,9 @@ class VassApp:
         self.gui.update_memory_bar()
 
         # Double beep to indicate app is ready
-        winsound.Beep(800, 150)
+        _beep(800, 150)
         time.sleep(0.15)
-        winsound.Beep(1000, 150)
+        _beep(1000, 150)
         while self.running:
             try:
                 if self._input_mode:
@@ -455,7 +467,7 @@ class VassApp:
                         if wake:
                             print("Wake word detected! Switching to recording mode...")
                             try:
-                                winsound.Beep(1000, 200)
+                                _beep(1000, 200)
                             except Exception as ex:
                                 with open("crash.log", "a") as f:
                                     f.write(f"Beep error: {ex}\n")
