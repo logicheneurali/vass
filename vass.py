@@ -442,6 +442,7 @@ class VassApp:
             threading.Thread(target=self._start_llamacpp, daemon=True).start()
         if self.event_reminder:
             threading.Thread(target=self.event_reminder.run, daemon=True).start()
+        threading.Thread(target=self._health_check_loop, daemon=True).start()
         self.gui.update_memory_bar()
 
         # Double beep to indicate app is ready
@@ -537,6 +538,25 @@ class VassApp:
                 subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
         except Exception:
             pass
+
+    def _health_check_loop(self):
+        import httpx
+        from urllib.parse import urlparse, urlunparse
+        while self.running:
+            time.sleep(60)
+            if not self.running:
+                break
+            try:
+                parsed = urlparse(self.ai_url)
+                health_url = urlunparse((parsed.scheme, parsed.netloc, "/health", "", "", ""))
+            except Exception:
+                continue
+            try:
+                r = httpx.get(health_url, timeout=5)
+                if r.status_code != 200:
+                    print(f"[Health] Server {health_url} returned {r.status_code}")
+            except Exception:
+                print(f"[Health] Server {health_url} unreachable")
 
     def _start_llamacpp(self):
         path = self.llama_server_path.strip()
