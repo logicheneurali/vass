@@ -770,8 +770,11 @@ def venv_pip(dest: Path) -> list[str]:
     return [venv_python(dest), "-m", "pip"]
 
 
-def ask(text: str, default: str = "", choices: list | None = None) -> str:
-    if default and choices is None:
+_UNSET = object()
+
+
+def ask(text: str, default: object = _UNSET, choices: list | None = None) -> str:
+    if default is not _UNSET and str(default) and choices is None:
         prompt = f"  {text} {C_DIM}[{default}]{C_RESET}: "
     elif choices:
         opts = " / ".join(choices)
@@ -784,9 +787,9 @@ def ask(text: str, default: str = "", choices: list | None = None) -> str:
         except (EOFError, KeyboardInterrupt):
             print(f"\n\n{_('cancelled')}")
             sys.exit(0)
-        if not answer and default:
-            return default
-        if not answer and not default:
+        if not answer and default is not _UNSET:
+            return str(default)
+        if not answer and default is _UNSET:
             print(f"  {C_YELLOW}{_('req_field')}{C_RESET}")
             continue
         if choices and answer.lower() not in [c.lower() for c in choices]:
