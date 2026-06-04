@@ -537,19 +537,35 @@ class VassApp:
         args = self.llama_server_arguments.strip()
         cmd = [exe] + (args.split() if args else [])
         print(f"[llama.cpp] Avvio: {' '.join(cmd)} (cwd={cwd})")
-        self.llama_process = subprocess.Popen(cmd, cwd=cwd, creationflags=subprocess.CREATE_NO_WINDOW)
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        self.llama_process = subprocess.Popen(cmd, cwd=cwd, creationflags=creationflags,
+                                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def stop(self):
         self.running = False
         import subprocess as _sp
         if self.mcp_process:
-            _sp.run(["taskkill", "/F", "/T", "/PID", str(self.mcp_process.pid)],
-                    capture_output=True, timeout=5)
+            self._kill_process(self.mcp_process)
             self.mcp_process = None
         if self.llama_process:
-            _sp.run(["taskkill", "/F", "/T", "/PID", str(self.llama_process.pid)],
-                    capture_output=True, timeout=5)
+            self._kill_process(self.llama_process)
             self.llama_process = None
+
+    @staticmethod
+    def _kill_process(proc):
+        try:
+            if sys.platform == "win32":
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                               capture_output=True, timeout=5)
+            else:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait()
+        except Exception:
+            pass
 
     def _transcribe_and_process(self):
         audio_data = self.audio_handler.get_recorded_audio()
