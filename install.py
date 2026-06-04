@@ -940,7 +940,7 @@ def main():
 
     venv_dir = dest / ".venv"
     print(f"  {_('venv_creating', venv_dir)}")
-    rc, _, stderr = run([sys.executable, "-m", "venv", str(venv_dir), "--clear"])
+    rc, _out, stderr = run([sys.executable, "-m", "venv", str(venv_dir), "--clear"])
     if rc != 0:
         print(f"  {C_RED}{_('venv_fail')}{C_RESET}\n{stderr[:500]}")
         sys.exit(1)
@@ -958,7 +958,7 @@ def main():
     else:
         print(f"  {_('pip_running')}")
         print(f"  {C_DIM}{_('pip_wait')}{C_RESET}\n")
-        rc, _, stderr = run(venv_pip(dest) + ["install", "-r", str(req_file)], cwd=str(dest), show=True)
+        rc, _out, stderr = run(venv_pip(dest) + ["install", "-r", str(req_file)], cwd=str(dest), show=True)
         if rc != 0:
             print(f"\n  {C_YELLOW}{_('pip_warn')}{C_RESET}")
             if stderr:
