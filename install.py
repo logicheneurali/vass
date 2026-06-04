@@ -416,9 +416,20 @@ _T = {
         "fr": "ERREUR lors de la creation du venv:",
         "es": "ERROR al crear el venv:",
         "pt": "ERRO ao criar o venv:",
-        "ja": "venv作成エラー:",
-        "ko": "venv 생성 오류:",
-        "zh": "创建venv错误:",
+        "ja": "venv\u4f5c\u6210\u30a8\u30e9\u30fc:",
+        "ko": "venv \uc0dd\uc131 \uc624\ub958:",
+        "zh": "\u521b\u5efa venv \u9519\u8bef:",
+    },
+    "venv_fail_ensurepip": {
+        "en": "The venv module needs python3-venv or python3.13-venv package. Install it first.",
+        "it": "Il modulo venv richiede il pacchetto python3-venv o python3.13-venv. Installalo prima.",
+        "de": "Das venv-Modul benoetigt das Paket python3-venv oder python3.13-venv. Installieren Sie es zuerst.",
+        "fr": "Le module venv necessite le paquet python3-venv ou python3.13-venv. Installez-le d'abord.",
+        "es": "El modulo venv necesita el paquete python3-venv o python3.13-venv. Instalalo primero.",
+        "pt": "O modulo venv precisa do pacote python3-venv ou python3.13-venv. Instale-o primeiro.",
+        "ja": "venv\u30e2\u30b8\u30e5\u30fc\u30eb\u306b\u306f python3-venv \u307e\u305f\u306f python3.13-venv \u30d1\u30c3\u30b1\u30fc\u30b8\u304c\u5fc5\u8981\u3067\u3059\u3002\u5148\u306b\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+        "ko": "venv \ubaa8\ub4c8\uc5d0\ub294 python3-venv \ub610\ub294 python3.13-venv \ud328\ud0a4\uc9c0\uac00 \ud544\uc694\ud569\ub2c8\ub2e4. \uba3c\uc800 \uc124\uce58\ud558\uc138\uc694.",
+        "zh": "venv \u6a21\u5757\u9700\u8981 python3-venv \u6216 python3.13-venv \u5305\u3002\u8bf7\u5148\u5b89\u88c5\u3002",
     },
     "venv_pip_upgrade": {
         "en": "Upgrading pip in venv...",
@@ -950,9 +961,12 @@ def main():
 
     venv_dir = dest / ".venv"
     print(f"  {_('venv_creating', venv_dir)}")
-    rc, _out, stderr = run([sys.executable, "-m", "venv", str(venv_dir), "--clear"])
+    rc, _out, stderr = run([sys.executable, "-m", "venv", str(venv_dir)])
     if rc != 0:
-        print(f"  {C_RED}{_('venv_fail')}{C_RESET}\n{stderr[:500]}")
+        if "ensurepip" in stderr.lower() or "ensurepip" in _out.lower():
+            print(f"  {C_RED}{_('venv_fail_ensurepip')}{C_RESET}")
+        else:
+            print(f"  {C_RED}{_('venv_fail')}{C_RESET}\n{stderr[:500]}")
         sys.exit(1)
     print(f"  {C_GREEN}{_('venv_ok')}{C_RESET}")
 
