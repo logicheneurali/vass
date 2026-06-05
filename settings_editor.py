@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGridLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
-    QGroupBox, QMessageBox, QComboBox, QSlider
+    QGroupBox, QMessageBox, QComboBox, QSlider, QCheckBox
 )
 from PySide6.QtGui import QKeySequence, QShortcut
 from i18n import t
@@ -58,6 +58,8 @@ QSlider::sub-page:horizontal {{
     background: {BTN_BG}; border-radius: 3px;
 }}
 """
+
+BOOLEAN_KEYS = {"llama_autostart"}
 
 SLIDER_CONFIG = {
     "sensitivity": {"min": 1, "max": 20, "scale": 0.001, "default": 5},
@@ -183,6 +185,11 @@ class SettingsEditor(QMainWindow):
                     idx = entry.findText(current_val)
                     if idx >= 0:
                         entry.setCurrentIndex(idx)
+                    group_layout.addWidget(entry, row, 1)
+                elif key in BOOLEAN_KEYS:
+                    entry = QCheckBox()
+                    current_val = self.config.get(section, key, fallback="false")
+                    entry.setChecked(current_val.lower() == "true")
                     group_layout.addWidget(entry, row, 1)
                 elif key in SLIDER_CONFIG:
                     cfg = SLIDER_CONFIG[key]
@@ -350,6 +357,8 @@ class SettingsEditor(QMainWindow):
                 value = f"{slider.value() * scale:.3f}".rstrip("0").rstrip(".")
             elif isinstance(entry, QComboBox):
                 value = entry.currentText()
+            elif isinstance(entry, QCheckBox):
+                value = "true" if entry.isChecked() else "false"
             else:
                 value = entry.text()
 

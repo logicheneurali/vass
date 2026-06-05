@@ -101,6 +101,7 @@ class VassApp:
         self.llama_server_path = self.settings.get("llama_server_path", "")
         self.llama_server_working_directory = self.settings.get("llama_server_working_directory", "")
         self.llama_server_arguments = self.settings.get("llama_server_arguments", "")
+        self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
         self.llama_process = None
 
         reminder_advance = self.settings.get("reminder_advance", 3600)
@@ -256,6 +257,7 @@ class VassApp:
             result["llama_server_path"] = ""
             result["llama_server_working_directory"] = ""
             result["llama_server_arguments"] = ""
+            result["llama_autostart"] = "false"
             result["cpu_max"] = 75.0
             result["ram_max"] = 99.0
             result["gpu_max"] = 75.0
@@ -365,6 +367,8 @@ class VassApp:
                         self.mcp_server_url = self.settings["mcp_server_url"]
                         self.memory_tokens = self.settings.get("memory_tokens", 2000)
                         self.blacklist = self._parse_blacklist(self.settings.get("blacklist", ""))
+                        self.llama_server_path = self.settings.get("llama_server_path", "")
+                        self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
                         tv = self.settings.get("volume", 0.95)
                         self.tts.update_settings(tv)
                         self.gui.volume_top_bar.set_volume(tv)
@@ -438,7 +442,7 @@ class VassApp:
         threading.Thread(target=self._watch_script_queue, daemon=True).start()
         if self.mcp_server_url and os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_server", "run_server.py")):
             threading.Thread(target=self._start_mcp_server, daemon=True).start()
-        if self.llama_server_path.strip():
+        if self.llama_server_path.strip() and self.llama_autostart:
             threading.Thread(target=self._start_llamacpp, daemon=True).start()
         if self.event_reminder:
             threading.Thread(target=self.event_reminder.run, daemon=True).start()

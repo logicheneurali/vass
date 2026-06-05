@@ -1042,6 +1042,7 @@ def main():
             "--flash-attn on --cache-ram 4096 -c 10240 --cont-batching "
             "--sleep-idle-seconds 600 --timeout 36000"
         ),
+        "llama_autostart": "true",
     }
     cfg["resources"] = {
         "cpu_max": "75", "ram_max": "99", "gpu_max": "75",
