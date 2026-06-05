@@ -82,7 +82,7 @@
       "llama_server_path": "llama-server.exe path",
       "llama_server_working_directory": "Working directory",
       "llama_server_arguments": "Startup arguments",
-      "llama_autostart": "Auto-start",
+      "llama_autostart": "Enabled",
       "cpu_max": "CPU threshold (%)",
       "ram_max": "RAM threshold (%)",
       "gpu_max": "GPU threshold (%)",

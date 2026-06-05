@@ -110,7 +110,7 @@
       "llama_server_path": "Percorso llama-server.exe",
       "llama_server_working_directory": "Directory di lavoro",
       "llama_server_arguments": "Argomenti avvio",
-      "llama_autostart": "Avvia all'avvio",
+      "llama_autostart": "Abilitato",
       "cpu_max": "Soglia CPU (%)",
       "ram_max": "Soglia RAM (%)",
       "gpu_max": "Soglia GPU (%)",

@@ -81,7 +81,7 @@
       "llama_server_path": "Ruta de llama-server.exe",
       "llama_server_working_directory": "Directorio de trabajo",
       "llama_server_arguments": "Argumentos de inicio",
-      "llama_autostart": "Auto-inicio",
+      "llama_autostart": "Activado",
       "tts_engine": "TTS Engine",
       "cpu_max": "CPU threshold (%)",
       "ram_max": "RAM threshold (%)",

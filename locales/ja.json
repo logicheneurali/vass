@@ -81,7 +81,7 @@
       "llama_server_path": "llama-server.exe のパス",
       "llama_server_working_directory": "作業ディレクトリ",
       "llama_server_arguments": "起動引数",
-      "llama_autostart": "自動起動",
+      "llama_autostart": "有効",
       "tts_engine": "TTS Engine",
       "cpu_max": "CPU threshold (%)",
       "ram_max": "RAM threshold (%)",

@@ -81,7 +81,7 @@
       "llama_server_path": "Chemin llama-server.exe",
       "llama_server_working_directory": "Répertoire de travail",
       "llama_server_arguments": "Arguments de démarrage",
-      "llama_autostart": "Demarrage auto",
+      "llama_autostart": "Active",
       "tts_engine": "TTS Engine",
       "cpu_max": "CPU threshold (%)",
       "ram_max": "RAM threshold (%)",

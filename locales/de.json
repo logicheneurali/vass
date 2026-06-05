@@ -82,7 +82,7 @@
       "llama_server_path": "llama-server.exe Pfad",
       "llama_server_working_directory": "Arbeitsverzeichnis",
       "llama_server_arguments": "Startargumente",
-      "llama_autostart": "Autostart",
+      "llama_autostart": "Aktiviert",
       "cpu_max": "CPU-Schwelle (%)",
       "ram_max": "RAM-Schwelle (%)",
       "gpu_max": "GPU-Schwelle (%)",
