@@ -119,7 +119,10 @@ class CommandExecutor:
                     k: quote(v, safe='') if k.startswith('escaped_') else v
                     for k, v in best_vars.items()
                 }
-                cmd = cmd.format(**fmt_vars)
+                try:
+                    cmd = cmd.format(**fmt_vars)
+                except KeyError:
+                    return None, None
                 param_dict = {f"param{i+1}": v for i, (k, v) in enumerate(best_vars.items())}
                 var_info = ', '.join(f'{k}={v}' for k, v in best_vars.items())
                 print(f"[Fuzzy] '{transcribed_text}' -> '{best_keyword}' (ratio: {best_ratio:.2f}, vars: {{{var_info}}})")
