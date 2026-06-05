@@ -18,6 +18,19 @@ env/
 
 # VASS - backups
 bk/
+bk/*.txt
+
+# VASS - opencode config
+.opencode/
+
+# VASS - local scripts
+.scripts/
+
+# VASS - agent instructions
+AGENTS.md
+
+# VASS - misc utilities
+highlight_toast.ps1
 
 # VASS - runtime data (personal/conversations)
 Allowed_root/memory/
@@ -51,6 +64,7 @@ tts/*.onnx.json
 
 # Secrets
 google_client_secret.json
+bk/git-tk.txt
 
 # OS
 Thumbs.db
