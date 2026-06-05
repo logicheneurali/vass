@@ -1,10 +1,178 @@
 import json
+import os
+import re
 import subprocess
+import sys
 import time
 from openai import APIConnectionError
+from urllib.parse import urlparse
+
+SCRIPT_PREFIXES = ("vasscript:", "script:")
 
 
-def call_with_retry(fn, retries=4, delays=(1, 2, 4, 8), log_prefix="[AI]"):
+# ── System / process utilities ───────────────────────────────────────────────
+
+def is_process_running(name):
+    try:
+        if sys.platform == "win32":
+            r = subprocess.run(["tasklist"], capture_output=True, text=True)
+            return name.lower() in r.stdout.lower()
+        else:
+            r = subprocess.run(["pgrep", "-f", name], capture_output=True)
+            return r.returncode == 0
+    except Exception:
+        return False
+
+
+def kill_port(port):
+    try:
+        if sys.platform == "win32":
+            r = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
+            for line in r.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    pid = line.strip().split()[-1]
+                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+        elif sys.platform == "darwin":
+            r = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
+            for pid in r.stdout.strip().split():
+                subprocess.run(["kill", "-9", pid])
+        else:
+            subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
+    except Exception:
+        pass
+
+
+def kill_process(proc):
+    try:
+        if sys.platform == "win32":
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                           capture_output=True, timeout=5)
+        else:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+    except Exception:
+        pass
+
+
+# ── Audio utility ────────────────────────────────────────────────────────────
+
+try:
+    import winsound
+    def beep(freq=1000, dur=200):
+        winsound.Beep(freq, dur)
+except ImportError:
+    import numpy as np
+    import sounddevice as sd
+    def beep(freq=1000, dur=200):
+        sr = 22050
+        t = np.linspace(0, dur / 1000, int(sr * dur / 1000), False)
+        tone = 0.3 * np.sin(2 * np.pi * freq * t)
+        sd.play(tone, sr)
+        sd.wait()
+
+
+# ── Clipboard utility ────────────────────────────────────────────────────────
+
+def paste_text(text):
+    import base64
+    try:
+        if sys.platform == "win32":
+            text_b64 = base64.b64encode(text.encode("utf-16-le")).decode("ascii")
+            cmd = f"Set-Clipboard -Value ([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('{text_b64}')))"
+            cmd_b64 = base64.b64encode(cmd.encode("utf-16-le")).decode("ascii")
+            subprocess.run(
+                ["powershell", "-NoProfile", "-EncodedCommand", cmd_b64],
+                creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
+            )
+            subprocess.run(
+                ["powershell", "-NoProfile", "-Command",
+                 "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v')"],
+                creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
+            )
+        elif sys.platform == "darwin":
+            subprocess.run(["pbcopy"], input=text, text=True, timeout=5)
+            subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], timeout=5)
+        else:
+            subprocess.run(["xclip", "-selection", "clipboard"], input=text, text=True, timeout=5)
+            subprocess.run(["xdotool", "key", "ctrl+v"], timeout=5)
+    except Exception as e:
+        print(f"[Paste] Error: {e}")
+
+
+# ── String / text utilities ──────────────────────────────────────────────────
+
+def parse_blacklist(raw):
+    return set(w.strip().lower() for w in raw.split(",") if w.strip())
+
+
+def is_local_url(url):
+    host = (urlparse(url).hostname or "").lower()
+    return host in ("127.0.0.1", "localhost", "::1") or host.startswith("127.")
+
+
+def strip_markdown(text):
+    text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
+    text = re.sub(r'`.*?`', '', text)
+    text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+    text = re.sub(r'\*(.*?)\*', r'\1', text)
+    text = re.sub(r'__(.*?)__', r'\1', text)
+    text = re.sub(r'_(.*?)_', r'\1', text)
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    text = re.sub(r'!\[([^\]]*)\]\([^)]+\)', r'\1', text)
+    text = re.sub(r'^[\s]*[-*+]\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^[\s]*\d+\.\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^>\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^[-*_]{3,}\s*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n\s*\n', '\n\n', text)
+    return text.strip()
+
+
+# ── Script prefix utilities ──────────────────────────────────────────────────
+
+def is_script_command(cmd):
+    return any(cmd.startswith(p) for p in SCRIPT_PREFIXES)
+
+
+def strip_script_prefix(cmd):
+    for p in SCRIPT_PREFIXES:
+        if cmd.startswith(p):
+            return cmd[len(p):].strip()
+    return cmd
+
+
+# ── File / memory utilities ──────────────────────────────────────────────────
+
+def cleanup_orphan_files(mem_dir, history_ids, summary_id):
+    import shutil
+    try:
+        referenced = set(history_ids[-20:])
+        if summary_id:
+            referenced.add(summary_id)
+        archive_date = time.strftime("%Y-%m", time.localtime())
+        archive_dir = os.path.join(mem_dir, "archive", archive_date)
+        moved = 0
+        for fname in os.listdir(mem_dir):
+            if fname.endswith(".json"):
+                fid = fname[:-5]
+                if fid not in referenced:
+                    try:
+                        os.makedirs(archive_dir, exist_ok=True)
+                        shutil.move(os.path.join(mem_dir, fname), os.path.join(archive_dir, fname))
+                        moved += 1
+                    except OSError:
+                        pass
+        if moved > 0:
+            print(f"[Memory] Cleaned {moved} orphan files to archive/{archive_date}")
+    except Exception:
+        pass
+
+
+# ── AI utilities ─────────────────────────────────────────────────────────────
     for attempt in range(retries):
         try:
             return fn()

@@ -9,17 +9,8 @@ warnings.filterwarnings("ignore", message=".*num_layers.*")
 warnings.filterwarnings("ignore", message=".*weight_norm.*deprecated.*")
 try:
     import winsound
-    def _beep(freq=1000, dur=200):
-        winsound.Beep(freq, dur)
 except ImportError:
-    def _beep(freq=1000, dur=200):
-        import numpy as np
-        import sounddevice as sd
-        sr = 22050
-        t = np.linspace(0, dur / 1000, int(sr * dur / 1000), False)
-        tone = 0.3 * np.sin(2 * np.pi * freq * t)
-        sd.play(tone, sr)
-        sd.wait()
+    pass
 import os
 import sys
 import configparser
@@ -37,26 +28,13 @@ from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
+from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix
 from gui import VassGUI
 from i18n import t
 from script_engine import VASScript
 from tts_engine import TtsEngine
 from event_reminder import EventReminder
 from idle_tracker import IdleTracker
-
-_SCRIPT_PREFIXES = ("vasscript:", "script:")
-
-
-def _is_script_command(cmd):
-    return any(cmd.startswith(p) for p in _SCRIPT_PREFIXES)
-
-
-def _strip_script_prefix(cmd):
-    for p in _SCRIPT_PREFIXES:
-        if cmd.startswith(p):
-            return cmd[len(p):].strip()
-    return cmd
 
 
 MEMORY_SUMMARIZATION_PROMPT = (
@@ -97,7 +75,7 @@ class VassApp:
         self.mcp_server_url = self.settings["mcp_server_url"]
         self.mcp_process = None
         self.memory_tokens = self.settings.get("memory_tokens", 2000)
-        self.blacklist = self._parse_blacklist(self.settings.get("blacklist", ""))
+        self.blacklist = parse_blacklist(self.settings.get("blacklist", ""))
         self.llama_server_path = self.settings.get("llama_server_path", "")
         self.llama_server_working_directory = self.settings.get("llama_server_working_directory", "")
         self.llama_server_arguments = self.settings.get("llama_server_arguments", "")
@@ -134,16 +112,6 @@ class VassApp:
         self._ensure_memory_file()
 
     @staticmethod
-    def _parse_blacklist(raw):
-        return set(w.strip().lower() for w in raw.split(",") if w.strip())
-
-    @staticmethod
-    def _is_local_url(url):
-        from urllib.parse import urlparse
-        host = (urlparse(url).hostname or "").lower()
-        return host in ("127.0.0.1", "localhost", "::1") or host.startswith("127.")
-
-    @staticmethod
     def _ensure_memory_file():
         dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root")
         if not os.path.exists(dir_path):
@@ -167,24 +135,28 @@ class VassApp:
         print(f"[MemoryMode] Switched to '{mode}'")
 
     @staticmethod
-    def _paste_text(text):
+    def paste_text(text):
         import subprocess, base64
         try:
-            encoded = base64.b64encode(
-                f'Add-Type -AssemblyName System.Windows.Forms; '
-                f'[System.Windows.Forms.Clipboard]::SetText($Input);'.encode('utf-16-le')
-            ).decode('ascii')
-            text_bytes = text.encode('utf-16-le')
-            subprocess.run(
-                ["powershell", "-NoProfile", "-EncodedCommand", encoded],
-                input=text_bytes,
-                creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
-            )
-            subprocess.run(
-                ["powershell", "-NoProfile", "-Command",
-                 "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v')"],
-                creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
-            )
+            if sys.platform == "win32":
+                text_b64 = base64.b64encode(text.encode("utf-16-le")).decode("ascii")
+                cmd = f"Set-Clipboard -Value ([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('{text_b64}')))"
+                cmd_b64 = base64.b64encode(cmd.encode("utf-16-le")).decode("ascii")
+                subprocess.run(
+                    ["powershell", "-NoProfile", "-EncodedCommand", cmd_b64],
+                    creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
+                )
+                subprocess.run(
+                    ["powershell", "-NoProfile", "-Command",
+                     "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v')"],
+                    creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
+                )
+            elif sys.platform == "darwin":
+                subprocess.run(["pbcopy"], input=text, text=True, timeout=5)
+                subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], timeout=5)
+            else:
+                subprocess.run(["xclip", "-selection", "clipboard"], input=text, text=True, timeout=5)
+                subprocess.run(["xdotool", "key", "ctrl+v"], timeout=5)
         except Exception as e:
             print(f"[Paste] Error: {e}")
 
@@ -366,7 +338,7 @@ class VassApp:
                         self.openai_client.api_key = self.ai_api_key or "not-needed"
                         self.mcp_server_url = self.settings["mcp_server_url"]
                         self.memory_tokens = self.settings.get("memory_tokens", 2000)
-                        self.blacklist = self._parse_blacklist(self.settings.get("blacklist", ""))
+                        self.blacklist = parse_blacklist(self.settings.get("blacklist", ""))
                         self.llama_server_path = self.settings.get("llama_server_path", "")
                         self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
                         tv = self.settings.get("volume", 0.95)
@@ -450,9 +422,9 @@ class VassApp:
         self.gui.update_memory_bar()
 
         # Double beep to indicate app is ready
-        _beep(800, 150)
+        beep(800, 150)
         time.sleep(0.15)
-        _beep(1000, 150)
+        beep(1000, 150)
         while self.running:
             try:
                 if self._input_mode:
@@ -477,7 +449,7 @@ class VassApp:
                         if wake:
                             print("Wake word detected! Switching to recording mode...")
                             try:
-                                _beep(1000, 200)
+                                beep(1000, 200)
                             except Exception as ex:
                                 with open("crash.log", "a") as f:
                                     f.write(f"Beep error: {ex}\n")
@@ -516,7 +488,7 @@ class VassApp:
     def _start_mcp_server(self):
         mcp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_server")
         script = os.path.join(mcp_dir, "run_server.py")
-        self._kill_port(9988)
+        self.kill_port(9988)
         time.sleep(1)
         print(f"[MCP] Starting MCPGoal server from {script}")
         self.mcp_process = subprocess.Popen(
@@ -526,7 +498,7 @@ class VassApp:
         time.sleep(2)
 
     @staticmethod
-    def _kill_port(port):
+    def kill_port(port):
         try:
             if sys.platform == "win32":
                 r = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
@@ -563,9 +535,15 @@ class VassApp:
         path = self.llama_server_path.strip()
         if not path:
             return
-        exe = os.path.join(path, "llama-server.exe")
+        if sys.platform == "win32":
+            exe = os.path.join(path, "llama-server.exe")
+        else:
+            exe = os.path.join(path, "llama-server")
         if not os.path.isfile(exe):
-            print(f"[llama.cpp] llama-server.exe non trovato in: {path}")
+            print(f"[llama.cpp] llama-server non trovato in: {path}")
+            return
+        if is_process_running("llama-server"):
+            print("[llama.cpp] llama-server gia in esecuzione, skip")
             return
         cwd = self.llama_server_working_directory.strip() or path
         args = self.llama_server_arguments.strip()
@@ -579,14 +557,14 @@ class VassApp:
         self.running = False
         import subprocess as _sp
         if self.mcp_process:
-            self._kill_process(self.mcp_process)
+            self.kill_process(self.mcp_process)
             self.mcp_process = None
         if self.llama_process:
-            self._kill_process(self.llama_process)
+            self.kill_process(self.llama_process)
             self.llama_process = None
 
     @staticmethod
-    def _kill_process(proc):
+    def kill_process(proc):
         try:
             if sys.platform == "win32":
                 subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
@@ -686,15 +664,20 @@ class VassApp:
         if not transcribed_text:
             print("Empty transcription.")
             return
+        if self.mode == "trascrizione":
+            print(f"[Mode] Transcription mode: pasting text")
+            self.paste_text(transcribed_text)
+            self.set_state("listening")
+            return
         matched_command, matched_vars = self.command_executor.find_matching_command(transcribed_text)
-        if matched_command and _is_script_command(matched_command):
+        if matched_command and is_script_command(matched_command):
             print(f"Executing script command: {matched_command}")
-            script_name = _strip_script_prefix(matched_command)
+            script_name = strip_script_prefix(matched_command)
             threading.Thread(target=self._run_script, args=(script_name,), kwargs={"params": matched_vars}, daemon=True).start()
             return
         if self.mode == "trascrizione":
             print(f"[Mode] Transcription mode: pasting text")
-            self._paste_text(transcribed_text)
+            self.paste_text(transcribed_text)
             self.set_state("listening")
             return
         if matched_command:
@@ -705,8 +688,8 @@ class VassApp:
             threading.Thread(target=self._handle_ai_fallback, args=(transcribed_text,), daemon=True).start()
 
     def _execute_and_speak(self, command):
-        if _is_script_command(command):
-            self._run_script(_strip_script_prefix(command))
+        if is_script_command(command):
+            self._run_script(strip_script_prefix(command))
             return
         self.command_executor.execute_command(command)
 
@@ -849,7 +832,7 @@ class VassApp:
                 self.set_state("listening")
                 return
 
-        if self._is_local_url(self.ai_url):
+        if is_local_url(self.ai_urlself.ai_url):
             from resource_monitor import wait_for_resources
             self.set_state("waiting_resources")
             timeout = self.settings.get("resource_timeout", 300)
@@ -968,7 +951,7 @@ class VassApp:
                     json.dump(mem, f, ensure_ascii=False, indent=2)
                 # Light cleanup: move unreferenced files to archive every N saves
                 if len(merged_ids) % 5 == 0:
-                    self._cleanup_orphan_files(mem_dir, merged_ids, existing.get("summary_id", ""))
+                    cleanup_orphan_files(mem_dir, merged_ids, existing.get("summary_id", ""))
             except Exception as e:
                 print(f"[Memory] Save error: {e}")
 
@@ -976,7 +959,7 @@ class VassApp:
 
             self.gui.update_memory_bar()
 
-            clean_text = self._strip_markdown(ai_response)
+            clean_text = strip_markdown(ai_response)
             self.tts.speak(clean_text)
         except Exception as e:
             body = getattr(e, "body", None)
@@ -991,47 +974,6 @@ class VassApp:
             print(f"Error calling AI Agent: {e}")
             threading.Thread(target=self.tts.speak, args=(err_msg,), daemon=True).start()
             self.set_state("listening")
-
-    def _strip_markdown(self, text):
-        text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
-        text = re.sub(r'`.*?`', '', text)
-        text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
-        text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
-        text = re.sub(r'\*(.*?)\*', r'\1', text)
-        text = re.sub(r'__(.*?)__', r'\1', text)
-        text = re.sub(r'_(.*?)_', r'\1', text)
-        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-        text = re.sub(r'!\[([^\]]*)\]\([^)]+\)', r'\1', text)
-        text = re.sub(r'^[\s]*[-*+]\s+', '', text, flags=re.MULTILINE)
-        text = re.sub(r'^[\s]*\d+\.\s+', '', text, flags=re.MULTILINE)
-        text = re.sub(r'^>\s*', '', text, flags=re.MULTILINE)
-        text = re.sub(r'^[-*_]{3,}\s*$', '', text, flags=re.MULTILINE)
-        text = re.sub(r'\n\s*\n', '\n\n', text)
-        return text.strip()
-
-    def _cleanup_orphan_files(self, mem_dir, history_ids, summary_id):
-        import shutil
-        try:
-            referenced = set(history_ids[-20:])
-            if summary_id:
-                referenced.add(summary_id)
-            archive_date = time.strftime("%Y-%m", time.localtime())
-            archive_dir = os.path.join(mem_dir, "archive", archive_date)
-            moved = 0
-            for fname in os.listdir(mem_dir):
-                if fname.endswith(".json"):
-                    fid = fname[:-5]
-                    if fid not in referenced:
-                        try:
-                            os.makedirs(archive_dir, exist_ok=True)
-                            shutil.move(os.path.join(mem_dir, fname), os.path.join(archive_dir, fname))
-                            moved += 1
-                        except OSError:
-                            pass
-            if moved > 0:
-                print(f"[Memory] Cleaned {moved} orphan files to archive/{archive_date}")
-        except Exception:
-            pass
 
     def _trim_memory_if_needed(self):
         if not self._trim_lock.acquire(blocking=False):
