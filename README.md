@@ -1,4 +1,4 @@
-# VASS — Intelligent Voice Assistant
+# VASS — Voice Assistant
 
 ## What is VASS
 
