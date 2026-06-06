@@ -1,6 +1,0 @@
-# riproduci_playlist.vass
-say("Cerco musica di {$param1}")
-run("Start-Process firefox 'https://www.youtube.com/results?search_query={$param1}'")
-wait(15)
-screen_search("mix di youtube")
-ifempty($_sx,say("Non trovo bottone playlist."),screen_click($_sx,$_sy))

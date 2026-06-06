@@ -1,4 +1,0 @@
-# riassumi_da_link.vass
-$source=clipboardget()
-$summary=ai("scarica la pagina {$source} e fai il riassunto")
-clipboardset($summary)

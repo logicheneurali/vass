@@ -1,6 +1,0 @@
-# clicca_su_testo.vass
-say("Specificare testo")
-$text=listen()
-$risultati = screen_search($text)
-ifempty($risultati, exit(), "")
-screen_click($_sx, $_sy)

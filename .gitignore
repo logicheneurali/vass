@@ -29,6 +29,9 @@ bk/*.txt
 # VASS - agent instructions
 AGENTS.md
 
+# VASS - user scripts
+scripts/
+
 # VASS - misc utilities
 highlight_toast.ps1
 

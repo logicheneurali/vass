@@ -1,3 +1,0 @@
-# data_e_ora.vass
-$d=run("Get-Date")
-say($d)
