@@ -32,6 +32,9 @@ AGENTS.md
 # VASS - user scripts
 scripts/
 
+# VASS - windows shortcut
+VASS.lnk
+
 # VASS - misc utilities
 highlight_toast.ps1
 
@@ -58,16 +61,12 @@ mcp_server/LOG/
 plan.md
 todo.txt
 readme.txt
-xxx.json
 lastcommands.txt
 
 # VASS - TTS models (too large)
 tts/*.onnx
 tts/*.onnx.json
 
-# Secrets
-google_client_secret.json
-bk/git-tk.txt
 
 # OS
 Thumbs.db
