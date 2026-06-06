@@ -21,6 +21,7 @@ VASS 是一个适用于 Windows、macOS 和 Linux 的语音助手。它响应语
 ## 要求
 
 - **Python 3.13** 或更高版本
+- **AI 服务器** (llama.cpp 或 OpenAI 兼容) 已安装并配置在系统上。VASS 可以在配置后自动启动 llama.cpp，但**不会安装 llama.cpp 或下载 AI 模型**：您需要单独获取。
 - **互联网连接**（用于下载模型和远程 AI）
 - 本地 AI 建议使用 **NVIDIA GPU**（也可使用 CPU 但速度较慢）
 - 正常工作的**麦克风**
@@ -38,6 +39,10 @@ VASS 是一个适用于 Windows、macOS 和 Linux 的语音助手。它响应语
 cd vass
 python install.py
 ```
+
+> **注意：** 引导安装会设置 VASS，但**不会安装 AI 服务器或模型**。
+> 您必须已经运行一个 OpenAI 兼容的服务器（llama.cpp、Ollama、LM Studio、Groq、OpenAI 等）
+> 或在 VASS 设置中配置 llama.cpp（可自动启动）。
 
 **注意：** 引导安装程序仍处于实验阶段，可能不适用于所有系统。如遇问题，请使用下面的手动安装。
 

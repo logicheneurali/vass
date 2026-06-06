@@ -21,6 +21,7 @@ VASS는 Windows, macOS, Linux용 음성 비서입니다. 음성 명령에 응답
 ## 요구 사항
 
 - **Python 3.13** 이상
+- **AI 서버** (llama.cpp 또는 OpenAI 호환)가 시스템에 이미 설치 및 구성되어 있어야 합니다. VASS는 설정된 경우 llama.cpp를 자동으로 시작할 수 있지만, **llama.cpp를 설치하거나 AI 모델을 다운로드하지 않습니다**: 별도로 준비해야 합니다.
 - **인터넷 연결** (모델 다운로드 및 원격 AI용)
 - 로컬 AI용 **NVIDIA GPU 권장** (CPU 가능하지만 느림)
 - 작동하는 **마이크**
@@ -38,6 +39,10 @@ VASS는 Windows, macOS, Linux용 음성 비서입니다. 음성 명령에 응답
 cd vass
 python install.py
 ```
+
+> **참고:** 안내식 설치는 VASS를 설정하지만 **AI 서버나 모델을 설치하지 않습니다**.
+> OpenAI 호환 서버가 이미 실행 중이어야 합니다 (llama.cpp, Ollama, LM Studio, Groq, OpenAI 등)
+> 또는 VASS 설정에서 llama.cpp를 구성하세요 (자동 시작 가능).
 
 **참고:** 안내식 설치는 아직 실험적이며 모든 시스템에서 작동하지 않을 수 있습니다. 문제가 발생하면 아래 수동 설치를 사용하세요.
 

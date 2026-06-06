@@ -21,6 +21,7 @@ VASS es un asistente de voz para Windows, macOS y Linux. Responde a comandos de 
 ## Requisitos
 
 - **Python 3.13** o superior
+- **Servidor IA** (llama.cpp o compatible con OpenAI) ya instalado y configurado en el sistema. VASS puede iniciar automáticamente llama.cpp si está configurado, pero **NO instala llama.cpp ni descarga modelos de IA**: debes obtenerlos por separado.
 - **Conexión a internet** (para descarga de modelos e IA remota)
 - **GPU NVIDIA recomendada** para IA local (CPU posible pero lenta)
 - **Micrófono** funcional
@@ -38,6 +39,10 @@ Descarga o clona el proyecto, luego entra en la carpeta y ejecuta el script:
 cd vass
 python install.py
 ```
+
+> **Nota:** la instalación guiada configura VASS pero **NO instala el servidor IA ni los modelos**.
+> Debes tener un servidor compatible con OpenAI ya en ejecución (llama.cpp, Ollama, LM Studio, Groq, OpenAI, etc.)
+> o configurar llama.cpp en los ajustes de VASS (que puede iniciarlo automáticamente).
 
 **Nota:** el procedimiento de instalacion guiada aun es experimental y puede no funcionar en todos los sistemas. Si encuentras problemas, usa la instalacion manual a continuacion.
 

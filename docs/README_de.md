@@ -21,6 +21,7 @@ VASS ist ein Sprachassistent für Windows, macOS und Linux. Er reagiert auf Spra
 ## Voraussetzungen
 
 - **Python 3.13** oder höher
+- **KI-Server** (llama.cpp oder OpenAI-kompatibel) bereits auf dem System installiert und konfiguriert. VASS kann llama.cpp automatisch starten, falls konfiguriert, **installiert llama.cpp jedoch NICHT und lädt keine KI-Modelle herunter**: Sie müssen diese separat beziehen.
 - **Internetverbindung** (für Modell-Downloads und entfernte KI)
 - **NVIDIA-GPU empfohlen** für lokale KI (CPU möglich, aber langsam)
 - **Funktionierendes Mikrofon**
@@ -38,6 +39,10 @@ Projekt herunterladen oder klonen, dann den Ordner betreten und das Skript ausf�
 cd vass
 python install.py
 ```
+
+> **Hinweis:** die geführte Installation richtet VASS ein, installiert aber **NICHT den KI-Server oder die Modelle**.
+> Sie müssen bereits einen OpenAI-kompatiblen Server betreiben (llama.cpp, Ollama, LM Studio, Groq, OpenAI, etc.)
+> oder llama.cpp in den VASS-Einstellungen konfigurieren (der ihn automatisch starten kann).
 
 **Hinweis:** Die gefuhrte Installation ist noch experimentell und funktioniert moglicherweise nicht auf allen Systemen. Bei Problemen verwenden Sie die manuelle Installation unten.
 
