@@ -37,6 +37,16 @@ from event_reminder import EventReminder
 from idle_tracker import IdleTracker
 
 
+def _load_version():
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")) as f:
+            return f.read().strip()
+    except Exception:
+        return "0.0.0"
+
+__version__ = _load_version()
+
+
 MEMORY_SUMMARIZATION_PROMPT = (
     "Summarize these conversations concisely."
     "Keep important info (user informations, preferences, user events (user's requests to AI are not considered as 'user events'),family members informations, pets informations,family members events, pets events)."
@@ -415,7 +425,7 @@ class VassApp:
             print(f"[Settings] Could not save position: {e}")
 
     def run(self):
-        print("Vass - Voice Activated Command System")
+        print(f"VASS v{__version__} - Voice Activated Command System")
         self.voice_recognition.load_models()
         self.set_state("listening")
         self.running = True
@@ -1113,6 +1123,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="VASS Voice Assistant")
     parser.add_argument("--compress-memory", action="store_true", help="Comprimi memory.json tramite AI e poi esci")
+    parser.add_argument("--version", action="version", version=f"VASS v{__version__}")
     args = parser.parse_args()
 
     # Load settings first to get GUI params
