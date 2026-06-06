@@ -35,6 +35,9 @@ scripts/
 # VASS - windows shortcut
 VASS.lnk
 
+# Secrets
+google_client_secret.json
+
 # VASS - misc utilities
 highlight_toast.ps1
 
