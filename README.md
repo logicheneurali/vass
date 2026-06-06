@@ -109,6 +109,8 @@ cd VASS
 .venv/bin/python vass.py         # macOS/Linux
 ```
 
+> **Note:** on first launch, speech recognition (Whisper) and speech synthesis (Kokoro) models are downloaded automatically from HuggingFace. The first startup may take several minutes (~2-4 GB download). This only happens once.
+
 ### Wake word
 
 The wake word is **configurable** by the user in the `settings.ini` file and can be any word or short phrase. The default is "**Erika**".
@@ -138,13 +140,13 @@ From the GUI menu or by clicking the main button:
 
 ### Voice commands
 
-Commands are configured in `commands.ini` using standard INI format. The key is the phrase to recognize, the value is the action:
+Commands are configured in `commands.ini` (standard INI format), also editable via the GUI editor (`python commands_editor.py`). Each line is a **phrase = action** pair: the phrase is the pattern to recognize (can include `{variables}`), the action is what to execute.
 
 ```ini
 [general]
 search {term} = script:search
 open {program} = start {program}
-top news = script:news
+search online {escaped_terms} = start firefox "https://duckduckgo.com?q={escaped_terms}"
 what time is it = script:datetime
 
 [system]
@@ -152,11 +154,28 @@ shutdown system = shutdown /s /t 60
 lock screen = rundll32.exe user32.dll,LockWorkStation
 ```
 
-- `{term}`, `{program}` — variables captured from speech
-- `script:scriptname` — runs `scripts/scriptname.vass`
-- Alternative prefix: `vasscript:`
+#### How matching works
 
-If the pattern has variables, their values are passed to the script as `$param1`, `$param2`, etc.
+1. **Fuzzy recognition**: exact match is not required. VASS compares the spoken phrase against all patterns using a similarity algorithm (`difflib`). The pattern with the highest score above the threshold (default `0.75`, configurable in `settings.ini`) is activated.
+
+2. **Variables `{name}`**: capture the spoken words at that position. Example: saying *"search cats on the internet"* captures `term = "cats on the internet"`.
+
+3. **Escaped variables `{escaped_name}`**: same as regular variables, but the captured text is URL-encoded (spaces become `%20`). Useful for web searches.
+
+4. **AI fallback**: if no command exceeds the similarity threshold, the phrase is sent to the AI for a natural language response.
+
+#### Action types
+
+| Prefix | Example | Behavior |
+|--------|---------|----------|
+| `script:` | `script:search` | Runs `scripts/search.vass`. Captured variables become `$param1`, `$param2`, etc. |
+| `vasscript:` | `vasscript:events` | Same as `script:` (alternative prefix) |
+| URL | `https://...` | Opened in the default browser |
+| Command | `shutdown /s` | Executed directly as a system command |
+
+#### Section names
+
+Section names like `[general]` and `[system]` are just organizational categories — they don't affect matching. The **key** (the phrase to recognize) is what matters.
 
 ### Creating VASScript scripts
 

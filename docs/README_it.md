@@ -109,6 +109,8 @@ cd VASS
 .venv/bin/python vass.py         # macOS/Linux
 ```
 
+> **Nota:** alla prima esecuzione, i modelli di riconoscimento vocale (Whisper) e sintesi vocale (Kokoro) vengono scaricati automaticamente da HuggingFace. Il primo avvio può richiedere diversi minuti (~2-4 GB di download). Questo avviene solo la prima volta.
+
 ### Wake word
 
 La parola di attivazione (wake word) è **modificabile** dall'utente nel file `settings.ini` e può essere qualunque parola o frase breve. Di default è "**Erika**".
@@ -138,13 +140,13 @@ Dal menu GUI o cliccando sul pulsante principale:
 
 ### Comandi vocali
 
-I comandi sono configurati in `commands.ini` in formato INI standard. La chiave è la frase da riconoscere, il valore è l'azione:
+I comandi si configurano nel file `commands.ini` (formato INI standard), modificabile anche tramite l'editor GUI (`python commands_editor.py`). Ogni riga è una coppia **frase = azione**: la frase è il pattern da riconoscere (può includere `{variabili}`), l'azione è cosa eseguire.
 
 ```ini
 [general]
 cerca {termine} = script:ricerca
 apri {programma} = start {programma}
-notizie principali = script:notizie
+cerca online {escaped_terms} = start firefox "https://duckduckgo.com?q={escaped_terms}"
 che ore sono = script:data_e_ora
 
 [system]
@@ -152,11 +154,28 @@ spegni sistema = shutdown /s /t 60
 blocca tutto = rundll32.exe user32.dll,LockWorkStation
 ```
 
-- `{termine}`, `{programma}` — variabili catturate dalla voce
-- `script:nomescript` — esegue `scripts/nomescript.vass`
-- `script:` — prefisso alternativo: `vasscript:`
+#### Come funziona il matching
 
-Se il pattern ha variabili, i valori vengono passati allo script come `$param1`, `$param2`, ecc.
+1. **Riconoscimento fuzzy**: non serve una corrispondenza esatta. VASS confronta la frase pronunciata con tutti i pattern usando un algoritmo di similarità (`difflib`). Il pattern con il punteggio più alto sopra la soglia (default `0.75`, configurabile in `settings.ini`) viene attivato.
+
+2. **Variabili `{nome}`**: catturano le parole pronunciate in quella posizione. Esempio: dicendo *"cerca gatti su internet"* il sistema cattura `termine = "gatti su internet"`.
+
+3. **Variabili escaped `{escaped_nome}`**: come le variabili normali, ma il testo catturato viene codificato in formato URL (gli spazi diventano `%20`). Utile per ricerche web.
+
+4. **Fallback all'AI**: se nessun comando supera la soglia di similarità, la frase viene inviata all'AI per una risposta in linguaggio naturale.
+
+#### Tipi di azioni
+
+| Prefisso | Esempio | Comportamento |
+|----------|---------|---------------|
+| `script:` | `script:ricerca` | Esegue `scripts/ricerca.vass`. Le variabili catturate diventano `$param1`, `$param2`, ecc. |
+| `vasscript:` | `vasscript:eventi` | Come `script:` (prefisso alternativo) |
+| URL | `https://...` | Aperto nel browser predefinito |
+| Comando | `shutdown /s` | Eseguito direttamente come comando di sistema |
+
+#### Nomi delle sezioni
+
+I nomi delle sezioni come `[general]` e `[system]` sono solo categorie organizzative — non influenzano il matching. Ciò che conta è la **chiave** (la frase da riconoscere).
 
 ### Creare script VASScript
 

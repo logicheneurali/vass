@@ -138,13 +138,13 @@ Der aktuelle Modus wird auf der Hauptschaltfläche angezeigt: `[C]` für Chat, `
 
 ### Sprachbefehle
 
-Befehle werden in `commands.ini` im standardmäßigen INI-Format konfiguriert. Der Schlüssel ist der zu erkennende Satz, der Wert ist die Aktion:
+Befehle werden in `commands.ini` (Standard-INI-Format) konfiguriert, auch bearbeitbar über den GUI-Editor (`python commands_editor.py`). Jede Zeile ist ein **Satz = Aktion**-Paar: der Satz ist das zu erkennende Muster (kann `{Variablen}` enthalten), die Aktion ist das, was ausgeführt werden soll.
 
 ```ini
 [general]
 suche nach {begriff} = script:suche
 öffne {programm} = start {programm}
-top-nachrichten = script:nachrichten
+online suchen nach {escaped_terms} = start firefox "https://duckduckgo.com?q={escaped_terms}"
 wie spät ist es = script:uhrzeit
 
 [system]
@@ -152,11 +152,28 @@ system herunterfahren = shutdown /s /t 60
 bildschirm sperren = rundll32.exe user32.dll,LockWorkStation
 ```
 
-- `{begriff}`, `{programm}` — aus der Sprache erfasste Variablen
-- `script:skriptname` — führt `scripts/skriptname.vass` aus
-- Alternatives Präfix: `vasscript:`
+#### Wie das Matching funktioniert
 
-Wenn das Muster Variablen hat, werden deren Werte als `$param1`, `$param2` usw. an das Skript übergeben.
+1. **Fuzzy-Erkennung**: eine exakte Übereinstimmung ist nicht erforderlich. VASS vergleicht den gesprochenen Satz mit allen Mustern mithilfe eines Ähnlichkeitsalgorithmus (`difflib`). Das Muster mit der höchsten Punktzahl über dem Schwellenwert (Standard `0.75`, konfigurierbar in `settings.ini`) wird aktiviert.
+
+2. **Variablen `{name}`**: erfassen die gesprochenen Wörter an dieser Position. Beispiel: Wenn man *"suche katzen im internet"* sagt, erfasst das System `begriff = "katzen im internet"`.
+
+3. **Escaped-Variablen `{escaped_name}`**: wie normale Variablen, aber der erfasste Text wird URL-kodiert (Leerzeichen werden zu `%20`). Nützlich für Websuchen.
+
+4. **KI-Fallback**: Wenn kein Befehl den Ähnlichkeitsschwellenwert überschreitet, wird der Satz zur natürlichen Sprachbeantwortung an die KI gesendet.
+
+#### Aktionstypen
+
+| Präfix | Beispiel | Verhalten |
+|--------|----------|-----------|
+| `script:` | `script:suche` | Führt `scripts/suche.vass` aus. Erfasste Variablen werden zu `$param1`, `$param2`, usw. |
+| `vasscript:` | `vasscript:ereignisse` | Wie `script:` (alternativer Präfix) |
+| URL | `https://...` | Im Standardbrowser geöffnet |
+| Befehl | `shutdown /s` | Direkt als Systembefehl ausgeführt |
+
+#### Namen der Sektionen
+
+Sektionsnamen wie `[general]` und `[system]` sind nur organisatorische Kategorien — sie beeinflussen das Matching nicht. Entscheidend ist der **Schlüssel** (der zu erkennende Satz).
 
 ### VASScript-Skripte erstellen
 

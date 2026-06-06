@@ -138,13 +138,13 @@ Desde el menú GUI o haciendo clic en el botón principal:
 
 ### Comandos de voz
 
-Los comandos se configuran en `commands.ini` en formato INI estándar. La clave es la frase a reconocer, el valor es la acción:
+Los comandos se configuran en `commands.ini` (formato INI estándar), también editable mediante el editor GUI (`python commands_editor.py`). Cada línea es un par **frase = acción**: la frase es el patrón a reconocer (puede incluir `{variables}`), la acción es qué ejecutar.
 
 ```ini
 [general]
 busca {termino} = script:busqueda
 abre {programa} = start {programa}
-últimas noticias = script:noticias
+buscar en línea {escaped_terms} = start firefox "https://duckduckgo.com?q={escaped_terms}"
 qué hora es = script:hora
 
 [system]
@@ -152,11 +152,28 @@ apagar sistema = shutdown /s /t 60
 bloquear pantalla = rundll32.exe user32.dll,LockWorkStation
 ```
 
-- `{termino}`, `{programa}` — variables capturadas desde la voz
-- `script:nombrescript` — ejecuta `scripts/nombrescript.vass`
-- Prefijo alternativo: `vasscript:`
+#### Cómo funciona la coincidencia
 
-Si el patrón tiene variables, sus valores se pasan al script como `$param1`, `$param2`, etc.
+1. **Reconocimiento difuso**: no se requiere una coincidencia exacta. VASS compara la frase pronunciada con todos los patrones usando un algoritmo de similitud (`difflib`). El patrón con la puntuación más alta por encima del umbral (por defecto `0.75`, configurable en `settings.ini`) se activa.
+
+2. **Variables `{nombre}`**: capturan las palabras pronunciadas en esa posición. Ejemplo: al decir *"busca gatos en internet"*, el sistema captura `termino = "gatos en internet"`.
+
+3. **Variables escapadas `{escaped_nombre}`**: igual que las variables normales, pero el texto capturado se codifica en URL (los espacios se convierten en `%20`). Útil para búsquedas web.
+
+4. **Fallback a IA**: si ningún comando supera el umbral de similitud, la frase se envía a la IA para una respuesta en lenguaje natural.
+
+#### Tipos de acciones
+
+| Prefijo | Ejemplo | Comportamiento |
+|---------|---------|----------------|
+| `script:` | `script:busqueda` | Ejecuta `scripts/busqueda.vass`. Las variables capturadas se convierten en `$param1`, `$param2`, etc. |
+| `vasscript:` | `vasscript:eventos` | Igual que `script:` (prefijo alternativo) |
+| URL | `https://...` | Abierto en el navegador predeterminado |
+| Comando | `shutdown /s` | Ejecutado directamente como comando del sistema |
+
+#### Nombres de las secciones
+
+Los nombres de sección como `[general]` y `[system]` son solo categorías organizativas — no afectan a la coincidencia. Lo que importa es la **clave** (la frase a reconocer).
 
 ### Crear scripts VASScript
 

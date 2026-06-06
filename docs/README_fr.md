@@ -138,13 +138,13 @@ Depuis le menu GUI ou en cliquant sur le bouton principal :
 
 ### Commandes vocales
 
-Les commandes sont configurées dans `commands.ini` au format INI standard. La clé est la phrase à reconnaître, la valeur est l'action :
+Les commandes sont configurées dans `commands.ini` (format INI standard), également modifiables via l'éditeur GUI (`python commands_editor.py`). Chaque ligne est une paire **phrase = action** : la phrase est le motif à reconnaître (peut inclure `{variables}`), l'action est ce qu'il faut exécuter.
 
 ```ini
 [general]
 cherche {terme} = script:recherche
 ouvre {programme} = start {programme}
-actualités = script:actualites
+chercher en ligne {escaped_terms} = start firefox "https://duckduckgo.com?q={escaped_terms}"
 quelle heure est-il = script:heure
 
 [system]
@@ -152,11 +152,28 @@ quelle heure est-il = script:heure
 verrouiller l'écran = rundll32.exe user32.dll,LockWorkStation
 ```
 
-- `{terme}`, `{programme}` — variables capturées depuis la voix
-- `script:nomscript` — exécute `scripts/nomscript.vass`
-- Préfixe alternatif : `vasscript:`
+#### Comment fonctionne la correspondance
 
-Si le motif contient des variables, leurs valeurs sont passées au script comme `$param1`, `$param2`, etc.
+1. **Reconnaissance floue** : une correspondance exacte n'est pas nécessaire. VASS compare la phrase prononcée à tous les motifs à l'aide d'un algorithme de similarité (`difflib`). Le motif avec le score le plus élevé au-dessus du seuil (par défaut `0.75`, configurable dans `settings.ini`) est activé.
+
+2. **Variables `{nom}`** : capturent les mots prononcés à cette position. Exemple : en disant *"cherche chats sur internet"*, le système capture `terme = "chats sur internet"`.
+
+3. **Variables échappées `{escaped_nom}`** : identiques aux variables normales, mais le texte capturé est encodé en URL (les espaces deviennent `%20`). Utile pour les recherches web.
+
+4. **Fallback IA** : si aucune commande ne dépasse le seuil de similarité, la phrase est envoyée à l'IA pour une réponse en langage naturel.
+
+#### Types d'actions
+
+| Préfixe | Exemple | Comportement |
+|---------|---------|--------------|
+| `script:` | `script:recherche` | Exécute `scripts/recherche.vass`. Les variables capturées deviennent `$param1`, `$param2`, etc. |
+| `vasscript:` | `vasscript:evenements` | Identique à `script:` (préfixe alternatif) |
+| URL | `https://...` | Ouvert dans le navigateur par défaut |
+| Commande | `shutdown /s` | Exécutée directement comme commande système |
+
+#### Noms des sections
+
+Les noms de section comme `[general]` et `[system]` sont de simples catégories organisationnelles — ils n'affectent pas la correspondance. C'est la **clé** (la phrase à reconnaître) qui compte.
 
 ### Créer des scripts VASScript
 
