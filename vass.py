@@ -445,9 +445,10 @@ class VassApp:
         self.gui.update_memory_bar()
 
         # Double beep to indicate app is ready
-        beep(800, 150)
+        vol = self.settings.get("volume", 0.95)
+        beep(vol)
         time.sleep(0.15)
-        beep(1000, 150)
+        beep(vol)
         while self.running:
             try:
                 if self._input_mode:
@@ -472,7 +473,7 @@ class VassApp:
                         if wake:
                             print("Wake word detected! Switching to recording mode...")
                             try:
-                                beep(1000, 200)
+                                beep(self.settings.get("volume", 0.95))
                             except Exception as ex:
                                 with open("crash.log", "a") as f:
                                     f.write(f"Beep error: {ex}\n")

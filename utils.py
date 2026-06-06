@@ -60,19 +60,17 @@ def kill_process(proc):
 
 # ── Audio utility ────────────────────────────────────────────────────────────
 
-try:
-    import winsound
-    def beep(freq=1000, dur=200):
-        winsound.Beep(freq, dur)
-except ImportError:
-    import numpy as np
+def beep(volume=0.6):
+    import os
+    import soundfile as sf
     import sounddevice as sd
-    def beep(freq=1000, dur=200):
-        sr = 22050
-        t = np.linspace(0, dur / 1000, int(sr * dur / 1000), False)
-        tone = 0.3 * np.sin(2 * np.pi * freq * t)
-        sd.play(tone, sr)
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sounds", "beep.wav")
+    try:
+        data, sr = sf.read(path)
+        sd.play(data * volume, sr)
         sd.wait()
+    except Exception as e:
+        print(f"[Beep] Error: {e}")
 
 
 # ── Clipboard utility ────────────────────────────────────────────────────────
