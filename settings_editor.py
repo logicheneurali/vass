@@ -193,7 +193,21 @@ class SettingsEditor(QMainWindow):
                     entry = QCheckBox()
                     current_val = self.config.get(section, key, fallback="false")
                     entry.setChecked(current_val.lower() == "true")
-                    group_layout.addWidget(entry, row, 1)
+                    if key == "llama_autostart":
+                        cw = QWidget()
+                        cw_layout = QHBoxLayout(cw)
+                        cw_layout.setContentsMargins(0, 0, 0, 0)
+                        cw_layout.setSpacing(6)
+                        cw_layout.addWidget(entry)
+                        start_btn = QPushButton(t("settings_editor.buttons.start_llama", self.lang))
+                        start_btn.setFixedWidth(80)
+                        start_btn.clicked.connect(self._start_llama_server)
+                        cw_layout.addWidget(start_btn)
+                        cw_layout.addStretch()
+                        group_layout.addWidget(cw, row, 1)
+                        entry = cw  # store the wrapper so save() finds the checkbox
+                    else:
+                        group_layout.addWidget(entry, row, 1)
                 elif key in SLIDER_CONFIG:
                     cfg = SLIDER_CONFIG[key]
                     raw = float(self.config.get(section, key))
@@ -370,6 +384,9 @@ class SettingsEditor(QMainWindow):
                 value = entry.currentText()
             elif isinstance(entry, QCheckBox):
                 value = "true" if entry.isChecked() else "false"
+            elif isinstance(entry, QWidget) and key in BOOLEAN_KEYS:
+                cb = entry.findChild(QCheckBox)
+                value = "true" if cb and cb.isChecked() else "false"
             else:
                 value = entry.text()
 
@@ -401,6 +418,27 @@ class SettingsEditor(QMainWindow):
                 QMessageBox.warning(self, self._t("settings_editor.dialog.warning"),
                                    self._t("settings_editor.errors.restart_required"))
         self.close()
+
+
+    def _start_llama_server(self):
+        from utils import start_llama_server
+        path = self.config.get("llamacpp", "llama_server_path", fallback="").strip()
+        if not path:
+            QMessageBox.warning(self, "llama.cpp",
+                self._t("settings_editor.errors.llama_no_path"))
+            return
+        cwd = self.config.get("llamacpp", "llama_server_working_directory", fallback="").strip()
+        args = self.config.get("llamacpp", "llama_server_arguments", fallback="").strip()
+        proc, status = start_llama_server(path, cwd, args)
+        if status == "started":
+            QMessageBox.information(self, "llama.cpp",
+                self._t("settings_editor.errors.llama_started"))
+        elif status == "already running":
+            QMessageBox.information(self, "llama.cpp",
+                self._t("settings_editor.errors.llama_already_running"))
+        else:
+            QMessageBox.warning(self, "llama.cpp",
+                self._t("settings_editor.errors.llama_not_found").format(path=path))
 
 
 if __name__ == "__main__":

@@ -133,7 +133,8 @@
     },
     "buttons": {
       "save": "Guardar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "start_llama": "Iniciar"
     },
     "dialog": {
       "error": "Error",
@@ -147,7 +148,11 @@
       "restart_required": "Reinicia la aplicación para que el cambio de wakeword surta efecto.",
       "save_ok": "Ajustes guardados correctamente.",
       "pct_range": "{key} must be between 0 and 100.",
-      "invalid_number": "The value entered is not a valid number."
+      "invalid_number": "The value entered is not a valid number.",
+      "llama_already_running": "llama-server ya esta en ejecucion.",
+      "llama_no_path": "Ruta de llama-server no configurada en settings.ini.",
+      "llama_not_found": "llama-server.exe no encontrado en {path}.",
+      "llama_started": "Servidor llama.cpp iniciado!"
     }
   },
   "scripts_editor": {

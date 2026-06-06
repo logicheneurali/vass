@@ -133,7 +133,8 @@
     },
     "buttons": {
       "save": "Enregistrer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "start_llama": "Demarrer"
     },
     "dialog": {
       "error": "Erreur",
@@ -147,7 +148,11 @@
       "restart_required": "Redémarrez l'application pour que le changement de wakeword prenne effet.",
       "save_ok": "Paramètres enregistrés avec succès.",
       "pct_range": "{key} must be between 0 and 100.",
-      "invalid_number": "The value entered is not a valid number."
+      "invalid_number": "The value entered is not a valid number.",
+      "llama_already_running": "llama-server est deja en cours d execution.",
+      "llama_no_path": "Chemin llama-server non configure dans settings.ini.",
+      "llama_not_found": "llama-server.exe introuvable dans {path}.",
+      "llama_started": "Serveur llama.cpp demarre !"
     }
   },
   "scripts_editor": {

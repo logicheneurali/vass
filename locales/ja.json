@@ -133,7 +133,8 @@
     },
     "buttons": {
       "save": "保存",
-      "cancel": "キャンセル"
+      "cancel": "キャンセル",
+      "start_llama": "開始"
     },
     "dialog": {
       "error": "エラー",
@@ -147,7 +148,11 @@
       "restart_required": "ウェイクワードの変更を有効にするにはアプリケーションを再起動してください。",
       "save_ok": "設定を保存しました。",
       "pct_range": "{key} must be between 0 and 100.",
-      "invalid_number": "The value entered is not a valid number."
+      "invalid_number": "The value entered is not a valid number.",
+      "llama_already_running": "llama-serverはすでに実行中です。",
+      "llama_no_path": "llama-serverのパスがsettings.iniで設定されていません。",
+      "llama_not_found": "llama-server.exeが{path}に見つかりません。",
+      "llama_started": "llama.cppサーバーが起動しました！"
     }
   },
   "scripts_editor": {

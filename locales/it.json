@@ -161,7 +161,8 @@
     },
     "buttons": {
       "save": "Salva",
-      "cancel": "Annulla"
+      "cancel": "Annulla",
+      "start_llama": "Avvia"
     },
     "dialog": {
       "error": "Errore",
@@ -175,7 +176,11 @@
       "pct_range": "{key} deve essere compreso tra 0 e 100.",
       "invalid_number": "Il valore inserito non e' un numero valido.",
       "restart_required": "Riavvia l'applicazione affinché la wakeword abbia effetto.",
-      "save_ok": "Impostazioni salvate correttamente."
+      "save_ok": "Impostazioni salvate correttamente.",
+      "llama_already_running": "llama-server e gia in esecuzione.",
+      "llama_no_path": "Percorso llama-server non configurato in settings.ini.",
+      "llama_not_found": "llama-server.exe non trovato in {path}.",
+      "llama_started": "Server llama.cpp avviato!"
     }
   },
   "commands_editor": {

@@ -129,6 +129,26 @@ def strip_think_tags(text):
     return re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
 
 
+# ── Process launcher ─────────────────────────────────────────────────────────
+
+def start_llama_server(path, working_directory="", arguments="", skip_if_running=True):
+    if not path.strip():
+        return None, "path not configured"
+    exe = os.path.join(path.strip(), "llama-server.exe" if sys.platform == "win32" else "llama-server")
+    if not os.path.isfile(exe):
+        return None, f"llama-server not found in {path}"
+    if skip_if_running and is_process_running("llama-server"):
+        return None, "already running"
+    cwd = working_directory.strip() or path.strip()
+    args = arguments.strip()
+    cmd = [exe] + (args.split() if args else [])
+    print(f"[llama.cpp] Starting: {' '.join(cmd)} (cwd={cwd})")
+    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+    proc = subprocess.Popen(cmd, cwd=cwd, creationflags=creationflags,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return proc, "started"
+
+
 # ── File / memory utilities ──────────────────────────────────────────────────
 
 def cleanup_orphan_files(mem_dir, history_ids, summary_id):

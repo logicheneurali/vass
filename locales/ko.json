@@ -133,7 +133,8 @@
     },
     "buttons": {
       "save": "저장",
-      "cancel": "취소"
+      "cancel": "취소",
+      "start_llama": "시작"
     },
     "dialog": {
       "error": "오류",
@@ -147,7 +148,11 @@
       "restart_required": "웨이크워드 변경을 적용하려면 애플리케이션을 다시 시작하세요.",
       "save_ok": "설정이 저장되었습니다.",
       "pct_range": "{key} must be between 0 and 100.",
-      "invalid_number": "The value entered is not a valid number."
+      "invalid_number": "The value entered is not a valid number.",
+      "llama_already_running": "llama-server가 이미 실행 중입니다.",
+      "llama_no_path": "llama-server 경로가 settings.ini에 설정되어 있지 않습니다.",
+      "llama_not_found": "llama-server.exe를 {path}에서 찾을 수 없습니다.",
+      "llama_started": "llama.cpp 서버가 시작되었습니다!"
     }
   },
   "scripts_editor": {

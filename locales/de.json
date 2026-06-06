@@ -133,7 +133,8 @@
     },
     "buttons": {
       "save": "Speichern",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "start_llama": "Starten"
     },
     "dialog": {
       "error": "Fehler",
@@ -147,7 +148,11 @@
       "pct_range": "{key} muss zwischen 0 und 100 liegen.",
       "invalid_number": "Der eingegebene Wert ist keine gültige Zahl.",
       "restart_required": "Starten Sie die Anwendung neu, damit die Änderung des Aktivierungsworts wirksam wird.",
-      "save_ok": "Einstellungen erfolgreich gespeichert."
+      "save_ok": "Einstellungen erfolgreich gespeichert.",
+      "llama_already_running": "llama-server laeuft bereits.",
+      "llama_no_path": "llama-server-Pfad nicht in settings.ini konfiguriert.",
+      "llama_not_found": "llama-server.exe nicht gefunden in {path}.",
+      "llama_started": "llama.cpp-Server gestartet!"
     }
   },
   "scripts_editor": {

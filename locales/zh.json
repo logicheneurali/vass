@@ -133,7 +133,8 @@
     },
     "buttons": {
       "save": "保存",
-      "cancel": "取消"
+      "cancel": "取消",
+      "start_llama": "启动"
     },
     "dialog": {
       "error": "错误",
@@ -147,7 +148,11 @@
       "restart_required": "重启应用程序以使唤醒词更改生效。",
       "save_ok": "设置已成功保存。",
       "pct_range": "{key} must be between 0 and 100.",
-      "invalid_number": "The value entered is not a valid number."
+      "invalid_number": "The value entered is not a valid number.",
+      "llama_already_running": "llama-server已在运行。",
+      "llama_no_path": "settings.ini中未配置llama-server路径。",
+      "llama_not_found": "在{path}中找不到llama-server.exe。",
+      "llama_started": "llama.cpp服务器已启动！"
     }
   },
   "scripts_editor": {

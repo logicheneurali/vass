@@ -133,7 +133,8 @@
     },
     "buttons": {
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "start_llama": "Start"
     },
     "dialog": {
       "error": "Error",
@@ -147,7 +148,11 @@
       "pct_range": "{key} must be between 0 and 100.",
       "invalid_number": "The value entered is not a valid number.",
       "restart_required": "Restart the application for the wakeword change to take effect.",
-      "save_ok": "Settings saved successfully."
+      "save_ok": "Settings saved successfully.",
+      "llama_already_running": "llama-server is already running.",
+      "llama_no_path": "llama-server path not configured in settings.ini.",
+      "llama_not_found": "llama-server.exe not found in {path}.",
+      "llama_started": "llama.cpp server started!"
     }
   },
   "scripts_editor": {

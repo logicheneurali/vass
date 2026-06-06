@@ -28,7 +28,7 @@ from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags
+from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server
 from gui import VassGUI
 from i18n import t
 from script_engine import VASScript
@@ -552,26 +552,15 @@ class VassApp:
         self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
 
     def _start_llamacpp(self):
-        path = self.llama_server_path.strip()
-        if not path:
-            return
-        if sys.platform == "win32":
-            exe = os.path.join(path, "llama-server.exe")
+        proc, status = start_llama_server(
+            self.llama_server_path,
+            self.llama_server_working_directory,
+            self.llama_server_arguments,
+        )
+        if proc:
+            self.llama_process = proc
         else:
-            exe = os.path.join(path, "llama-server")
-        if not os.path.isfile(exe):
-            print(f"[llama.cpp] llama-server non trovato in: {path}")
-            return
-        if is_process_running("llama-server"):
-            print("[llama.cpp] llama-server gia in esecuzione, skip")
-            return
-        cwd = self.llama_server_working_directory.strip() or path
-        args = self.llama_server_arguments.strip()
-        cmd = [exe] + (args.split() if args else [])
-        print(f"[llama.cpp] Avvio: {' '.join(cmd)} (cwd={cwd})")
-        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-        self.llama_process = subprocess.Popen(cmd, cwd=cwd, creationflags=creationflags,
-                                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print(f"[llama.cpp] {status}")
 
     def stop(self):
         self.running = False
