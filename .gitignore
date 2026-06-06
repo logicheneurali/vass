@@ -38,6 +38,9 @@ VASS.lnk
 # Secrets
 google_client_secret.json
 
+# VASS - dev tools
+bump.py
+
 # VASS - misc utilities
 highlight_toast.ps1
 
