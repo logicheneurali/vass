@@ -247,7 +247,9 @@
     },
     "schedule_started": "スケジュールされた手順 {description} が開始されました",
     "schedule_done": "手順 {description} が完了しました！",
-    "schedule_failed": "手順 {description} が失敗しました！"
+    "schedule_failed": "手順 {description} が失敗しました！",
+    "start_message": "イベント {description} が開始します",
+    "event_default": "イベント"
   },
   "history_viewer": {
     "title": "Conversation History",

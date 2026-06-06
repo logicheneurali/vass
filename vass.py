@@ -485,9 +485,10 @@ class VassApp:
                 break
             except Exception as e:
                 import traceback
-                with open("crash.log", "w") as f:
+                with open("crash.log", "a") as f:
+                    f.write(f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
                     traceback.print_exc(file=f)
-                print(f"\n[CRASH] Errore nel loop. Riavvio tra 3 secondi. Dettagli in crash.log")
+                print(f"\n[CRASH] Loop error. Restarting in 3 seconds. Details in crash.log")
                 traceback.print_exc()
                 self.audio_handler.stop_stream()
                 time.sleep(3)
@@ -1291,10 +1292,10 @@ if __name__ == "__main__":
                 _state["app"].run()
             except BaseException as e:
                 import traceback
-                with open("crash.log", "w") as f:
-                    f.write("=== CRASH in _run_safe ===\n")
+                with open("crash.log", "a") as f:
+                    f.write(f"\n=== CRASH in _run_safe ({time.strftime('%Y-%m-%d %H:%M:%S')}) ===\n")
                     traceback.print_exc(file=f)
-                print(f"\n[FATAL] Errore irrecoverabile: {e}")
+                print(f"\n[FATAL] Unrecoverable error: {e}")
                 traceback.print_exc()
         _state["thread"] = threading.Thread(target=_run_safe)
         _state["thread"].start()

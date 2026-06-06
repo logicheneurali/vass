@@ -3,6 +3,11 @@ import shlex
 
 
 async def execute(command: str, allowed_commands: list[str] | None = None, timeout: float = 30.0) -> str:
+    try:
+        if isinstance(timeout, str):
+            timeout = float(timeout) if timeout.strip() else 30.0
+    except ValueError:
+        timeout = 30.0
     parts = shlex.split(command)
     if not parts:
         raise ValueError("Empty command")

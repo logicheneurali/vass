@@ -247,7 +247,9 @@
     },
     "schedule_started": "Scheduled procedure {description} started",
     "schedule_done": "Procedure {description} completed!",
-    "schedule_failed": "Procedure {description} failed!"
+    "schedule_failed": "Procedure {description} failed!",
+    "start_message": "Event {description} is starting",
+    "event_default": "Event"
   },
   "history_viewer": {
     "title": "Conversation History",

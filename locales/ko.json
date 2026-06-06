@@ -247,7 +247,9 @@
     },
     "schedule_started": "예약된 절차 {description} 시작됨",
     "schedule_done": "절차 {description} 완료됨!",
-    "schedule_failed": "절차 {description} 실패함!"
+    "schedule_failed": "절차 {description} 실패함!",
+    "start_message": "이벤트 {description}이(가) 시작됩니다",
+    "event_default": "이벤트"
   },
   "history_viewer": {
     "title": "Conversation History",

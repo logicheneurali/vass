@@ -119,6 +119,32 @@ class EventReminder:
                 groups[key] = []
             groups[key].append(ev)
 
+        # ── Start alerts (at event start time) ────────────────────────────────
+        for ev in events:
+            event_ts = self._parse_ts(ev)
+            if event_ts is None:
+                continue
+            duration = ev.get("duration", 0) or 0
+            end_ts = event_ts + (duration * 60)
+            already_started = "notify_start" in ev
+
+            if event_ts <= now:
+                if not already_started and now < end_ts:
+                    notify_at = now + 5
+                    key = int(max(notify_at, now + 1))
+                    if key not in groups:
+                        groups[key] = []
+                    start_ev = dict(ev)
+                    start_ev["_start_alert"] = True
+                    groups[key].append(start_ev)
+            else:
+                key = int(event_ts)
+                if key not in groups:
+                    groups[key] = []
+                start_ev = dict(ev)
+                start_ev["_start_alert"] = True
+                groups[key].append(start_ev)
+
         if not groups:
             self._next_alert_ts = None
             self._next_events = []
@@ -231,10 +257,16 @@ class EventReminder:
         if not self._next_events:
             return ""
         from i18n import t
-        template = t("events.reminder_message", self.lang)
+        default_desc = t("events.event_default", self.lang)
         parts = []
         for ev in self._next_events:
-            parts.append(template.replace("{description}", ev.get("description", "Evento")).replace("{time}", ev.get("time", "")))
+            desc = ev.get("description", default_desc)
+            if ev.get("_start_alert"):
+                template = t("events.start_message", self.lang)
+                parts.append(template.replace("{description}", desc))
+            else:
+                template = t("events.reminder_message", self.lang)
+                parts.append(template.replace("{description}", desc).replace("{time}", ev.get("time", "")))
         return ", ".join(parts) + "."
 
     def _mark_notified(self):
@@ -261,6 +293,10 @@ class EventReminder:
                         event["name"] = f"{event['description']}_{new_date}_{new_time}".replace(" ", "_").lower()
                         if "notify" in event:
                             del event["notify"]
+                        if "notify_start" in event:
+                            del event["notify_start"]
+                    elif ne.get("_start_alert"):
+                        event["notify_start"] = now_str
                     else:
                         event["notify"] = now_str
                     modified = True

@@ -247,7 +247,9 @@
     },
     "schedule_started": "Geplanter Vorgang {description} gestartet",
     "schedule_done": "Vorgang {description} ausgefuhrt!",
-    "schedule_failed": "Vorgang {description} fehlgeschlagen!"
+    "schedule_failed": "Vorgang {description} fehlgeschlagen!",
+    "start_message": "Ereignis {description} beginnt",
+    "event_default": "Ereignis"
   },
   "history_viewer": {
     "title": "Conversation History",

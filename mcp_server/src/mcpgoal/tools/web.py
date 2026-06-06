@@ -1,9 +1,11 @@
 import httpx
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+from . import to_num
 
 
 async def browse(url: str, timeout: float = 60.0) -> str:
+    timeout = to_num(timeout, 60.0)
     parsed = urlparse(url)
     if not parsed.scheme:
         url = "https://" + url

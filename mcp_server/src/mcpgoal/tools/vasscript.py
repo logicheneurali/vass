@@ -4,6 +4,7 @@ import sys
 import time
 import uuid
 from pathlib import Path
+from . import to_num
 
 
 _VASS_ROOT = None
@@ -53,6 +54,7 @@ def _poll_result(queue_path, result_path, request_id, timeout):
 
 
 def execute_vasscript_sync(script_name: str, timeout: float = 60) -> str:
+    timeout = to_num(timeout, 60)
     vass_root = _get_vass_root()
     scripts_dir = vass_root / "scripts"
     queue_path = vass_root / "scripts" / "exec_queue.json"
@@ -87,7 +89,45 @@ def execute_vasscript_sync(script_name: str, timeout: float = 60) -> str:
     return _poll_result(queue_path, result_path, request_id, timeout)
 
 
+def _validate_vasscript(code):
+    errors = []
+    for lineno, line in enumerate(code.split("\n"), 1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        cleaned = stripped
+        in_quote = None
+        i = 0
+        while i < len(cleaned):
+            ch = cleaned[i]
+            if in_quote:
+                if ch == in_quote:
+                    cleaned = cleaned[:i] + cleaned[i+1:]  # remove closing quote
+                    in_quote = None
+                    continue  # don't advance i, char was removed
+            elif ch in ('"', "'"):
+                in_quote = ch
+                cleaned = cleaned[:i] + cleaned[i+1:]  # remove opening quote
+                continue  # don't advance i, char was removed
+            i += 1
+        cleaned = cleaned.replace("(", "").replace(")", "")
+        # Now cleaned contains only unquoted parentheses
+        opened = stripped.count("(") - cleaned.count("(")
+        closed = stripped.count(")") - cleaned.count(")")
+        if opened != closed:
+            errors.append(f"line {lineno}: unbalanced parentheses — {opened} opening vs {closed} closing")
+    if errors:
+        return "SYNTAX ERROR:\n" + "\n".join(errors)
+    return None
+
+
 def exec_sync(code: str, timeout: float = 60) -> str:
+    timeout = to_num(timeout, 60)
+    
+    syntax_err = _validate_vasscript(code)
+    if syntax_err:
+        return json.dumps({"status": "error", "detail": syntax_err, "message": syntax_err})
+    
     vass_root = _get_vass_root()
     queue_path = vass_root / "scripts" / "exec_queue.json"
     result_path = vass_root / "scripts" / "exec_result.json"

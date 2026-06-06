@@ -247,7 +247,9 @@
     },
     "schedule_started": "计划程序 {description} 已启动",
     "schedule_done": "程序 {description} 已执行!",
-    "schedule_failed": "程序 {description} 失败!"
+    "schedule_failed": "程序 {description} 失败!",
+    "start_message": "事件 {description} 即将开始",
+    "event_default": "事件"
   },
   "history_viewer": {
     "title": "Conversation History",

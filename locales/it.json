@@ -247,7 +247,9 @@
     },
     "schedule_started": "Procedura pianificata {description} avviata",
     "schedule_done": "Procedura {description} eseguita!",
-    "schedule_failed": "Procedura {description} fallita!"
+    "schedule_failed": "Procedura {description} fallita!",
+    "start_message": "L’evento {description} sta iniziando",
+    "event_default": "Evento"
   },
   "history_viewer": {
     "title": "Cronologia conversazioni",

@@ -499,10 +499,10 @@ class VassGUI(QMainWindow):
             self._on_set_state(self._current_state, self._current_detail)
 
     def set_mode_display(self, mode):
+        self._mode_chat.setChecked(mode == "chat")
+        self._mode_trascrizione.setChecked(mode == "trascrizione")
         if self._current_mode != mode:
             self._current_mode = mode
-            self._mode_chat.setChecked(mode == "chat")
-            self._mode_trascrizione.setChecked(mode == "trascrizione")
             self._on_set_state(self._current_state, self._current_detail)
 
     def update_memory_bar(self):

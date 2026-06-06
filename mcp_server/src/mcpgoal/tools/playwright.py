@@ -18,6 +18,11 @@ async def _get_browser():
 
 
 async def search_web(query: str, max_results: int = 10) -> str:
+    try:
+        if isinstance(max_results, str):
+            max_results = int(max_results) if max_results.strip() else 10
+    except ValueError:
+        max_results = 10
     browser = await _get_browser()
     page = await browser.new_page()
     try:
@@ -39,6 +44,11 @@ async def search_web(query: str, max_results: int = 10) -> str:
 
 
 async def fetch_page(url: str, timeout: float = 30.0) -> str:
+    try:
+        if isinstance(timeout, str):
+            timeout = float(timeout) if timeout.strip() else 30.0
+    except ValueError:
+        timeout = 30.0
     browser = await _get_browser()
     page = await browser.new_page()
     try:
