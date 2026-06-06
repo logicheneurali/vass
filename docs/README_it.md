@@ -111,12 +111,23 @@ cd VASS
 
 ### Wake word
 
-Pronuncia "**Erika**". Quando VASS rileva la wake word, emette un bip per segnalare che è pronto a ricevere il comando. Parla dopo il bip.
+La parola di attivazione (wake word) è **modificabile** dall'utente nel file `settings.ini` e può essere qualunque parola o frase breve. Di default è "**Erika**".
+
+Quando VASS rileva la wake word, emette un bip per segnalare che è pronto a ricevere il comando. Parla dopo il bip.
 
 Esempi:
 - *"Erika"* (attendere il bip), poi *"che ore sono?"*
 - *"Erika"* (attendere il bip), poi *"cercami le ultime notizie"*
 - *"Erika"* (attendere il bip), poi *"ricordami la riunione domani alle 14"*
+
+### Modalità: Chat e Trascrizione
+
+VASS può funzionare in due modalità, selezionabili dal menu a comparsa (bottone ≡ a destra del pulsante principale):
+
+- **Chat** `[C]` — L'applicazione riconosce comandi vocali ed esegue azioni (script, comandi di sistema) oppure interagisce con l'AI. La risposta viene letta tramite TTS.
+- **Trascrizione** `[T]` — Invece di interpretare comandi, VASS trascrive fedelmente ciò che l'utente pronuncia dopo la wake word (sempre dopo il bip). Il testo viene poi incollato nell'applicazione attiva, rendendo VASS un sistema di dettatura testi.
+
+La modalità corrente è indicata sul pulsante principale: `[C]` per Chat, `[T]` per Trascrizione. L'ultima modalità utilizzata viene ripristinata al riavvio.
 
 ### Modalità memoria
 

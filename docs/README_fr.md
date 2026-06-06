@@ -111,12 +111,23 @@ cd VASS
 
 ### Mot d'activation
 
-Dites "**Erika**". Lorsque VASS détecte le mot d'activation, il émet un bip pour signaler qu'il est prêt à recevoir votre commande. Parlez après le bip.
+Le mot d'activation est **configurable** par l'utilisateur dans le fichier `settings.ini` et peut être n'importe quel mot ou courte phrase. Par défaut, c'est "**Erika**".
+
+Lorsque VASS détecte le mot d'activation, il émet un bip pour signaler qu'il est prêt à recevoir la commande. Parlez après le bip.
 
 Exemples :
-- *"Erika" (attendre le bip), then *"quelle heure est-il ?"*
-- *"Erika" (attendre le bip), then *"cherche les dernières actualités"*
-- *"Erika" (attendre le bip), then *"rappelle-moi la réunion demain à 14h"*
+- *"Erika"* (attendre le bip), puis *"quelle heure est-il ?"*
+- *"Erika"* (attendre le bip), puis *"cherche les dernières actualités"*
+- *"Erika"* (attendre le bip), puis *"rappelle-moi la réunion demain à 14h"*
+
+### Modes : Chat et Transcription
+
+VASS peut fonctionner dans deux modes, sélectionnables depuis le menu contextuel (bouton ≡ à droite du bouton principal) :
+
+- **Chat** `[C]` — L'application reconnaît les commandes vocales et exécute des actions (scripts, commandes système) ou interagit avec l'IA. La réponse est lue via TTS.
+- **Transcription** `[T]` — Au lieu d'interpréter les commandes, VASS transcrit fidèlement ce que l'utilisateur prononce après le mot d'activation (toujours après le bip). Le texte est ensuite collé dans l'application active, faisant de VASS un système de dictée de textes.
+
+Le mode actuel est indiqué sur le bouton principal : `[C]` pour Chat, `[T]` pour Transcription. Le dernier mode utilisé est restauré au redémarrage.
 
 ### Mode mémoire
 

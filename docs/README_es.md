@@ -111,12 +111,23 @@ cd VASS
 
 ### Palabra de activación
 
-Di "**Erika**" seguido de tu comando. VASS emite un pitido de confirmación.
+La palabra de activación es **configurable** por el usuario en el archivo `settings.ini` y puede ser cualquier palabra o frase corta. Por defecto es "**Erika**".
+
+Cuando VASS detecta la palabra de activación, emite un pitido para señalar que está listo para recibir el comando. Hable después del pitido.
 
 Ejemplos:
-- *"Erika" (esperar el pitido), then *"¿qué hora es?"*
-- *"Erika" (esperar el pitido), then *"busca las últimas noticias"*
-- *"Erika" (esperar el pitido), then *"recuérdame la reunión mañana a las 14"*
+- *"Erika"* (esperar el pitido), luego *"¿qué hora es?"*
+- *"Erika"* (esperar el pitido), luego *"busca las últimas noticias"*
+- *"Erika"* (esperar el pitido), luego *"recuérdame la reunión mañana a las 14"*
+
+### Modos: Chat y Transcripción
+
+VASS puede funcionar en dos modos, seleccionables desde el menú emergente (botón ≡ a la derecha del botón principal):
+
+- **Chat** `[C]` — La aplicación reconoce comandos de voz y ejecuta acciones (scripts, comandos del sistema) o interactúa con la IA. La respuesta se lee mediante TTS.
+- **Transcripción** `[T]` — En lugar de interpretar comandos, VASS transcribe fielmente lo que el usuario dice después de la palabra de activación (siempre después del pitido). El texto se pega luego en la aplicación activa, convirtiendo VASS en un sistema de dictado de texto.
+
+El modo actual se muestra en el botón principal: `[C]` para Chat, `[T]` para Transcripción. El último modo utilizado se restaura al reiniciar.
 
 ### Modo de memoria
 

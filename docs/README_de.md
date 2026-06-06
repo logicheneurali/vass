@@ -111,12 +111,23 @@ cd VASS
 
 ### Wake-Wort
 
-Sagen Sie "**Erika**". Wenn VASS das Wake-Wort erkennt, gibt es einen Ton aus, um zu signalisieren, dass es bereit ist, Ihren Befehl zu empfangen. Sprechen Sie nach dem Ton.
+Das Wake-Wort ist vom Benutzer in der Datei `settings.ini` **konfigurierbar** und kann ein beliebiges Wort oder eine kurze Phrase sein. Standardmäßig ist es "**Erika**".
+
+Wenn VASS das Wake-Wort erkennt, gibt es einen Signalton aus, der anzeigt, dass es bereit ist, den Befehl zu empfangen. Sprechen Sie nach dem Signalton.
 
 Beispiele:
-- *"Erika" (auf Signalton warten), then *"wie spät ist es?"*
-- *"Erika" (auf Signalton warten), then *"suche die neuesten Nachrichten"*
-- *"Erika" (auf Signalton warten), then *"erinnere mich an das Meeting morgen um 14 Uhr"*
+- *"Erika"* (auf Signalton warten), dann *"wie spät ist es?"*
+- *"Erika"* (auf Signalton warten), dann *"suche die neuesten Nachrichten"*
+- *"Erika"* (auf Signalton warten), dann *"erinnere mich an das Meeting morgen um 14 Uhr"*
+
+### Modi: Chat und Transkription
+
+VASS kann in zwei Modi betrieben werden, die über das Popup-Menü (≡-Taste rechts neben der Haupttaste) ausgewählt werden können:
+
+- **Chat** `[C]` — Die Anwendung erkennt Sprachbefehle und führt Aktionen aus (Skripte, Systembefehle) oder interagiert mit der KI. Die Antwort wird per TTS vorgelesen.
+- **Transkription** `[T]` — Anstatt Befehle zu interpretieren, transkribiert VASS getreu, was der Benutzer nach dem Wake-Wort sagt (immer nach dem Signalton). Der Text wird dann in die aktive Anwendung eingefügt, wodurch VASS zu einem Textdiktiersystem wird.
+
+Der aktuelle Modus wird auf der Hauptschaltfläche angezeigt: `[C]` für Chat, `[T]` für Transkription. Der zuletzt verwendete Modus wird beim Neustart wiederhergestellt.
 
 ### Speichermodus
 
@@ -180,7 +191,7 @@ Zeitpläne (automatisierte Abläufe) befinden sich in `schedule.json` und lösen
 | `Strg+S` | Speichern (in Editoren) |
 | Schaltflächenklick | Status ändern |
 | Mausrad auf Schaltfläche | Lautstärke anpassen |
-| Rechtsklick | Kontextmenü |
+| Rechtsklick auf ≡-Taste | Popup-Menü |
 | "Lesen"-Taste in Skripten | Liest das Skript mit TTS vor |
 
 ---

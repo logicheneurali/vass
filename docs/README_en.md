@@ -111,12 +111,23 @@ cd VASS
 
 ### Wake word
 
-Say "**Erika**". When VASS detects the wake word, it emits a beep to signal it's ready to receive your command. Speak after the beep.
+The wake word is **configurable** by the user in the `settings.ini` file and can be any word or short phrase. The default is "**Erika**".
+
+When VASS detects the wake word, it emits a beep to signal it's ready to receive the command. Speak after the beep.
 
 Examples:
 - *"Erika"* (wait for beep), then *"what time is it?"*
 - *"Erika"* (wait for beep), then *"search for the latest news"*
 - *"Erika"* (wait for beep), then *"remind me about the meeting tomorrow at 2 PM"*
+
+### Modes: Chat and Transcription
+
+VASS can operate in two modes, selectable from the popup menu (≡ button to the right of the main button):
+
+- **Chat** `[C]` — The application recognizes voice commands and performs actions (scripts, system commands) or interacts with the AI. The response is read via TTS.
+- **Transcription** `[T]` — Instead of interpreting commands, VASS faithfully transcribes what the user says after the wake word (always after the beep). The text is then pasted into the active application, making VASS a text dictation system.
+
+The current mode is shown on the main button: `[C]` for Chat, `[T]` for Transcription. The last used mode is restored on restart.
 
 ### Memory mode
 
