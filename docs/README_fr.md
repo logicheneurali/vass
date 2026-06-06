@@ -114,9 +114,9 @@ cd VASS
 Dites "**Erika**". Lorsque VASS détecte le mot d'activation, il émet un bip pour signaler qu'il est prêt à recevoir votre commande. Parlez après le bip.
 
 Exemples :
-- *"Erika, quelle heure est-il ?"*
-- *"Erika, cherche les dernières actualités"*
-- *"Erika, rappelle-moi la réunion demain à 14h"*
+- *"Erika" (attendre le bip), then *"quelle heure est-il ?"*
+- *"Erika" (attendre le bip), then *"cherche les dernières actualités"*
+- *"Erika" (attendre le bip), then *"rappelle-moi la réunion demain à 14h"*
 
 ### Mode mémoire
 

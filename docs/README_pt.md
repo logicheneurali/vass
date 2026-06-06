@@ -114,9 +114,9 @@ cd VASS
 Diga "**Erika**" seguido do seu comando. O VASS emite um sinal sonoro de confirmação.
 
 Exemplos:
-- *"Erika, que horas são?"*
-- *"Erika, procura as últimas notícias"*
-- *"Erika, lembra-me da reunião amanhã às 14h"*
+- *"Erika" (aguardar o sinal), then *"que horas são?"*
+- *"Erika" (aguardar o sinal), then *"procura as últimas notícias"*
+- *"Erika" (aguardar o sinal), then *"lembra-me da reunião amanhã às 14h"*
 
 ### Modo de memória
 

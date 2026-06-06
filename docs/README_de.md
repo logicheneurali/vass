@@ -114,9 +114,9 @@ cd VASS
 Sagen Sie "**Erika**". Wenn VASS das Wake-Wort erkennt, gibt es einen Ton aus, um zu signalisieren, dass es bereit ist, Ihren Befehl zu empfangen. Sprechen Sie nach dem Ton.
 
 Beispiele:
-- *"Erika, wie spät ist es?"*
-- *"Erika, suche die neuesten Nachrichten"*
-- *"Erika, erinnere mich an das Meeting morgen um 14 Uhr"*
+- *"Erika" (auf Signalton warten), then *"wie spät ist es?"*
+- *"Erika" (auf Signalton warten), then *"suche die neuesten Nachrichten"*
+- *"Erika" (auf Signalton warten), then *"erinnere mich an das Meeting morgen um 14 Uhr"*
 
 ### Speichermodus
 

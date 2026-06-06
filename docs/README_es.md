@@ -114,9 +114,9 @@ cd VASS
 Di "**Erika**" seguido de tu comando. VASS emite un pitido de confirmación.
 
 Ejemplos:
-- *"Erika, ¿qué hora es?"*
-- *"Erika, busca las últimas noticias"*
-- *"Erika, recuérdame la reunión mañana a las 14"*
+- *"Erika" (esperar el pitido), then *"¿qué hora es?"*
+- *"Erika" (esperar el pitido), then *"busca las últimas noticias"*
+- *"Erika" (esperar el pitido), then *"recuérdame la reunión mañana a las 14"*
 
 ### Modo de memoria
 

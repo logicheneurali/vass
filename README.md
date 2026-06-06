@@ -114,9 +114,9 @@ cd VASS
 Say "**Erika**". When VASS detects the wake word, it emits a beep to signal it's ready to receive your command. Speak after the beep.
 
 Examples:
-- *"Erika, what time is it?"*
-- *"Erika, search for the latest news"*
-- *"Erika, remind me about the meeting tomorrow at 2 PM"*
+- *"Erika"* (wait for beep), then *"what time is it?"*
+- *"Erika"* (wait for beep), then *"search for the latest news"*
+- *"Erika"* (wait for beep), then *"remind me about the meeting tomorrow at 2 PM"*
 
 ### Memory mode
 

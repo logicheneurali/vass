@@ -114,9 +114,9 @@ cd VASS
 Pronuncia "**Erika**". Quando VASS rileva la wake word, emette un bip per segnalare che è pronto a ricevere il comando. Parla dopo il bip.
 
 Esempi:
-- *"Erika, che ore sono?"*
-- *"Erika, cercami le ultime notizie"*
-- *"Erika, ricordami la riunione domani alle 14"*
+- *"Erika"* (attendere il bip), poi *"che ore sono?"*
+- *"Erika"* (attendere il bip), poi *"cercami le ultime notizie"*
+- *"Erika"* (attendere il bip), poi *"ricordami la riunione domani alle 14"*
 
 ### Modalità memoria
 
