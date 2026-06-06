@@ -28,7 +28,7 @@ from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix
+from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags
 from gui import VassGUI
 from i18n import t
 from script_engine import VASScript
@@ -42,6 +42,23 @@ MEMORY_SUMMARIZATION_PROMPT = (
     "Keep important info (user informations, preferences, user events (user's requests to AI are not considered as 'user events'),family members informations, pets informations,family members events, pets events)."
     "Output only a short JSON summary with key 'summary'."
 )
+
+MCP_PROMPT = (
+    "\n\nYou have access to MCP tools to interact with VASS. "
+    "Use the interact tool to execute VASScript code directly. "
+    "For example: interact(\"say('hello')\") will speak hello."
+)
+
+
+def _load_vascript_reference():
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root", "VASCRIPT_REFERENCE.md")
+    try:
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+        return f"\n\n--- VASScript Reference ---\n{content}\n--- End Reference ---\n"
+    except Exception:
+        return ""
+
 
 class VassApp:
     def __init__(self, gui, settings_file="settings.ini"):
@@ -106,7 +123,7 @@ class VassApp:
         self.state = "loading"
         self.state_lock = threading.RLock()
         self.conversation_history = []
-        self.mode = "chat"
+        self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "trascrizione"
         self.memory_mode = "full"
         self._input_mode = False
         self._ensure_memory_file()
@@ -128,37 +145,28 @@ class VassApp:
 
     def set_mode(self, mode):
         self.mode = mode
+        self.gui.set_mode_display(mode)
+        self._save_setting("gui", "lastmode", "c" if mode == "chat" else "t")
         print(f"[Mode] Switched to '{mode}'")
+
+    @staticmethod
+    def _save_setting(section, key, value):
+        import configparser
+        try:
+            cfg = configparser.ConfigParser()
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.ini")
+            cfg.read(path)
+            if not cfg.has_section(section):
+                cfg.add_section(section)
+            cfg.set(section, key, value)
+            with open(path, "w", encoding="utf-8") as f:
+                cfg.write(f)
+        except Exception:
+            pass
 
     def set_memory_mode(self, mode):
         self.memory_mode = mode
         print(f"[MemoryMode] Switched to '{mode}'")
-
-    @staticmethod
-    def paste_text(text):
-        import subprocess, base64
-        try:
-            if sys.platform == "win32":
-                text_b64 = base64.b64encode(text.encode("utf-16-le")).decode("ascii")
-                cmd = f"Set-Clipboard -Value ([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('{text_b64}')))"
-                cmd_b64 = base64.b64encode(cmd.encode("utf-16-le")).decode("ascii")
-                subprocess.run(
-                    ["powershell", "-NoProfile", "-EncodedCommand", cmd_b64],
-                    creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
-                )
-                subprocess.run(
-                    ["powershell", "-NoProfile", "-Command",
-                     "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v')"],
-                    creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
-                )
-            elif sys.platform == "darwin":
-                subprocess.run(["pbcopy"], input=text, text=True, timeout=5)
-                subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], timeout=5)
-            else:
-                subprocess.run(["xclip", "-selection", "clipboard"], input=text, text=True, timeout=5)
-                subprocess.run(["xdotool", "key", "ctrl+v"], timeout=5)
-        except Exception as e:
-            print(f"[Paste] Error: {e}")
 
     def _load_settings(self):
         config = configparser.ConfigParser()
@@ -170,6 +178,7 @@ class VassApp:
         if os.path.exists(abs_path):
             config.read(abs_path)
             result["language"] = config.get("locale", "language", fallback="en")
+            result["lastmode"] = config.get("gui", "lastmode", fallback="c")
             result["sensitivity"] = config.getfloat("wakeword", "sensitivity", fallback=0.005)
             result["wakeword"] = config.get("wakeword", "wakeword", fallback="vass")
             result["ai_url"] = config.get("ai", "url", fallback="http://127.0.0.1:8080/v1")
@@ -196,6 +205,7 @@ class VassApp:
             result["llama_server_path"] = config.get("llamacpp", "llama_server_path", fallback="")
             result["llama_server_working_directory"] = config.get("llamacpp", "llama_server_working_directory", fallback="")
             result["llama_server_arguments"] = config.get("llamacpp", "llama_server_arguments", fallback="")
+            result["llama_autostart"] = config.get("llamacpp", "llama_autostart", fallback="false")
             result["cpu_max"] = config.getfloat("resources", "cpu_max", fallback=75.0)
             result["ram_max"] = config.getfloat("resources", "ram_max", fallback=99.0)
             result["gpu_max"] = config.getfloat("resources", "gpu_max", fallback=75.0)
@@ -209,6 +219,7 @@ class VassApp:
             print(f"[Settings] File not found. Creating default at {abs_path}")
             lang = "en"
             result["language"] = lang
+            result["lastmode"] = "c"
             result["sensitivity"] = 0.005
             result["wakeword"] = "vass"
             result["ai_url"] = "http://127.0.0.1:8080/v1"
@@ -419,6 +430,8 @@ class VassApp:
         if self.event_reminder:
             threading.Thread(target=self.event_reminder.run, daemon=True).start()
         threading.Thread(target=self._health_check_loop, daemon=True).start()
+        threading.Thread(target=self._health_check_once, daemon=True).start()
+        self.gui.set_mode_display(self.mode)
         self.gui.update_memory_bar()
 
         # Double beep to indicate app is ready
@@ -488,7 +501,7 @@ class VassApp:
     def _start_mcp_server(self):
         mcp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_server")
         script = os.path.join(mcp_dir, "run_server.py")
-        self.kill_port(9988)
+        kill_port(9988)
         time.sleep(1)
         print(f"[MCP] Starting MCPGoal server from {script}")
         self.mcp_process = subprocess.Popen(
@@ -496,24 +509,6 @@ class VassApp:
             cwd=mcp_dir
         )
         time.sleep(2)
-
-    @staticmethod
-    def kill_port(port):
-        try:
-            if sys.platform == "win32":
-                r = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
-                for line in r.stdout.splitlines():
-                    if f":{port}" in line and "LISTENING" in line:
-                        pid = line.strip().split()[-1]
-                        subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
-            elif sys.platform == "darwin":
-                r = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
-                for pid in r.stdout.strip().split():
-                    subprocess.run(["kill", "-9", pid])
-            else:
-                subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
-        except Exception:
-            pass
 
     def _health_check_loop(self):
         import httpx
@@ -530,6 +525,19 @@ class VassApp:
                 ok = False
                 print(f"[Health] {health_url} unreachable: {e}")
             self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
+
+    def _health_check_once(self):
+        time.sleep(3)  # brief delay for server startup
+        import httpx
+        health_url = f"{self.ai_url.rstrip('/')}/health"
+        try:
+            r = httpx.get(health_url, timeout=5)
+            ok = r.status_code == 200
+            print(f"[Health] {health_url} -> {r.status_code}")
+        except Exception as e:
+            ok = False
+            print(f"[Health] {health_url} unreachable: {e}")
+        self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
 
     def _start_llamacpp(self):
         path = self.llama_server_path.strip()
@@ -557,27 +565,11 @@ class VassApp:
         self.running = False
         import subprocess as _sp
         if self.mcp_process:
-            self.kill_process(self.mcp_process)
+            kill_process(self.mcp_process)
             self.mcp_process = None
         if self.llama_process:
-            self.kill_process(self.llama_process)
+            kill_process(self.llama_process)
             self.llama_process = None
-
-    @staticmethod
-    def kill_process(proc):
-        try:
-            if sys.platform == "win32":
-                subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                               capture_output=True, timeout=5)
-            else:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                    proc.wait()
-        except Exception:
-            pass
 
     def _transcribe_and_process(self):
         audio_data = self.audio_handler.get_recorded_audio()
@@ -666,7 +658,7 @@ class VassApp:
             return
         if self.mode == "trascrizione":
             print(f"[Mode] Transcription mode: pasting text")
-            self.paste_text(transcribed_text)
+            paste_text(transcribed_text)
             self.set_state("listening")
             return
         matched_command, matched_vars = self.command_executor.find_matching_command(transcribed_text)
@@ -674,11 +666,6 @@ class VassApp:
             print(f"Executing script command: {matched_command}")
             script_name = strip_script_prefix(matched_command)
             threading.Thread(target=self._run_script, args=(script_name,), kwargs={"params": matched_vars}, daemon=True).start()
-            return
-        if self.mode == "trascrizione":
-            print(f"[Mode] Transcription mode: pasting text")
-            self.paste_text(transcribed_text)
-            self.set_state("listening")
             return
         if matched_command:
             print(f"Executing command: {matched_command}")
@@ -832,7 +819,7 @@ class VassApp:
                 self.set_state("listening")
                 return
 
-        if is_local_url(self.ai_urlself.ai_url):
+        if is_local_url(self.ai_url):
             from resource_monitor import wait_for_resources
             self.set_state("waiting_resources")
             timeout = self.settings.get("resource_timeout", 300)
@@ -854,6 +841,7 @@ class VassApp:
             base = self.system_message or ""
             date_prefix = t("ai.date_prefix", self.language)
             system_content = f"{base}\n\n{date_prefix}{now}".strip()
+            vas_ref = _load_vascript_reference()
 
             mcp, tools = init_mcp(self.mcp_server_url, timeout=10)
 
@@ -893,7 +881,7 @@ class VassApp:
                         break
 
             messages = [
-                {"role": "system", "content": memory_content + system_content},
+                {"role": "system", "content": memory_content + system_content + MCP_PROMPT + vas_ref },
                 {"role": "user", "content": prompt}
             ]
 
@@ -915,6 +903,7 @@ class VassApp:
             msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.openai_client, self.ai_model)
 
             ai_response = msg.content or ""
+            ai_response = strip_think_tags(ai_response)
             print(f"AI Agent Response: {ai_response}")
 
             if not script_called:

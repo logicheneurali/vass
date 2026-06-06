@@ -60,6 +60,7 @@ QSlider::sub-page:horizontal {{
 """
 
 BOOLEAN_KEYS = {"llama_autostart"}
+HIDDEN_KEYS = {"lastmode"}
 
 SLIDER_CONFIG = {
     "sensitivity": {"min": 1, "max": 20, "scale": 0.001, "default": 5},
@@ -172,6 +173,8 @@ class SettingsEditor(QMainWindow):
             for i, key in enumerate(self.config.options(section)):
                 if section == "ai" and key == "api_key":
                     continue
+                if key in HIDDEN_KEYS:
+                    continue
 
                 field_label = t(f"settings_editor.field_labels.{key}", self.lang)
                 lbl = QLabel(field_label)
@@ -237,6 +240,14 @@ class SettingsEditor(QMainWindow):
                 )
                 desc_lbl.setWordWrap(True)
                 group_layout.addWidget(desc_lbl, row + 1, 1, 1, 1)
+
+                if key == "mcp_server_url":
+                    warn = t(f"settings_editor.field_descriptions.{key}_warning", self.lang)
+                    warn_lbl = QLabel(warn)
+                    warn_lbl.setStyleSheet("color: #e74c3c; font-size: 10px; font-style: italic; margin-bottom: 4px;")
+                    warn_lbl.setWordWrap(True)
+                    group_layout.addWidget(warn_lbl, row + 2, 1, 1, 1)
+                    row += 1
 
                 if key == "language":
                     entry.currentTextChanged.connect(

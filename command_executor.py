@@ -123,7 +123,7 @@ class CommandExecutor:
                     cmd = cmd.format(**fmt_vars)
                 except KeyError:
                     return None, None
-                param_dict = {f"param{i+1}": v for i, (k, v) in enumerate(best_vars.items())}
+                param_dict = {f"param{i+1}": v for i, v in enumerate(fmt_vars.values())}
                 var_info = ', '.join(f'{k}={v}' for k, v in best_vars.items())
                 print(f"[Fuzzy] '{transcribed_text}' -> '{best_keyword}' (ratio: {best_ratio:.2f}, vars: {{{var_info}}})")
             else:

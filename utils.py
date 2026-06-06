@@ -78,27 +78,9 @@ except ImportError:
 # ── Clipboard utility ────────────────────────────────────────────────────────
 
 def paste_text(text):
-    import base64
+    import pyautogui
     try:
-        if sys.platform == "win32":
-            text_b64 = base64.b64encode(text.encode("utf-16-le")).decode("ascii")
-            cmd = f"Set-Clipboard -Value ([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('{text_b64}')))"
-            cmd_b64 = base64.b64encode(cmd.encode("utf-16-le")).decode("ascii")
-            subprocess.run(
-                ["powershell", "-NoProfile", "-EncodedCommand", cmd_b64],
-                creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
-            )
-            subprocess.run(
-                ["powershell", "-NoProfile", "-Command",
-                 "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v')"],
-                creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
-            )
-        elif sys.platform == "darwin":
-            subprocess.run(["pbcopy"], input=text, text=True, timeout=5)
-            subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], timeout=5)
-        else:
-            subprocess.run(["xclip", "-selection", "clipboard"], input=text, text=True, timeout=5)
-            subprocess.run(["xdotool", "key", "ctrl+v"], timeout=5)
+        pyautogui.write(text, interval=0.01)
     except Exception as e:
         print(f"[Paste] Error: {e}")
 
@@ -145,6 +127,10 @@ def strip_script_prefix(cmd):
     return cmd
 
 
+def strip_think_tags(text):
+    return re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+
+
 # ── File / memory utilities ──────────────────────────────────────────────────
 
 def cleanup_orphan_files(mem_dir, history_ids, summary_id):
@@ -173,6 +159,8 @@ def cleanup_orphan_files(mem_dir, history_ids, summary_id):
 
 
 # ── AI utilities ─────────────────────────────────────────────────────────────
+
+def call_with_retry(fn, retries=4, delays=(1, 2, 4, 8), log_prefix="[AI]"):
     for attempt in range(retries):
         try:
             return fn()
@@ -189,6 +177,9 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
         return msg
 
     for tc in msg.tool_calls:
+        tool_name = tc.function.name
+        tool_args = tc.function.arguments
+        print(f"[MCP] Call: {tool_name}({tool_args})")
         messages.append({
             "role": "assistant",
             "content": None,

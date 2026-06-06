@@ -55,11 +55,12 @@ class VASScript:
     def _preprocess_screen(frame):
         import numpy as np
         try:
-            from PIL import Image, ImageEnhance
+            from PIL import Image, ImageEnhance, ImageFilter, ImageOps
             pil_img = Image.fromarray(frame[:, :, :3])
-            enhancer = ImageEnhance.Contrast(pil_img)
-            pil_img = enhancer.enhance(1.5)
-            return np.array(pil_img)
+            pil_img = ImageOps.grayscale(pil_img)
+            pil_img = ImageEnhance.Contrast(pil_img).enhance(2.0)
+            pil_img = pil_img.filter(ImageFilter.SHARPEN)
+            return np.stack([np.array(pil_img)] * 3, axis=-1)
         except Exception:
             return frame
 
@@ -750,10 +751,14 @@ class VASScript:
 
         if tokens[0].startswith("$") and len(tokens) > 1 and tokens[1] == "=":
             var_name = tokens[0][1:]
-            expr, _ = self._parse_expr(tokens, 2)
+            expr, consumed = self._parse_expr(tokens, 2)
+            if consumed < len(tokens):
+                raise ValueError(f"unexpected token after expression: '{tokens[consumed]}'")
             value = self._evaluate(expr)
             self.vars[var_name] = value
         else:
-            expr, _ = self._parse_expr(tokens, 0)
+            expr, consumed = self._parse_expr(tokens, 0)
+            if consumed < len(tokens):
+                raise ValueError(f"unexpected token after expression: '{tokens[consumed]}'")
             if expr:
                 self._evaluate(expr)

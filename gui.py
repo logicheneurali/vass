@@ -68,7 +68,7 @@ class WaveformPlayer(QWidget):
 class VolumeTopBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(5)
+        self.setFixedHeight(6)
         self._ratio = 0.50
 
     def set_volume(self, ratio):
@@ -89,9 +89,9 @@ class VolumeTopBar(QWidget):
 class MemoryBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(5)
+        self.setFixedHeight(6)
         self._ratio = 0.0
-        self._color = QColor(105, 219, 124, 200)
+        self._color = QColor(105, 219, 124, 220)
         self._tip_desc = ""
         self._tip_val = 0
         self._tip_max = 0
@@ -143,7 +143,7 @@ class MemoryBar(QWidget):
         painter = QPainter(self)
         w = self.width()
         h = self.height()
-        painter.fillRect(0, 0, w, h, QColor("#1a1a1a"))
+        painter.fillRect(0, 0, w, h, QColor("#333333"))
         fw = int(w * self._ratio)
         if fw > 0:
             painter.fillRect(0, 0, fw, h, self._color)
@@ -178,6 +178,7 @@ class VassGUI(QMainWindow):
         self._health_ok = True
         self._current_state = "listening"
         self._current_detail = ""
+        self._current_mode = "chat"
 
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
@@ -242,7 +243,6 @@ class VassGUI(QMainWindow):
         self._menu.addSeparator()
         self._mode_chat = self._menu.addAction(self._t("gui.mode.chat"))
         self._mode_chat.setCheckable(True)
-        self._mode_chat.setChecked(True)
         self._mode_chat.triggered.connect(lambda: self._switch_mode("chat"))
         self._mode_trascrizione = self._menu.addAction(self._t("gui.mode.trascrizione"))
         self._mode_trascrizione.setCheckable(True)
@@ -452,7 +452,8 @@ class VassGUI(QMainWindow):
         text = self._t(f"gui.states.{state}")
         if detail:
             text = f"{text} {detail}"
-        self.btn.setText(text)
+        prefix = "[C] " if self._current_mode == "chat" else "[T] "
+        self.btn.setText(prefix + text)
         self.btn.setStyleSheet(
             "QPushButton { background-color: %s; color: %s; "
             "border: none; border-radius: 0; }"
@@ -468,7 +469,7 @@ class VassGUI(QMainWindow):
             self.memory_bar.set_color("#9b59b6")
             self.memory_bar.set_tooltip_context(self._t("gui.bar.script"), self._t("gui.bar.lines"))
         else:
-            self.memory_bar.set_color("#4a4a4a")
+            self.memory_bar.set_color("#888888")
             self.memory_bar.set_tooltip_context(self._t("gui.bar.memory"), self._t("gui.bar.bytes"))
             self.update_memory_bar()
         if state in ("waiting", "waiting_resources"):
@@ -495,7 +496,13 @@ class VassGUI(QMainWindow):
     def set_health_status(self, ok):
         if self._health_ok != ok:
             self._health_ok = ok
-            # Re-apply current state styles to update text color
+            self._on_set_state(self._current_state, self._current_detail)
+
+    def set_mode_display(self, mode):
+        if self._current_mode != mode:
+            self._current_mode = mode
+            self._mode_chat.setChecked(mode == "chat")
+            self._mode_trascrizione.setChecked(mode == "trascrizione")
             self._on_set_state(self._current_state, self._current_detail)
 
     def update_memory_bar(self):

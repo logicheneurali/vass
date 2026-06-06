@@ -146,7 +146,8 @@
       "ram_max": "Percentuale massima di utilizzo RAM. Se superata, le richieste AI vengono messe in attesa",
       "gpu_max": "Percentuale massima di utilizzo GPU. Se superata, le richieste AI vengono messe in attesa",
       "vram_max": "Percentuale massima di utilizzo VRAM. Se superata, le richieste AI vengono messe in attesa",
-      "resource_timeout": "Secondi massimi di attesa prima di inviare comunque la richiesta AI"
+      "resource_timeout": "Secondi massimi di attesa prima di inviare comunque la richiesta AI",
+      "mcp_server_url_warning": "(cambiare la URL del server MCP potrebbe invalidare alcune funzioni)"
     },
     "section_labels": {
       "gui": "Finestra",

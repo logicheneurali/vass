@@ -36,9 +36,33 @@ async def _tool(name: str, params_str: str, coro, config: ServerConfig):
         result = await coro
         logger.log(name, params_str, "ok", result)
         return result
+    except TypeError as e:
+        syntax = _TOOL_SYNTAX.get(name, f"{name}(...)")
+        msg = f"SYNTAX ERROR: {e}. Correct syntax: {syntax}"
+        logger.log(name, params_str, "syntax_error", msg)
+        return msg
     except Exception as e:
         logger.log(name, params_str, "error", str(e))
         raise
+
+
+_TOOL_SYNTAX = {
+    "browse": "browse(url) — example: browse('https://example.com')",
+    "read_file": "read_file(path) — example: read_file('events.json')",
+    "write_file": "write_file(path, content) — example: write_file('events.json', '{...}')",
+    "current_time": "current_time() — no parameters",
+    "calculate": "calculate(expression) — example: calculate('2+2')",
+    "execute": "execute(command) — example: execute('ping localhost')",
+    "disk_space": "disk_space() — no parameters",
+    "script": "script(script_name) — example: script('eventi') or script('?') to list",
+    "interact": "interact(code) — example: interact(\"say('hello')\")",
+    "readinfo": "readinfo(id) — example: readinfo('1780394454383')",
+    "writeinfo": "writeinfo(text) — example: writeinfo('dati da salvare')",
+    "clipboardget": "clipboardget() — no parameters",
+    "clipboardset": "clipboardset(text) — example: clipboardset('testo')",
+    "websearch": "websearch(query) — example: websearch('latest news')",
+    "webfetch": "webfetch(url) — example: webfetch('https://example.com')",
+}
 
 
 def create_server(config: ServerConfig) -> FastMCP:
@@ -53,30 +77,37 @@ def create_server(config: ServerConfig) -> FastMCP:
 
     @mcp.tool()
     async def browse(url: str) -> str:
+        """Fetch content from a URL and extract readable text. Use for reading web pages."""
         return await _tool("browse", f"url={url}", web.browse(url), config)
 
     @mcp.tool()
     async def read_file(path: str) -> str:
+        """Read ANY file from Allowed_root. Use for memory.json, events.json, schedule.json, VASCRIPT_REFERENCE.md. Provide just the filename."""
         return await _tool("read_file", f"path={path}", filesystem.read_file(path, config.allowed_root), config)
 
     @mcp.tool()
     async def write_file(path: str, content: str) -> str:
+        """Write content to a file in the Allowed_root directory."""
         return await _tool("write_file", f"path={path}", filesystem.write_file(path, content, config.allowed_root), config)
 
     @mcp.tool()
     async def current_time() -> str:
+        """Get the current date and time."""
         return await _tool("current_time", "", datetime_.current_time(), config)
 
     @mcp.tool()
     async def calculate(expression: str) -> str:
+        """Evaluate a mathematical expression."""
         return await _tool("calculate", f"expr={expression}", calculator.calculate(expression), config)
 
     @mcp.tool()
     async def execute(command: str) -> str:
+        """Execute a system command. Only allowed commands from the configured whitelist can be run."""
         return await _tool("execute", f"cmd={command}", executor.execute(command, config.allowed_commands), config)
 
     @mcp.tool()
     async def disk_space() -> str:
+        """Get available disk space information."""
         return await _tool("disk_space", "", _disk_space(), config)
 
     @mcp.tool()
@@ -91,7 +122,7 @@ def create_server(config: ServerConfig) -> FastMCP:
 
     @mcp.tool()
     async def readinfo(id: str) -> str:
-        """Read an info file by ID. Returns the content of Allowed_root/memory/{id}.json"""
+        """Read an info/memory file by its numeric ID. NOT for reading memory.json — use read_file('memory.json') instead."""
         return await _tool("readinfo", f"id={id}", _info_read(id), config)
 
     @mcp.tool()

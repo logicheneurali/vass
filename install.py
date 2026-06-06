@@ -1017,6 +1017,7 @@ def main():
     cfg = configparser.ConfigParser()
     cfg["locale"] = {"language": LANG}
     cfg["gui"] = {
+        "lastmode": "c",
         "x": "100", "y": "100", "width": "200", "height": "32",
         "font_family": "Segoe UI" if sys.platform == "win32" else "sans-serif",
         "font_size": "10",

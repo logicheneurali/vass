@@ -118,7 +118,8 @@
       "ram_max": "Maximum RAM usage percentage. If exceeded, AI requests wait until below threshold",
       "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
       "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
-      "resource_timeout": "Maximum seconds to wait before sending the AI request anyway"
+      "resource_timeout": "Maximum seconds to wait before sending the AI request anyway",
+      "mcp_server_url_warning": "(alterar o URL do servidor MCP pode invalidar algumas funcoes)"
     },
     "section_labels": {
       "gui": "Janela",

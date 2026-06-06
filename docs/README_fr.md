@@ -39,6 +39,8 @@ cd vass
 python install.py
 ```
 
+**Note :** la procedure d’installation guidee est encore experimentale et peut ne pas fonctionner sur tous les systemes. En cas de probleme, utilisez la procedure d’installation manuelle ci-dessous.
+
 L'assistant vous guidera à travers :
 1. Choix de la langue
 2. Vérification des prérequis (Python 3.13+, pip)

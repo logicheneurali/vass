@@ -118,7 +118,8 @@
       "ram_max": "Maximale RAM-Auslastung in Prozent. Bei Überschreitung warten KI-Anfragen",
       "gpu_max": "Maximale GPU-Auslastung in Prozent. Bei Überschreitung warten KI-Anfragen",
       "vram_max": "Maximale VRAM-Auslastung in Prozent. Bei Überschreitung warten KI-Anfragen",
-      "resource_timeout": "Maximale Wartezeit in Sekunden bevor die KI-Anfrage trotzdem gesendet wird"
+      "resource_timeout": "Maximale Wartezeit in Sekunden bevor die KI-Anfrage trotzdem gesendet wird",
+      "mcp_server_url_warning": "(Andern der MCP-Server-URL kann einige Funktionen beeintrachtigen)"
     },
     "section_labels": {
       "gui": "Fenster",
