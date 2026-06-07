@@ -134,7 +134,9 @@
     "buttons": {
       "save": "저장",
       "cancel": "취소",
-      "start_llama": "시작"
+      "start_llama": "시작",
+      "llama_on": "활성",
+      "llama_off": "비활성"
     },
     "dialog": {
       "error": "오류",

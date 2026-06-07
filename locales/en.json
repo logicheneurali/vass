@@ -134,7 +134,9 @@
     "buttons": {
       "save": "Save",
       "cancel": "Cancel",
-      "start_llama": "Start"
+      "start_llama": "Start",
+      "llama_on": "Active",
+      "llama_off": "Off"
     },
     "dialog": {
       "error": "Error",

@@ -190,10 +190,13 @@ class SettingsEditor(QMainWindow):
                         entry.setCurrentIndex(idx)
                     group_layout.addWidget(entry, row, 1)
                 elif key in BOOLEAN_KEYS:
-                    entry = QCheckBox()
-                    current_val = self.config.get(section, key, fallback="false")
-                    entry.setChecked(current_val.lower() == "true")
                     if key == "llama_autostart":
+                        entry = QPushButton()
+                        entry.setCheckable(True)
+                        current_val = self.config.get(section, key, fallback="false")
+                        entry.setChecked(current_val.lower() == "true")
+                        self._update_llama_btn(entry)
+                        entry.toggled.connect(lambda checked, b=entry: self._update_llama_btn(b))
                         cw = QWidget()
                         cw_layout = QHBoxLayout(cw)
                         cw_layout.setContentsMargins(0, 0, 0, 0)
@@ -205,8 +208,11 @@ class SettingsEditor(QMainWindow):
                         cw_layout.addWidget(start_btn)
                         cw_layout.addStretch()
                         group_layout.addWidget(cw, row, 1)
-                        entry = cw  # store the wrapper so save() finds the checkbox
+                        entry = cw
                     else:
+                        entry = QCheckBox()
+                        current_val = self.config.get(section, key, fallback="false")
+                        entry.setChecked(current_val.lower() == "true")
                         group_layout.addWidget(entry, row, 1)
                 elif key in SLIDER_CONFIG:
                     cfg = SLIDER_CONFIG[key]
@@ -385,8 +391,11 @@ class SettingsEditor(QMainWindow):
             elif isinstance(entry, QCheckBox):
                 value = "true" if entry.isChecked() else "false"
             elif isinstance(entry, QWidget) and key in BOOLEAN_KEYS:
-                cb = entry.findChild(QCheckBox)
-                value = "true" if cb and cb.isChecked() else "false"
+                cb = entry.findChild(QCheckBox) or entry.findChild(QPushButton)
+                if cb and hasattr(cb, 'isChecked'):
+                    value = "true" if cb.isChecked() else "false"
+                else:
+                    value = "false"
             else:
                 value = entry.text()
 
@@ -419,6 +428,14 @@ class SettingsEditor(QMainWindow):
                                    self._t("settings_editor.errors.restart_required"))
         self.close()
 
+
+    def _update_llama_btn(self, btn):
+        if btn.isChecked():
+            btn.setText("🟢 " + t("settings_editor.buttons.llama_on", self.lang))
+            btn.setStyleSheet(f"background-color: {BTN_BG}; color: #2ecc71; border: none; border-radius: 3px; padding: 4px 10px; font-weight: bold;")
+        else:
+            btn.setText("🔴 " + t("settings_editor.buttons.llama_off", self.lang))
+            btn.setStyleSheet(f"background-color: {BTN_BG}; color: #e74c3c; border: none; border-radius: 3px; padding: 4px 10px; font-weight: bold;")
 
     def _start_llama_server(self):
         from utils import start_llama_server

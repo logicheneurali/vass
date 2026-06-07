@@ -162,7 +162,9 @@
     "buttons": {
       "save": "Salva",
       "cancel": "Annulla",
-      "start_llama": "Avvia"
+      "start_llama": "Avvia",
+      "llama_on": "Attivo",
+      "llama_off": "Spento"
     },
     "dialog": {
       "error": "Errore",

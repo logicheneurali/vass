@@ -134,7 +134,9 @@
     "buttons": {
       "save": "保存",
       "cancel": "取消",
-      "start_llama": "启动"
+      "start_llama": "启动",
+      "llama_on": "已启用",
+      "llama_off": "已禁用"
     },
     "dialog": {
       "error": "错误",

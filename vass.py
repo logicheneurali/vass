@@ -96,6 +96,7 @@ class VassApp:
             state_getter=lambda: self.state,
             state_setter=self.set_state,
             tts_volume=tts_volume,
+            language=self.language,
         )
         self.tts.preload()
         self.gui.volume_top_bar.set_volume(tts_volume)
