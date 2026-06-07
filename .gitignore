@@ -53,6 +53,7 @@ Allowed_root/.history_view.json
 Allowed_root/backup_memory.json
 Allowed_root/bk_memory.json
 Allowed_root/news.json
+Allowed_root/last_response.txt
 
 # VASS - user config (use settings.example.ini as template)
 settings.ini
