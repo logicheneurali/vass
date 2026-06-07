@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "O Globo",
+      "link": "https://oglobo.globo.com"
+    },
+    {
+      "description": "Folha de S.Paulo",
+      "link": "https://www.folha.uol.com.br"
+    },
+    {
+      "description": "Estadao",
+      "link": "https://www.estadao.com.br"
+    },
+    {
+      "description": "Correio Braziliense",
+      "link": "https://www.correiobraziliense.com.br"
+    },
+    {
+      "description": "Publico",
+      "link": "https://www.publico.pt"
+    }
+  ]
+}

@@ -140,7 +140,7 @@ class SettingsEditor(QMainWindow):
 
     def load_config(self):
         if os.path.exists(self.settings_file):
-            self.config.read(self.settings_file)
+            self.config.read(self.settings_file, encoding="utf-8")
 
     def build_ui(self):
         self.setWindowTitle(t("settings_editor.title", self.lang))

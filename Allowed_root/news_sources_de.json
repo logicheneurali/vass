@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "Bild",
+      "link": "https://www.bild.de"
+    },
+    {
+      "description": "Der Spiegel",
+      "link": "https://www.spiegel.de"
+    },
+    {
+      "description": "Die Zeit",
+      "link": "https://www.zeit.de"
+    },
+    {
+      "description": "Frankfurter Allgemeine",
+      "link": "https://www.faz.net"
+    },
+    {
+      "description": "Sueddeutsche Zeitung",
+      "link": "https://www.sueddeutsche.de"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IMDb",
+      "link": "https://www.imdb.com"
+    },
+    {
+      "description": "Filmstarts",
+      "link": "https://www.filmstarts.de"
+    },
+    {
+      "description": "Moviepilot",
+      "link": "https://www.moviepilot.de"
+    }
+  ]
+}

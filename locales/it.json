@@ -16,7 +16,8 @@
       "settings": "Impostazioni",
       "scripts": "Scripts",
       "history": "Cronologia",
-      "exit": "Esci"
+      "exit": "Esci",
+      "sources": "Fonti Online"
     },
     "dialog": {
       "exit_title": "Uscita",
@@ -54,7 +55,8 @@
         "listen": "Registra la tua voce e restituisce il testo trascritto",
         "sendtext": "Simula la digitazione di testo sulla tastiera",
         "setactivewindow": "Attiva una finestra per nome processo o titolo"
-      }
+      },
+      "cancel": "Annulla"
     }
   },
   "scripts_editor": {
@@ -215,12 +217,12 @@
   },
   "whisper": {
     "language": "it",
-    "initial_prompt_wakeword": "erika",
+    "initial_prompt_wakeword": "comando vocale, attivazione, ascolta, esegui, apri, cerca",
     "initial_prompt_transcription": "Questa è una trascrizione in italiano. I comandi comuni includono: apri browser, chiudi finestra, spegni, riavvia, calcolatrice, blocco note.",
     "wake_variants": [
-      "erika",
-      "hey erika",
-      "ciao erika"
+      "{wake}",
+      "hey {wake}",
+      "ciao {wake}"
     ]
   },
   "ai": {
@@ -232,7 +234,8 @@
     "fallback_language": "it-IT"
   },
   "scripts": {
-    "not_found": "Script {name} non trovato."
+    "not_found": "Script {name} non trovato.",
+    "exec_message": "Eseguo..."
   },
   "events": {
     "reminder_message": "Promemoria: {description} alle {time}",

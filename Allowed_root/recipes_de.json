@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "description": "Chefkoch",
+      "link": "https://www.chefkoch.de"
+    },
+    {
+      "description": "Essen und Trinken",
+      "link": "https://www.essen-und-trinken.de"
+    }
+  ]
+}

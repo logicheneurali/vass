@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "Amazon",
+      "link": "https://www.amazon.com"
+    },
+    {
+      "description": "eBay",
+      "link": "https://www.ebay.com"
+    },
+    {
+      "description": "Walmart",
+      "link": "https://www.walmart.com"
+    }
+  ]
+}

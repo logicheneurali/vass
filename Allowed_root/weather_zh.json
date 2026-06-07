@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "description": "China Weather",
+      "link": "https://www.weather.com.cn"
+    },
+    {
+      "description": "HK Observatory",
+      "link": "https://www.hko.gov.hk"
+    }
+  ]
+}

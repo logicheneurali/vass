@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IMDb",
+      "link": "https://www.imdb.com"
+    },
+    {
+      "description": "Douban Movie",
+      "link": "https://movie.douban.com"
+    },
+    {
+      "description": "Mtime",
+      "link": "https://www.mtime.com"
+    }
+  ]
+}

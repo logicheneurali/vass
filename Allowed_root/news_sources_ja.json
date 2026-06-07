@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "Yomiuri Shimbun",
+      "link": "https://www.yomiuri.co.jp"
+    },
+    {
+      "description": "Asahi Shimbun",
+      "link": "https://www.asahi.com"
+    },
+    {
+      "description": "Mainichi Shimbun",
+      "link": "https://mainichi.jp"
+    },
+    {
+      "description": "Nikkei",
+      "link": "https://www.nikkei.com"
+    },
+    {
+      "description": "Sankei Shimbun",
+      "link": "https://www.sankei.com"
+    }
+  ]
+}

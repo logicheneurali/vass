@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IMDb",
+      "link": "https://www.imdb.com"
+    },
+    {
+      "description": "Rotten Tomatoes",
+      "link": "https://www.rottentomatoes.com"
+    },
+    {
+      "description": "Metacritic",
+      "link": "https://www.metacritic.com"
+    }
+  ]
+}

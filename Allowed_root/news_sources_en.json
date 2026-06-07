@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "The New York Times",
+      "link": "https://www.nytimes.com"
+    },
+    {
+      "description": "The Guardian",
+      "link": "https://www.theguardian.com"
+    },
+    {
+      "description": "BBC News",
+      "link": "https://www.bbc.com/news"
+    },
+    {
+      "description": "The Washington Post",
+      "link": "https://www.washingtonpost.com"
+    },
+    {
+      "description": "CNN",
+      "link": "https://www.cnn.com"
+    }
+  ]
+}

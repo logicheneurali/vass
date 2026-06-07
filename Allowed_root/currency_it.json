@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "description": "XE",
+      "link": "https://www.xe.com"
+    },
+    {
+      "description": "Il Sole 24 Ore Cambi",
+      "link": "https://cambi.ilsole24ore.com"
+    }
+  ]
+}

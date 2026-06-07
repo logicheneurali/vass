@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "Wetter.com",
+      "link": "https://www.wetter.com"
+    },
+    {
+      "description": "WetterOnline",
+      "link": "https://www.wetteronline.de"
+    },
+    {
+      "description": "DWD",
+      "link": "https://www.dwd.de"
+    }
+  ]
+}

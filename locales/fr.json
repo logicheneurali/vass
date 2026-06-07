@@ -16,7 +16,8 @@
       "settings": "Paramètres",
       "scripts": "Scripts",
       "exit": "Quitter",
-      "history": "History"
+      "history": "History",
+      "sources": "Sources en ligne"
     },
     "dialog": {
       "exit_title": "Quitter",
@@ -41,7 +42,8 @@
         "listen": "Enregistre votre voix et retourne le texte transcrit",
         "sendtext": "Simulates typing text on the keyboard",
         "setactivewindow": "Activates a window by process name or title"
-      }
+      },
+      "cancel": "Annuler"
     },
     "bar": {
       "memory": "Memory usage",
@@ -215,12 +217,12 @@
   },
   "whisper": {
     "language": "fr",
-    "initial_prompt_wakeword": "erika",
+    "initial_prompt_wakeword": "commande vocale, activation, ecoute, execute, ouvre, cherche",
     "initial_prompt_transcription": "Ceci est une transcription en français. Les commandes courantes incluent : ouvrir le navigateur, fermer la fenêtre, éteindre, redémarrer, calculatrice, bloc-notes.",
     "wake_variants": [
-      "erika",
-      "hey erika",
-      "bonjour erika"
+      "{wake}",
+      "hey {wake}",
+      "bonjour {wake}"
     ]
   },
   "ai": {
@@ -232,7 +234,8 @@
     "fallback_language": "fr-FR"
   },
   "scripts": {
-    "not_found": "Script {name} not found."
+    "not_found": "Script {name} not found.",
+    "exec_message": "Execution..."
   },
   "events": {
     "reminder_message": "Rappel : {description} à {time}",

@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "Weather.com",
+      "link": "https://weather.com"
+    },
+    {
+      "description": "AccuWeather",
+      "link": "https://www.accuweather.com"
+    },
+    {
+      "description": "BBC Weather",
+      "link": "https://www.bbc.com/weather"
+    }
+  ]
+}

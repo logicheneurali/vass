@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "Le Monde",
+      "link": "https://www.lemonde.fr"
+    },
+    {
+      "description": "Le Figaro",
+      "link": "https://www.lefigaro.fr"
+    },
+    {
+      "description": "Liberation",
+      "link": "https://www.liberation.fr"
+    },
+    {
+      "description": "Les Echos",
+      "link": "https://www.lesechos.fr"
+    },
+    {
+      "description": "Ouest-France",
+      "link": "https://www.ouest-france.fr"
+    }
+  ]
+}

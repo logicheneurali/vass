@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IlMeteo",
+      "link": "https://www.ilmeteo.it"
+    },
+    {
+      "description": "3BMeteo",
+      "link": "https://www.3bmeteo.com"
+    },
+    {
+      "description": "MeteoAM",
+      "link": "https://www.meteoam.it"
+    }
+  ]
+}

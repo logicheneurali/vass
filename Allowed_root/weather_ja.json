@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "description": "Tenki.jp",
+      "link": "https://tenki.jp"
+    },
+    {
+      "description": "JMA",
+      "link": "https://www.jma.go.jp"
+    }
+  ]
+}

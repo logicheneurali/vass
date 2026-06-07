@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "Taobao",
+      "link": "https://www.taobao.com"
+    },
+    {
+      "description": "JD.com",
+      "link": "https://www.jd.com"
+    },
+    {
+      "description": "Pinduoduo",
+      "link": "https://www.pinduoduo.com"
+    }
+  ]
+}

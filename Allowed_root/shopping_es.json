@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "Amazon",
+      "link": "https://www.amazon.es"
+    },
+    {
+      "description": "El Corte Ingles",
+      "link": "https://www.elcorteingles.es"
+    },
+    {
+      "description": "Mercadona",
+      "link": "https://www.mercadona.es"
+    }
+  ]
+}

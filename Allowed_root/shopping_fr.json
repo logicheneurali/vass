@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "Amazon",
+      "link": "https://www.amazon.fr"
+    },
+    {
+      "description": "Cdiscount",
+      "link": "https://www.cdiscount.com"
+    },
+    {
+      "description": "Fnac",
+      "link": "https://www.fnac.com"
+    }
+  ]
+}

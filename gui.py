@@ -221,6 +221,17 @@ class VassGUI(QMainWindow):
 
         row.addWidget(self.stacked, 1)
 
+        self.replay_btn = QPushButton("\U0001F502")
+        self.replay_btn.setStyleSheet(
+            "QPushButton { background-color: #1e1e1e; color: #ffffff; "
+            "border: none; font-size: 10px; padding: 2px; }"
+            "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+        )
+        self.replay_btn.setFixedWidth(16)
+        self.replay_btn.setVisible(False)
+        self.replay_btn.clicked.connect(self._on_replay)
+        row.addWidget(self.replay_btn)
+
         # Menu button with popup
         menu_btn = QPushButton("\u2630")
         menu_btn.setStyleSheet(
@@ -240,6 +251,7 @@ class VassGUI(QMainWindow):
         self._menu.addAction(self._t("gui.menu.settings"), self.open_settings)
         self._menu.addAction(self._t("gui.menu.scripts"), self.open_scripts)
         self._menu.addAction(self._t("gui.menu.history"), self.open_history)
+        self._menu.addAction(self._t("gui.menu.sources"), self.open_sources)
         self._menu.addSeparator()
         self._mode_chat = self._menu.addAction(self._t("gui.mode.chat"))
         self._mode_chat.setCheckable(True)
@@ -461,6 +473,11 @@ class VassGUI(QMainWindow):
             % (color, text_color, QColor(color).darker(120).name())
         )
         self.stacked.setCurrentWidget(self.btn)
+        if state == "waiting":
+            path = os.path.join(BASE, "Allowed_root", "last_response.txt")
+            self.replay_btn.setVisible(os.path.exists(path) and os.path.getsize(path) > 0)
+        else:
+            self.replay_btn.setVisible(False)
         if state == "recording":
             self.memory_bar.set_color("#69DB7C")
             self.memory_bar.set_tooltip_context(self._t("gui.bar.volume"), "")
@@ -504,6 +521,20 @@ class VassGUI(QMainWindow):
         if self._current_mode != mode:
             self._current_mode = mode
             self._on_set_state(self._current_state, self._current_detail)
+
+    def set_replay_visible(self, visible):
+        self.replay_btn.setVisible(visible)
+
+    def _on_replay(self):
+        path = os.path.join(BASE, "Allowed_root", "last_response.txt")
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    text = f.read()
+                if text.strip() and self.app:
+                    self.app.tts.speak(text)
+            except Exception:
+                pass
 
     def update_memory_bar(self):
         self.update_memory_signal.emit()
@@ -573,7 +604,7 @@ class VassGUI(QMainWindow):
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
         dlg = QDialog(self)
         dlg.setWindowTitle(self._t("gui.auth.title"))
-        dlg.setFixedSize(420, 240)
+        dlg.setFixedSize(525, 300)
         dlg.setStyleSheet(
             "QDialog { background-color: #2d2d2d; color: #e0e0e0; }"
             "QLabel { color: #e0e0e0; font-size: 13px; }"
@@ -602,9 +633,13 @@ class VassGUI(QMainWindow):
         btn_func.clicked.connect(lambda: self._finish_auth("function", dlg))
         btn_all = QPushButton(self._t("gui.auth.allow_all"))
         btn_all.clicked.connect(lambda: self._finish_auth("all", dlg))
+        btn_cancel = QPushButton(self._t("gui.auth.cancel"))
+        btn_cancel.setStyleSheet("QPushButton { background-color: #555555; } QPushButton:hover { background-color: #777777; }")
+        btn_cancel.clicked.connect(lambda: self._finish_auth("deny", dlg))
         btn_lo.addWidget(btn_once)
         btn_lo.addWidget(btn_func)
         btn_lo.addWidget(btn_all)
+        btn_lo.addWidget(btn_cancel)
         lo.addLayout(btn_lo)
         dlg.exec()
         if self._auth_result is None:
@@ -672,6 +707,7 @@ class VassGUI(QMainWindow):
                     "commands": "editor comandi vass",
                     "scripts": "vasscript editor",
                     "history": "cronologia conversazioni",
+                    "sources": "vass - fonti online",
                 }
                 search = titles.get(key, "")
                 found = []
@@ -734,6 +770,9 @@ class VassGUI(QMainWindow):
         with open(data_path, "w", encoding="utf-8") as f:
             json.dump(entries, f, ensure_ascii=False)
         self._open_unique_window("history", os.path.join(BASE, "history_viewer.py"), "--lang", self.language)
+
+    def open_sources(self):
+        self._open_unique_window("sources", os.path.join(BASE, "sources_editor.py"), "--lang", self.language)
 
     def _is_fullscreen(self):
         if sys.platform == "win32":

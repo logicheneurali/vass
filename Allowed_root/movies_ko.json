@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IMDb",
+      "link": "https://www.imdb.com"
+    },
+    {
+      "description": "Naver Movie",
+      "link": "https://movie.naver.com"
+    },
+    {
+      "description": "Daum Movie",
+      "link": "https://movie.daum.net"
+    }
+  ]
+}

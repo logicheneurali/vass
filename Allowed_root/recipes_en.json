@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "AllRecipes",
+      "link": "https://www.allrecipes.com"
+    },
+    {
+      "description": "Food Network",
+      "link": "https://www.foodnetwork.com"
+    },
+    {
+      "description": "BBC Good Food",
+      "link": "https://www.bbcgoodfood.com"
+    }
+  ]
+}

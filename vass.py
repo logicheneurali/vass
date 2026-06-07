@@ -116,16 +116,24 @@ class VassApp:
 
         wr_lang = t("whisper.language", self.language)
         wr_prompt = t("whisper.initial_prompt_wakeword", self.language)
+        wr_prompt = f"{self.wake_word}, {wr_prompt}"
         wr_transcribe = t("whisper.initial_prompt_transcription", self.language)
+        try:
+            wr_variants = list(t("whisper.wake_variants", self.language))
+            if not isinstance(wr_variants, list):
+                raise ValueError
+        except Exception:
+            wr_variants = ["{wake}", "hey {wake}", "ciao {wake}"]
+        wr_variants = [v.replace("{wake}", self.wake_word) for v in wr_variants]
         self.voice_recognition = VoiceRecognition(
             wake_word=self.wake_word,
             sensitivity=self.wake_word_sensitivity,
             whisper_language=wr_lang,
             wake_prompt=wr_prompt,
             transcribe_prompt=wr_transcribe,
-            wake_variants=[self.wake_word, f"hey {self.wake_word}", f"ciao {self.wake_word}"]
+            wake_variants=wr_variants
         )
-        self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity)
+        self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language)
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
         self.running = False
         self._trim_lock = threading.Lock()
@@ -166,7 +174,7 @@ class VassApp:
         try:
             cfg = configparser.ConfigParser()
             path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.ini")
-            cfg.read(path)
+            cfg.read(path, encoding="utf-8")
             if not cfg.has_section(section):
                 cfg.add_section(section)
             cfg.set(section, key, value)
@@ -187,7 +195,7 @@ class VassApp:
         result = {}
         
         if os.path.exists(abs_path):
-            config.read(abs_path)
+            config.read(abs_path, encoding="utf-8")
             result["language"] = config.get("locale", "language", fallback="en")
             result["lastmode"] = config.get("gui", "lastmode", fallback="c")
             result["sensitivity"] = config.getfloat("wakeword", "sensitivity", fallback=0.005)
@@ -415,7 +423,7 @@ class VassApp:
         abs_path = os.path.abspath(self.settings_file)
         try:
             if os.path.exists(abs_path):
-                config.read(abs_path)
+                config.read(abs_path, encoding="utf-8")
             if "gui" not in config:
                 config["gui"] = {}
             config["gui"]["x"] = str(x)
@@ -579,7 +587,7 @@ class VassApp:
         
         if len(audio_data) > 0:
             transcription = self.voice_recognition.transcribe_audio(audio_data)
-            with open("lastcommands.txt", "w") as f:
+            with open("lastcommands.txt", "w", encoding="utf-8") as f:
                 f.write(transcription)
             print(f"Transcription: {transcription}")
             if hasattr(self, 'idle_tracker') and self.idle_tracker:
@@ -650,7 +658,7 @@ class VassApp:
 
     def _process_command(self):
         try:
-            with open("lastcommands.txt", "r") as f:
+            with open("lastcommands.txt", "r", encoding="utf-8") as f:
                 transcribed_text = f.read().strip()
         except FileNotFoundError:
             print("No transcription file found.")
@@ -823,7 +831,8 @@ class VassApp:
 
         if is_local_url(self.ai_url):
             from resource_monitor import wait_for_resources
-            self.set_state("waiting_resources")
+            self.set_state("waiting_resources", "Verifica risorse...")
+            time.sleep(0.05)
             timeout = self.settings.get("resource_timeout", 300)
 
             def _res_status(s):
@@ -951,6 +960,12 @@ class VassApp:
             self.gui.update_memory_bar()
 
             clean_text = strip_markdown(ai_response)
+            try:
+                path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root", "last_response.txt")
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(clean_text)
+            except Exception:
+                pass
             self.tts.speak(clean_text)
         except Exception as e:
             body = getattr(e, "body", None)
@@ -1126,7 +1141,7 @@ if __name__ == "__main__":
     abs_path = os.path.abspath(settings_file)
     
     if os.path.exists(abs_path):
-        config.read(abs_path)
+        config.read(abs_path, encoding="utf-8")
         gui_x = config.getint("gui", "x", fallback=100)
         gui_y = config.getint("gui", "y", fallback=100)
         gui_width = config.getint("gui", "width", fallback=220)

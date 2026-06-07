@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "Corriere della Sera",
+      "link": "https://www.corriere.it"
+    },
+    {
+      "description": "La Repubblica",
+      "link": "https://www.repubblica.it"
+    },
+    {
+      "description": "La Stampa",
+      "link": "https://www.lastampa.it"
+    },
+    {
+      "description": "Il Sole 24 Ore",
+      "link": "https://www.ilsole24ore.com"
+    },
+    {
+      "description": "Il Fatto Quotidiano",
+      "link": "https://www.ilfattoquotidiano.it"
+    }
+  ]
+}

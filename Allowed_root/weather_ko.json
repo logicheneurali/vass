@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "description": "KMA",
+      "link": "https://www.kma.go.kr"
+    },
+    {
+      "description": "Weather.co.kr",
+      "link": "https://www.weather.go.kr"
+    }
+  ]
+}

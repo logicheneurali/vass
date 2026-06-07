@@ -87,7 +87,7 @@ class CommandsEditor(QMainWindow):
 
     def load_config(self):
         if os.path.exists(self.commands_file):
-            self.config.read(self.commands_file)
+            self.config.read(self.commands_file, encoding="utf-8")
 
     def rebuild_entries(self):
         self.entries = []

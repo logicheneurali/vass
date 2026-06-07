@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "description": "XE",
+      "link": "https://www.xe.com"
+    },
+    {
+      "description": "Yahoo Finance",
+      "link": "https://finance.yahoo.co.jp"
+    }
+  ]
+}

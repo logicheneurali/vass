@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IMDb",
+      "link": "https://www.imdb.com"
+    },
+    {
+      "description": "Filmaffinity",
+      "link": "https://www.filmaffinity.com"
+    },
+    {
+      "description": "Sensacine",
+      "link": "https://www.sensacine.com"
+    }
+  ]
+}

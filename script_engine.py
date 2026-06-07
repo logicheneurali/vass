@@ -39,6 +39,9 @@ class VASScript:
         self.auth_callback = auth_callback
         self.line_callback = line_callback
         self.vars = {}
+        self.vars["_lang"] = getattr(app, "language", "en")
+        from i18n import t
+        self.vars["_exec_message"] = t("scripts.exec_message", getattr(app, "language", "en"))
         self._running = False
         self._auth_all = False
 
@@ -556,6 +559,21 @@ class VASScript:
                     line += f" [{tr('every')} {_recur_label(recur)}]"
                 lines.append(line)
             return "\n".join(lines)
+
+        if name == "readfile":
+            filepath = evaluated[0] if evaluated else ""
+            if not filepath:
+                return "error: path required"
+            import os as _os
+            base = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "Allowed_root")
+            p = _os.path.normpath(_os.path.join(base, filepath))
+            if not p.startswith(_os.path.normpath(base)):
+                return "error: access denied"
+            try:
+                with open(p, encoding="utf-8") as f:
+                    return f.read()
+            except Exception as e:
+                return f"error: {e}"
 
         raise ValueError(f"unknown function: {name}()")
 

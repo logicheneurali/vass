@@ -8,7 +8,7 @@
       "paused": "일시 정지",
       "loading": "초기화 중...",
       "running_script": "스크립트 실행",
-      "waiting_resources": "Waiting for resources"
+      "waiting_resources": "리소스 대기 중"
     },
     "menu": {
       "menu": "메뉴",
@@ -16,7 +16,8 @@
       "settings": "설정",
       "scripts": "스크립트",
       "exit": "종료",
-      "history": "History"
+      "history": "기록",
+      "sources": "온라인 소스"
     },
     "dialog": {
       "exit_title": "종료",
@@ -39,23 +40,24 @@
         "screen_click": "지정된 좌표에서 마우스 클릭 시뮬레이션",
         "screen_highlight": "화면 영역을 잠시 강조 표시",
         "listen": "음성을 녹음하고 전사된 텍스트 반환",
-        "sendtext": "Simulates typing text on the keyboard",
-        "setactivewindow": "Activates a window by process name or title"
-      }
+        "sendtext": "키보드로 텍스트 입력",
+        "setactivewindow": "프로세스 이름이나 제목으로 창 활성화"
+      },
+      "cancel": "취소"
     },
     "bar": {
-      "memory": "Memory usage",
-      "volume": "Volume",
-      "script": "Script progress",
-      "bytes": "bytes",
-      "lines": "lines"
+      "memory": "메모리 사용량",
+      "volume": "볼륨",
+      "script": "스크립트 진행",
+      "bytes": "바이트",
+      "lines": "줄"
     },
     "memory_mode": {
-      "full": "Memory: Full",
-      "limited": "Memory: Limited",
-      "none": "Memory: None"
+      "full": "메모리: 전체",
+      "limited": "메모리: 제한",
+      "none": "메모리: 없음"
     },
-    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move"
+    "button_tooltip": "클릭 = 상태 변경 | 휠 = 볼륨 | 드래그 = 이동"
   },
   "settings_editor": {
     "title": "VASS 설정",
@@ -215,12 +217,13 @@
   },
   "whisper": {
     "language": "ko",
-    "initial_prompt_wakeword": "erika",
+    "initial_prompt_wakeword": "웨이크워드, 안녕, 명령, 실행",
     "initial_prompt_transcription": "한국어 전사입니다. 일반적인 명령: 브라우저 열기, 창 닫기, 종료, 다시 시작, 계산기, 메모장.",
     "wake_variants": [
-      "erika",
-      "헤이 erika",
-      "안녕 erika"
+      "{wake}",
+      "헤이 {wake}",
+      "안녕 {wake}",
+      "야 {wake}"
     ]
   },
   "ai": {
@@ -232,7 +235,8 @@
     "fallback_language": "ko-KR"
   },
   "scripts": {
-    "not_found": "Script {name} not found."
+    "not_found": "Script {name} not found.",
+    "exec_message": "실행 중..."
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",

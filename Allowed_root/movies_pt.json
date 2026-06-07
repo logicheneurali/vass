@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IMDb",
+      "link": "https://www.imdb.com"
+    },
+    {
+      "description": "AdoroCinema",
+      "link": "https://www.adorocinema.com"
+    },
+    {
+      "description": "Omelete",
+      "link": "https://www.omelete.com.br"
+    }
+  ]
+}

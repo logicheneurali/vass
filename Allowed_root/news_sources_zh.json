@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "People Daily",
+      "link": "https://www.people.com.cn"
+    },
+    {
+      "description": "Xinhua News",
+      "link": "https://www.xinhuanet.com"
+    },
+    {
+      "description": "China Daily",
+      "link": "https://www.chinadaily.com.cn"
+    },
+    {
+      "description": "South China Morning Post",
+      "link": "https://www.scmp.com"
+    },
+    {
+      "description": "World Journal",
+      "link": "https://www.worldjournal.com"
+    }
+  ]
+}

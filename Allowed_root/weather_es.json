@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "description": "AEMET",
+      "link": "https://www.aemet.es"
+    },
+    {
+      "description": "El Tiempo",
+      "link": "https://www.eltiempo.es"
+    }
+  ]
+}

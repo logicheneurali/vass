@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IMDb",
+      "link": "https://www.imdb.com"
+    },
+    {
+      "description": "Eiga.com",
+      "link": "https://eiga.com"
+    },
+    {
+      "description": "Filmarks",
+      "link": "https://filmarks.com"
+    }
+  ]
+}

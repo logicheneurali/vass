@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "description": "Meteo France",
+      "link": "https://www.meteofrance.com"
+    },
+    {
+      "description": "La Chaine Meteo",
+      "link": "https://www.lachainemeteo.com"
+    }
+  ]
+}

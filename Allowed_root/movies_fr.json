@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "IMDb",
+      "link": "https://www.imdb.com"
+    },
+    {
+      "description": "AlloCine",
+      "link": "https://www.allocine.fr"
+    },
+    {
+      "description": "SensCritique",
+      "link": "https://www.senscritique.com"
+    }
+  ]
+}

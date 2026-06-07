@@ -8,7 +8,7 @@
       "paused": "暂停",
       "loading": "初始化中...",
       "running_script": "执行脚本",
-      "waiting_resources": "Waiting for resources"
+      "waiting_resources": "等待资源"
     },
     "menu": {
       "menu": "菜单",
@@ -16,7 +16,8 @@
       "settings": "设置",
       "scripts": "脚本",
       "exit": "退出",
-      "history": "History"
+      "history": "历史",
+      "sources": "在线来源"
     },
     "dialog": {
       "exit_title": "退出",
@@ -39,23 +40,24 @@
         "screen_click": "在指定坐标处模拟鼠标点击",
         "screen_highlight": "短暂高亮屏幕上的某个区域",
         "listen": "录制您的语音并返回转录文本",
-        "sendtext": "Simulates typing text on the keyboard",
-        "setactivewindow": "Activates a window by process name or title"
-      }
+        "sendtext": "在键盘上输入文本",
+        "setactivewindow": "通过进程名称或标题激活窗口"
+      },
+      "cancel": "取消"
     },
     "bar": {
-      "memory": "Memory usage",
-      "volume": "Volume",
-      "script": "Script progress",
-      "bytes": "bytes",
-      "lines": "lines"
+      "memory": "内存使用量",
+      "volume": "音量",
+      "script": "脚本进度",
+      "bytes": "字节",
+      "lines": "行"
     },
     "memory_mode": {
-      "full": "Memory: Full",
-      "limited": "Memory: Limited",
-      "none": "Memory: None"
+      "full": "内存：完整",
+      "limited": "内存：受限",
+      "none": "内存：无"
     },
-    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move"
+    "button_tooltip": "点击 = 更改状态 | 滚轮 = 音量 | 拖动 = 移动"
   },
   "settings_editor": {
     "title": "VASS 设置",
@@ -215,12 +217,13 @@
   },
   "whisper": {
     "language": "zh",
-    "initial_prompt_wakeword": "erika",
+    "initial_prompt_wakeword": "唤醒词，你好，命令，执行",
     "initial_prompt_transcription": "这是中文转录。常见命令包括：打开浏览器、关闭窗口、关机、重启、计算器、记事本。",
     "wake_variants": [
-      "erika",
-      "嘿 erika",
-      "你好 erika"
+      "{wake}",
+      "嘿 {wake}",
+      "你好 {wake}",
+      "喂 {wake}"
     ]
   },
   "ai": {
@@ -232,7 +235,8 @@
     "fallback_language": "zh-CN"
   },
   "scripts": {
-    "not_found": "Script {name} not found."
+    "not_found": "Script {name} not found.",
+    "exec_message": "执行中..."
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",

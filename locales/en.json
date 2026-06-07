@@ -16,7 +16,8 @@
       "settings": "Settings",
       "scripts": "Scripts",
       "history": "History",
-      "exit": "Exit"
+      "exit": "Exit",
+      "sources": "Online Sources"
     },
     "dialog": {
       "exit_title": "Exit",
@@ -54,7 +55,8 @@
         "listen": "Records your voice and returns the transcribed text",
         "sendtext": "Simulates typing text on the keyboard",
         "setactivewindow": "Activates a window by process name or title"
-      }
+      },
+      "cancel": "Cancel"
     }
   },
   "settings_editor": {
@@ -215,12 +217,12 @@
   },
   "whisper": {
     "language": "en",
-    "initial_prompt_wakeword": "erika",
+    "initial_prompt_wakeword": "voice command, wake word, listen, execute, open, search",
     "initial_prompt_transcription": "This is an English transcription. Common commands include: open browser, close window, shutdown, restart, calculator, notepad.",
     "wake_variants": [
-      "erika",
-      "hey erika",
-      "hello erika"
+      "{wake}",
+      "hey {wake}",
+      "hello {wake}"
     ]
   },
   "ai": {
@@ -232,7 +234,8 @@
     "fallback_language": "en-US"
   },
   "scripts": {
-    "not_found": "Script {name} not found."
+    "not_found": "Script {name} not found.",
+    "exec_message": "Running..."
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",

@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "description": "Amazon",
+      "link": "https://www.amazon.co.jp"
+    },
+    {
+      "description": "Rakuten",
+      "link": "https://www.rakuten.co.jp"
+    },
+    {
+      "description": "Yahoo Shopping",
+      "link": "https://shopping.yahoo.co.jp"
+    }
+  ]
+}

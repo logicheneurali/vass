@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "Chosun Ilbo",
+      "link": "https://www.chosun.com"
+    },
+    {
+      "description": "JoongAng Ilbo",
+      "link": "https://www.joongang.co.kr"
+    },
+    {
+      "description": "Dong-A Ilbo",
+      "link": "https://www.donga.com"
+    },
+    {
+      "description": "Hankyoreh",
+      "link": "https://www.hani.co.kr"
+    },
+    {
+      "description": "Kyunghyang Shinmun",
+      "link": "https://www.khan.co.kr"
+    }
+  ]
+}

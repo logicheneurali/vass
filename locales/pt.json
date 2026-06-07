@@ -16,7 +16,8 @@
       "settings": "Configurações",
       "scripts": "Scripts",
       "exit": "Sair",
-      "history": "History"
+      "history": "History",
+      "sources": "Fontes Online"
     },
     "dialog": {
       "exit_title": "Sair",
@@ -41,7 +42,8 @@
         "listen": "Grava sua voz e retorna o texto transcrito",
         "sendtext": "Simulates typing text on the keyboard",
         "setactivewindow": "Activates a window by process name or title"
-      }
+      },
+      "cancel": "Cancelar"
     },
     "bar": {
       "memory": "Memory usage",
@@ -215,12 +217,12 @@
   },
   "whisper": {
     "language": "pt",
-    "initial_prompt_wakeword": "erika",
+    "initial_prompt_wakeword": "comando de voz, ativacao, escuta, executa, abre, pesquisa",
     "initial_prompt_transcription": "Esta é uma transcrição em português. Comandos comuns incluem: abrir navegador, fechar janela, desligar, reiniciar, calculadora, bloco de notas.",
     "wake_variants": [
-      "erika",
-      "ei erika",
-      "olá erika"
+      "{wake}",
+      "ei {wake}",
+      "olá {wake}"
     ]
   },
   "ai": {
@@ -232,7 +234,8 @@
     "fallback_language": "pt-BR"
   },
   "scripts": {
-    "not_found": "Script {name} not found."
+    "not_found": "Script {name} not found.",
+    "exec_message": "Executando..."
   },
   "events": {
     "reminder_message": "Lembrete: {description} às {time}",

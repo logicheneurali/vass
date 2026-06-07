@@ -8,7 +8,7 @@
       "paused": "一時停止",
       "loading": "初期化中...",
       "running_script": "スクリプト実行",
-      "waiting_resources": "Waiting for resources"
+      "waiting_resources": "リソース待機中"
     },
     "menu": {
       "menu": "メニュー",
@@ -16,7 +16,8 @@
       "settings": "設定",
       "scripts": "スクリプト",
       "exit": "終了",
-      "history": "History"
+      "history": "履歴",
+      "sources": "オンラインソース"
     },
     "dialog": {
       "exit_title": "終了",
@@ -39,23 +40,24 @@
         "screen_click": "指定された座標でマウスクリックをシミュレート",
         "screen_highlight": "画面上の領域を一時的に強調表示",
         "listen": "音声を録音し、文字起こしテキストを返す",
-        "sendtext": "Simulates typing text on the keyboard",
-        "setactivewindow": "Activates a window by process name or title"
-      }
+        "sendtext": "キーボードでテキスト入力",
+        "setactivewindow": "プロセス名またはタイトルでウィンドウをアクティブ化"
+      },
+      "cancel": "キャンセル"
     },
     "bar": {
-      "memory": "Memory usage",
-      "volume": "Volume",
-      "script": "Script progress",
-      "bytes": "bytes",
-      "lines": "lines"
+      "memory": "メモリ使用量",
+      "volume": "音量",
+      "script": "スクリプト進行",
+      "bytes": "バイト",
+      "lines": "行"
     },
     "memory_mode": {
-      "full": "Memory: Full",
-      "limited": "Memory: Limited",
-      "none": "Memory: None"
+      "full": "メモリ: 全履歴",
+      "limited": "メモリ: 制限付き",
+      "none": "メモリ: なし"
     },
-    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move"
+    "button_tooltip": "クリック = 状態変更 | ホイール = 音量 | ドラッグ = 移動"
   },
   "settings_editor": {
     "title": "VASS 設定",
@@ -215,12 +217,13 @@
   },
   "whisper": {
     "language": "ja",
-    "initial_prompt_wakeword": "erika",
+    "initial_prompt_wakeword": "ウェイクワード、こんにちは、命令、実行",
     "initial_prompt_transcription": "これは日本語の文字起こしです。よく使われるコマンド：ブラウザを開いて、ウィンドウを閉じて、シャットダウン、再起動、電卓、メモ帳。",
     "wake_variants": [
-      "erika",
-      "ねえ erika",
-      "こんにちは erika"
+      "{wake}",
+      "ヘイ{wake}",
+      "ねえ{wake}",
+      "おい{wake}"
     ]
   },
   "ai": {
@@ -232,7 +235,8 @@
     "fallback_language": "ja-JP"
   },
   "scripts": {
-    "not_found": "Script {name} not found."
+    "not_found": "Script {name} not found.",
+    "exec_message": "実行中..."
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",

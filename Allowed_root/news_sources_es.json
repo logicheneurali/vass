@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "description": "El Pais",
+      "link": "https://www.elpais.com"
+    },
+    {
+      "description": "El Mundo",
+      "link": "https://www.elmundo.es"
+    },
+    {
+      "description": "ABC",
+      "link": "https://www.abc.es"
+    },
+    {
+      "description": "La Vanguardia",
+      "link": "https://www.lavanguardia.com"
+    },
+    {
+      "description": "El Confidencial",
+      "link": "https://www.elconfidencial.com"
+    }
+  ]
+}

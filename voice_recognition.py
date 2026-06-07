@@ -12,8 +12,8 @@ def _cuda_available():
 
 
 class VoiceRecognition:
-    def __init__(self, wake_word="erika", transcription_model="medium", sensitivity=0.005,
-                 whisper_language="it", wake_prompt="erika", transcribe_prompt=None,
+    def __init__(self, wake_word="vass", transcription_model="medium", sensitivity=0.005,
+                 whisper_language="it", wake_prompt="vass", transcribe_prompt=None,
                  wake_variants=None):
         self.wake_word = wake_word.lower()
         self.transcription_model = transcription_model

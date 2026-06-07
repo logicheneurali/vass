@@ -7,24 +7,37 @@ from urllib.parse import quote
 
 
 class CommandExecutor:
-    def __init__(self, commands_file="commands.ini", similarity_threshold=0.6):
+    def __init__(self, commands_file="commands.ini", similarity_threshold=0.6, language="en"):
         self.commands_file = commands_file
         self.similarity_threshold = similarity_threshold
+        self.language = language
         self.commands = {}
         self.load_commands()
 
     def load_commands(self):
         if not os.path.exists(self.commands_file):
             print(f"Commands file {self.commands_file} not found.")
-            return
-        config = configparser.ConfigParser()
-        config.read(self.commands_file)
-        self.commands.clear()
-        for section in config.sections():
-            for key, value in config.items(section):
-                self.commands[key.lower().strip()] = value
+        else:
+            config = configparser.ConfigParser()
+            config.read(self.commands_file, encoding="utf-8")
+            self.commands.clear()
+            for section in config.sections():
+                for key, value in config.items(section):
+                    self.commands[key.lower().strip()] = value
+
+        lang_file = f"commands_{self.language}.ini"
+        if os.path.exists(lang_file):
+            config = configparser.ConfigParser()
+            config.read(lang_file, encoding="utf-8")
+            for section in config.sections():
+                for key, value in config.items(section):
+                    self.commands[key.lower().strip()] = value
+            print(f"Commands loaded: {len(self.commands)} total (including {lang_file})")
+        else:
+            print(f"Commands loaded: {len(self.commands)} total")
 
     def reload_commands(self):
+        self.commands.clear()
         self.load_commands()
         print(f"Commands reloaded. Total: {len(self.commands)}")
 
@@ -64,10 +77,10 @@ class CommandExecutor:
         for kw_w in kw_words:
             best_wr = 0
             for j in range(tr_idx, min(tr_idx + 3, len(tr_words))):
-                wr = difflib.SequenceMatcher(None, kw_w, tr_words[j]).quick_ratio()
+                wr = difflib.SequenceMatcher(None, kw_w, tr_words[j]).ratio()
                 if wr > best_wr:
                     best_wr = wr
-            if best_wr >= 0.6:
+            if best_wr >= 0.75:
                 matched += 1
                 tr_idx += 1
         return matched / max(len(kw_words), 1)
@@ -166,15 +179,6 @@ class CommandExecutor:
     def execute_command(self, command):
         import base64
         try:
-            subprocess.run(
-                [
-                    "powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command",
-                    "Add-Type -AssemblyName System.Speech; "
-                    "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-                    "$s.Speak('Ok')"
-                ],
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
             encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
             subprocess.run(
                 [
