@@ -473,7 +473,7 @@ class VassGUI(QMainWindow):
             % (color, text_color, QColor(color).darker(120).name())
         )
         self.stacked.setCurrentWidget(self.btn)
-        if state == "waiting":
+        if state == "listening":
             path = os.path.join(BASE, "Allowed_root", "last_response.txt")
             self.replay_btn.setVisible(os.path.exists(path) and os.path.getsize(path) > 0)
         else:
