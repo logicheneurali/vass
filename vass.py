@@ -813,12 +813,12 @@ class VassApp:
                 print(f"[VASScript] Error: {script_error}")
                 if result_callback:
                     result_callback({"status": "error", "script": script_name, "detail": script_error, "message": "Script failed: " + script_error})
-                else:
-                    self.tts._state_before_tts = "listening"
-                    threading.Thread(target=self.tts.speak, args=(f"Errore script: {script_error}",), daemon=True).start()
             finally:
                 self._active_script_engine = None
                 self.set_state("listening")
+
+            if script_error and not result_callback:
+                threading.Thread(target=self.tts.speak, args=(f"Errore script: {script_error}",), daemon=True).start()
 
     def _handle_ai_fallback(self, prompt):
         self.set_state("waiting")
