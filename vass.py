@@ -178,6 +178,7 @@ class VassApp:
             if not cfg.has_section(section):
                 cfg.add_section(section)
             cfg.set(section, key, value)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 cfg.write(f)
         except Exception:
@@ -284,7 +285,8 @@ class VassApp:
             config["resources"] = {"cpu_max": "75", "ram_max": "99", "gpu_max": "75", "vram_max": "99", "resource_timeout": "10"}
             config["ai"]["mcp_server_url"] = ""
             config["ai"]["blacklist"] = ""
-            with open(abs_path, "w") as f:
+            os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+            with open(abs_path, "w", encoding="utf-8") as f:
                 config.write(f)
             return result
 
