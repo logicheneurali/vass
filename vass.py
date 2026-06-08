@@ -71,7 +71,7 @@ def _load_vascript_reference():
 
 
 class VassApp:
-    def __init__(self, gui, settings_file="settings.ini"):
+    def __init__(self, gui, settings_file="config/settings.ini"):
         self.gui = gui
         self.audio_handler = AudioHandler()
         self.settings_file = settings_file
@@ -173,7 +173,7 @@ class VassApp:
         import configparser
         try:
             cfg = configparser.ConfigParser()
-            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.ini")
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "settings.ini")
             cfg.read(path, encoding="utf-8")
             if not cfg.has_section(section):
                 cfg.add_section(section)
@@ -826,7 +826,6 @@ class VassApp:
             if found:
                 print(f"[Blacklist] Bloccato: parole {found} in '{prompt}'")
                 threading.Thread(target=self.tts.speak, args=(t("ai.blacklisted", self.language),), daemon=True).start()
-                self.set_state("listening")
                 return
 
         if is_local_url(self.ai_url):
@@ -1136,7 +1135,7 @@ if __name__ == "__main__":
     import configparser
     import os
     
-    settings_file = "settings.ini"
+    settings_file = "config/settings.ini"
     config = configparser.ConfigParser()
     abs_path = os.path.abspath(settings_file)
     

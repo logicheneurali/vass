@@ -121,9 +121,11 @@ A palavra de ativação é **configurável** pelo utilizador no ficheiro `settin
 Quando o VASS deteta a palavra de ativação, emite um sinal sonoro para indicar que está pronto para receber o comando. Fale após o sinal.
 
 Exemplos:
-- *"Erika"* (aguardar o sinal), depois *"que horas são?"*
-- *"Erika"* (aguardar o sinal), depois *"procura as últimas notícias"*
-- *"Erika"* (aguardar o sinal), depois *"lembra-me da reunião amanhã às 14h"*
+- *"Erika"* (aguardar o sinal), depois *"como está o tempo?"*
+- *"Erika"* (aguardar o sinal), depois *"lê as notícias"*
+- *"Erika"* (aguardar o sinal), depois *"o que é inteligência artificial?"*
+- *"Erika"* (aguardar o sinal), depois *"traduz para inglês bom dia a todos"*
+- *"Erika"* (aguardar o sinal), depois *"receita massa à carbonara"*
 
 ### Modos: Chat e Transcrição
 

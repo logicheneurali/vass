@@ -236,7 +236,9 @@
   },
   "scripts": {
     "not_found": "Script {name} not found.",
-    "exec_message": "실행 중..."
+    "exec_message": "실행 중...",
+    "tr_ok": "클립보드에 번역됨",
+    "tr_fail": "클립보드 확인 실패"
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",

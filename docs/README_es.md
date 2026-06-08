@@ -121,9 +121,11 @@ La palabra de activación es **configurable** por el usuario en el archivo `sett
 Cuando VASS detecta la palabra de activación, emite un pitido para señalar que está listo para recibir el comando. Hable después del pitido.
 
 Ejemplos:
-- *"Erika"* (esperar el pitido), luego *"¿qué hora es?"*
-- *"Erika"* (esperar el pitido), luego *"busca las últimas noticias"*
-- *"Erika"* (esperar el pitido), luego *"recuérdame la reunión mañana a las 14"*
+- *"Erika"* (esperar el pitido), luego *"¿qué tiempo hace?"*
+- *"Erika"* (esperar el pitido), luego *"lee las noticias"*
+- *"Erika"* (esperar el pitido), luego *"¿qué es la inteligencia artificial?"*
+- *"Erika"* (esperar el pitido), luego *"traduce a inglés buenos días a todos"*
+- *"Erika"* (esperar el pitido), luego *"receta pasta a la carbonara"*
 
 ### Modos: Chat y Transcripción
 

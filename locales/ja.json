@@ -236,7 +236,9 @@
   },
   "scripts": {
     "not_found": "Script {name} not found.",
-    "exec_message": "実行中..."
+    "exec_message": "実行中...",
+    "tr_ok": "クリップボードに翻訳しました",
+    "tr_fail": "クリップボードの確認に失敗しました"
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",

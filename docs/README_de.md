@@ -121,9 +121,11 @@ Das Wake-Wort ist vom Benutzer in der Datei `settings.ini` **konfigurierbar** un
 Wenn VASS das Wake-Wort erkennt, gibt es einen Signalton aus, der anzeigt, dass es bereit ist, den Befehl zu empfangen. Sprechen Sie nach dem Signalton.
 
 Beispiele:
-- *"Erika"* (auf Signalton warten), dann *"wie spät ist es?"*
-- *"Erika"* (auf Signalton warten), dann *"suche die neuesten Nachrichten"*
-- *"Erika"* (auf Signalton warten), dann *"erinnere mich an das Meeting morgen um 14 Uhr"*
+- *"Erika"* (auf Signalton warten), dann *"wie ist das wetter?"*
+- *"Erika"* (auf Signalton warten), dann *"lies die nachrichten"*
+- *"Erika"* (auf Signalton warten), dann *"was ist künstliche intelligenz?"*
+- *"Erika"* (auf Signalton warten), dann *"übersetze in englisch guten morgen an alle"*
+- *"Erika"* (auf Signalton warten), dann *"rezept spaghetti carbonara"*
 
 ### Modi: Chat und Transkription
 

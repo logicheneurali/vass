@@ -235,7 +235,9 @@
   },
   "scripts": {
     "not_found": "Script {name} not found.",
-    "exec_message": "Running..."
+    "exec_message": "Running...",
+    "tr_ok": "Text translated to clipboard",
+    "tr_fail": "Clipboard verification failed"
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",

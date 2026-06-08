@@ -121,9 +121,11 @@ Le mot d'activation est **configurable** par l'utilisateur dans le fichier `sett
 Lorsque VASS détecte le mot d'activation, il émet un bip pour signaler qu'il est prêt à recevoir la commande. Parlez après le bip.
 
 Exemples :
-- *"Erika"* (attendre le bip), puis *"quelle heure est-il ?"*
-- *"Erika"* (attendre le bip), puis *"cherche les dernières actualités"*
-- *"Erika"* (attendre le bip), puis *"rappelle-moi la réunion demain à 14h"*
+- *"Erika"* (attendre le bip), puis *"quel temps fait-il ?"*
+- *"Erika"* (attendre le bip), puis *"lis les actualités"*
+- *"Erika"* (attendre le bip), puis *"qu'est-ce que l'intelligence artificielle ?"*
+- *"Erika"* (attendre le bip), puis *"traduis en anglais bonjour tout le monde"*
+- *"Erika"* (attendre le bip), puis *"recette pâtes à la carbonara"*
 
 ### Modes : Chat et Transcription
 

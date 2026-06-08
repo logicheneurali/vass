@@ -235,7 +235,9 @@
   },
   "scripts": {
     "not_found": "Script {name} non trovato.",
-    "exec_message": "Eseguo..."
+    "exec_message": "Eseguo...",
+    "tr_ok": "Testo tradotto negli appunti",
+    "tr_fail": "Verifica appunti fallita"
   },
   "events": {
     "reminder_message": "Promemoria: {description} alle {time}",

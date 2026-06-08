@@ -123,9 +123,11 @@ La parola di attivazione (wake word) è **modificabile** dall'utente nel file `s
 Quando VASS rileva la wake word, emette un bip per segnalare che è pronto a ricevere il comando. Parla dopo il bip.
 
 Esempi:
-- *"Erika"* (attendere il bip), poi *"che ore sono?"*
-- *"Erika"* (attendere il bip), poi *"cercami le ultime notizie"*
-- *"Erika"* (attendere il bip), poi *"ricordami la riunione domani alle 14"*
+- *"Erika"* (attendere il bip), poi *"che tempo fa?"*
+- *"Erika"* (attendere il bip), poi *"leggi le ultime notizie"*
+- *"Erika"* (attendere il bip), poi *"cosa è l'intelligenza artificiale?"*
+- *"Erika"* (attendere il bip), poi *"traduci in inglese buongiorno a tutti"*
+- *"Erika"* (attendere il bip), poi *"ricetta pasta alla carbonara"*
 
 ### Modalità: Chat e Trascrizione
 

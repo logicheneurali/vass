@@ -55,9 +55,9 @@ Allowed_root/bk_memory.json
 Allowed_root/news.json
 Allowed_root/last_response.txt
 
-# VASS - user config (use settings.example.ini as template)
-settings.ini
-commands.ini
+# VASS - user config (use config/settings.example.ini as template)
+config/settings.ini
+config/commands.ini
 
 # VASS - temporary files
 tts_output_*.wav

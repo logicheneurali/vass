@@ -123,9 +123,11 @@ The wake word is **configurable** by the user in the `settings.ini` file and can
 When VASS detects the wake word, it emits a beep to signal it's ready to receive the command. Speak after the beep.
 
 Examples:
-- *"Erika"* (wait for beep), then *"what time is it?"*
-- *"Erika"* (wait for beep), then *"search for the latest news"*
-- *"Erika"* (wait for beep), then *"remind me about the meeting tomorrow at 2 PM"*
+- *"Erika"* (wait for beep), then *"what is the weather?"*
+- *"Erika"* (wait for beep), then *"read the latest news"*
+- *"Erika"* (wait for beep), then *"what is artificial intelligence?"*
+- *"Erika"* (wait for beep), then *"translate to italian good morning everyone"*
+- *"Erika"* (wait for beep), then *"recipe pasta carbonara"*
 
 ### Modes: Chat and Transcription
 

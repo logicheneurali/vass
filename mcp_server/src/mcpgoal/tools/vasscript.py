@@ -194,35 +194,20 @@ async def info_read(vid: str) -> str:
 
 
 def clipboard_get_sync() -> str:
-    import subprocess
-    if sys.platform == "win32":
-        r = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", "Get-Clipboard"],
-            capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0, timeout=10
-        )
-        return r.stdout.strip()
-    elif sys.platform == "darwin":
-        r = subprocess.run(["pbpaste"], capture_output=True, text=True, timeout=10)
-        return r.stdout.strip()
-    else:
-        r = subprocess.run(["xclip", "-o", "-selection", "clipboard"], capture_output=True, text=True, timeout=10)
-        return r.stdout.strip()
+    import pyperclip
+    try:
+        return pyperclip.paste()
+    except Exception:
+        return ""
 
 
 def clipboard_set_sync(text: str) -> str:
-    import subprocess, base64
-    if sys.platform == "win32":
-        encoded = base64.b64encode(text.encode("utf-16-le")).decode("ascii")
-        subprocess.run(
-            ["powershell", "-NoProfile", "-EncodedCommand",
-             f"Set-Clipboard -Value ([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('{encoded}')))"],
-            capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0, timeout=10
-        )
-    elif sys.platform == "darwin":
-        subprocess.run(["pbcopy"], input=text, text=True, timeout=10)
-    else:
-        subprocess.run(["xclip", "-selection", "clipboard"], input=text, text=True, timeout=10)
-    return "ok"
+    import pyperclip
+    try:
+        pyperclip.copy(text)
+        return "ok"
+    except Exception:
+        return "error"
 
 
 async def clipboard_get() -> str:

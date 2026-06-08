@@ -235,7 +235,9 @@
   },
   "scripts": {
     "not_found": "Skript {name} nicht gefunden.",
-    "exec_message": "Ausfuehren..."
+    "exec_message": "Ausfuehren...",
+    "tr_ok": "Text in die Zwischenablage uebersetzt",
+    "tr_fail": "Zwischenablage-Pruefung fehlgeschlagen"
   },
   "events": {
     "reminder_message": "Erinnerung: {description} um {time}",

@@ -235,7 +235,9 @@
   },
   "scripts": {
     "not_found": "Script {name} not found.",
-    "exec_message": "Execution..."
+    "exec_message": "Execution...",
+    "tr_ok": "Texte traduit dans le presse-papiers",
+    "tr_fail": "Verification du presse-papier echouee"
   },
   "events": {
     "reminder_message": "Rappel : {description} à {time}",

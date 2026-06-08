@@ -74,7 +74,7 @@ class SettingsEditor(QMainWindow):
         super().__init__()
         self.lang = language
         if settings_file is None:
-            self.settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.ini")
+            self.settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "settings.ini")
         else:
             self.settings_file = settings_file
         self.config = configparser.ConfigParser()

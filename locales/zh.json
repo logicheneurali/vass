@@ -236,7 +236,9 @@
   },
   "scripts": {
     "not_found": "Script {name} not found.",
-    "exec_message": "执行中..."
+    "exec_message": "执行中...",
+    "tr_ok": "已翻译到剪贴板",
+    "tr_fail": "剪贴板验证失败"
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",

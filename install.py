@@ -845,7 +845,12 @@ def copy_tree_filtered(src: Path, dst: Path):
         "Allowed_root/memory.json",
         "Allowed_root/events.json",
         "Allowed_root/schedule.json",
+        "Allowed_root/last_response.txt",
         "mcp_server/LOG",
+        "config/commands.ini",
+        "config/settings.ini",
+        "bump.py",
+        "google_client_secret.json",
     }
     copied = 0
     total = 0
@@ -975,6 +980,8 @@ def main():
     (dest / "Allowed_root" / "memory").mkdir(parents=True, exist_ok=True)
     (dest / "Allowed_root" / "memory" / "archive").mkdir(parents=True, exist_ok=True)
     (dest / "scripts").mkdir(parents=True, exist_ok=True)
+    (dest / "sounds").mkdir(parents=True, exist_ok=True)
+    (dest / "config").mkdir(parents=True, exist_ok=True)
     (dest / "mcp_server" / "LOG").mkdir(parents=True, exist_ok=True)
 
     # ── STEP 5: Create virtual environment ───────────────────────────────────
@@ -1051,7 +1058,7 @@ def main():
     }
     cfg["events"] = {"reminder_advance": "3600"}
 
-    settings_path = dest / "settings.ini"
+    settings_path = dest / "config" / "settings.ini"
     with open(settings_path, "w", encoding="utf-8") as f:
         cfg.write(f)
     print(f"  {C_GREEN}{_('settings_ok')}{C_RESET}")

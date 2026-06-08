@@ -221,7 +221,7 @@ class VassGUI(QMainWindow):
 
         row.addWidget(self.stacked, 1)
 
-        self.replay_btn = QPushButton("\U0001F502")
+        self.replay_btn = QPushButton("\u21bb")
         self.replay_btn.setStyleSheet(
             "QPushButton { background-color: #1e1e1e; color: #ffffff; "
             "border: none; font-size: 10px; padding: 2px; }"
@@ -526,13 +526,14 @@ class VassGUI(QMainWindow):
         self.replay_btn.setVisible(visible)
 
     def _on_replay(self):
+        import threading
         path = os.path.join(BASE, "Allowed_root", "last_response.txt")
         if os.path.exists(path):
             try:
                 with open(path, encoding="utf-8") as f:
                     text = f.read()
                 if text.strip() and self.app:
-                    self.app.tts.speak(text)
+                    threading.Thread(target=self.app.tts.speak, args=(text,), daemon=True).start()
             except Exception:
                 pass
 
@@ -874,7 +875,7 @@ class VassGUI(QMainWindow):
             try:
                 import configparser
                 cfg = configparser.ConfigParser()
-                settings_path = os.path.join(BASE, "settings.ini")
+                settings_path = os.path.join(BASE, "config", "settings.ini")
                 if os.path.exists(settings_path):
                     cfg.read(settings_path)
                 cfg.set("tts", "volume", f"{new_vol:.2f}")

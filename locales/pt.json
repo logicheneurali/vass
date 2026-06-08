@@ -235,7 +235,9 @@
   },
   "scripts": {
     "not_found": "Script {name} not found.",
-    "exec_message": "Executando..."
+    "exec_message": "Executando...",
+    "tr_ok": "Texto traduzido para a area de transferencia",
+    "tr_fail": "Verificacao da area de transferencia falhou"
   },
   "events": {
     "reminder_message": "Lembrete: {description} às {time}",

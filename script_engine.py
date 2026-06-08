@@ -41,7 +41,10 @@ class VASScript:
         self.vars = {}
         self.vars["_lang"] = getattr(app, "language", "en")
         from i18n import t
-        self.vars["_exec_message"] = t("scripts.exec_message", getattr(app, "language", "en"))
+        lang = getattr(app, "language", "en")
+        self.vars["_exec_message"] = t("scripts.exec_message", lang)
+        self.vars["_tr_ok"] = t("scripts.tr_ok", lang)
+        self.vars["_tr_fail"] = t("scripts.tr_fail", lang)
         self._running = False
         self._auth_all = False
 
@@ -458,41 +461,20 @@ class VASScript:
             return self._manage_info("write", text)
 
         if name == "clipboardget":
-            import subprocess as _sp, sys as _sys
             try:
-                if _sys.platform == "win32":
-                    r = _sp.run(
-                        ["powershell", "-NoProfile", "-Command", "Get-Clipboard"],
-                        capture_output=True, text=True,
-                        creationflags=_sp.CREATE_NO_WINDOW, timeout=10
-                    )
-                    return r.stdout.strip()
-                elif _sys.platform == "darwin":
-                    r = _sp.run(["pbpaste"], capture_output=True, text=True, timeout=10)
-                    return r.stdout.strip()
-                else:
-                    r = _sp.run(["xclip", "-o", "-selection", "clipboard"], capture_output=True, text=True, timeout=10)
-                    return r.stdout.strip()
+                import pyperclip
+                return pyperclip.paste()
             except Exception:
                 return ""
 
         if name == "clipboardset":
             text = evaluated[0] if evaluated else ""
-            import subprocess as _sp, sys as _sys
-            if _sys.platform == "win32":
-                import base64 as _b64
-                encoded = _b64.b64encode(text.encode("utf-16-le")).decode("ascii")
-                _sp.run(
-                    ["powershell", "-NoProfile", "-EncodedCommand",
-                     f"Set-Clipboard -Value ([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('{encoded}')))"],
-                    capture_output=True, text=True,
-                    creationflags=_sp.CREATE_NO_WINDOW, timeout=10
-                )
-            elif _sys.platform == "darwin":
-                _sp.run(["pbcopy"], input=text, text=True, timeout=10)
-            else:
-                _sp.run(["xclip", "-selection", "clipboard"], input=text, text=True, timeout=10)
-            return "ok"
+            try:
+                import pyperclip
+                pyperclip.copy(text)
+                return "ok"
+            except Exception:
+                return "error"
 
         if name == "getdatetime":
             from datetime import datetime
@@ -559,6 +541,11 @@ class VASScript:
                     line += f" [{tr('every')} {_recur_label(recur)}]"
                 lines.append(line)
             return "\n".join(lines)
+
+        if name == "print":
+            text = evaluated[0] if evaluated else ""
+            print(f"[VASScript] {text}", flush=True)
+            return ""
 
         if name == "readfile":
             filepath = evaluated[0] if evaluated else ""

@@ -235,7 +235,9 @@
   },
   "scripts": {
     "not_found": "Script {name} not found.",
-    "exec_message": "Ejecutando..."
+    "exec_message": "Ejecutando...",
+    "tr_ok": "Texto traducido al portapapeles",
+    "tr_fail": "Verificacion del portapapeles fallida"
   },
   "events": {
     "reminder_message": "Recordatorio: {description} a las {time}",

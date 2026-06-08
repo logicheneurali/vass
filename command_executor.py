@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 
 class CommandExecutor:
-    def __init__(self, commands_file="commands.ini", similarity_threshold=0.6, language="en"):
+    def __init__(self, commands_file="config/commands.ini", similarity_threshold=0.6, language="en"):
         self.commands_file = commands_file
         self.similarity_threshold = similarity_threshold
         self.language = language
@@ -25,7 +25,7 @@ class CommandExecutor:
                 for key, value in config.items(section):
                     self.commands[key.lower().strip()] = value
 
-        lang_file = f"commands_{self.language}.ini"
+        lang_file = f"config/commands_{self.language}.ini"
         if os.path.exists(lang_file):
             config = configparser.ConfigParser()
             config.read(lang_file, encoding="utf-8")
@@ -58,11 +58,15 @@ class CommandExecutor:
     def _keyword_to_pattern(keyword):
         parts = re.split(r'\{(\w+)\}', keyword)
         pattern_parts = []
+        var_indices = [i for i in range(1, len(parts), 2)]
+        last_var = var_indices[-1] if var_indices else -1
         for i, part in enumerate(parts):
             if i % 2 == 0:
                 pattern_parts.append(re.escape(part))
-            else:
+            elif i == last_var:
                 pattern_parts.append(r'(.+)')
+            else:
+                pattern_parts.append(r'([^ ]+)')
         return '^' + ''.join(pattern_parts) + '$'
 
     @staticmethod
