@@ -219,10 +219,10 @@ class TtsEngine:
             self.gui.schedule(0, self._on_tts_done)
 
     def _on_tts_done(self):
+        self._tts_done.set()
         if not self.tts_playing:
             return
         self.tts_playing = False
-        self._tts_done.set()
         prev = self._state_before_tts
         if prev == "waiting":
             prev = "listening"

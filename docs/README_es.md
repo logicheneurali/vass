@@ -1,4 +1,4 @@
-# VASS — Asistente de Voz Inteligente
+# VASS — Software asistente de voz
 
 ## Qué es VASS
 

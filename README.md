@@ -1,4 +1,4 @@
-# VASS — Voice Assistant
+# VASS — Voice assistant software
 
 ## What is VASS
 

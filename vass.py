@@ -436,7 +436,7 @@ class VassApp:
             print(f"[Settings] Could not save position: {e}")
 
     def run(self):
-        print(f"VASS v{__version__} - Voice Activated Command System")
+        print(f"VASS v{__version__} - Voice assistant software")
         self.voice_recognition.load_models()
         self.set_state("listening")
         self.running = True
