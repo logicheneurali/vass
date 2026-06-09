@@ -1,5 +1,7 @@
 # VASS — Voice assistant software
 
+<sub>[Italiano](docs/README_it.md) · [English](docs/README_en.md) · [Deutsch](docs/README_de.md) · [Français](docs/README_fr.md) · [Español](docs/README_es.md) · [Português](docs/README_pt.md) · [日本語](docs/README_ja.md) · [한국어](docs/README_ko.md) · [中文](docs/README_zh.md)</sub>
+
 ## What is VASS
 
 VASS is a voice assistant for Windows, macOS, and Linux. It responds to voice commands, runs scripts, manages events and reminders, and interacts with a local or remote AI via an OpenAI-compatible API.
