@@ -114,6 +114,7 @@ class CommandExecutor:
                         best_keyword = keyword
                         best_vars = dict(zip(var_names, extracted))
                 else:
+                    ratio *= 0.6
                     if ratio > best_ratio:
                         best_ratio = ratio
                         best_keyword = keyword

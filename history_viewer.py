@@ -3,11 +3,11 @@ import os
 import sys
 from datetime import datetime
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QUrl
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget,
-    QTextBrowser, QPushButton, QMessageBox,
+    QTextBrowser, QMessageBox,
 )
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -17,8 +17,6 @@ AI_COLOR = "#3498db"
 BG = "#1e1e1e"
 FG = "#e0e0e0"
 TIME_COLOR = "#888888"
-BTN_BG = "#3d3d3d"
-BTN_FG = "#e0e0e0"
 
 STYLESHEET = f"""
 QMainWindow, QWidget {{ background-color: {BG}; color: {FG}; }}
@@ -26,8 +24,6 @@ QTextBrowser {{ background-color: {BG}; border: none; }}
 QScrollBar:vertical {{ background: {BG}; width: 10px; }}
 QScrollBar::handle:vertical {{ background: #2d2d2d; border-radius: 4px; min-height: 20px; }}
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
-QPushButton {{ background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 2px 6px; font-size: 10px; }}
-QPushButton:hover {{ background-color: #555; }}
 """
 
 
@@ -39,10 +35,18 @@ def _escape_html(text):
             .replace("\n", "<br>"))
 
 
-def _to_html(history_data):
-    parts = ['<html><head><meta charset="utf-8"></head>',
+def _to_html(history_data, lang):
+    labels = {
+        "copy": _tl("history_viewer.copy", lang),
+        "resend": _tl("history_viewer.resend", lang),
+        "read": _tl("history_viewer.read", lang),
+    }
+    parts = ['<html><head><meta charset="utf-8"><style>',
+             'a { color:#777; text-decoration:none; font-size:10px; }',
+             'a:hover { color:#bbb; }',
+             '</style></head>',
              f'<body style="background:{BG}; color:{FG}; font-family:Segoe UI,sans-serif; font-size:13px; margin:8px;">']
-    for entry in reversed(history_data):
+    for orig_idx, entry in reversed(list(enumerate(history_data))):
         role = entry.get("role", "")
         content = entry.get("content", "")
         ts = entry.get("ts", "")
@@ -53,14 +57,22 @@ def _to_html(history_data):
         color = USER_COLOR if is_user else AI_COLOR
         align = "right" if is_user else "left"
         safe = _escape_html(content)
+
+        action_links = (
+            f'<a href="vass:copy:{orig_idx}">{labels["copy"]}</a>'
+            + (f' &middot; <a href="vass:resend:{orig_idx}">{labels["resend"]}</a>' if is_user else '')
+            + f' &middot; <a href="vass:read:{orig_idx}">{labels["read"]}</a>'
+        )
+
         parts.append(
             f'<div style="margin-bottom:10px;">'
             f'<div style="text-align:{align}; color:{TIME_COLOR}; font-size:10px; margin-bottom:2px;">[{ts}] {label}</div>'
             f'<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="{align}">'
             f'<table cellpadding="0" cellspacing="0" style="display:inline-block;">'
             f'<tr><td style="background:#2d2d2d; border-left:3px solid {color}; '
-            f'border-radius:4px; padding:8px 12px; color:{FG}; font-size:13px; max-width:600px; display:inline-block;">'
+            f'border-radius:4px; padding:6px 12px 2px 12px; color:{FG}; font-size:13px; max-width:600px; display:inline-block;">'
             f'{safe}'
+            f'<div style="margin-top:6px; text-align:right;">{action_links}</div>'
             f'</td></tr></table>'
             f'</td></tr></table>'
             f'</div>'
@@ -84,55 +96,64 @@ class HistoryViewer(QMainWindow):
         layout = QVBoxLayout(central)
         layout.setContentsMargins(6, 6, 6, 6)
 
-        btn_row = QHBoxLayout()
-        btn_row.setSpacing(4)
-
-        self.copy_btn = QPushButton(self._t("history_viewer.copy"))
-        self.copy_btn.clicked.connect(self._copy_selected)
-
-        self.resend_btn = QPushButton(self._t("history_viewer.resend"))
-        self.resend_btn.clicked.connect(self._resend_selected)
-
-        self.read_btn = QPushButton(self._t("history_viewer.read"))
-        self.read_btn.clicked.connect(self._read_selected)
-
-        btn_row.addWidget(self.copy_btn)
-        btn_row.addWidget(self.resend_btn)
-        btn_row.addWidget(self.read_btn)
-        btn_row.addStretch()
-        layout.addLayout(btn_row)
-
         self.browser = QTextBrowser()
         self.browser.setOpenExternalLinks(False)
         self.browser.setOpenLinks(False)
+        self.browser.anchorClicked.connect(self._on_action)
         layout.addWidget(self.browser)
 
         self._build_messages()
 
     def _build_messages(self):
-        html = _to_html(self.history_data)
+        html = _to_html(self.history_data, self.lang)
         self.browser.setHtml(html)
 
-    def _get_selected_text(self):
-        cursor = self.browser.textCursor()
-        return cursor.selectedText() if cursor.hasSelection() else ""
+    def _on_action(self, url):
+        href = url.toString()
+        if not href.startswith("vass:"):
+            return
+        parts = href[5:].split(":", 1)
+        if len(parts) != 2:
+            return
+        action, idx_str = parts
+        try:
+            idx = int(idx_str)
+        except ValueError:
+            return
+        if idx < 0 or idx >= len(self.history_data):
+            return
+        if action == "copy":
+            self._copy_message(idx)
+        elif action == "resend":
+            self._resend_message(idx)
+        elif action == "read":
+            self._read_message(idx)
 
-    def _copy_selected(self):
-        text = self._get_selected_text()
+    def _copy_message(self, idx):
+        text = self.history_data[idx].get("content", "")
         if text:
             QApplication.clipboard().setText(text)
 
-    def _resend_selected(self):
-        text = self._get_selected_text()
-        if text:
-            self._send_script('$r = ai("' + text.replace('\\', '\\\\').replace('"', '\\"') + '")\nsay($r)')
-            QMessageBox.information(self, self._t("history_viewer.resend"),
-                self._t("history_viewer.resend_sent"))
+    @staticmethod
+    def _esc(text):
+        return text.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ').replace('\r', ' ')
 
-    def _read_selected(self):
-        text = self._get_selected_text()
+    def _resend_message(self, idx):
+        entry = self.history_data[idx]
+        if entry.get("role") != "user":
+            return
+        text = entry.get("content", "")
+        if not text:
+            return
+        scr = '$r = ai("' + self._esc(text) + '")\nsay($r)'
+        self._send_script(scr)
+        QMessageBox.information(self, self._t("history_viewer.resend"),
+            self._t("history_viewer.resend_sent"))
+
+    def _read_message(self, idx):
+        text = self.history_data[idx].get("content", "")
         if text:
-            self._send_script('say("' + text.replace('\\', '\\\\').replace('"', '\\"') + '")')
+            self._send_script('say("' + self._esc(text) + '")')
 
     @staticmethod
     def _send_script(code):
@@ -150,12 +171,16 @@ class HistoryViewer(QMainWindow):
             json.dump(request, f)
 
     def _t(self, path):
-        try:
-            sys.path.insert(0, BASE)
-            from i18n import t
-            return t(path, self.lang)
-        except Exception:
-            return path.split(".")[-1].title()
+        return _tl(path, self.lang)
+
+
+def _tl(path, lang):
+    try:
+        sys.path.insert(0, BASE)
+        from i18n import t
+        return t(path, lang)
+    except Exception:
+        return path.split(".")[-1].title()
 
 
 def main():
