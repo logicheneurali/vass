@@ -7,6 +7,7 @@ from PySide6.QtGui import QPainter, QColor, QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
+    QLineEdit,
 )
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -157,6 +158,7 @@ class VassGUI(QMainWindow):
     schedule_signal = Signal(object)
     auth_requested_signal = Signal(str, str)
     volume_signal = Signal(float)
+    chat_text_signal = Signal(str)
 
     COLORS = {
         "listening": "#2ecc71",
@@ -277,6 +279,36 @@ class VassGUI(QMainWindow):
                 menu_btn.rect().bottomLeft()))
         )
         row.addWidget(menu_btn)
+
+        self._chat_btn = QPushButton("\u00bb")
+        self._chat_btn.setStyleSheet(
+            "QPushButton { background-color: #1e1e1e; color: #888888; "
+            "border: none; font-size: 10px; padding: 2px; }"
+            "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+            "QPushButton:checked { background-color: #0d7377; color: #ffffff; }"
+        )
+        self._chat_btn.setFixedWidth(16)
+        self._chat_btn.setCheckable(True)
+        self._chat_btn.setVisible(False)
+        self._chat_btn.setToolTip(self._t("gui.chat_tooltip"))
+        self._chat_btn.clicked.connect(self._toggle_chat_input)
+        row.addWidget(self._chat_btn)
+
+        self._chat_input = QLineEdit()
+        self._chat_input.setPlaceholderText(self._t("gui.chat_placeholder"))
+        self._chat_input.setStyleSheet(
+            "QLineEdit { background: transparent; color: #e0e0e0; "
+            "border: none; "
+            "padding: 2px 6px; font-size: 12px; "
+            "margin-right: 10px; }"
+            "QLineEdit:focus { color: #ffffff; }"
+        )
+        self._chat_input.setVisible(False)
+        self._chat_input.returnPressed.connect(self._send_chat_text)
+        row.addWidget(self._chat_input, 1)
+
+        self._chat_original_width = None
+        self._chat_original_x = None
 
         outer.addLayout(row)
 
@@ -476,8 +508,12 @@ class VassGUI(QMainWindow):
         if state == "listening":
             path = os.path.join(BASE, "Allowed_root", "last_response.txt")
             self.replay_btn.setVisible(os.path.exists(path) and os.path.getsize(path) > 0)
+            self._chat_btn.setVisible(True)
         else:
             self.replay_btn.setVisible(False)
+            self._chat_btn.setVisible(False)
+            if self._chat_btn.isChecked():
+                self._collapse_chat()
         if state == "recording":
             self.memory_bar.set_color("#69DB7C")
             self.memory_bar.set_tooltip_context(self._t("gui.bar.volume"), "")
@@ -536,6 +572,31 @@ class VassGUI(QMainWindow):
                     threading.Thread(target=self.app.tts.speak, args=(text,), daemon=True).start()
             except Exception:
                 pass
+
+    def _collapse_chat(self):
+        self._chat_btn.setChecked(False)
+        self._chat_input.setVisible(False)
+        self._chat_input.clear()
+        self.resize(self._chat_original_width, self.height())
+        if self._chat_original_x is not None:
+            self.move(self._chat_original_x, self.y())
+
+    def _toggle_chat_input(self):
+        if self._chat_btn.isChecked():
+            self._chat_original_width = self.width()
+            self._chat_original_x = self.x()
+            self.resize(self.width() * 2, self.height())
+            self._clamp_to_screen()
+            self._chat_input.setVisible(True)
+            self._chat_input.setFocus()
+        else:
+            self._collapse_chat()
+
+    def _send_chat_text(self):
+        text = self._chat_input.text().strip()
+        if text:
+            self.chat_text_signal.emit(text)
+        self._collapse_chat()
 
     def update_memory_bar(self):
         self.update_memory_signal.emit()

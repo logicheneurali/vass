@@ -57,7 +57,9 @@
       "limited": "内存：受限",
       "none": "内存：无"
     },
-    "button_tooltip": "点击 = 更改状态 | 滚轮 = 音量 | 拖动 = 移动"
+    "button_tooltip": "点击 = 更改状态 | 滚轮 = 音量 | 拖动 = 移动",
+    "chat_tooltip": "输入消息给AI",
+    "chat_placeholder": "在此输入并按回车..."
   },
   "settings_editor": {
     "title": "VASS 设置",

@@ -57,7 +57,9 @@
       "limited": "Memory: Limited",
       "none": "Memory: None"
     },
-    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move"
+    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move",
+    "chat_tooltip": "Escribe un mensaje a la IA",
+    "chat_placeholder": "Escribe aquí y pulsa Enter..."
   },
   "settings_editor": {
     "title": "Ajustes de VASS",

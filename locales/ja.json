@@ -57,7 +57,9 @@
       "limited": "メモリ: 制限付き",
       "none": "メモリ: なし"
     },
-    "button_tooltip": "クリック = 状態変更 | ホイール = 音量 | ドラッグ = 移動"
+    "button_tooltip": "クリック = 状態変更 | ホイール = 音量 | ドラッグ = 移動",
+    "chat_tooltip": "AIにメッセージを入力",
+    "chat_placeholder": "ここに入力してEnterを押す..."
   },
   "settings_editor": {
     "title": "VASS 設定",

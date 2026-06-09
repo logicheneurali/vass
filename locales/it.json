@@ -57,7 +57,9 @@
         "setactivewindow": "Attiva una finestra per nome processo o titolo"
       },
       "cancel": "Annulla"
-    }
+    },
+    "chat_tooltip": "Scrivi un messaggio all'AI",
+    "chat_placeholder": "Scrivi qui e premi Invio..."
   },
   "scripts_editor": {
     "title": "VASScript Editor",

@@ -57,7 +57,9 @@
       "limited": "메모리: 제한",
       "none": "메모리: 없음"
     },
-    "button_tooltip": "클릭 = 상태 변경 | 휠 = 볼륨 | 드래그 = 이동"
+    "button_tooltip": "클릭 = 상태 변경 | 휠 = 볼륨 | 드래그 = 이동",
+    "chat_tooltip": "AI에게 메시지 입력",
+    "chat_placeholder": "여기에 입력하고 Enter..."
   },
   "settings_editor": {
     "title": "VASS 설정",

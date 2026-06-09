@@ -668,6 +668,15 @@ class VassApp:
             kill_process(self.llama_process)
             self.llama_process = None
 
+    def _process_chat_text(self, text):
+        print(f"[Chat] Text input: {text}")
+        threading.Thread(target=self._execute_chat_text, args=(text,), daemon=True).start()
+
+    def _execute_chat_text(self, text):
+        with open("lastcommands.txt", "w", encoding="utf-8") as f:
+            f.write(text)
+        self._process_command()
+
     def _transcribe_and_process(self):
         audio_data = self.audio_handler.get_recorded_audio()
         self.audio_handler.recorded_buffer.clear()
@@ -1389,6 +1398,7 @@ if __name__ == "__main__":
     def _start_vass():
         _state["app"] = VassApp(gui=gui)
         gui.app = _state["app"]
+        gui.chat_text_signal.connect(_state["app"]._process_chat_text)
         gui.set_state("loading")
         def _run_safe():
             try:

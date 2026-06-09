@@ -57,7 +57,9 @@
         "setactivewindow": "Activates a window by process name or title"
       },
       "cancel": "Cancel"
-    }
+    },
+    "chat_tooltip": "Type a message to the AI",
+    "chat_placeholder": "Type here and press Enter..."
   },
   "settings_editor": {
     "title": "VASS Settings",

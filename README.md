@@ -16,6 +16,8 @@ VASS is a voice assistant for Windows, macOS, and Linux. It responds to voice co
 - Conversation history
 - 9 language support (Italian, English, German, French, Spanish, Portuguese, Japanese, Korean, Chinese)
 
+<sub>[Italiano](docs/README_it.md) · [English](docs/README_en.md) · [Deutsch](docs/README_de.md) · [Français](docs/README_fr.md) · [Español](docs/README_es.md) · [Português](docs/README_pt.md) · [日本語](docs/README_ja.md) · [한국어](docs/README_ko.md) · [中文](docs/README_zh.md)</sub>
+
 ---
 
 ## Requirements
@@ -258,3 +260,17 @@ Schedules (automated procedures) are in `schedule.json` and trigger command exec
 | `memory.json` | Conversation history |
 | `debug.log` | Debug log |
 | `vass.log` | Application log |
+
+---
+
+## Translations
+
+- [Italiano](docs/README_it.md)
+- [English](docs/README_en.md)
+- [Deutsch](docs/README_de.md)
+- [Français](docs/README_fr.md)
+- [Español](docs/README_es.md)
+- [Português](docs/README_pt.md)
+- [日本語](docs/README_ja.md)
+- [한국어](docs/README_ko.md)
+- [中文](docs/README_zh.md)
