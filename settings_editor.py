@@ -59,7 +59,7 @@ QSlider::sub-page:horizontal {{
 }}
 """
 
-BOOLEAN_KEYS = {"llama_autostart"}
+BOOLEAN_KEYS = {"llama_autostart", "noise_pause"}
 HIDDEN_KEYS = {"lastmode"}
 
 SLIDER_CONFIG = {

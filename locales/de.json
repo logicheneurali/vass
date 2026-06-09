@@ -89,7 +89,12 @@
       "ram_max": "RAM-Schwelle (%)",
       "gpu_max": "GPU-Schwelle (%)",
       "vram_max": "VRAM-Schwelle (%)",
-      "resource_timeout": "Warte-Timeout (Sek)"
+      "resource_timeout": "Warte-Timeout (Sek)",
+      "language": "Sprache",
+      "reminder_advance": "Erinnerungsvorlauf (Sek)",
+      "noise_pause": "Auto-Pause",
+      "noise_pause_threshold": "Geräuschschwelle",
+      "noise_pause_duration": "Pausenverzögerung (Sek)"
     },
     "field_descriptions": {
       "x": "Bildschirm X-Position",
@@ -98,7 +103,7 @@
       "height": "Höhe in Pixel (32-64)",
       "font_family": "Schriftart (z.B. Segoe UI)",
       "font_size": "Textgröße in Pixel",
-      "language": "Oberflächensprache",
+      "language": "Sprache der Benutzeroberfläche und Sprachbefehle",
       "command": "Befehl und Flags für den Audio-Player",
       "wakeword": "Aktivierungswort (z.B. vass, computer)",
       "sensitivity": "Niedriger = empfindlicher (0.003-0.01)",
@@ -121,7 +126,11 @@
       "gpu_max": "Maximale GPU-Auslastung in Prozent. Bei Überschreitung warten KI-Anfragen",
       "vram_max": "Maximale VRAM-Auslastung in Prozent. Bei Überschreitung warten KI-Anfragen",
       "resource_timeout": "Maximale Wartezeit in Sekunden bevor die KI-Anfrage trotzdem gesendet wird",
-      "mcp_server_url_warning": "(Andern der MCP-Server-URL kann einige Funktionen beeintrachtigen)"
+      "mcp_server_url_warning": "(Andern der MCP-Server-URL kann einige Funktionen beeintrachtigen)",
+      "reminder_advance": "Sekunden Vorlauf für Erinnerungsbenachrichtigung",
+      "noise_pause": "Pausiert VASS automatisch, wenn Hintergrundgeräusche den Schwellwert überschreiten",
+      "noise_pause_threshold": "Geräuschschwelle, die die automatische Pause auslöst (0,001-0,1)",
+      "noise_pause_duration": "Aufeinanderfolgende Sekunden mit hohem Geräuschpegel vor der Pause"
     },
     "section_labels": {
       "gui": "Fenster",
@@ -131,7 +140,10 @@
       "tts": "Text-zu-Sprache (TTS)",
       "ai": "KI-Agent",
       "llamacpp": "Llama.cpp",
-      "resources": "Systemressourcen"
+      "resources": "Systemressourcen",
+      "locale": "Sprache",
+      "events": "Ereignisse",
+      "noise": "Geräusch"
     },
     "buttons": {
       "save": "Speichern",

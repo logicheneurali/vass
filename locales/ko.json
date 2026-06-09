@@ -89,7 +89,12 @@
       "ram_max": "RAM threshold (%)",
       "gpu_max": "GPU threshold (%)",
       "vram_max": "VRAM threshold (%)",
-      "resource_timeout": "Wait timeout (sec)"
+      "resource_timeout": "Wait timeout (sec)",
+      "language": "언어",
+      "reminder_advance": "알림 사전 시간 (초)",
+      "noise_pause": "자동 일시정지",
+      "noise_pause_threshold": "소음 임계값",
+      "noise_pause_duration": "일시정지 지연 (초)"
     },
     "field_descriptions": {
       "x": "화면 X 위치",
@@ -101,7 +106,7 @@
       "wakeword": "웨이크워드 (예: vass, computer)",
       "volume": "0.0-1.0, 높을수록 큼",
       "api_key": "인증을 위한 API 키 (필요하지 않으면 비워둠)",
-      "language": "인터페이스 언어",
+      "language": "인터페이스 및 음성 명령 언어",
       "command": "오디오 플레이어 명령 및 플래그",
       "sensitivity": "낮을수록 민감 (0.003-0.01)",
       "similarity": "0.0-1.0, 높을수록 정확 일치",
@@ -121,7 +126,11 @@
       "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
       "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
       "resource_timeout": "Maximum seconds to wait before sending the AI request anyway",
-      "mcp_server_url_warning": "(MCP 서버 URL을 변경하면 일부 기능이 작동하지 않을 수 있습니다)"
+      "mcp_server_url_warning": "(MCP 서버 URL을 변경하면 일부 기능이 작동하지 않을 수 있습니다)",
+      "reminder_advance": "알림 알림 사전 시간 (초)",
+      "noise_pause": "배경 소음이 임계값을 초과하면 VASS를 자동으로 일시정지합니다",
+      "noise_pause_threshold": "자동 일시정지를 트리거하는 소음 기준값 (0.001-0.1)",
+      "noise_pause_duration": "일시정지 전 연속 높은 소음 시간 (초)"
     },
     "section_labels": {
       "gui": "창",
@@ -131,7 +140,10 @@
       "tts": "음성 합성",
       "ai": "AI 에이전트",
       "llamacpp": "Llama.cpp",
-      "resources": "System resources"
+      "resources": "System resources",
+      "locale": "언어",
+      "events": "이벤트",
+      "noise": "소음"
     },
     "buttons": {
       "save": "저장",

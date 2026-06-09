@@ -16,6 +16,7 @@ from mcpgoal.tools.vasscript import clipboard_get as _clip_get
 from mcpgoal.tools.vasscript import clipboard_set as _clip_set
 from mcpgoal.tools.playwright import search_web as _search_web
 from mcpgoal.tools.playwright import fetch_page as _fetch_page
+from mcpgoal.tools.langcheck import check_language as _check_language
 
 client_ip_var: ContextVar[str] = ContextVar("client_ip", default="unknown")
 _loggers: dict[str, RequestLogger] = {}
@@ -149,5 +150,10 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def webfetch(url: str) -> str:
         """Fetch a web page using headless Chromium (Playwright). Extracts rendered text content from JavaScript pages."""
         return await _tool("webfetch", f"url={url[:100]}", _fetch_page(url), config)
+
+    @mcp.tool()
+    async def langcheck(text: str, lang: str = "it") -> str:
+        """Validate text against Tier 2 linguistic rules (morphology, syntax) for the given language."""
+        return await _tool("langcheck", f"lang={lang} len={len(text)}", _check_language(text, lang), config)
 
     return mcp

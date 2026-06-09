@@ -1057,6 +1057,7 @@ def main():
         "vram_max": "99", "resource_timeout": "30",
     }
     cfg["events"] = {"reminder_advance": "3600"}
+    cfg["noise"] = {"noise_pause": "false", "noise_pause_threshold": "0.002", "noise_pause_duration": "30"}
 
     settings_path = dest / "config" / "settings.ini"
     with open(settings_path, "w", encoding="utf-8") as f:

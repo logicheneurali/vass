@@ -478,7 +478,46 @@ class VASScript:
 
         if name == "getdatetime":
             from datetime import datetime
-            return datetime.now().strftime("%Y-%m-%d %H:%M")
+            lang = (evaluated[0] if evaluated else "").strip().lower()
+            now = datetime.now()
+            if not lang:
+                return now.strftime("%Y-%m-%d %H:%M")
+            months = {
+                "it": ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+                       "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
+                "en": ["January", "February", "March", "April", "May", "June",
+                       "July", "August", "September", "October", "November", "December"],
+                "de": ["Januar", "Februar", "März", "April", "Mai", "Juni",
+                       "Juli", "August", "September", "Oktober", "November", "Dezember"],
+                "fr": ["janvier", "février", "mars", "avril", "mai", "juin",
+                       "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+                "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                       "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+                "pt": ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+                       "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
+            }
+            m = months.get(lang, months["en"])
+            mn = m[now.month - 1]
+            day = str(now.day)
+            year = str(now.year)
+            hm = now.strftime("%H:%M")
+            if lang == "it":
+                return f"{day} {mn} {year} {hm}"
+            elif lang in ("en", "fr"):
+                return f"{mn} {day}, {year} {hm}"
+            elif lang == "de":
+                return f"{day}. {mn} {year} {hm}"
+            elif lang == "es":
+                return f"{day} de {mn} de {year} {hm}"
+            elif lang == "pt":
+                return f"{day} de {mn} de {year} {hm}"
+            elif lang == "ja":
+                return f"{year}年{now.month}月{day}日 {hm}"
+            elif lang == "ko":
+                return f"{year}년 {now.month}월 {day}일 {hm}"
+            elif lang == "zh":
+                return f"{year}年{now.month}月{day}日 {hm}"
+            return now.strftime("%Y-%m-%d %H:%M")
 
         if name == "prettyevents":
             raw = evaluated[0] if evaluated else "[]"

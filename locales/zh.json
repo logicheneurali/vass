@@ -89,7 +89,12 @@
       "ram_max": "RAM threshold (%)",
       "gpu_max": "GPU threshold (%)",
       "vram_max": "VRAM threshold (%)",
-      "resource_timeout": "Wait timeout (sec)"
+      "resource_timeout": "Wait timeout (sec)",
+      "language": "语言",
+      "reminder_advance": "提醒提前量 (秒)",
+      "noise_pause": "自动暂停",
+      "noise_pause_threshold": "噪音阈值",
+      "noise_pause_duration": "暂停延迟 (秒)"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
@@ -101,7 +106,7 @@
       "wakeword": "唤醒词（如 vass, computer）",
       "volume": "0.0-1.0，越高越响亮",
       "api_key": "API 密钥，用于身份验证（不需要则留空）",
-      "language": "界面语言",
+      "language": "界面和语音命令语言",
       "command": "音频播放器命令及参数",
       "sensitivity": "数值越低越灵敏（0.003-0.01）",
       "similarity": "0.0-1.0，越高匹配越精确",
@@ -121,7 +126,11 @@
       "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
       "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
       "resource_timeout": "Maximum seconds to wait before sending the AI request anyway",
-      "mcp_server_url_warning": "(更改MCP服务器URL可能导致某些功能失效)"
+      "mcp_server_url_warning": "(更改MCP服务器URL可能导致某些功能失效)",
+      "reminder_advance": "提醒通知提前秒数",
+      "noise_pause": "当背景噪音超过阈值时自动暂停VASS",
+      "noise_pause_threshold": "触发自动暂停的噪音底噪阈值 (0.001-0.1)",
+      "noise_pause_duration": "暂停前连续高噪音秒数"
     },
     "section_labels": {
       "gui": "窗口",
@@ -131,7 +140,10 @@
       "tts": "语音合成",
       "ai": "AI 代理",
       "llamacpp": "Llama.cpp",
-      "resources": "System resources"
+      "resources": "System resources",
+      "locale": "语言",
+      "events": "事件",
+      "noise": "噪音"
     },
     "buttons": {
       "save": "保存",

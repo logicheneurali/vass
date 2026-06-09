@@ -89,7 +89,12 @@
       "ram_max": "RAM threshold (%)",
       "gpu_max": "GPU threshold (%)",
       "vram_max": "VRAM threshold (%)",
-      "resource_timeout": "Wait timeout (sec)"
+      "resource_timeout": "Wait timeout (sec)",
+      "language": "Langue",
+      "reminder_advance": "Avance rappel (sec)",
+      "noise_pause": "Pause automatique",
+      "noise_pause_threshold": "Seuil de bruit",
+      "noise_pause_duration": "Délai pause (sec)"
     },
     "field_descriptions": {
       "x": "Position X à l'écran",
@@ -101,7 +106,7 @@
       "wakeword": "Mot d'activation (ex. vass, ordinateur)",
       "volume": "0.0-1.0, plus haut = plus fort",
       "api_key": "Clé API pour authentification (laisser vide si non requis)",
-      "language": "Langue de l'interface",
+      "language": "Langue de l'interface et des commandes vocales",
       "command": "Commande et flags pour le lecteur audio",
       "sensitivity": "Plus bas = plus sensible (0.003-0.01)",
       "similarity": "0.0-1.0, élevé = correspondance exacte",
@@ -121,7 +126,11 @@
       "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
       "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
       "resource_timeout": "Maximum seconds to wait before sending the AI request anyway",
-      "mcp_server_url_warning": "(modifier l’URL du serveur MCP peut invalider certaines fonctions)"
+      "mcp_server_url_warning": "(modifier l’URL du serveur MCP peut invalider certaines fonctions)",
+      "reminder_advance": "Secondes d'avance pour la notification de rappel",
+      "noise_pause": "Met automatiquement VASS en pause si le bruit de fond dépasse le seuil",
+      "noise_pause_threshold": "Seuil de bruit déclenchant la pause automatique (0.001-0.1)",
+      "noise_pause_duration": "Secondes consécutives de bruit élevé avant la pause"
     },
     "section_labels": {
       "gui": "Fenêtre",
@@ -131,7 +140,10 @@
       "tts": "Synthèse vocale (TTS)",
       "ai": "Agent IA",
       "llamacpp": "Llama.cpp",
-      "resources": "System resources"
+      "resources": "System resources",
+      "locale": "Langue",
+      "events": "Événements",
+      "noise": "Bruit"
     },
     "buttons": {
       "save": "Enregistrer",

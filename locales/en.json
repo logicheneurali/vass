@@ -89,7 +89,12 @@
       "ram_max": "RAM threshold (%)",
       "gpu_max": "GPU threshold (%)",
       "vram_max": "VRAM threshold (%)",
-      "resource_timeout": "Wait timeout (sec)"
+      "resource_timeout": "Wait timeout (sec)",
+      "language": "Language",
+      "reminder_advance": "Reminder advance (sec)",
+      "noise_pause": "Auto pause",
+      "noise_pause_threshold": "Noise threshold",
+      "noise_pause_duration": "Pause delay (sec)"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -98,7 +103,7 @@
       "height": "Height in pixels (32-64)",
       "font_family": "Font name (e.g. Segoe UI)",
       "font_size": "Text size in pixels",
-      "language": "Interface language",
+      "language": "Interface and voice command language",
       "command": "Command and flags for audio player",
       "wakeword": "Activation word (e.g. vass, computer)",
       "sensitivity": "Lower = more sensitive (0.003-0.01)",
@@ -121,7 +126,11 @@
       "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
       "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
       "resource_timeout": "Maximum seconds to wait before sending the AI request anyway",
-      "mcp_server_url_warning": "(changing the MCP server URL may break some functions)"
+      "mcp_server_url_warning": "(changing the MCP server URL may break some functions)",
+      "reminder_advance": "Seconds in advance for reminder notification",
+      "noise_pause": "Automatically pauses VASS when background noise exceeds threshold",
+      "noise_pause_threshold": "Noise floor threshold that triggers auto-pause (0.001-0.1)",
+      "noise_pause_duration": "Consecutive seconds of high noise before pausing"
     },
     "section_labels": {
       "gui": "Window",
@@ -131,7 +140,10 @@
       "tts": "Text-to-Speech (TTS)",
       "ai": "AI Agent",
       "llamacpp": "Llama.cpp",
-      "resources": "System resources"
+      "resources": "System resources",
+      "locale": "Language",
+      "events": "Events",
+      "noise": "Noise"
     },
     "buttons": {
       "save": "Save",

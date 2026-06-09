@@ -89,7 +89,12 @@
       "ram_max": "RAM threshold (%)",
       "gpu_max": "GPU threshold (%)",
       "vram_max": "VRAM threshold (%)",
-      "resource_timeout": "Wait timeout (sec)"
+      "resource_timeout": "Wait timeout (sec)",
+      "language": "Idioma",
+      "reminder_advance": "Antecedência lembrete (seg)",
+      "noise_pause": "Pausa automática",
+      "noise_pause_threshold": "Limiar de ruído",
+      "noise_pause_duration": "Atraso pausa (seg)"
     },
     "field_descriptions": {
       "x": "Posição X na tela",
@@ -101,7 +106,7 @@
       "wakeword": "Palavra de ativação (ex. vass, computador)",
       "volume": "0.0-1.0, mais alto = mais forte",
       "api_key": "Chave API para autenticação (deixar em branco se não for necessária)",
-      "language": "Idioma da interface",
+      "language": "Idioma da interface e comandos de voz",
       "command": "Comando e flags para o player de áudio",
       "sensitivity": "Menor = mais sensível (0.003-0.01)",
       "similarity": "0.0-1.0, alto = correspondência exata",
@@ -121,7 +126,11 @@
       "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
       "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
       "resource_timeout": "Maximum seconds to wait before sending the AI request anyway",
-      "mcp_server_url_warning": "(alterar o URL do servidor MCP pode invalidar algumas funcoes)"
+      "mcp_server_url_warning": "(alterar o URL do servidor MCP pode invalidar algumas funcoes)",
+      "reminder_advance": "Segundos de antecedência para notificação de lembrete",
+      "noise_pause": "Pausa VASS automaticamente quando o ruído de fundo excede o limiar",
+      "noise_pause_threshold": "Limiar de ruído que aciona a pausa automática (0.001-0.1)",
+      "noise_pause_duration": "Segundos consecutivos de ruído alto antes de pausar"
     },
     "section_labels": {
       "gui": "Janela",
@@ -131,7 +140,10 @@
       "tts": "Síntese de fala (TTS)",
       "ai": "Agente IA",
       "llamacpp": "Llama.cpp",
-      "resources": "System resources"
+      "resources": "System resources",
+      "locale": "Idioma",
+      "events": "Eventos",
+      "noise": "Ruído"
     },
     "buttons": {
       "save": "Salvar",

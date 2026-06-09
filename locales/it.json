@@ -117,7 +117,12 @@
       "ram_max": "Soglia RAM (%)",
       "gpu_max": "Soglia GPU (%)",
       "vram_max": "Soglia VRAM (%)",
-      "resource_timeout": "Timeout attesa (sec)"
+      "resource_timeout": "Timeout attesa (sec)",
+      "language": "Lingua",
+      "reminder_advance": "Anticipo promemoria (sec)",
+      "noise_pause": "Pausa automatica",
+      "noise_pause_threshold": "Soglia rumore",
+      "noise_pause_duration": "Durata prima pausa (sec)"
     },
     "field_descriptions": {
       "x": "Posizione X sullo schermo",
@@ -126,7 +131,7 @@
       "height": "Altezza in pixel (32-64)",
       "font_family": "Nome del font (es. Segoe UI)",
       "font_size": "Dimensione del testo in pixel",
-      "language": "Lingua dell'interfaccia",
+      "language": "Lingua dell'interfaccia e dei comandi vocali",
       "command": "Comando e flag per il player audio",
       "wakeword": "Parola di attivazione (es. vass, computer)",
       "sensitivity": "Più basso = più sensibile (0.003-0.01)",
@@ -149,7 +154,11 @@
       "gpu_max": "Percentuale massima di utilizzo GPU. Se superata, le richieste AI vengono messe in attesa",
       "vram_max": "Percentuale massima di utilizzo VRAM. Se superata, le richieste AI vengono messe in attesa",
       "resource_timeout": "Secondi massimi di attesa prima di inviare comunque la richiesta AI",
-      "mcp_server_url_warning": "(cambiare la URL del server MCP potrebbe invalidare alcune funzioni)"
+      "mcp_server_url_warning": "(cambiare la URL del server MCP potrebbe invalidare alcune funzioni)",
+      "reminder_advance": "Secondi di anticipo per la notifica dei promemoria",
+      "noise_pause": "Mette in pausa automatica VASS se il rumore di fondo supera la soglia",
+      "noise_pause_threshold": "Soglia del noise floor oltre la quale scatta la pausa (0.001-0.1)",
+      "noise_pause_duration": "Secondi consecutivi di rumore alto prima di attivare la pausa"
     },
     "section_labels": {
       "gui": "Finestra",
@@ -159,7 +168,10 @@
       "tts": "Sintesi vocale (TTS)",
       "ai": "AI Agent",
       "llamacpp": "Llama.cpp",
-      "resources": "Risorse di sistema"
+      "resources": "Risorse di sistema",
+      "locale": "Lingua",
+      "events": "Eventi",
+      "noise": "Rumore"
     },
     "buttons": {
       "save": "Salva",

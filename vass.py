@@ -110,6 +110,12 @@ class VassApp:
         self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
         self.llama_process = None
 
+        self.noise_pause = self.settings.get("noise_pause", False)
+        self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
+        self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
+        self._noise_high_frames = 0
+        self._nf_print_counter = 0
+
         reminder_advance = self.settings.get("reminder_advance", 3600)
         self.idle_tracker = IdleTracker()
         self.event_reminder = EventReminder(self, advance_seconds=reminder_advance, language=self.language, idle_tracker=self.idle_tracker)
@@ -232,6 +238,9 @@ class VassApp:
             result["vram_max"] = config.getfloat("resources", "vram_max", fallback=99.0)
             result["resource_timeout"] = config.getint("resources", "resource_timeout", fallback=10)
             result["reminder_advance"] = config.getint("events", "reminder_advance", fallback=3600)
+            result["noise_pause"] = config.get("noise", "noise_pause", fallback="false").lower() == "true"
+            result["noise_pause_threshold"] = config.getfloat("noise", "noise_pause_threshold", fallback=0.002)
+            result["noise_pause_duration"] = config.getint("noise", "noise_pause_duration", fallback=30)
 
             print(f"[Settings] Loaded -> Model: {result['ai_model']} | Lang: {result['language']}")
             return result
@@ -267,6 +276,9 @@ class VassApp:
             result["vram_max"] = 99.0
             result["resource_timeout"] = 10
             result["reminder_advance"] = 3600
+            result["noise_pause"] = False
+            result["noise_pause_threshold"] = 0.002
+            result["noise_pause_duration"] = 30
 
             config["locale"] = {"language": lang}
             config["wakeword"] = {"sensitivity": "0.005", "wakeword": "vass"}
@@ -376,6 +388,9 @@ class VassApp:
                         tv = self.settings.get("volume", 0.95)
                         self.tts.update_settings(tv)
                         self.gui.volume_top_bar.set_volume(tv)
+                        self.noise_pause = self.settings.get("noise_pause", False)
+                        self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
+                        self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
                         self.gui_x = self.settings["gui_x"]
                         self.gui_y = self.settings["gui_y"]
                         self.gui_width = self.settings["gui_width"]
@@ -482,6 +497,8 @@ class VassApp:
                                 f.write(f"detect_wake_word error: {ex}\n")
                             wake = False
                         if wake:
+                            self._noise_high_frames = 0
+                            self._nf_print_counter = 0
                             print("Wake word detected! Switching to recording mode...")
                             try:
                                 beep(self.settings.get("volume", 0.95))
@@ -493,6 +510,36 @@ class VassApp:
                             self.voice_recognition.reset_model()
                             self.set_state("recording")
                             continue
+
+                        if not wake and self.state == "listening":
+                            nf = getattr(self.voice_recognition, '_noise_floor', 0.0)
+                            self._nf_print_counter += 1
+                            if self._nf_print_counter >= 250:
+                                self._nf_print_counter = 0
+                                print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
+                            if self.noise_pause and nf > self.noise_pause_threshold:
+                                self._noise_high_frames += 1
+                                frames_per_sec = 50
+                                max_frames = self.noise_pause_duration * frames_per_sec
+                                if self._noise_high_frames >= max_frames:
+                                    print(f"[Noise] Auto-pausing: noise floor {nf:.4f} > {self.noise_pause_threshold} for {self.noise_pause_duration}s")
+                                    self.audio_handler.stop_stream()
+                                    self.set_state("paused")
+                            else:
+                                self._noise_high_frames = max(0, self._noise_high_frames - 1)
+
+                        if self.state == "paused":
+                            nf = getattr(self.voice_recognition, '_noise_floor', 0.0)
+                            self._nf_print_counter += 1
+                            if self._nf_print_counter >= 250:
+                                self._nf_print_counter = 0
+                                print(f"[NoiseFloor] {nf:.6f} (paused)")
+                            if self.noise_pause and nf < self.noise_pause_threshold * 0.5:
+                                self._noise_high_frames = max(0, self._noise_high_frames - 1)
+                                if self._noise_high_frames <= 0:
+                                    print(f"[Noise] Auto-resuming: noise floor dropped to {nf:.4f}")
+                                    self.audio_handler.start_stream()
+                                    self.set_state("listening")
                     
                     self.audio_handler.process_recording(frame)
                     

@@ -89,7 +89,12 @@
       "ram_max": "RAM threshold (%)",
       "gpu_max": "GPU threshold (%)",
       "vram_max": "VRAM threshold (%)",
-      "resource_timeout": "Wait timeout (sec)"
+      "resource_timeout": "Wait timeout (sec)",
+      "language": "言語",
+      "reminder_advance": "リマインダー事前通知 (秒)",
+      "noise_pause": "自動一時停止",
+      "noise_pause_threshold": "ノイズしきい値",
+      "noise_pause_duration": "一時停止遅延 (秒)"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -101,7 +106,7 @@
       "wakeword": "ウェイクワード（例：vass, computer）",
       "volume": "0.0-1.0、高いほど音量が大きい",
       "api_key": "認証用のAPIキー（不要な場合は空欄）",
-      "language": "インターフェース言語",
+      "language": "インターフェースと音声コマンドの言語",
       "command": "オーディオプレイヤーのコマンドとフラグ",
       "sensitivity": "低いほど敏感（0.003-0.01）",
       "similarity": "0.0-1.0、高いほど完全一致",
@@ -121,7 +126,11 @@
       "gpu_max": "Maximum GPU usage percentage. If exceeded, AI requests wait until below threshold",
       "vram_max": "Maximum VRAM usage percentage. If exceeded, AI requests wait until below threshold",
       "resource_timeout": "Maximum seconds to wait before sending the AI request anyway",
-      "mcp_server_url_warning": "(MCPサーバーURLを変更すると一部の機能が無効になる可能性があります)"
+      "mcp_server_url_warning": "(MCPサーバーURLを変更すると一部の機能が無効になる可能性があります)",
+      "reminder_advance": "リマインダー通知の事前秒数",
+      "noise_pause": "バックグラウンドノイズがしきい値を超えた場合、VASSを自動的に一時停止します",
+      "noise_pause_threshold": "自動一時停止をトリガーするノイズフロアしきい値 (0.001-0.1)",
+      "noise_pause_duration": "一時停止前の連続した高ノイズ秒数"
     },
     "section_labels": {
       "gui": "ウィンドウ",
@@ -131,7 +140,10 @@
       "tts": "音声合成",
       "ai": "AI エージェント",
       "llamacpp": "Llama.cpp",
-      "resources": "System resources"
+      "resources": "System resources",
+      "locale": "言語",
+      "events": "イベント",
+      "noise": "ノイズ"
     },
     "buttons": {
       "save": "保存",
