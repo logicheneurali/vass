@@ -255,9 +255,7 @@ class VASScript:
         if name == "say":
             text = evaluated[0] if evaluated else ""
             speed = float(_tof(evaluated[1])) if len(evaluated) > 1 else 1.0
-            t = threading.Thread(target=self._do_say, args=(text, speed), daemon=True)
-            t.start()
-            t.join()
+            self._do_say(text, speed)
             return ""
 
         if name == "listen":
@@ -448,9 +446,11 @@ class VASScript:
             until = evaluated[0] if evaluated else ""
             return self._manage_events("list", until)
 
-        if name == "removeevent":
+        if name == "removeevent" or name == "delevent":
             ename = evaluated[0] if evaluated else ""
-            return self._manage_events("remove", ename)
+            date = evaluated[1] if len(evaluated) > 1 else ""
+            time = evaluated[2] if len(evaluated) > 2 else ""
+            return self._manage_events("remove", ename, date, time)
 
         if name == "readinfo":
             vid = evaluated[0] if evaluated else ""
@@ -759,34 +759,41 @@ class VASScript:
             return json.dumps(filtered, ensure_ascii=False)
 
         if action == "remove":
-            event_name = args[0] if args else ""
+            event_name, date, time_arg = args[0] if args else "", args[1] if len(args) > 1 else "", args[2] if len(args) > 2 else ""
             if not events:
                 return "not found: no events"
-            best_idx = 0
-            best_ratio = 0
-            for i, e in enumerate(events):
-                ratio = difflib.SequenceMatcher(None, event_name.lower(), e["name"].lower()).ratio()
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    best_idx = i
-            if best_ratio >= 0.8:
-                removed = events.pop(best_idx)
-                data["events"] = events
-                try:
-                    result = mcp.call_tool("write_file", {"path": "events.json", "content": json.dumps(data, ensure_ascii=False, indent=2)})
-                    if result.get("isError"):
-                        return f"error: failed to save removal: {result.get('content', [{}])[0].get('text', 'unknown error')}"
-                except Exception as e:
-                    return f"error: failed to save removal: {e}"
-                return f"ok: removed '{removed['name']}'"
-            nearest = events[best_idx]["name"] if events else "none"
-            return f"not found: best match '{nearest}' ratio {best_ratio:.2f}"
+            matches = []
+            for e in events:
+                ratio = difflib.SequenceMatcher(None, event_name.lower(), e.get("description", "").lower()).ratio()
+                if ratio >= 0.75:
+                    matches.append((ratio, e))
+            if not matches:
+                return f"not found: no event matching '{event_name}'"
+            if date or time_arg:
+                matches = [(r, e) for r, e in matches
+                           if (not date or e.get("date") == date)
+                           and (not time_arg or e.get("time") == time_arg)]
+                if not matches:
+                    return f"not found: no event matching '{event_name}' at {date or 'any date'} {time_arg or 'any time'}"
+            if len(matches) > 1 and not date and not time_arg:
+                lines = [f"  - '{e.get('description')}' on {e.get('date')} at {e.get('time')}" for _, e in matches]
+                return "Multiple events match. Specify date and time to disambiguate:\n" + "\n".join(lines)
+            best = max(matches, key=lambda x: x[0])
+            removed = best[1]
+            events = [e for e in events if e != removed]
+            data["events"] = events
+            try:
+                result = mcp.call_tool("write_file", {"path": "events.json", "content": json.dumps(data, ensure_ascii=False, indent=2)})
+                if result.get("isError"):
+                    return f"error: failed to save removal: {result.get('content', [{}])[0].get('text', 'unknown error')}"
+            except Exception as e:
+                return f"error: failed to save removal: {e}"
+            return f"ok: removed '{removed.get('description')}' on {removed.get('date')} at {removed.get('time')}"
 
         return "error: unknown action"
 
     def _do_say(self, text, speed=1.0):
-        self.app.tts.speak(text, speed)
-        self.app.tts._tts_done.wait()
+        self.app.tts.speak_nowait(text, speed)
 
     def _execute_line(self, line):
         tokens = self._tokenize(line)

@@ -61,18 +61,33 @@ async def search_web(query: str, max_results: int = 10) -> str:
         return json.dumps({"error": str(e)})
 
 
-async def fetch_page(url: str, timeout: float = 30.0) -> str:
+async def fetch_page(url: str, timeout: float = 90.0) -> str:
     try:
         if isinstance(timeout, str):
-            timeout = float(timeout) if timeout.strip() else 30.0
+            timeout = float(timeout) if timeout.strip() else 90.0
     except ValueError:
-        timeout = 30.0
-    browser = await _get_browser()
-    page = await browser.new_page()
+        timeout = 90.0
+
+    from .web import browse
     try:
-        await page.goto(url, timeout=timeout * 1000, wait_until="domcontentloaded")
-        text = await page.evaluate("() => document.body.innerText")
-        lines = [l.strip() for l in text.splitlines() if l.strip()]
-        return "\n".join(lines[:250])
-    finally:
-        await page.close()
+        text = await browse(url, timeout=30)
+        if len(text) > 500:
+            return text
+    except Exception:
+        pass
+
+    try:
+        browser = await _get_browser()
+        page = await browser.new_page()
+        try:
+            await page.goto(url, timeout=timeout * 1000, wait_until="domcontentloaded")
+            text = await page.evaluate("() => document.body.innerText")
+            lines = [l.strip() for l in text.splitlines() if l.strip()]
+            return "\n".join(lines[:250])
+        finally:
+            await page.close()
+    except Exception as e:
+        try:
+            return await browse(url, timeout * 2)
+        except Exception as e2:
+            return f"Failed to fetch {url}: {e}"

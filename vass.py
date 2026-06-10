@@ -2,6 +2,7 @@ import json
 import subprocess
 import time
 import threading
+from collections import deque
 import re
 import warnings
 warnings.filterwarnings("ignore", message=".*dropout option.*")
@@ -68,6 +69,60 @@ def _load_vascript_reference():
         return f"\n\n--- VASScript Reference ---\n{content}\n--- End Reference ---\n"
     except Exception:
         return ""
+
+
+class ScriptQueue:
+    """FIFO serial script execution queue.  One script runs at a time;
+    additional requests are queued and processed in order."""
+
+    def __init__(self, app):
+        self.app = app
+        self._queue = deque()
+        self._lock = threading.Lock()
+        self._active_engine = None
+        self._running = False
+        self._worker_thread = threading.Thread(target=self._worker, daemon=True)
+        self._worker_thread.start()
+
+    def enqueue(self, name_or_code=None, code=None, params=None, result_callback=None, source=""):
+        item = (name_or_code, code, params, result_callback, source)
+        with self._lock:
+            self._queue.append(item)
+            qlen = len(self._queue)
+        if qlen == 1:
+            self.app.set_state("running_script")
+        elif qlen > 1:
+            print(f"[ScriptQueue] Queued {source or 'script'} (position {qlen})")
+
+    def cancel_current(self):
+        with self._lock:
+            engine = self._active_engine
+        if engine:
+            engine.stop()
+
+    def cancel_all(self):
+        with self._lock:
+            self._queue.clear()
+            engine = self._active_engine
+        if engine:
+            engine.stop()
+
+    def _worker(self):
+        while True:
+            with self._lock:
+                if not self._queue:
+                    item = None
+                else:
+                    item = self._queue.popleft()
+            if item is None:
+                time.sleep(0.1)
+                continue
+            name_or_code, code, params, result_callback, source = item
+            self._execute_script(name_or_code, code, params, result_callback)
+            time.sleep(0.1)
+
+    def _execute_script(self, name_or_code, code, params, result_callback):
+        self.app._execute_script_impl(name_or_code, code, params, result_callback, self)
 
 
 class VassApp:
@@ -145,8 +200,7 @@ class VassApp:
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
         self.running = False
         self._trim_lock = threading.Lock()
-        self._script_engine_lock = threading.Lock()
-        self._active_script_engine = None
+        self.script_queue = ScriptQueue(self)
         self.state = "loading"
         self.state_lock = threading.RLock()
         self.conversation_history = []
@@ -338,12 +392,7 @@ class VassApp:
                 self.stop_playback()
                 self.set_state("listening")
             elif current == "running_script":
-                with self._script_engine_lock:
-                    engine = self._active_script_engine
-                    if engine:
-                        engine.stop()
-                        self._active_script_engine = None
-                self.set_state("listening")
+                self.script_queue.cancel_current()
             elif current in ("waiting",):
                 pass
             elif current == "waiting_resources":
@@ -385,6 +434,12 @@ class VassApp:
                         self.command_executor.similarity_threshold = self.settings["command_similarity"]
                         self.ai_api_key = self.settings.get("api_key", "")
                         self.openai_client.api_key = self.ai_api_key or "not-needed"
+                        self.ai_model = self.settings["ai_model"]
+                        old_url = self.ai_url
+                        self.ai_url = self.settings["ai_url"]
+                        self.system_message = self.settings.get("system_message", "")
+                        if self.ai_url != old_url:
+                            self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
                         self.mcp_server_url = self.settings["mcp_server_url"]
                         self.memory_tokens = self.settings.get("memory_tokens", 2000)
                         self.blacklist = parse_blacklist(self.settings.get("blacklist", ""))
@@ -432,7 +487,7 @@ class VassApp:
                 os.remove(queue_path)
 
                 label = script_name or "inline"
-                print(f"[ScriptQueue] Executing: {label}")
+                print(f"[ScriptQueue] Enqueued: {label}")
 
                 def _write_result(r):
                     result = {"id": request_id, "result": r}
@@ -440,10 +495,7 @@ class VassApp:
                         json.dump(result, f)
                     print(f"[ScriptQueue] Completed: {label} -> {r.get('status')}")
 
-                if code:
-                    self._run_script(None, result_callback=_write_result, code=code)
-                else:
-                    self._run_script(script_name, result_callback=_write_result)
+                self._run_script(name_or_code=script_name if script_name else None, result_callback=_write_result, code=code or None)
             except Exception:
                 pass
 
@@ -771,7 +823,7 @@ class VassApp:
         if matched_command and is_script_command(matched_command):
             print(f"Executing script command: {matched_command}")
             script_name = strip_script_prefix(matched_command)
-            threading.Thread(target=self._run_script, args=(script_name,), kwargs={"params": matched_vars}, daemon=True).start()
+            self._run_script(script_name, params=matched_vars)
             return
         if matched_command:
             print(f"Executing command: {matched_command}")
@@ -787,6 +839,9 @@ class VassApp:
         self.command_executor.execute_command(command)
 
     def _run_script(self, name_or_code=None, result_callback=None, code=None, params=None):
+        self.script_queue.enqueue(name_or_code, code, params, result_callback, "direct")
+
+    def _execute_script_impl(self, name_or_code, code, params, result_callback, queue):
         import json as _json
         script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts")
         if code is not None:
@@ -894,8 +949,7 @@ class VassApp:
                         self.gui.memory_bar.set_value(c, 1, t)
                     ]
                 )
-                with self._script_engine_lock:
-                    self._active_script_engine = engine
+                queue._active_engine = engine
                 if params:
                     engine.vars.update(params)
                 engine.execute(code_text)
@@ -908,8 +962,9 @@ class VassApp:
                 if result_callback:
                     result_callback({"status": "error", "script": script_name, "detail": script_error, "message": "Script failed: " + script_error})
             finally:
-                self._active_script_engine = None
-                self.set_state("listening")
+                queue._active_engine = None
+                if len(self.script_queue._queue) == 0:
+                    self.set_state("listening")
 
             if script_error and not result_callback:
                 threading.Thread(target=self.tts.speak, args=(f"Errore script: {script_error}",), daemon=True).start()

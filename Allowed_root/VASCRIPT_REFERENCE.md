@@ -113,12 +113,16 @@ $events = listevents("2026-12-31")
 say($events)
 ```
 
-### `removeevent(name)`
-Removes an event with fuzzy name matching (threshold 0.8). Requires authorization.
+### `removeevent(description, date?, time?)`
+Removes an event by fuzzy-matching the description (threshold 0.75). Requires authorization.
+Optional `date` (`YYYY-MM-DD`) and `time` (`HH:MM`) to disambiguate matching events.
+If multiple events match without date/time, returns the list instead of deleting.
+Alias: `delevent(description, date?, time?)`
 ```
-removeevent("riunione team")   # fuzzy match, also matches "riunione_team_2026-06-10_14-30"
+removeevent("riunione team")
+delevent("Meeting", "2026-06-15", "14:00")
 $result = removeevent("chiamata")
-say($result)                    # says "ok: removed 'chiamata_2026-06-12_09-00'"
+say($result)                    # says "ok: removed 'Chiamata' on 2026-06-12 at 09:00"
 ```
 
 ### `getdatetime()`
@@ -192,6 +196,23 @@ Returns "True" or "False" depending on whether text contains substring.
 
 ### `equals(a, b)`
 Returns "True" or "False" depending on whether a equals b.
+
+## Built-in Variables
+
+These variables are automatically available in every VASScript script.
+
+### `$_lang`
+Contains the current language code (e.g. `"it"`, `"en"`, `"de"`, `"fr"`, `"es"`, `"pt"`, `"ja"`, `"ko"`, `"zh"`).
+```
+say("Current language is {$_lang}")
+$dt = getdatetime($_lang)   # formatted in current language
+```
+
+### `$_exec_message`
+Contains the localized execution script message (e.g. "Script execution"). Useful for UI feedback.
+```
+say($_exec_message)
+```
 
 ## Variables
 

@@ -7,7 +7,7 @@ from PySide6.QtGui import QPainter, QColor, QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
-    QLineEdit,
+    QLineEdit, QSpacerItem, QSizePolicy,
 )
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -17,7 +17,7 @@ class WaveformPlayer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet("background-color: #1e1e1e;")
+        self.setStyleSheet("background-color: #101010;")
         self.data = None
         self.sr = None
         self.total = 0
@@ -81,10 +81,12 @@ class VolumeTopBar(QWidget):
         painter = QPainter(self)
         w = self.width()
         h = self.height()
-        painter.fillRect(0, 0, w, h, QColor("#1a1a1a"))
+        painter.fillRect(0, 0, w, h, QColor("#333333"))
         fw = int(w * self._ratio)
         if fw > 0:
-            painter.fillRect(0, 0, fw, h, QColor("#2ecc71"))
+            center = w // 2
+            half = fw // 2
+            painter.fillRect(center - half, 0, fw, h, QColor("#2ecc71"))
 
 
 class MemoryBar(QWidget):
@@ -147,7 +149,9 @@ class MemoryBar(QWidget):
         painter.fillRect(0, 0, w, h, QColor("#333333"))
         fw = int(w * self._ratio)
         if fw > 0:
-            painter.fillRect(0, 0, fw, h, self._color)
+            center = w // 2
+            half = fw // 2
+            painter.fillRect(center - half, 0, fw, h, self._color)
 
 
 class VassGUI(QMainWindow):
@@ -187,7 +191,7 @@ class VassGUI(QMainWindow):
         )
         self.setAttribute(Qt.WA_TranslucentBackground, False)
         self.setGeometry(x, y, width, height)
-        self.setStyleSheet("QMainWindow { background-color: #1e1e1e; }")
+        self.setStyleSheet("QMainWindow { background-color: #101010; }")
 
         ico_path = os.path.join(BASE, "vass.ico")
         if os.path.exists(ico_path):
@@ -221,11 +225,15 @@ class VassGUI(QMainWindow):
         self._build_loading_widget()
         self.stacked.addWidget(self.loading_widget)
 
-        row.addWidget(self.stacked, 1)
+        self._left_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self._right_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        row.addSpacerItem(self._left_spacer)
+        row.addWidget(self.stacked)
+        row.addSpacerItem(self._right_spacer)
 
         self.replay_btn = QPushButton("\u21bb")
         self.replay_btn.setStyleSheet(
-            "QPushButton { background-color: #1e1e1e; color: #ffffff; "
+            "QPushButton { background: transparent; color: #ffffff; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -237,7 +245,7 @@ class VassGUI(QMainWindow):
         # Menu button with popup
         menu_btn = QPushButton("\u2630")
         menu_btn.setStyleSheet(
-            "QPushButton { background-color: #1e1e1e; color: #888888; "
+            "QPushButton { background: transparent; color: #888888; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -282,10 +290,10 @@ class VassGUI(QMainWindow):
 
         self._chat_btn = QPushButton("\u00bb")
         self._chat_btn.setStyleSheet(
-            "QPushButton { background-color: #1e1e1e; color: #888888; "
+            "QPushButton { background: transparent; color: #888888; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
-            "QPushButton:checked { background-color: #0d7377; color: #ffffff; }"
+            "QPushButton:checked { background: transparent; color: #0d7377; }"
         )
         self._chat_btn.setFixedWidth(16)
         self._chat_btn.setCheckable(True)
@@ -439,13 +447,13 @@ class VassGUI(QMainWindow):
     def _build_main_button(self):
         self.btn = QPushButton(self._t("gui.states.listening"))
         self.btn.setToolTip(self._t("gui.button_tooltip"))
-        font = QFont(self._font_family, self._font_size)
+        font = QFont(self._font_family, max(6, self._font_size - 2))
         font.setBold(True)
         self.btn.setFont(font)
         self.btn.setStyleSheet(
-            "QPushButton { background-color: #2ecc71; color: white; "
-            "border: none; border-radius: 0; }"
-            "QPushButton:hover { background-color: #27ae60; }"
+            "QPushButton { background: transparent; color: #2ecc71; "
+            "border: none; border-radius: 0; text-align: center; }"
+            "QPushButton:hover { color: #27ae60; }"
         )
         self.btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -492,17 +500,17 @@ class VassGUI(QMainWindow):
             self.stacked.setCurrentWidget(self.loading_widget)
             return
         color = self.COLORS.get(state, "#1e1e1e")
-        text_color = "#888888" if not self._health_ok else "white"
+        text_color = "#888888" if not self._health_ok else color
         text = self._t(f"gui.states.{state}")
         if detail:
             text = f"{text} {detail}"
         prefix = "[C] " if self._current_mode == "chat" else "[T] "
         self.btn.setText(prefix + text)
         self.btn.setStyleSheet(
-            "QPushButton { background-color: %s; color: %s; "
-            "border: none; border-radius: 0; }"
-            "QPushButton:hover { background-color: %s; }"
-            % (color, text_color, QColor(color).darker(120).name())
+            "QPushButton { background: transparent; color: %s; "
+            "border: none; border-radius: 0; text-align: center; }"
+            "QPushButton:hover { color: %s; }"
+            % (text_color, QColor(text_color).lighter(130).name())
         )
         self.stacked.setCurrentWidget(self.btn)
         if state == "listening":
@@ -514,6 +522,7 @@ class VassGUI(QMainWindow):
             self._chat_btn.setVisible(False)
             if self._chat_btn.isChecked():
                 self._collapse_chat()
+        self._rebalance_spacers()
         if state == "recording":
             self.memory_bar.set_color("#69DB7C")
             self.memory_bar.set_tooltip_context(self._t("gui.bar.volume"), "")
@@ -580,6 +589,20 @@ class VassGUI(QMainWindow):
         self.resize(self._chat_original_width, self.height())
         if self._chat_original_x is not None:
             self.move(self._chat_original_x, self.y())
+        self._rebalance_spacers()
+
+    def _rebalance_spacers(self):
+        right_w = 0
+        if self.replay_btn.isVisible():
+            right_w += 16
+        right_w += 16  # menu btn
+        if self._chat_btn.isVisible():
+            right_w += 16
+        if self._chat_input.isVisible():
+            right_w += max(self._chat_input.width(), self._chat_input.sizeHint().width())
+        self._left_spacer.changeSize(right_w, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self._right_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.centralWidget().layout().invalidate()
 
     def _toggle_chat_input(self):
         if self._chat_btn.isChecked():
@@ -589,6 +612,7 @@ class VassGUI(QMainWindow):
             self._clamp_to_screen()
             self._chat_input.setVisible(True)
             self._chat_input.setFocus()
+            self._rebalance_spacers()
         else:
             self._collapse_chat()
 

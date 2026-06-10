@@ -4,6 +4,7 @@ import time
 import threading
 import subprocess
 import numpy as np
+from collections import deque
 
 _KOKORO_LANGS = {
     "it": ("i", "if_sara"),
@@ -27,6 +28,7 @@ class TtsEngine:
         self.language = language
 
         self.tts_playing = False
+        self.tts_busy = threading.Lock()
         self._kokoro_pipeline = None
         self._kokoro_code = None
         self._kokoro_voice = None
@@ -37,8 +39,41 @@ class TtsEngine:
         self._tts_done = threading.Event()
         self._state_before_tts = "listening"
 
+        self._speak_queue = deque()
+        self._speak_lock = threading.Lock()
+        threading.Thread(target=self._speak_worker, daemon=True).start()
+
     def speak(self, text, speed=1.0):
-        self._speak_kokoro(text, speed)
+        with self._speak_lock:
+            self._speak_queue.append((text, speed))
+
+    def speak_nowait(self, text, speed=1.0):
+        self.tts_busy.acquire()
+        try:
+            self._tts_done.clear()
+            self._speak_kokoro(text, speed)
+            self._tts_done.wait()
+        finally:
+            self.tts_busy.release()
+
+    def _speak_worker(self):
+        while True:
+            with self._speak_lock:
+                if not self._speak_queue:
+                    item = None
+                else:
+                    item = self._speak_queue.popleft()
+            if item:
+                text, speed = item
+                self.tts_busy.acquire()
+                try:
+                    self._tts_done.clear()
+                    self._speak_kokoro(text, speed)
+                    self._tts_done.wait()
+                finally:
+                    self.tts_busy.release()
+            else:
+                time.sleep(0.1)
 
     def _init_kokoro(self):
         lang_code, voice = _KOKORO_LANGS.get(self.language, ("a", "af_heart"))
@@ -194,6 +229,8 @@ class TtsEngine:
             return False
 
     def stop(self):
+        with self._speak_lock:
+            self._speak_queue.clear()
         import sounddevice as sd
         sd.stop()
         self._on_tts_done()

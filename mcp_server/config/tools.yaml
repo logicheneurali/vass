@@ -47,3 +47,12 @@ tools:
   langcheck:
     whitelist: ["127.0.0.1", "::1", "localhost"]
     blacklist: []
+  addevent:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  delevent:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
+  listevents:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []

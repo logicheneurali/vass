@@ -59,11 +59,132 @@ _TOOL_SYNTAX = {
     "interact": "interact(code) — example: interact(\"say('hello')\")",
     "readinfo": "readinfo(id) — example: readinfo('1780394454383')",
     "writeinfo": "writeinfo(text) — example: writeinfo('dati da salvare')",
+    "addevent": "addevent(date, time, duration, description, recur?) — example: addevent('2026-06-15', '14:00', '60', 'Meeting')",
+    "delevent": "delevent(description, date?, time?) — example: delevent('Meeting', '2026-06-15', '14:00')",
+    "listevents": "listevents(from_date?) — example: listevents('2026-06-10') or listevents()",
     "clipboardget": "clipboardget() — no parameters",
     "clipboardset": "clipboardset(text) — example: clipboardset('testo')",
     "websearch": "websearch(query) — example: websearch('latest news')",
     "webfetch": "webfetch(url) — example: webfetch('https://example.com')",
 }
+
+
+async def _add_event(date, time, duration, description, recur, allowed_root):
+    import json
+    from datetime import datetime as dt
+    try:
+        raw = await filesystem.read_file("events.json", allowed_root)
+        data = json.loads(raw)
+    except Exception:
+        data = {"events": []}
+    events = data.get("events", [])
+
+    try:
+        dt.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        return f"error: invalid date format '{date}'. Use YYYY-MM-DD."
+    try:
+        dt.strptime(time, "%H:%M")
+    except ValueError:
+        return f"error: invalid time format '{time}'. Use HH:MM."
+
+    import uuid
+    safe_desc = description.lower().replace(" ", "_")[:40]
+    name = f"{safe_desc}_{date}_{time}_{uuid.uuid4().hex[:4]}"
+
+    event = {
+        "name": name,
+        "date": date,
+        "time": time,
+        "duration": str(duration),
+        "description": description,
+    }
+    if recur:
+        event["recur"] = recur
+    events.append(event)
+    data["events"] = events
+
+    target = Path(allowed_root).resolve() / "events.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return f"Event added: '{description}' on {date} at {time} ({duration}min)"
+
+
+async def _del_event(description, date, time, allowed_root):
+    import json
+    import difflib
+    try:
+        raw = await filesystem.read_file("events.json", allowed_root)
+        data = json.loads(raw)
+    except Exception:
+        return "error: no events found"
+    events = data.get("events", [])
+    if not events:
+        return "error: no events found"
+
+    matches = []
+    for ev in events:
+        ev_desc = ev.get("description", "")
+        if difflib.SequenceMatcher(None, description.lower(), ev_desc.lower()).ratio() >= 0.75:
+            matches.append(ev)
+
+    if not matches:
+        return f"No event found matching '{description}'"
+
+    if date or time:
+        matches = [ev for ev in matches
+                   if (not date or ev.get("date") == date)
+                   and (not time or ev.get("time") == time)]
+        if not matches:
+            return f"No event found matching '{description}' at {date or 'any date'} {time or 'any time'}"
+
+    if len(matches) > 1 and not date and not time:
+        lines = []
+        for ev in matches:
+            lines.append(f"  - '{ev.get('description')}' on {ev.get('date')} at {ev.get('time')}")
+        return "Multiple events match. Specify date and time to disambiguate:\n" + "\n".join(lines)
+
+    removed = matches[0] if len(matches) == 1 else matches[0]
+    events = [ev for ev in events if ev != removed]
+    data["events"] = events
+
+    target = Path(allowed_root).resolve() / "events.json"
+    target.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return f"Removed event: '{removed.get('description')}' on {removed.get('date')} at {removed.get('time')}"
+
+
+async def _list_events(from_date, allowed_root):
+    import json
+    from datetime import datetime as dt, date as d
+    try:
+        raw = await filesystem.read_file("events.json", allowed_root)
+        data = json.loads(raw)
+    except Exception:
+        return "[]"
+    events = data.get("events", [])
+
+    if from_date:
+        try:
+            from_dt = dt.strptime(from_date, "%Y-%m-%d")
+        except ValueError:
+            try:
+                from_dt = dt.strptime(from_date, "%Y-%m-%d %H:%M")
+            except ValueError:
+                return f"error: invalid date format '{from_date}'. Use YYYY-MM-DD."
+    else:
+        from_dt = dt.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    upcoming = []
+    for ev in events:
+        try:
+            ev_dt = dt.strptime(f"{ev.get('date')} {ev.get('time')}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            continue
+        if ev_dt >= from_dt:
+            upcoming.append(ev)
+
+    upcoming.sort(key=lambda ev: f"{ev.get('date')} {ev.get('time')}")
+    return json.dumps(upcoming, ensure_ascii=False, indent=2)
 
 
 def create_server(config: ServerConfig) -> FastMCP:
@@ -88,7 +209,7 @@ def create_server(config: ServerConfig) -> FastMCP:
 
     @mcp.tool()
     async def write_file(path: str, content: str) -> str:
-        """Write content to a file in the Allowed_root directory."""
+        """Write content to a file in Allowed_root. Cannot overwrite events.json, schedule.json, or memory.json — use dedicated tools for those."""
         return await _tool("write_file", f"path={path}", filesystem.write_file(path, content, config.allowed_root), config)
 
     @mcp.tool()
@@ -110,6 +231,21 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def disk_space() -> str:
         """Get available disk space information."""
         return await _tool("disk_space", "", _disk_space(), config)
+
+    @mcp.tool()
+    async def addevent(date: str, time: str, duration: str, description: str, recur: str = "") -> str:
+        """Add an event to events.json. date='YYYY-MM-DD', time='HH:MM', duration=minutes (integer), recur='1d'/'7d'/'1m'/'2h' (optional). Example: addevent('2026-06-15', '14:00', '60', 'Team meeting', '1d')"""
+        return await _tool("addevent", f"desc={description[:40]}", _add_event(date, time, duration, description, recur, config.allowed_root), config)
+
+    @mcp.tool()
+    async def delevent(description: str, date: str = "", time: str = "") -> str:
+        """Remove an event by description (fuzzy match). Optional date='YYYY-MM-DD' and time='HH:MM' to disambiguate. If multiple events match and no date/time given, lists them instead of deleting."""
+        return await _tool("delevent", f"desc={description[:40]}", _del_event(description, date, time, config.allowed_root), config)
+
+    @mcp.tool()
+    async def listevents(from_date: str = "") -> str:
+        """List upcoming events from a date onward (YYYY-MM-DD). If no date given, lists from today. Returns JSON array sorted by date/time."""
+        return await _tool("listevents", f"from={from_date or 'today'}", _list_events(from_date, config.allowed_root), config)
 
     @mcp.tool()
     async def script(script_name: str) -> str:
@@ -149,7 +285,7 @@ def create_server(config: ServerConfig) -> FastMCP:
     @mcp.tool()
     async def webfetch(url: str) -> str:
         """Fetch a web page using headless Chromium (Playwright). Extracts rendered text content from JavaScript pages."""
-        return await _tool("webfetch", f"url={url[:100]}", _fetch_page(url), config)
+        return await _tool("webfetch", f"url={url[:100]}", _fetch_page(url, timeout=90), config)
 
     @mcp.tool()
     async def langcheck(text: str, lang: str = "it") -> str:

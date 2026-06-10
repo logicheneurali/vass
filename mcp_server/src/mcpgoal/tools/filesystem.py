@@ -1,5 +1,7 @@
 from pathlib import Path
 
+_PROTECTED_FILES = {"events.json", "schedule.json", "memory.json"}
+
 
 def _resolve_safe(path: str, allowed_root: str) -> Path:
     root = Path(allowed_root).resolve()
@@ -20,6 +22,8 @@ async def read_file(path: str, allowed_root: str = "") -> str:
 
 async def write_file(path: str, content: str, allowed_root: str = "") -> str:
     target = _resolve_safe(path, allowed_root)
+    if target.name in _PROTECTED_FILES:
+        raise PermissionError(f"Cannot overwrite protected file '{target.name}'. Use a dedicated tool (e.g., addevent for events.json).")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content, encoding="utf-8")
     return f"Written {len(content)} bytes to {target}"
