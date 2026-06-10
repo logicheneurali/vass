@@ -125,6 +125,13 @@ $result = removeevent("chiamata")
 say($result)                    # says "ok: removed 'Chiamata' on 2026-06-12 at 09:00"
 ```
 
+### `savetags(tags)`
+Classifies the current message with comma-separated memory tags. Tags are validated against a predefined list. Only saved if total relevance >= 10. No auth required.
+```
+savetags("food,health,pets")    # saves to memory_tags.json if relevance >= 10
+$result = savetags("generic")   # returns "skipped: relevance 1 < 10"
+```
+
 ### `getdatetime()`
 Returns current local date and time in "YYYY-MM-DD HH:MM" format. No auth required.
 ```

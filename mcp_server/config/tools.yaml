@@ -56,3 +56,6 @@ tools:
   listevents:
     whitelist: ["127.0.0.1", "::1", "localhost"]
     blacklist: []
+  savetags:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []

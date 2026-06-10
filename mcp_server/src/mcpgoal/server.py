@@ -17,6 +17,7 @@ from mcpgoal.tools.vasscript import clipboard_set as _clip_set
 from mcpgoal.tools.playwright import search_web as _search_web
 from mcpgoal.tools.playwright import fetch_page as _fetch_page
 from mcpgoal.tools.langcheck import check_language as _check_language
+from mcpgoal.tools.memory_tags import save_tags as _save_tags
 
 client_ip_var: ContextVar[str] = ContextVar("client_ip", default="unknown")
 _loggers: dict[str, RequestLogger] = {}
@@ -66,6 +67,7 @@ _TOOL_SYNTAX = {
     "clipboardset": "clipboardset(text) — example: clipboardset('testo')",
     "websearch": "websearch(query) — example: websearch('latest news')",
     "webfetch": "webfetch(url) — example: webfetch('https://example.com')",
+    "savetags": "savetags(tags) — example: savetags('food,health,pets')",
 }
 
 
@@ -291,5 +293,10 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def langcheck(text: str, lang: str = "it") -> str:
         """Validate text against Tier 2 linguistic rules (morphology, syntax) for the given language."""
         return await _tool("langcheck", f"lang={lang} len={len(text)}", _check_language(text, lang), config)
+
+    @mcp.tool()
+    async def savetags(tags: str, entry_id: str = "") -> str:
+        """Classify the user's message with comma-separated memory tags. Always call after responding. Example: savetags('food,health,pets')"""
+        return await _tool("savetags", f"tags={tags[:80]}", _save_tags(tags, config.allowed_root, entry_id), config)
 
     return mcp

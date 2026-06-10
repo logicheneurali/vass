@@ -157,6 +157,17 @@ def cleanup_orphan_files(mem_dir, history_ids, summary_id):
         referenced = set(history_ids[-20:])
         if summary_id:
             referenced.add(summary_id)
+
+        tags_path = os.path.join(os.path.dirname(mem_dir), "memory_tags.json")
+        if os.path.exists(tags_path):
+            try:
+                with open(tags_path, encoding="utf-8") as f:
+                    tags_data = json.load(f)
+                for entry in tags_data.get("entries", []):
+                    referenced.add(entry["id"])
+            except Exception:
+                pass
+
         archive_date = time.strftime("%Y-%m", time.localtime())
         archive_dir = os.path.join(mem_dir, "archive", archive_date)
         moved = 0

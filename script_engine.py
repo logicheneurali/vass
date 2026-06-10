@@ -8,7 +8,7 @@ import time
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags"}
 
 
 def _validate_recur(recur):
@@ -449,8 +449,8 @@ class VASScript:
         if name == "removeevent" or name == "delevent":
             ename = evaluated[0] if evaluated else ""
             date = evaluated[1] if len(evaluated) > 1 else ""
-            time = evaluated[2] if len(evaluated) > 2 else ""
-            return self._manage_events("remove", ename, date, time)
+            time_arg = evaluated[2] if len(evaluated) > 2 else ""
+            return self._manage_events("remove", ename, date, time_arg)
 
         if name == "readinfo":
             vid = evaluated[0] if evaluated else ""
@@ -475,6 +475,10 @@ class VASScript:
                 return "ok"
             except Exception:
                 return "error"
+
+        if name == "savetags":
+            tags = evaluated[0] if evaluated else ""
+            return self._manage_memory_tags(tags)
 
         if name == "getdatetime":
             from datetime import datetime
@@ -602,6 +606,53 @@ class VASScript:
                 return f"error: {e}"
 
         raise ValueError(f"unknown function: {name}()")
+
+    def _manage_memory_tags(self, tags):
+        from pathlib import Path
+        vass_root = Path(__file__).resolve().parent
+        allowed_root = vass_root / "Allowed_root"
+
+        TAG_WEIGHTS = {
+            "personal_data": 10, "health": 10, "finance": 10,
+            "family": 10, "pets": 10,
+            "contacts": 8,
+            "preferences": 7, "personal_interests": 7, "purchases": 7,
+            "orders": 6, "bills": 6, "invoices": 6, "work": 6, "education": 6,
+            "favorite_music": 5, "food": 5, "home": 5, "personal_means_of_transport": 5,
+            "deliveries": 4, "travel": 4, "tech": 4, "events": 4,
+            "sales": 3, "generic": 1,
+        }
+        MIN_RELEVANCE = 10
+
+        tag_list = [t.strip().lower() for t in tags.split(",") if t.strip()]
+        if not tag_list:
+            return "error: no valid tags"
+        invalid = [t for t in tag_list if t not in TAG_WEIGHTS]
+        if invalid:
+            return f"error: invalid tags: {', '.join(invalid)}. Available: {', '.join(sorted(TAG_WEIGHTS.keys()))}"
+
+        relevance = sum(TAG_WEIGHTS[t] for t in tag_list)
+        if relevance < MIN_RELEVANCE:
+            return f"skipped: relevance {relevance} < {MIN_RELEVANCE}"
+
+        tags_path = allowed_root / "memory_tags.json"
+        try:
+            data = json.loads(tags_path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {"entries": []}
+
+        import datetime
+        ts = time.time()
+        entry = {
+            "id": str(int(ts * 1000)),
+            "tags": tag_list,
+            "relevance": relevance,
+            "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        }
+        data["entries"].append(entry)
+        tags_path.parent.mkdir(parents=True, exist_ok=True)
+        tags_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        return f"ok: {len(tag_list)} tags, relevance {relevance}"
 
     def _manage_info(self, action, arg):
         from pathlib import Path

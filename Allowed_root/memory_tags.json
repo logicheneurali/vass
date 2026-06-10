@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "id": "1781106935348",
+      "tags": [
+        "personal_data",
+        "family"
+      ],
+      "relevance": 20,
+      "ts": "2026-06-10 18:01"
+    },
+    {
+      "id": "1781107480412",
+      "tags": [
+        "personal_data"
+      ],
+      "relevance": 10,
+      "ts": "2026-06-10 18:04"
+    },
+    {
+      "id": "1781107639846",
+      "tags": [
+        "family",
+        "personal_data"
+      ],
+      "relevance": 20,
+      "ts": "2026-06-10 18:07"
+    }
+  ]
+}

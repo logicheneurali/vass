@@ -49,8 +49,8 @@ __version__ = _load_version()
 
 
 MEMORY_SUMMARIZATION_PROMPT = (
-    "Summarize these conversations concisely."
-    "Keep important info (user informations, preferences, user events (user's requests to AI are not considered as 'user events'),family members informations, pets informations,family members events, pets events)."
+    "Summarize these conversations concisely. "
+    "All entries contain personal user data — extract and merge the key facts. "
     "Output only a short JSON summary with key 'summary'."
 )
 
@@ -58,6 +58,17 @@ MCP_PROMPT = (
     "\n\nYou have access to MCP tools to interact with VASS. "
     "Use the interact tool to execute VASScript code directly. "
     "For example: interact(\"say('hello')\") will speak hello."
+)
+
+
+SAVETAGS_PROMPT = (
+    "IMPORTANT: After every response, you MUST call savetags() to classify "
+    "the user's message with tags from this list ONLY: "
+    "personal_data, health, finance, family, pets, contacts, "
+    "preferences, personal_interests, purchases, orders, bills, invoices, "
+    "work, education, favorite_music, food, home, "
+    "personal_means_of_transport, deliveries, travel, tech, events, sales, generic. "
+    "Pass them as comma-separated string: savetags('food,health')\n\n"
 )
 
 
@@ -1042,10 +1053,9 @@ class VassApp:
                         break
 
             messages = [
-                {"role": "system", "content": memory_content + system_content + MCP_PROMPT + vas_ref },
+                {"role": "system", "content": memory_content + system_content + MCP_PROMPT + vas_ref},
                 {"role": "user", "content": prompt}
             ]
-
             kwargs = dict(
                 model=self.ai_model,
                 messages=messages,
@@ -1056,7 +1066,11 @@ class VassApp:
             if tools:
                 kwargs["tools"] = tools
 
+            print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools)}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}")
             msg = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs)).choices[0].message
+            if msg.tool_calls:
+                for tc in msg.tool_calls:
+                    print(f"[AI] Tool call: {tc.function.name}({tc.function.arguments[:200]})")
             script_called = any(tc.function.name == "script" or
                 (tc.function.name == "interact" and
                  any(kw in tc.function.arguments.lower() for kw in ("addevent", "listevents", "removeevent")))
@@ -1065,6 +1079,9 @@ class VassApp:
 
             ai_response = msg.content or ""
             ai_response = strip_think_tags(ai_response)
+
+            threading.Thread(target=self._classify_message, args=(prompt,), daemon=True).start()
+
             print(f"AI Agent Response: {ai_response}")
 
             if not script_called:
@@ -1131,6 +1148,59 @@ class VassApp:
             threading.Thread(target=self.tts.speak, args=(err_msg,), daemon=True).start()
             self.set_state("listening")
 
+    def _classify_message(self, user_message):
+        print(f"[Classify] Starting classification for: {user_message[:80]}...")
+        try:
+            import sys as _sys
+            _mcp_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_server", "src")
+            if _mcp_src not in _sys.path:
+                _sys.path.insert(0, _mcp_src)
+            from mcpgoal.tools.memory_tags import TAG_WEIGHTS
+            from utils import init_mcp
+            mcp, _ = init_mcp(self.mcp_server_url, timeout=30)
+            if not mcp:
+                print("[Classify] MCP not available")
+                return
+        except Exception as e:
+            print(f"[Classify] Init error: {e}")
+            return
+
+        entry_id = ""
+        mem_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root", "memory.json")
+        try:
+            with open(mem_path, encoding="utf-8") as f:
+                mem_data = json.load(f)
+            history = mem_data.get("history", [])
+            if history:
+                entry_id = history[-1]
+        except Exception:
+            pass
+
+        tag_list = ", ".join(sorted(TAG_WEIGHTS.keys()))
+        classify_prompt = (
+            f"Classify this user message with comma-separated tags ONLY from: {tag_list}\n\n"
+            f"Message: \"{user_message[:500]}\"\n\n"
+            f"Return ONLY the tags, nothing else. Example: personal_data,pets"
+        )
+        try:
+            resp = self.openai_client.chat.completions.create(
+                model=self.ai_model,
+                messages=[{"role": "user", "content": classify_prompt}],
+                temperature=0.1,
+                max_tokens=50,
+                extra_body={"disable_thinking": True}
+            )
+            raw = (resp.choices[0].message.content or "").strip().lower()
+            tags = [t.strip() for t in raw.split(",") if t.strip() and t.strip() in TAG_WEIGHTS]
+            if tags:
+                result = mcp.call_tool("savetags", {"tags": ",".join(tags), "entry_id": entry_id})
+                content = result.get("content", [{}])[0].get("text", str(result))
+                print(f"[Classify] Tags: {tags} -> {content}")
+            else:
+                print(f"[Classify] AI returned unusable tags: '{raw}'")
+        except Exception as e:
+            print(f"[Classify] Error: {e}")
+
     def _trim_memory_if_needed(self):
         if not self._trim_lock.acquire(blocking=False):
             print("[Memory] Trim already in progress, skip")
@@ -1168,17 +1238,46 @@ class VassApp:
             print(f"[Memory] Total size {total_size} > threshold {threshold}, compressing...")
             mtime_before = os.path.getmtime(path)
 
-            # Load history content from individual files
-            history_content = []
-            for vid in history_ids:
+            allowed_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root")
+            tags_path = os.path.join(allowed_root, "memory_tags.json")
+            tagged_ids = set()
+            if os.path.exists(tags_path):
+                try:
+                    with open(tags_path, encoding="utf-8") as f:
+                        tags_data = json.load(f)
+                    tagged_ids = {e["id"] for e in tags_data.get("entries", []) if e.get("relevance", 0) >= 10}
+                except Exception:
+                    pass
+
+            def _find_entry(vid):
                 hf_path = os.path.join(mem_dir, f"{vid}.json")
                 if os.path.exists(hf_path):
+                    return hf_path
+                archive_root = os.path.join(mem_dir, "archive")
+                if os.path.isdir(archive_root):
+                    for month_dir in os.listdir(archive_root):
+                        candidate = os.path.join(archive_root, month_dir, f"{vid}.json")
+                        if os.path.exists(candidate):
+                            return candidate
+                return None
+
+            tagged_ids_list = sorted(tagged_ids)
+            if not tagged_ids_list:
+                return
+
+            history_content = []
+            for vid in tagged_ids_list[:100]:
+                entry_path = _find_entry(vid)
+                if entry_path:
                     try:
-                        with open(hf_path, encoding="utf-8") as hf:
+                        with open(entry_path, encoding="utf-8") as hf:
                             entry = json.load(hf).get("info", "")
                         history_content.append(json.loads(entry))
                     except Exception:
                         pass
+
+            if not history_content:
+                return
 
             # Load existing summary
             old_summary = ""
@@ -1195,9 +1294,10 @@ class VassApp:
             prompt = MEMORY_SUMMARIZATION_PROMPT
             if old_summary:
                 prompt += "\n\nExisting summary to build upon:\n" + old_summary
-            prompt += "\n\nNew conversations:\n" + json.dumps(history_content, ensure_ascii=False)
+            prompt += f"\n\nTagged conversations ({len(history_content)} entries):\n" + json.dumps(history_content, ensure_ascii=False)
             prompt += "\n\nAfter summarizing, save your result using the writeinfo() function. Example: writeinfo('{\"summary\": \"...\"}'). The function returns an ID — include it in your response to confirm success."
 
+            print(f"[Memory] Summarization request -> prompt_len={len(prompt)}, entries={len(history_content)}")
             resp = call_with_retry(lambda: self.openai_client.chat.completions.create(
                 model=self.ai_model,
                 messages=[{"role": "user", "content": prompt}],
@@ -1205,6 +1305,7 @@ class VassApp:
                 extra_body={"disable_thinking": True}
             ))
             summary_text = (resp.choices[0].message.content or "").strip()
+            print(f"[Memory] Summarization response -> {summary_text[:200]}")
             if not summary_text:
                 print("[Memory] Trim: AI returned empty summary, skipping")
                 return
@@ -1232,7 +1333,7 @@ class VassApp:
                 json.dump(new_data, f, ensure_ascii=False, indent=2)
 
             # Move unreferenced files to archive
-            referenced = set(new_history_ids) | {new_sid}
+            referenced = set(new_history_ids) | {new_sid} | tagged_ids
             if summary_id:
                 referenced.add(summary_id)
             now_ts = time.time()

@@ -583,12 +583,14 @@ class VassGUI(QMainWindow):
                 pass
 
     def _collapse_chat(self):
+        was_open = self._chat_btn.isChecked()
         self._chat_btn.setChecked(False)
         self._chat_input.setVisible(False)
         self._chat_input.clear()
-        self.resize(self._chat_original_width, self.height())
-        if self._chat_original_x is not None:
-            self.move(self._chat_original_x, self.y())
+        if was_open and self._chat_original_width is not None:
+            self.resize(self._chat_original_width, self.height())
+            self._chat_original_width = None
+            self._chat_original_x = None
         self._rebalance_spacers()
 
     def _rebalance_spacers(self):
@@ -608,11 +610,13 @@ class VassGUI(QMainWindow):
         if self._chat_btn.isChecked():
             self._chat_original_width = self.width()
             self._chat_original_x = self.x()
-            self.resize(self.width() * 2, self.height())
+            self.resize(self._chat_original_width * 2, self.height())
             self._clamp_to_screen()
+            self._left_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            self._right_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            self.centralWidget().layout().invalidate()
             self._chat_input.setVisible(True)
             self._chat_input.setFocus()
-            self._rebalance_spacers()
         else:
             self._collapse_chat()
 
