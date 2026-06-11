@@ -97,7 +97,10 @@
       "reminder_advance": "Antecedência lembrete (seg)",
       "noise_pause": "Pausa automática",
       "noise_pause_threshold": "Limiar de ruído",
-      "noise_pause_duration": "Atraso pausa (seg)"
+      "noise_pause_duration": "Atraso pausa (seg)",
+      "context_length": "Tamanho contexto (tokens)",
+      "overflow_strategy": "Estratégia overflow",
+      "allow_ai_scripts": "Scripts IA"
     },
     "field_descriptions": {
       "x": "Posição X na tela",
@@ -133,7 +136,10 @@
       "reminder_advance": "Segundos de antecedência para notificação de lembrete",
       "noise_pause": "Pausa VASS automaticamente quando o ruído de fundo excede o limiar",
       "noise_pause_threshold": "Limiar de ruído que aciona a pausa automática (0.001-0.1)",
-      "noise_pause_duration": "Segundos consecutivos de ruído alto antes de pausar"
+      "noise_pause_duration": "Segundos consecutivos de ruído alto antes de pausar",
+      "context_length": "Tamanho max contexto em tokens (0 = auto-detectar)",
+      "overflow_strategy": "O que fazer se o texto exceder o contexto: truncate (cortar) ou summarize (resumir, requer uma chamada API extra)",
+      "allow_ai_scripts": "IA pode gerar scripts"
     },
     "section_labels": {
       "gui": "Janela",
@@ -302,7 +308,8 @@
       "description": "Descrição",
       "recur": "Recorrência",
       "command": "Comando",
-      "arguments": "Argumentos"
+      "arguments": "Argumentos",
+      "workingdir": "Pasta trabalho"
     },
     "buttons": {
       "add": "Adicionar",
@@ -311,14 +318,18 @@
       "save": "Salvar"
     },
     "dialog": {
-      "error": "Erro"
+      "error": "Erro",
+      "select_command": "Selecionar executável",
+      "select_workdir": "Selecionar pasta trabalho"
     },
     "errors": {
       "required": "Descrição obrigatória.",
       "date_format": "Formato de data inválido. Use YYYY-MM-DD.",
       "time_format": "Formato de hora inválido. Use HH:MM (00-23:00-59).",
       "recur_format": "Formato de recorrência inválido. Exemplo: 1d, 7d, 2h, 1m.",
-      "command_not_found": "Comando '{cmd}' não encontrado no sistema."
+      "command_not_found": "Comando '{cmd}' não encontrado no sistema.",
+      "workingdir_not_found": "Pasta '{dir}' não encontrada.",
+      "workingdir_system": "A pasta '{dir}' é do sistema. Não permitida."
     },
     "saved": "Arquivo salvo.",
     "form_label": "Detalhes"

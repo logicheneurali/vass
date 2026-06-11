@@ -97,7 +97,10 @@
       "reminder_advance": "Reminder advance (sec)",
       "noise_pause": "Auto pause",
       "noise_pause_threshold": "Noise threshold",
-      "noise_pause_duration": "Pause delay (sec)"
+      "noise_pause_duration": "Pause delay (sec)",
+      "context_length": "Context length (tokens)",
+      "overflow_strategy": "Overflow strategy",
+      "allow_ai_scripts": "AI scripts"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -133,7 +136,10 @@
       "reminder_advance": "Seconds in advance for reminder notification",
       "noise_pause": "Automatically pauses VASS when background noise exceeds threshold",
       "noise_pause_threshold": "Noise floor threshold that triggers auto-pause (0.001-0.1)",
-      "noise_pause_duration": "Consecutive seconds of high noise before pausing"
+      "noise_pause_duration": "Consecutive seconds of high noise before pausing",
+      "context_length": "Max context length in tokens (0 = auto-detect from model)",
+      "overflow_strategy": "What to do when text exceeds context: truncate (cut) or summarize (requires an extra API call)",
+      "allow_ai_scripts": "AI can generate scripts"
     },
     "section_labels": {
       "gui": "Window",
@@ -302,7 +308,8 @@
       "description": "Description",
       "recur": "Recurrence",
       "command": "Command",
-      "arguments": "Arguments"
+      "arguments": "Arguments",
+      "workingdir": "Working dir"
     },
     "buttons": {
       "add": "Add",
@@ -311,14 +318,18 @@
       "save": "Save"
     },
     "dialog": {
-      "error": "Error"
+      "error": "Error",
+      "select_command": "Select executable",
+      "select_workdir": "Select working directory"
     },
     "errors": {
       "required": "Description is required.",
       "date_format": "Invalid date format. Use YYYY-MM-DD.",
       "time_format": "Invalid time format. Use HH:MM (00-23:00-59).",
       "recur_format": "Invalid recurrence format. Example: 1d, 7d, 2h, 1m.",
-      "command_not_found": "Command '{cmd}' not found on the system."
+      "command_not_found": "Command '{cmd}' not found on the system.",
+      "workingdir_not_found": "Directory '{dir}' not found.",
+      "workingdir_system": "Directory '{dir}' is a system directory. Not allowed."
     },
     "saved": "File saved.",
     "form_label": "Details"

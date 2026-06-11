@@ -97,7 +97,10 @@
       "reminder_advance": "알림 사전 시간 (초)",
       "noise_pause": "자동 일시정지",
       "noise_pause_threshold": "소음 임계값",
-      "noise_pause_duration": "일시정지 지연 (초)"
+      "noise_pause_duration": "일시정지 지연 (초)",
+      "context_length": "컨텍스트 길이 (토큰)",
+      "overflow_strategy": "오버플로우 전략",
+      "allow_ai_scripts": "AI 스크립트"
     },
     "field_descriptions": {
       "x": "화면 X 위치",
@@ -133,7 +136,10 @@
       "reminder_advance": "알림 알림 사전 시간 (초)",
       "noise_pause": "배경 소음이 임계값을 초과하면 VASS를 자동으로 일시정지합니다",
       "noise_pause_threshold": "자동 일시정지를 트리거하는 소음 기준값 (0.001-0.1)",
-      "noise_pause_duration": "일시정지 전 연속 높은 소음 시간 (초)"
+      "noise_pause_duration": "일시정지 전 연속 높은 소음 시간 (초)",
+      "context_length": "최대 컨텍스트 길이 (토큰, 0=자동 감지)",
+      "overflow_strategy": "텍스트가 컨텍스트를 초과할 경우: truncate (자르기) 또는 summarize (요약, 추가 API 호출 필요)",
+      "allow_ai_scripts": "AI가 스크립트를 생성할 수 있음"
     },
     "section_labels": {
       "gui": "창",
@@ -303,7 +309,8 @@
       "description": "설명",
       "recur": "반복",
       "command": "명령",
-      "arguments": "인수"
+      "arguments": "인수",
+      "workingdir": "작업 폴더"
     },
     "buttons": {
       "add": "추가",
@@ -312,14 +319,18 @@
       "save": "저장"
     },
     "dialog": {
-      "error": "오류"
+      "error": "오류",
+      "select_command": "실행 파일 선택",
+      "select_workdir": "작업 폴더 선택"
     },
     "errors": {
       "required": "설명이 필요합니다.",
       "date_format": "잘못된 날짜 형식입니다. YYYY-MM-DD를 사용하세요.",
       "time_format": "잘못된 시간 형식입니다. HH:MM (00-23:00-59)을 사용하세요.",
       "recur_format": "잘못된 반복 형식입니다. 예: 1d, 7d, 2h, 1m.",
-      "command_not_found": "'{cmd}' 명령을 시스템에서 찾을 수 없습니다."
+      "command_not_found": "'{cmd}' 명령을 시스템에서 찾을 수 없습니다.",
+      "workingdir_not_found": "'{dir}' 폴더를 찾을 수 없습니다.",
+      "workingdir_system": "'{dir}' 폴더는 시스템 폴더입니다. 허용되지 않습니다."
     },
     "saved": "파일이 저장되었습니다.",
     "form_label": "세부사항"

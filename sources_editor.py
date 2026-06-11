@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import uuid
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut
@@ -210,7 +211,7 @@ class SourcesEditor(QMainWindow):
         if not desc or not link:
             QMessageBox.warning(self, "Errore", "Descrizione e link sono obbligatori.")
             return
-        self._current_sources.append({"description": desc, "link": link})
+        self._current_sources.append({"id": uuid.uuid4().hex[:8], "description": desc, "link": link})
         self._refresh_list()
         self.list_widget.setCurrentRow(len(self._current_sources) - 1)
 
@@ -223,7 +224,8 @@ class SourcesEditor(QMainWindow):
         if not desc or not link:
             QMessageBox.warning(self, "Errore", "Descrizione e link sono obbligatori.")
             return
-        self._current_sources[row] = {"description": desc, "link": link}
+        existing = self._current_sources[row]
+        self._current_sources[row] = {"id": existing.get("id", uuid.uuid4().hex[:8]), "description": desc, "link": link}
         self._refresh_list()
         self.list_widget.setCurrentRow(row)
 

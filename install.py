@@ -1040,6 +1040,9 @@ def main():
         "mcp_server_url": "http://localhost:9988",
         "memory_tokens": "4000",
         "blacklist": "Amara.org,QTTS",
+        "allow_ai_scripts": "false",
+        "context_length": "0",
+        "overflow_strategy": "truncate",
     }
     cfg["llamacpp"] = {
         "llama_server_path": str(dest / "llamacpp"),

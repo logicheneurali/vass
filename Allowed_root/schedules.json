@@ -6,8 +6,7 @@
       "duration": 60,
       "description": "xxx",
       "command": "powershell",
-      "name": "xxx_2026-06-11_12:28",
-      "notify": "2026-06-11 12:28:10"
+      "name": "xxx_2026-06-11_12:28"
     }
   ]
 }

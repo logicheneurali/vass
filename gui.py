@@ -304,6 +304,7 @@ class VassGUI(QMainWindow):
         row.addWidget(self._chat_btn)
 
         self._chat_input = QLineEdit()
+        self._chat_input.setMaxLength(128000)
         self._chat_input.setPlaceholderText(self._t("gui.chat_placeholder"))
         self._chat_input.setStyleSheet(
             "QLineEdit { background: transparent; color: #e0e0e0; "

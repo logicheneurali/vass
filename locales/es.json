@@ -97,7 +97,10 @@
       "reminder_advance": "Antelación recordatorio (seg)",
       "noise_pause": "Pausa automática",
       "noise_pause_threshold": "Umbral de ruido",
-      "noise_pause_duration": "Retardo pausa (seg)"
+      "noise_pause_duration": "Retardo pausa (seg)",
+      "context_length": "Longitud contexto (tokens)",
+      "overflow_strategy": "Estrategia desbordamiento",
+      "allow_ai_scripts": "Scripts IA"
     },
     "field_descriptions": {
       "x": "Posición X en pantalla",
@@ -133,7 +136,10 @@
       "reminder_advance": "Segundos de antelación para la notificación de recordatorio",
       "noise_pause": "Pausa VASS automáticamente cuando el ruido de fondo supera el umbral",
       "noise_pause_threshold": "Umbral de ruido que activa la pausa automática (0.001-0.1)",
-      "noise_pause_duration": "Segundos consecutivos de ruido alto antes de pausar"
+      "noise_pause_duration": "Segundos consecutivos de ruido alto antes de pausar",
+      "context_length": "Longitud max contexto en tokens (0 = auto-detectar)",
+      "overflow_strategy": "Qué hacer si el texto supera el contexto: truncate (cortar) o summarize (resumir, requiere una llamada API extra)",
+      "allow_ai_scripts": "IA puede generar scripts"
     },
     "section_labels": {
       "gui": "Ventana",
@@ -302,7 +308,8 @@
       "description": "Descripción",
       "recur": "Recurrencia",
       "command": "Comando",
-      "arguments": "Argumentos"
+      "arguments": "Argumentos",
+      "workingdir": "Directorio trabajo"
     },
     "buttons": {
       "add": "Añadir",
@@ -311,14 +318,18 @@
       "save": "Guardar"
     },
     "dialog": {
-      "error": "Error"
+      "error": "Error",
+      "select_command": "Seleccionar ejecutable",
+      "select_workdir": "Seleccionar directorio trabajo"
     },
     "errors": {
       "required": "Descripción obligatoria.",
       "date_format": "Formato de fecha no válido. Usa YYYY-MM-DD.",
       "time_format": "Formato de hora no válido. Usa HH:MM (00-23:00-59).",
       "recur_format": "Formato de recurrencia no válido. Ejemplo: 1d, 7d, 2h, 1m.",
-      "command_not_found": "Comando '{cmd}' no encontrado en el sistema."
+      "command_not_found": "Comando '{cmd}' no encontrado en el sistema.",
+      "workingdir_not_found": "Directorio '{dir}' no encontrado.",
+      "workingdir_system": "El directorio '{dir}' es del sistema. No permitido."
     },
     "saved": "Archivo guardado.",
     "form_label": "Detalles"

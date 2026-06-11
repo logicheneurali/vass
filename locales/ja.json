@@ -97,7 +97,10 @@
       "reminder_advance": "リマインダー事前通知 (秒)",
       "noise_pause": "自動一時停止",
       "noise_pause_threshold": "ノイズしきい値",
-      "noise_pause_duration": "一時停止遅延 (秒)"
+      "noise_pause_duration": "一時停止遅延 (秒)",
+      "context_length": "コンテキスト長 (トークン)",
+      "overflow_strategy": "オーバーフロー戦略",
+      "allow_ai_scripts": "AIスクリプト"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -133,7 +136,10 @@
       "reminder_advance": "リマインダー通知の事前秒数",
       "noise_pause": "バックグラウンドノイズがしきい値を超えた場合、VASSを自動的に一時停止します",
       "noise_pause_threshold": "自動一時停止をトリガーするノイズフロアしきい値 (0.001-0.1)",
-      "noise_pause_duration": "一時停止前の連続した高ノイズ秒数"
+      "noise_pause_duration": "一時停止前の連続した高ノイズ秒数",
+      "context_length": "最大コンテキスト長（トークン、0=自動検出）",
+      "overflow_strategy": "テキストがコンテキストを超えた場合: truncate (切り捨て) または summarize (要約、追加API呼び出しが必要)",
+      "allow_ai_scripts": "AIがスクリプトを生成できる"
     },
     "section_labels": {
       "gui": "ウィンドウ",
@@ -303,7 +309,8 @@
       "description": "説明",
       "recur": "繰り返し",
       "command": "コマンド",
-      "arguments": "引数"
+      "arguments": "引数",
+      "workingdir": "作業ディレクトリ"
     },
     "buttons": {
       "add": "追加",
@@ -312,14 +319,18 @@
       "save": "保存"
     },
     "dialog": {
-      "error": "エラー"
+      "error": "エラー",
+      "select_command": "実行ファイルを選択",
+      "select_workdir": "作業ディレクトリを選択"
     },
     "errors": {
       "required": "説明が必要です。",
       "date_format": "日付形式が無効です。YYYY-MM-DDを使用してください。",
       "time_format": "時刻形式が無効です。HH:MM（00-23:00-59）を使用してください。",
       "recur_format": "繰り返し形式が無効です。例: 1d, 7d, 2h, 1m。",
-      "command_not_found": "コマンド '{cmd}' がシステムに見つかりません。"
+      "command_not_found": "コマンド '{cmd}' がシステムに見つかりません。",
+      "workingdir_not_found": "ディレクトリ '{dir}' が見つかりません。",
+      "workingdir_system": "ディレクトリ '{dir}' はシステムディレクトリです。許可されていません。"
     },
     "saved": "ファイルを保存しました。",
     "form_label": "詳細"

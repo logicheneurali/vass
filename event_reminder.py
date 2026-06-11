@@ -290,9 +290,14 @@ class EventReminder:
         modified = False
         for event in data.get("events", []):
             for ne in self._next_events:
-                if (event.get("date") == ne.get("date") and
-                    event.get("time") == ne.get("time") and
-                    event.get("description") == ne.get("description")):
+                match = False
+                if ne.get("id") and event.get("id") == ne.get("id"):
+                    match = True
+                elif (event.get("date") == ne.get("date") and
+                      event.get("time") == ne.get("time") and
+                      event.get("description") == ne.get("description")):
+                    match = True
+                if match:
                     if event.get("recur"):
                         new_date, new_time = self._advance_recurrence(
                             event["date"], event["time"], event["recur"])
@@ -331,9 +336,14 @@ class EventReminder:
         modified = False
         for sc in data.get("schedules", []):
             for ns in self._next_schedules:
-                if (sc.get("date") == ns.get("date") and
-                    sc.get("time") == ns.get("time") and
-                    sc.get("description") == ns.get("description")):
+                match = False
+                if ns.get("id") and sc.get("id") == ns.get("id"):
+                    match = True
+                elif (sc.get("date") == ns.get("date") and
+                      sc.get("time") == ns.get("time") and
+                      sc.get("description") == ns.get("description")):
+                    match = True
+                if match:
                     if sc.get("recur"):
                         new_date, new_time = self._advance_recurrence(
                             sc["date"], sc["time"], sc["recur"])
@@ -387,11 +397,15 @@ class EventReminder:
             creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
             dur = int(sc.get("duration", 0) or 0)
             cmd_timeout = max(dur * 60, 60) if dur > 0 else 3600
+            wd = sc.get("workingdir", "") or None
+            if wd and not os.path.isdir(wd):
+                wd = None
             r = subprocess.run(
                 cmd_parts,
                 capture_output=True, text=True,
                 creationflags=creationflags,
                 timeout=cmd_timeout,
+                cwd=wd,
             )
             if r.returncode == 0:
                 msg = t("events.schedule_done", self.lang).replace("{description}", desc)

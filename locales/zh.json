@@ -97,7 +97,10 @@
       "reminder_advance": "提醒提前量 (秒)",
       "noise_pause": "自动暂停",
       "noise_pause_threshold": "噪音阈值",
-      "noise_pause_duration": "暂停延迟 (秒)"
+      "noise_pause_duration": "暂停延迟 (秒)",
+      "context_length": "上下文长度 (令牌)",
+      "overflow_strategy": "溢出策略",
+      "allow_ai_scripts": "AI脚本"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
@@ -133,7 +136,10 @@
       "reminder_advance": "提醒通知提前秒数",
       "noise_pause": "当背景噪音超过阈值时自动暂停VASS",
       "noise_pause_threshold": "触发自动暂停的噪音底噪阈值 (0.001-0.1)",
-      "noise_pause_duration": "暂停前连续高噪音秒数"
+      "noise_pause_duration": "暂停前连续高噪音秒数",
+      "context_length": "最大上下文长度（令牌，0=自动检测）",
+      "overflow_strategy": "文本超出上下文时的处理: truncate (截断) 或 summarize (摘要，需要额外API调用)",
+      "allow_ai_scripts": "AI可以生成脚本"
     },
     "section_labels": {
       "gui": "窗口",
@@ -303,7 +309,8 @@
       "description": "描述",
       "recur": "重复",
       "command": "命令",
-      "arguments": "参数"
+      "arguments": "参数",
+      "workingdir": "工作目录"
     },
     "buttons": {
       "add": "添加",
@@ -312,14 +319,18 @@
       "save": "保存"
     },
     "dialog": {
-      "error": "错误"
+      "error": "错误",
+      "select_command": "选择可执行文件",
+      "select_workdir": "选择工作目录"
     },
     "errors": {
       "required": "描述是必需的。",
       "date_format": "日期格式无效。请使用YYYY-MM-DD。",
       "time_format": "时间格式无效。请使用HH:MM（00-23:00-59）。",
       "recur_format": "重复格式无效。示例：1d, 7d, 2h, 1m。",
-      "command_not_found": "系统中未找到命令 '{cmd}'。"
+      "command_not_found": "系统中未找到命令 '{cmd}'。",
+      "workingdir_not_found": "目录 '{dir}' 未找到。",
+      "workingdir_system": "目录 '{dir}' 是系统目录。不允许。"
     },
     "saved": "文件已保存。",
     "form_label": "详情"

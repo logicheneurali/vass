@@ -97,7 +97,10 @@
       "reminder_advance": "Erinnerungsvorlauf (Sek)",
       "noise_pause": "Auto-Pause",
       "noise_pause_threshold": "Geräuschschwelle",
-      "noise_pause_duration": "Pausenverzögerung (Sek)"
+      "noise_pause_duration": "Pausenverzögerung (Sek)",
+      "context_length": "Kontextlänge (Token)",
+      "overflow_strategy": "Überlaufstrategie",
+      "allow_ai_scripts": "KI-Skripte"
     },
     "field_descriptions": {
       "x": "Bildschirm X-Position",
@@ -133,7 +136,10 @@
       "reminder_advance": "Sekunden Vorlauf für Erinnerungsbenachrichtigung",
       "noise_pause": "Pausiert VASS automatisch, wenn Hintergrundgeräusche den Schwellwert überschreiten",
       "noise_pause_threshold": "Geräuschschwelle, die die automatische Pause auslöst (0,001-0,1)",
-      "noise_pause_duration": "Aufeinanderfolgende Sekunden mit hohem Geräuschpegel vor der Pause"
+      "noise_pause_duration": "Aufeinanderfolgende Sekunden mit hohem Geräuschpegel vor der Pause",
+      "context_length": "Max. Kontextlänge in Token (0 = Auto-Erkennung)",
+      "overflow_strategy": "Was tun bei zu langem Text: truncate (abschneiden) oder summarize (zusammenfassen, erfordert extra API-Aufruf)",
+      "allow_ai_scripts": "KI kann Skripte generieren"
     },
     "section_labels": {
       "gui": "Fenster",
@@ -302,7 +308,8 @@
       "description": "Beschreibung",
       "recur": "Wiederholung",
       "command": "Befehl",
-      "arguments": "Argumente"
+      "arguments": "Argumente",
+      "workingdir": "Arbeitsverzeichnis"
     },
     "buttons": {
       "add": "Hinzufügen",
@@ -311,14 +318,18 @@
       "save": "Speichern"
     },
     "dialog": {
-      "error": "Fehler"
+      "error": "Fehler",
+      "select_command": "Programm wählen",
+      "select_workdir": "Arbeitsverzeichnis wählen"
     },
     "errors": {
       "required": "Beschreibung erforderlich.",
       "date_format": "Ungültiges Datumsformat. YYYY-MM-DD verwenden.",
       "time_format": "Ungültiges Zeitformat. HH:MM verwenden (00-23:00-59).",
       "recur_format": "Ungültiges Wiederholungsformat. Beispiel: 1d, 7d, 2h, 1m.",
-      "command_not_found": "Befehl '{cmd}' nicht im System gefunden."
+      "command_not_found": "Befehl '{cmd}' nicht im System gefunden.",
+      "workingdir_not_found": "Verzeichnis '{dir}' nicht gefunden.",
+      "workingdir_system": "Verzeichnis '{dir}' ist ein Systemverzeichnis. Nicht erlaubt."
     },
     "saved": "Datei gespeichert.",
     "form_label": "Details"

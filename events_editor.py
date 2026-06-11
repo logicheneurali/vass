@@ -3,12 +3,13 @@ import os
 import re
 import shutil
 import sys
+import uuid
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QGroupBox,
-    QLineEdit, QMessageBox, QComboBox, QSpinBox,
+    QLineEdit, QMessageBox, QComboBox, QSpinBox, QFileDialog,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG)
@@ -131,9 +132,9 @@ class EventsEditor(QMainWindow):
         self.dur_spin.setValue(60)
         self.desc_edit.clear()
         self.recur_edit.clear()
-        if self._current_category == "schedules":
-            self.cmd_edit.clear()
-            self.args_edit.clear()
+        self.cmd_edit.clear()
+        self.args_edit.clear()
+        self.workdir_edit.clear()
 
     def _build_ui(self):
         self.setWindowTitle(self._t("events_editor.title"))
@@ -166,8 +167,6 @@ class EventsEditor(QMainWindow):
         layout.addWidget(list_group, 1)
 
         form_group = QGroupBox(self._t("events_editor.form_label"))
-
-        form_group = QGroupBox(self._t("events_editor.form_label"))
         form_grid = QVBoxLayout(form_group)
 
         row1 = QHBoxLayout()
@@ -192,26 +191,43 @@ class EventsEditor(QMainWindow):
         row2.addWidget(self.desc_edit)
         form_grid.addLayout(row2)
 
-        row3 = QHBoxLayout()
-        self._recur_label = QLabel(self._t("events_editor.fields.recur"))
-        self._recur_label.setVisible(False)
-        row3.addWidget(self._recur_label)
-        self.recur_edit = QLineEdit()
-        self.recur_edit.setPlaceholderText("1d / 7d / 2h ...")
-        self.recur_edit.setVisible(False)
-        row3.addWidget(self.recur_edit)
-
+        row_cmd = QHBoxLayout()
         self._cmd_label = QLabel(self._t("events_editor.fields.command"))
-        row3.addWidget(self._cmd_label)
+        row_cmd.addWidget(self._cmd_label)
         self.cmd_edit = QLineEdit()
         self.cmd_edit.setPlaceholderText("python")
-        row3.addWidget(self.cmd_edit)
+        row_cmd.addWidget(self.cmd_edit)
+        btn_cmd_browse = QPushButton("...")
+        btn_cmd_browse.setFixedWidth(28)
+        btn_cmd_browse.clicked.connect(self._browse_command)
+        row_cmd.addWidget(btn_cmd_browse)
+        form_grid.addLayout(row_cmd)
+
+        row3 = QHBoxLayout()
         self._args_label = QLabel(self._t("events_editor.fields.arguments"))
         row3.addWidget(self._args_label)
         self.args_edit = QLineEdit()
         self.args_edit.setPlaceholderText('-c "print(1)"')
         row3.addWidget(self.args_edit)
+        self._workdir_label = QLabel(self._t("events_editor.fields.workingdir"))
+        row3.addWidget(self._workdir_label)
+        self.workdir_edit = QLineEdit()
+        self.workdir_edit.setPlaceholderText("C:\\...")
+        row3.addWidget(self.workdir_edit)
+        btn_wd_browse = QPushButton("...")
+        btn_wd_browse.setFixedWidth(28)
+        btn_wd_browse.clicked.connect(self._browse_workdir)
+        row3.addWidget(btn_wd_browse)
         form_grid.addLayout(row3)
+
+        row_recur = QHBoxLayout()
+        self._recur_label = QLabel(self._t("events_editor.fields.recur"))
+        row_recur.addWidget(self._recur_label)
+        self.recur_edit = QLineEdit()
+        self.recur_edit.setPlaceholderText("1d / 7d / 2h ...")
+        row_recur.addWidget(self.recur_edit)
+        row_recur.addStretch()
+        form_grid.addLayout(row_recur)
         layout.addWidget(form_group)
 
         self._toggle_fields()
@@ -238,18 +254,13 @@ class EventsEditor(QMainWindow):
         event.accept()
 
     def _toggle_fields(self):
-        self._recur_label.setVisible(True)
-        self.recur_edit.setVisible(True)
-        if self._current_category == "events":
-            self._cmd_label.setVisible(False)
-            self.cmd_edit.setVisible(False)
-            self._args_label.setVisible(False)
-            self.args_edit.setVisible(False)
-        else:
-            self._cmd_label.setVisible(True)
-            self.cmd_edit.setVisible(True)
-            self._args_label.setVisible(True)
-            self.args_edit.setVisible(True)
+        is_schedule = self._current_category == "schedules"
+        self._cmd_label.setVisible(is_schedule)
+        self.cmd_edit.setVisible(is_schedule)
+        self._args_label.setVisible(is_schedule)
+        self.args_edit.setVisible(is_schedule)
+        self._workdir_label.setVisible(is_schedule)
+        self.workdir_edit.setVisible(is_schedule)
 
     def _on_cat_change(self, idx):
         data = self.cat_combo.currentData()
@@ -258,6 +269,17 @@ class EventsEditor(QMainWindow):
             self._current_category = data
             self._toggle_fields()
             self._load_category()
+
+    def _browse_command(self):
+        path, _ = QFileDialog.getOpenFileName(self, self._t("events_editor.dialog.select_command"),
+            "", "Eseguibili (*.exe *.bat *.ps1 *.py *.cmd *.vbs);;Tutti i file (*.*)")
+        if path:
+            self.cmd_edit.setText(path)
+
+    def _browse_workdir(self):
+        path = QFileDialog.getExistingDirectory(self, self._t("events_editor.dialog.select_workdir"))
+        if path:
+            self.workdir_edit.setText(path)
 
     def _on_select(self, row):
         if 0 <= row < len(self._current_items):
@@ -269,6 +291,7 @@ class EventsEditor(QMainWindow):
             self.recur_edit.setText(item.get("recur", ""))
             self.cmd_edit.setText(item.get("command", ""))
             self.args_edit.setText(item.get("arguments", ""))
+            self.workdir_edit.setText(item.get("workingdir", ""))
 
     def _validate(self):
         date = self.date_edit.text().strip()
@@ -314,15 +337,49 @@ class EventsEditor(QMainWindow):
                     self._t("events_editor.errors.command_not_found").replace("{cmd}", exe))
                 return False
 
+            wd = self.workdir_edit.text().strip()
+            if wd:
+                if not os.path.isdir(wd):
+                    QMessageBox.warning(self, self._t("events_editor.dialog.error"),
+                        self._t("events_editor.errors.workingdir_not_found").replace("{dir}", wd))
+                    return False
+                if self._is_system_dir(wd):
+                    QMessageBox.warning(self, self._t("events_editor.dialog.error"),
+                        self._t("events_editor.errors.workingdir_system").replace("{dir}", wd))
+                    return False
+
         return True
 
-    def _build_item(self):
+    def _is_system_dir(self, path):
+        p = os.path.abspath(path).lower().rstrip(os.sep)
+        if sys.platform == "win32":
+            system_roots = [
+                os.path.abspath("C:\\Windows").lower(),
+                os.path.abspath("C:\\Windows\\System32").lower(),
+                os.path.abspath("C:\\Program Files").lower(),
+                os.path.abspath("C:\\Program Files (x86)").lower(),
+            ]
+            for sr in system_roots:
+                if p == sr or p.startswith(sr + "\\"):
+                    return True
+        else:
+            protected = {"/bin", "/boot", "/dev", "/etc", "/lib", "/proc", "/root", "/sbin", "/sys", "/usr", "/var", "/System", "/Library", "/private"}
+            for pr in protected:
+                if p == pr or p.startswith(pr + "/"):
+                    return True
+        return False
+
+    def _build_item(self, existing=None):
         item = {
             "date": self.date_edit.text().strip(),
             "time": self.time_edit.text().strip(),
             "duration": self.dur_spin.value(),
             "description": self.desc_edit.text().strip(),
         }
+        if existing and "id" in existing:
+            item["id"] = existing["id"]
+        else:
+            item["id"] = uuid.uuid4().hex[:8]
         recur = self.recur_edit.text().strip()
         if recur:
             item["recur"] = recur
@@ -331,6 +388,9 @@ class EventsEditor(QMainWindow):
             args = self.args_edit.text().strip()
             if args:
                 item["arguments"] = args
+            wd = self.workdir_edit.text().strip()
+            if wd:
+                item["workingdir"] = wd
         desc = self.desc_edit.text().strip()
         date = self.date_edit.text().strip()
         time_str = self.time_edit.text().strip()
@@ -350,7 +410,7 @@ class EventsEditor(QMainWindow):
             return
         if not self._validate():
             return
-        self._current_items[row] = self._build_item()
+        self._current_items[row] = self._build_item(existing=self._current_items[row])
         self._refresh_list()
         self.list_widget.setCurrentRow(row)
 

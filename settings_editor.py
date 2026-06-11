@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGridLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
-    QGroupBox, QMessageBox, QComboBox, QSlider, QCheckBox
+    QGroupBox, QMessageBox, QComboBox, QSlider, QCheckBox, QListWidget,
 )
 from PySide6.QtGui import QKeySequence, QShortcut
 from i18n import t
@@ -61,6 +61,10 @@ QSlider::sub-page:horizontal {{
 
 BOOLEAN_KEYS = {"llama_autostart", "noise_pause"}
 HIDDEN_KEYS = {"lastmode"}
+
+COMBO_OPTIONS = {
+    "overflow_strategy": {"truncate": "Truncate", "summarize": "Summarize"},
+}
 
 SLIDER_CONFIG = {
     "sensitivity": {"min": 1, "max": 20, "scale": 0.001, "default": 5},
@@ -144,25 +148,54 @@ class SettingsEditor(QMainWindow):
 
     def build_ui(self):
         self.setWindowTitle(t("settings_editor.title", self.lang))
-        self.resize(620, 700)
-        self.setMinimumSize(520, 400)
+        self.resize(800, 700)
+        self.setMinimumSize(650, 400)
         self.setStyleSheet(BASE_STYLESHEET)
 
         central = QWidget()
         self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(10, 10, 10, 10)
+        main_layout = QHBoxLayout(central)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sidebar = QWidget()
+        sidebar.setFixedWidth(170)
+        sidebar.setStyleSheet("background-color: #252525;")
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(4, 8, 4, 8)
+
+        self.section_list = QListWidget()
+        self.section_list.setStyleSheet(
+            "QListWidget { background: transparent; color: #e0e0e0; border: none; font-size: 12px; }"
+            "QListWidget::item { padding: 8px 10px; border-radius: 3px; }"
+            "QListWidget::item:selected { background-color: #0d7377; color: #ffffff; }"
+            "QListWidget::item:hover { background-color: #3d3d3d; }"
+        )
+        sidebar_layout.addWidget(self.section_list)
+
+        main_layout.addWidget(sidebar)
+
+        right_panel = QVBoxLayout()
+        right_panel.setContentsMargins(10, 10, 10, 10)
+        right_panel.setSpacing(0)
+
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         content = QWidget()
-        scroll.setWidget(content)
+        self._scroll.setWidget(content)
         content_layout = QVBoxLayout(content)
+
+        self._section_widgets = {}
+        section_items = []
 
         for section in self.config.sections():
             label = t(f"settings_editor.section_labels.{section}", self.lang)
+            section_items.append((section, label))
+
             group = QGroupBox(label)
+            group.setObjectName(f"section_{section}")
+            self._section_widgets[section] = group
             group_layout = QGridLayout(group)
             group_layout.setColumnMinimumWidth(0, 140)
             group_layout.setColumnStretch(1, 1)
@@ -247,6 +280,16 @@ class SettingsEditor(QMainWindow):
                     if idx >= 0:
                         entry.setCurrentIndex(idx)
                     group_layout.addWidget(entry, row, 1)
+                elif key in COMBO_OPTIONS:
+                    entry = QComboBox()
+                    options = COMBO_OPTIONS[key]
+                    for val, label in options.items():
+                        entry.addItem(label, val)
+                    current_val = self.config.get(section, key)
+                    idx = entry.findData(current_val)
+                    if idx >= 0:
+                        entry.setCurrentIndex(idx)
+                    group_layout.addWidget(entry, row, 1)
                 else:
                     entry = QLineEdit()
                     entry.setText(self.config.get(section, key))
@@ -287,24 +330,42 @@ class SettingsEditor(QMainWindow):
 
             content_layout.addWidget(group)
 
-        layout.addWidget(scroll)
+        for sec, label in section_items:
+            item_text = label if label != sec else sec
+            self.section_list.addItem(item_text)
+        self.section_list.currentRowChanged.connect(self._on_section_selected)
+        if self.section_list.count() > 0:
+            self.section_list.setCurrentRow(0)
+
+        right_panel.addWidget(self._scroll)
 
         btn_layout = QHBoxLayout()
+        btn_layout.setContentsMargins(0, 5, 0, 0)
         btn_layout.addStretch()
 
         save_btn = QPushButton(t("settings_editor.buttons.save", self.lang))
         save_btn.clicked.connect(self.save)
         save_btn.setMinimumWidth(100)
         btn_layout.addWidget(save_btn)
+        btn_layout.addSpacing(10)
 
         cancel_btn = QPushButton(t("settings_editor.buttons.cancel", self.lang))
         cancel_btn.clicked.connect(self.close)
         cancel_btn.setMinimumWidth(100)
         btn_layout.addWidget(cancel_btn)
 
-        layout.addLayout(btn_layout)
+        right_panel.addLayout(btn_layout)
+
+        main_layout.addLayout(right_panel)
 
         QShortcut(QKeySequence("Ctrl+S"), self, self.save)
+
+    def _on_section_selected(self, row):
+        if row < 0:
+            return
+        section = list(self._section_widgets.keys())[row]
+        group = self._section_widgets[section]
+        self._scroll.ensureWidgetVisible(group, 0, 20)
 
     def _t(self, path):
         return t(path, self.lang)
@@ -387,7 +448,7 @@ class SettingsEditor(QMainWindow):
                 slider, scale = self._slider_widgets[(section, key)]
                 value = f"{slider.value() * scale:.3f}".rstrip("0").rstrip(".")
             elif isinstance(entry, QComboBox):
-                value = entry.currentText()
+                value = entry.currentData() if entry.currentData() is not None else entry.currentText()
             elif isinstance(entry, QCheckBox):
                 value = "true" if entry.isChecked() else "false"
             elif isinstance(entry, QWidget) and key in BOOLEAN_KEYS:

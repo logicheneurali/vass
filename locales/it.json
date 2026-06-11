@@ -126,7 +126,10 @@
       "reminder_advance": "Anticipo promemoria (sec)",
       "noise_pause": "Pausa automatica",
       "noise_pause_threshold": "Soglia rumore",
-      "noise_pause_duration": "Durata prima pausa (sec)"
+      "noise_pause_duration": "Durata prima pausa (sec)",
+      "context_length": "Lunghezza contesto (token)",
+      "overflow_strategy": "Strategia overflow",
+      "allow_ai_scripts": "Script AI"
     },
     "field_descriptions": {
       "x": "Posizione X sullo schermo",
@@ -162,7 +165,10 @@
       "reminder_advance": "Secondi di anticipo per la notifica dei promemoria",
       "noise_pause": "Mette in pausa automatica VASS se il rumore di fondo supera la soglia",
       "noise_pause_threshold": "Soglia del noise floor oltre la quale scatta la pausa (0.001-0.1)",
-      "noise_pause_duration": "Secondi consecutivi di rumore alto prima di attivare la pausa"
+      "noise_pause_duration": "Secondi consecutivi di rumore alto prima di attivare la pausa",
+      "context_length": "Lunghezza massima contesto in token (0 = auto-detect dal modello)",
+      "overflow_strategy": "Cosa fare se il testo supera il contesto: truncate (taglia) o summarize (riassumi, richiede una chiamata API extra)",
+      "allow_ai_scripts": "AI puo' generare scripts"
     },
     "section_labels": {
       "gui": "Finestra",
@@ -302,7 +308,8 @@
       "description": "Descrizione",
       "recur": "Ricorrenza",
       "command": "Comando",
-      "arguments": "Argomenti"
+      "arguments": "Argomenti",
+      "workingdir": "Cartella di lavoro"
     },
     "buttons": {
       "add": "Aggiungi",
@@ -311,14 +318,18 @@
       "save": "Salva"
     },
     "dialog": {
-      "error": "Errore"
+      "error": "Errore",
+      "select_command": "Seleziona eseguibile",
+      "select_workdir": "Seleziona cartella di lavoro"
     },
     "errors": {
       "required": "Descrizione obbligatoria.",
       "date_format": "Formato data non valido. Usa YYYY-MM-DD.",
       "time_format": "Formato ora non valido. Usa HH:MM (00-23:00-59).",
       "recur_format": "Formato ricorrenza non valido. Es: 1d, 7d, 2h, 1m.",
-      "command_not_found": "Comando '{cmd}' non trovato nel sistema."
+      "command_not_found": "Comando '{cmd}' non trovato nel sistema.",
+      "workingdir_not_found": "Cartella '{dir}' non trovata.",
+      "workingdir_system": "La cartella '{dir}' è di sistema. Non consentita."
     },
     "saved": "File salvato.",
     "form_label": "Dettagli"

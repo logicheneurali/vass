@@ -97,7 +97,10 @@
       "reminder_advance": "Avance rappel (sec)",
       "noise_pause": "Pause automatique",
       "noise_pause_threshold": "Seuil de bruit",
-      "noise_pause_duration": "Délai pause (sec)"
+      "noise_pause_duration": "Délai pause (sec)",
+      "context_length": "Longueur contexte (jetons)",
+      "overflow_strategy": "Stratégie débordement",
+      "allow_ai_scripts": "Scripts IA"
     },
     "field_descriptions": {
       "x": "Position X à l'écran",
@@ -133,7 +136,10 @@
       "reminder_advance": "Secondes d'avance pour la notification de rappel",
       "noise_pause": "Met automatiquement VASS en pause si le bruit de fond dépasse le seuil",
       "noise_pause_threshold": "Seuil de bruit déclenchant la pause automatique (0.001-0.1)",
-      "noise_pause_duration": "Secondes consécutives de bruit élevé avant la pause"
+      "noise_pause_duration": "Secondes consécutives de bruit élevé avant la pause",
+      "context_length": "Longueur max contexte en jetons (0 = auto-détection)",
+      "overflow_strategy": "Que faire si le texte dépasse le contexte: truncate (couper) ou summarize (résumer, nécessite un appel API supplémentaire)",
+      "allow_ai_scripts": "L'IA peut generer des scripts"
     },
     "section_labels": {
       "gui": "Fenêtre",
@@ -302,7 +308,8 @@
       "description": "Description",
       "recur": "Récurrence",
       "command": "Commande",
-      "arguments": "Arguments"
+      "arguments": "Arguments",
+      "workingdir": "Dossier travail"
     },
     "buttons": {
       "add": "Ajouter",
@@ -311,14 +318,18 @@
       "save": "Enregistrer"
     },
     "dialog": {
-      "error": "Erreur"
+      "error": "Erreur",
+      "select_command": "Sélectionner exécutable",
+      "select_workdir": "Sélectionner dossier travail"
     },
     "errors": {
       "required": "Description obligatoire.",
       "date_format": "Format de date invalide. Utilisez YYYY-MM-DD.",
       "time_format": "Format d'heure invalide. Utilisez HH:MM (00-23:00-59).",
       "recur_format": "Format de récurrence invalide. Exemple: 1d, 7d, 2h, 1m.",
-      "command_not_found": "Commande '{cmd}' introuvable sur le système."
+      "command_not_found": "Commande '{cmd}' introuvable sur le système.",
+      "workingdir_not_found": "Dossier '{dir}' introuvable.",
+      "workingdir_system": "Le dossier '{dir}' est un dossier système. Non autorisé."
     },
     "saved": "Fichier enregistré.",
     "form_label": "Détails"

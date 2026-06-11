@@ -156,6 +156,8 @@ class VassApp:
         self.ai_model = self.settings["ai_model"]
         self.system_message = self.settings["system_message"]
         self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
+        self.context_length = self.settings.get("context_length", 0)
+        self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
         self.gui_x = self.settings["gui_x"]
         self.gui_y = self.settings["gui_y"]
         self.gui_width = self.settings["gui_width"]
@@ -216,6 +218,8 @@ class VassApp:
         )
         self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language)
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
+        if self.context_length <= 0:
+            threading.Thread(target=self._detect_context_length, daemon=True).start()
         self.running = False
         self._trim_lock = threading.Lock()
         self.script_queue = ScriptQueue(self)
@@ -291,6 +295,8 @@ class VassApp:
             result["ai_model"] = config.get("ai", "model", fallback="gemma-4-E2B-it-Q8_0")
             result["system_message"] = config.get("ai", "system_message", fallback="")
             result["allow_ai_scripts"] = config.get("ai", "allow_ai_scripts", fallback="false").lower() == "true"
+            result["context_length"] = config.getint("ai", "context_length", fallback=0)
+            result["overflow_strategy"] = config.get("ai", "overflow_strategy", fallback="truncate")
             
             result["gui_x"] = config.getint("gui", "x", fallback=100)
             result["gui_y"] = config.getint("gui", "y", fallback=100)
@@ -331,6 +337,8 @@ class VassApp:
             result["ai_model"] = "gemma-4-E2B-it-Q8_0"
             result["system_message"] = "Sei un assistente vocale utile e conciso."
             result["allow_ai_scripts"] = False
+            result["context_length"] = 0
+            result["overflow_strategy"] = "truncate"
             result["gui_x"] = 100
             result["gui_y"] = 100
             result["gui_width"] = 220
@@ -459,6 +467,8 @@ class VassApp:
                         self.ai_url = self.settings["ai_url"]
                         self.system_message = self.settings.get("system_message", "")
                         self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
+                        self.context_length = self.settings.get("context_length", 0)
+                        self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
                         if self.ai_url != old_url:
                             self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
                         self.mcp_server_url = self.settings["mcp_server_url"]
@@ -742,9 +752,82 @@ class VassApp:
             kill_process(self.llama_process)
             self.llama_process = None
 
+    def _estimate_tokens(self, text):
+        return len(text) // 2
+
+    def _estimate_system_overhead(self):
+        overhead = len(self.system_message or "") + 50
+        overhead += len(self._build_memory_content())
+        if self.allow_ai_scripts:
+            overhead += len(MCP_PROMPT)
+            overhead += len(_load_vascript_reference())
+        return overhead
+
     def _process_chat_text(self, text):
-        print(f"[Chat] Text input: {text}")
+        ctx_len = self.context_length or 4096
+        overhead = self._estimate_system_overhead()
+        avail_chars = max(ctx_len - overhead, ctx_len // 4)
+        if len(text) > avail_chars:
+            if self.overflow_strategy == "summarize":
+                print(f"[Chat] Text overflow ({len(text)} > {avail_chars} chars, ctx={ctx_len}, ovh={overhead}), summarizing...")
+                threading.Thread(target=self._execute_summarize_text, args=(text,), daemon=True).start()
+                return
+            else:
+                text = text[:avail_chars] + "\n\n[testo troncato]"
+                print(f"[Chat] Text overflow ({len(text)} > {avail_chars} chars), truncated")
+        print(f"[Chat] Text input ({len(text)} chars)")
         threading.Thread(target=self._execute_chat_text, args=(text,), daemon=True).start()
+
+    def _execute_summarize_text(self, text):
+        self.set_state("waiting")
+        ctx_len = self.context_length or 4096
+        overhead = self._estimate_system_overhead()
+        chunk_size = max(ctx_len - overhead, ctx_len // 4)
+        if len(text) <= chunk_size:
+            summary = self._summarize_chunk(text)
+        else:
+            chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+            print(f"[Chat] Summarizing in {len(chunks)} chunks of ~{chunk_size} chars...")
+            summaries = []
+            for i, chunk in enumerate(chunks):
+                s = self._summarize_chunk(chunk)
+                if s:
+                    summaries.append(s)
+                print(f"[Chat] Chunk {i + 1}/{len(chunks)} done ({len(chunk)} -> {len(s)} chars)")
+            summary = "\n\n".join(summaries)
+            if len(summary) > chunk_size:
+                summary = self._summarize_chunk(summary)
+                print(f"[Chat] Metasummary: {len(text)} -> {len(summary)} chars")
+
+        max_final = int(ctx_len // 2) * 2
+        if len(summary) > max_final:
+            summary = summary[:max_final] + "\n\n[riassunto troncato]"
+
+        self.tts.speak("Testo riassunto. Eseguo la richiesta.")
+        with open("lastcommands.txt", "w", encoding="utf-8") as f:
+            f.write(summary)
+        print(f"[Chat] Summarized {len(text)} chars -> {len(summary)} chars")
+        self._process_command()
+
+    def _summarize_chunk(self, text):
+        for attempt in range(2):
+            try:
+                resp = self.openai_client.chat.completions.create(
+                    model=self.ai_model,
+                    messages=[{"role": "user", "content": f"Summarize concisely:\n\n{text}"}],
+                    temperature=0.3, max_tokens=500,
+                    extra_body={"disable_thinking": True}
+                )
+                return (resp.choices[0].message.content or "").strip()
+            except Exception as e:
+                err = str(e)
+                if "context" in err.lower() or "exceed" in err.lower():
+                    text = text[:len(text) * 3 // 4]
+                    if attempt == 0:
+                        continue
+                if attempt == 1:
+                    print(f"[Chat] Chunk summarization failed: {e}")
+                    return text[:2000] if len(text) > 2000 else text
 
     def _execute_chat_text(self, text):
         with open("lastcommands.txt", "w", encoding="utf-8") as f:
@@ -1059,8 +1142,6 @@ class VassApp:
             ai_response = msg.content or ""
             ai_response = strip_think_tags(ai_response)
 
-            threading.Thread(target=self._classify_message, args=(prompt,), daemon=True).start()
-
             print(f"AI Agent Response: {ai_response}")
 
             if not script_called:
@@ -1100,6 +1181,8 @@ class VassApp:
                     cleanup_orphan_files(mem_dir, merged_ids, existing.get("summary_id", ""))
             except Exception as e:
                 print(f"[Memory] Save error: {e}")
+
+            threading.Thread(target=self._classify_message, args=(prompt,), daemon=True).start()
 
             threading.Thread(target=self._trim_memory_if_needed, daemon=True).start()
 
@@ -1168,6 +1251,25 @@ class VassApp:
                     pass
                 break
         return ""
+
+    def _detect_context_length(self):
+        try:
+            import httpx
+            url = f"{self.ai_url.rstrip('/')}/models"
+            with httpx.Client(timeout=5) as client:
+                resp = client.get(url)
+            models = resp.json().get("data", [])
+            if models:
+                ctx = models[0].get("max_seq_len", 0)
+                if ctx > 0:
+                    self.context_length = ctx
+                    print(f"[Settings] Context length detected from model: {ctx} tokens")
+                    return
+        except Exception as e:
+            print(f"[Settings] Context length auto-detect failed ({e})")
+        if self.context_length <= 0:
+            self.context_length = 4096
+            print(f"[Settings] Context length fallback: {self.context_length} tokens")
 
     def _classify_message(self, user_message):
         print(f"[Classify] Starting classification for: {user_message[:80]}...")
