@@ -17,7 +17,8 @@
       "scripts": "Scripts",
       "exit": "Quitter",
       "history": "History",
-      "sources": "Sources en ligne"
+      "sources": "Sources en ligne",
+      "events": "Événements & planifications"
     },
     "dialog": {
       "exit_title": "Quitter",
@@ -199,7 +200,8 @@
     "close": {
       "title": "Save?",
       "message": "Save changes before closing?"
-    }
+    },
+    "allow_ai_scripts": "Autoriser l'IA à générer des scripts"
   },
   "commands_editor": {
     "title": "Éditeur de commandes VASS",
@@ -284,5 +286,41 @@
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "Lire",
     "filter": "Filter messages..."
+  },
+  "events_editor": {
+    "title": "Événements et planifications",
+    "categories_label": "Catégorie",
+    "categories": {
+      "events": "Événements",
+      "schedules": "Opérations planifiées"
+    },
+    "list_label": "Liste",
+    "fields": {
+      "date": "Date",
+      "time": "Heure",
+      "duration": "Durée (min)",
+      "description": "Description",
+      "recur": "Récurrence",
+      "command": "Commande",
+      "arguments": "Arguments"
+    },
+    "buttons": {
+      "add": "Ajouter",
+      "update": "Mettre à jour",
+      "delete": "Supprimer",
+      "save": "Enregistrer"
+    },
+    "dialog": {
+      "error": "Erreur"
+    },
+    "errors": {
+      "required": "Description obligatoire.",
+      "date_format": "Format de date invalide. Utilisez YYYY-MM-DD.",
+      "time_format": "Format d'heure invalide. Utilisez HH:MM (00-23:00-59).",
+      "recur_format": "Format de récurrence invalide. Exemple: 1d, 7d, 2h, 1m.",
+      "command_not_found": "Commande '{cmd}' introuvable sur le système."
+    },
+    "saved": "Fichier enregistré.",
+    "form_label": "Détails"
   }
 }

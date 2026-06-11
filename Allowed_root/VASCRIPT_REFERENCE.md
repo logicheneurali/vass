@@ -5,10 +5,11 @@ VASScript is a simple scripting language for VASS. Scripts are executed line by 
 
 ## Functions
 
-### `ai(prompt)`
-Sends a prompt to the AI and returns the response text.
+### `ai(prompt, memory?)`
+Sends a prompt to the AI and returns the response text. Optional `memory` parameter (boolean) — if true, includes permanent memory (summary + conversation history).
 ```
 $result = ai("What is the capital of Italy?")
+$result = ai("Dimmelo nella mia lingua", true)    # includes memory
 say($result)
 ```
 

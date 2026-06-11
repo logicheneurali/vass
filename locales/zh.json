@@ -17,7 +17,8 @@
       "scripts": "脚本",
       "exit": "退出",
       "history": "历史",
-      "sources": "在线来源"
+      "sources": "在线来源",
+      "events": "事件和计划"
     },
     "dialog": {
       "exit_title": "退出",
@@ -199,7 +200,8 @@
     "close": {
       "title": "Save?",
       "message": "Save changes before closing?"
-    }
+    },
+    "allow_ai_scripts": "允许AI生成脚本"
   },
   "commands_editor": {
     "title": "VASS 命令编辑器",
@@ -285,5 +287,41 @@
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "阅读",
     "filter": "Filter messages..."
+  },
+  "events_editor": {
+    "title": "事件和计划",
+    "categories_label": "类别",
+    "categories": {
+      "events": "事件",
+      "schedules": "计划操作"
+    },
+    "list_label": "列表",
+    "fields": {
+      "date": "日期",
+      "time": "时间",
+      "duration": "时长(分钟)",
+      "description": "描述",
+      "recur": "重复",
+      "command": "命令",
+      "arguments": "参数"
+    },
+    "buttons": {
+      "add": "添加",
+      "update": "更新",
+      "delete": "删除",
+      "save": "保存"
+    },
+    "dialog": {
+      "error": "错误"
+    },
+    "errors": {
+      "required": "描述是必需的。",
+      "date_format": "日期格式无效。请使用YYYY-MM-DD。",
+      "time_format": "时间格式无效。请使用HH:MM（00-23:00-59）。",
+      "recur_format": "重复格式无效。示例：1d, 7d, 2h, 1m。",
+      "command_not_found": "系统中未找到命令 '{cmd}'。"
+    },
+    "saved": "文件已保存。",
+    "form_label": "详情"
   }
 }

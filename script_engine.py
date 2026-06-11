@@ -234,7 +234,24 @@ class VASScript:
 
         if name == "ai":
             prompt = evaluated[0] if evaluated else ""
-            messages = [{"role": "user", "content": prompt}]
+            use_memory = len(evaluated) > 1 and evaluated[1].strip().lower() in ("true", "1", "yes", "memory")
+
+            system_content = ""
+            if use_memory:
+                now = time.strftime("%Y-%m-%d %H:%M:%S")
+                base = self.app.system_message or ""
+                from i18n import t as _ti18n
+                date_prefix = _ti18n("ai.date_prefix", self.app.language)
+                system_content = f"{base}\n\n{date_prefix}{now}".strip()
+
+                memory_content = self.app._build_memory_content()
+                from vass import MCP_PROMPT, _load_vascript_reference
+                vas_ref = _load_vascript_reference()
+                tools_block = MCP_PROMPT + vas_ref if self.app.allow_ai_scripts else ""
+                system_content = memory_content + system_content + tools_block
+
+            messages = [{"role": "system", "content": system_content}] if system_content else []
+            messages.append({"role": "user", "content": prompt})
 
             mcp, tools = init_mcp(self.app.mcp_server_url, timeout=120, log_prefix="[VASScript]")
 
@@ -845,6 +862,7 @@ class VASScript:
 
     def _do_say(self, text, speed=1.0):
         self.app.tts.speak_nowait(text, speed)
+        self.app.tts._tts_done.wait()
 
     def _execute_line(self, line):
         tokens = self._tokenize(line)

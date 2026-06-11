@@ -7,15 +7,21 @@ import threading
 import time
 
 
+import shutil
+
 _SAFE_CMD_RE = re.compile(r'^[a-zA-Z0-9_\-.:\\/ ]+\.(exe|bat|ps1|py|cmd|vbs)$')
 
 
 def _validate_command(command, arguments):
     if not command or not command.strip():
         return False
-    if not _SAFE_CMD_RE.search(os.path.basename(command)):
-        return False
-    return True
+    basename = os.path.basename(command)
+    if _SAFE_CMD_RE.search(basename):
+        return True
+    exe = command.split()[0]
+    if shutil.which(exe) or os.path.exists(exe):
+        return True
+    return False
 
 
 class EventReminder:
@@ -41,7 +47,7 @@ class EventReminder:
         return os.path.join(self._root_dir(), "Allowed_root", "events.json")
 
     def _schedules_path(self):
-        return os.path.join(self._root_dir(), "Allowed_root", "schedule.json")
+        return os.path.join(self._root_dir(), "Allowed_root", "schedules.json")
 
     def _load_events(self):
         path = self._events_path()
@@ -92,7 +98,7 @@ class EventReminder:
             if event_ts is None:
                 continue
             alert_ts = event_ts - self.advance
-            duration = ev.get("duration", 0) or 0
+            duration = int(ev.get("duration", 0) or 0)
             end_ts = event_ts + (duration * 60)
             already_notified = "notify" in ev
 
@@ -124,7 +130,7 @@ class EventReminder:
             event_ts = self._parse_ts(ev)
             if event_ts is None:
                 continue
-            duration = ev.get("duration", 0) or 0
+            duration = int(ev.get("duration", 0) or 0)
             end_ts = event_ts + (duration * 60)
             already_started = "notify_start" in ev
 
@@ -201,6 +207,8 @@ class EventReminder:
         earliest = min(groups.keys())
         self._next_schedule_ts = earliest
         self._next_schedules = groups[earliest]
+        for s in self._next_schedules:
+            print(f"[Schedules] Next: {s.get('description', '?')} at {s.get('date')} {s.get('time')} (ts={earliest})")
 
     # ── Shared helpers ────────────────────────────────────────────────────────
 
@@ -361,6 +369,7 @@ class EventReminder:
 
         started_msg = t("events.schedule_started", self.lang).replace("{description}", desc)
         self.app.tts.speak(started_msg)
+        print(f"[Schedules] Started: {desc} -> {command} {arguments}")
 
         if not _validate_command(command, arguments):
             failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
@@ -376,11 +385,13 @@ class EventReminder:
                 except ValueError:
                     cmd_parts.append(arguments)
             creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            dur = int(sc.get("duration", 0) or 0)
+            cmd_timeout = max(dur * 60, 60) if dur > 0 else 3600
             r = subprocess.run(
                 cmd_parts,
                 capture_output=True, text=True,
                 creationflags=creationflags,
-                timeout=3600,
+                timeout=cmd_timeout,
             )
             if r.returncode == 0:
                 msg = t("events.schedule_done", self.lang).replace("{description}", desc)
@@ -408,12 +419,14 @@ class EventReminder:
                     if mtime != self._last_mtime:
                         self._last_mtime = mtime
                         self._calculate_next_alert()
+                        print(f"[Events] File changed, recalculated")
 
                 if os.path.exists(schedules_path):
                     mtime = os.path.getmtime(schedules_path)
                     if mtime != self._last_schedule_mtime:
                         self._last_schedule_mtime = mtime
                         self._calculate_next_schedule()
+                        print(f"[Schedules] File changed, recalculated")
 
                 self._process_events()
                 self._process_schedules()
@@ -439,6 +452,7 @@ class EventReminder:
             if not self._running:
                 return
         self.app.tts.speak(msg)
+        print(f"[Events] Fired: {msg}")
         self._mark_notified()
         self._calculate_next_alert()
 

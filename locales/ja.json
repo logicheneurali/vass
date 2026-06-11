@@ -17,7 +17,8 @@
       "scripts": "スクリプト",
       "exit": "終了",
       "history": "履歴",
-      "sources": "オンラインソース"
+      "sources": "オンラインソース",
+      "events": "イベントとスケジュール"
     },
     "dialog": {
       "exit_title": "終了",
@@ -199,7 +200,8 @@
     "close": {
       "title": "Save?",
       "message": "Save changes before closing?"
-    }
+    },
+    "allow_ai_scripts": "AIにスクリプト生成を許可"
   },
   "commands_editor": {
     "title": "VASS コマンドエディタ",
@@ -285,5 +287,41 @@
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "読む",
     "filter": "Filter messages..."
+  },
+  "events_editor": {
+    "title": "イベントとスケジュール",
+    "categories_label": "カテゴリ",
+    "categories": {
+      "events": "イベント",
+      "schedules": "予定された操作"
+    },
+    "list_label": "リスト",
+    "fields": {
+      "date": "日付",
+      "time": "時間",
+      "duration": "時間(分)",
+      "description": "説明",
+      "recur": "繰り返し",
+      "command": "コマンド",
+      "arguments": "引数"
+    },
+    "buttons": {
+      "add": "追加",
+      "update": "更新",
+      "delete": "削除",
+      "save": "保存"
+    },
+    "dialog": {
+      "error": "エラー"
+    },
+    "errors": {
+      "required": "説明が必要です。",
+      "date_format": "日付形式が無効です。YYYY-MM-DDを使用してください。",
+      "time_format": "時刻形式が無効です。HH:MM（00-23:00-59）を使用してください。",
+      "recur_format": "繰り返し形式が無効です。例: 1d, 7d, 2h, 1m。",
+      "command_not_found": "コマンド '{cmd}' がシステムに見つかりません。"
+    },
+    "saved": "ファイルを保存しました。",
+    "form_label": "詳細"
   }
 }

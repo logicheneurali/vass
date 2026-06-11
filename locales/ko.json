@@ -17,7 +17,8 @@
       "scripts": "스크립트",
       "exit": "종료",
       "history": "기록",
-      "sources": "온라인 소스"
+      "sources": "온라인 소스",
+      "events": "이벤트 및 일정"
     },
     "dialog": {
       "exit_title": "종료",
@@ -199,7 +200,8 @@
     "close": {
       "title": "Save?",
       "message": "Save changes before closing?"
-    }
+    },
+    "allow_ai_scripts": "AI가 스크립트를 생성하도록 허용"
   },
   "commands_editor": {
     "title": "VASS 명령 편집기",
@@ -285,5 +287,41 @@
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "읽기",
     "filter": "Filter messages..."
+  },
+  "events_editor": {
+    "title": "이벤트 및 일정",
+    "categories_label": "카테고리",
+    "categories": {
+      "events": "이벤트",
+      "schedules": "예약된 작업"
+    },
+    "list_label": "목록",
+    "fields": {
+      "date": "날짜",
+      "time": "시간",
+      "duration": "시간(분)",
+      "description": "설명",
+      "recur": "반복",
+      "command": "명령",
+      "arguments": "인수"
+    },
+    "buttons": {
+      "add": "추가",
+      "update": "업데이트",
+      "delete": "삭제",
+      "save": "저장"
+    },
+    "dialog": {
+      "error": "오류"
+    },
+    "errors": {
+      "required": "설명이 필요합니다.",
+      "date_format": "잘못된 날짜 형식입니다. YYYY-MM-DD를 사용하세요.",
+      "time_format": "잘못된 시간 형식입니다. HH:MM (00-23:00-59)을 사용하세요.",
+      "recur_format": "잘못된 반복 형식입니다. 예: 1d, 7d, 2h, 1m.",
+      "command_not_found": "'{cmd}' 명령을 시스템에서 찾을 수 없습니다."
+    },
+    "saved": "파일이 저장되었습니다.",
+    "form_label": "세부사항"
   }
 }

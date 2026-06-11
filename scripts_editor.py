@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QGroupBox,
     QPlainTextEdit, QMessageBox, QInputDialog, QMenu,
-    QDialog,
+    QDialog, QCheckBox,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG)
@@ -127,12 +127,40 @@ class ScriptsEditor(QMainWindow):
         self._current_file = None
         self._dirty = False
         self._build_ui()
+        self._load_allow_ai_setting()
         self._refresh_list()
         self._update_title()
 
     def _t(self, path):
         from i18n import t
         return t(path, self.lang)
+
+    def _settings_path(self):
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "settings.ini")
+
+    def _load_allow_ai_setting(self):
+        try:
+            import configparser
+            cfg = configparser.ConfigParser()
+            cfg.read(self._settings_path(), encoding="utf-8")
+            val = cfg.get("ai", "allow_ai_scripts", fallback="false").lower() == "true"
+            self._allow_ai_cb.setChecked(val)
+        except Exception:
+            self._allow_ai_cb.setChecked(False)
+
+    def _on_allow_ai_changed(self, state):
+        try:
+            import configparser
+            cfg = configparser.ConfigParser()
+            cfg.read(self._settings_path(), encoding="utf-8")
+            if "ai" not in cfg:
+                cfg.add_section("ai")
+            cfg.set("ai", "allow_ai_scripts", "true" if state == Qt.CheckState.Checked.value else "false")
+            os.makedirs(os.path.dirname(self._settings_path()), exist_ok=True)
+            with open(self._settings_path(), "w", encoding="utf-8") as f:
+                cfg.write(f)
+        except Exception:
+            pass
 
     def _scripts_dir(self):
         if not os.path.exists(SCRIPT_DIR):
@@ -213,6 +241,11 @@ class ScriptsEditor(QMainWindow):
         btn_perm.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
         btn_perm.clicked.connect(self._manage_permissions)
         left_layout.addWidget(btn_perm)
+
+        self._allow_ai_cb = QCheckBox(self._t("scripts_editor.allow_ai_scripts"))
+        self._allow_ai_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._allow_ai_cb.stateChanged.connect(self._on_allow_ai_changed)
+        left_layout.addWidget(self._allow_ai_cb)
 
         layout.addWidget(left_group, 1)
 

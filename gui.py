@@ -262,6 +262,7 @@ class VassGUI(QMainWindow):
         self._menu.addAction(self._t("gui.menu.scripts"), self.open_scripts)
         self._menu.addAction(self._t("gui.menu.history"), self.open_history)
         self._menu.addAction(self._t("gui.menu.sources"), self.open_sources)
+        self._menu.addAction(self._t("gui.menu.events"), self.open_events)
         self._menu.addSeparator()
         self._mode_chat = self._menu.addAction(self._t("gui.mode.chat"))
         self._mode_chat.setCheckable(True)
@@ -288,7 +289,7 @@ class VassGUI(QMainWindow):
         )
         row.addWidget(menu_btn)
 
-        self._chat_btn = QPushButton("\u00bb")
+        self._chat_btn = QPushButton("\u2726")
         self._chat_btn.setStyleSheet(
             "QPushButton { background: transparent; color: #888888; "
             "border: none; font-size: 10px; padding: 2px; }"
@@ -583,12 +584,14 @@ class VassGUI(QMainWindow):
                 pass
 
     def _collapse_chat(self):
-        was_open = self._chat_btn.isChecked()
+        should_restore = self._chat_original_width is not None
         self._chat_btn.setChecked(False)
         self._chat_input.setVisible(False)
         self._chat_input.clear()
-        if was_open and self._chat_original_width is not None:
+        if should_restore:
             self.resize(self._chat_original_width, self.height())
+            if self._chat_original_x is not None:
+                self.move(self._chat_original_x, self.y())
             self._chat_original_width = None
             self._chat_original_x = None
         self._rebalance_spacers()
@@ -798,6 +801,7 @@ class VassGUI(QMainWindow):
                     "scripts": "vasscript editor",
                     "history": "cronologia conversazioni",
                     "sources": "vass - fonti online",
+                    "events": "vass - eventi e operazioni",
                 }
                 search = titles.get(key, "")
                 found = []
@@ -863,6 +867,9 @@ class VassGUI(QMainWindow):
 
     def open_sources(self):
         self._open_unique_window("sources", os.path.join(BASE, "sources_editor.py"), "--lang", self.language)
+
+    def open_events(self):
+        self._open_unique_window("events", os.path.join(BASE, "events_editor.py"), "--lang", self.language)
 
     def _is_fullscreen(self):
         if sys.platform == "win32":

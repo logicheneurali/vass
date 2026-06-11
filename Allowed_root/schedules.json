@@ -1,0 +1,13 @@
+{
+  "schedules": [
+    {
+      "date": "2026-06-11",
+      "time": "12:28",
+      "duration": 60,
+      "description": "xxx",
+      "command": "powershell",
+      "name": "xxx_2026-06-11_12:28",
+      "notify": "2026-06-11 12:28:10"
+    }
+  ]
+}

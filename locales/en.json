@@ -17,7 +17,8 @@
       "scripts": "Scripts",
       "history": "History",
       "exit": "Exit",
-      "sources": "Online Sources"
+      "sources": "Online Sources",
+      "events": "Events & schedules"
     },
     "dialog": {
       "exit_title": "Exit",
@@ -199,7 +200,8 @@
     "close": {
       "title": "Save?",
       "message": "Save changes before closing?"
-    }
+    },
+    "allow_ai_scripts": "Allow AI to generate scripts"
   },
   "commands_editor": {
     "title": "VASS Command Editor",
@@ -284,5 +286,41 @@
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "Read",
     "filter": "Filter messages..."
+  },
+  "events_editor": {
+    "title": "Events and schedules",
+    "categories_label": "Category",
+    "categories": {
+      "events": "Events",
+      "schedules": "Scheduled operations"
+    },
+    "list_label": "List",
+    "fields": {
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration (min)",
+      "description": "Description",
+      "recur": "Recurrence",
+      "command": "Command",
+      "arguments": "Arguments"
+    },
+    "buttons": {
+      "add": "Add",
+      "update": "Update",
+      "delete": "Delete",
+      "save": "Save"
+    },
+    "dialog": {
+      "error": "Error"
+    },
+    "errors": {
+      "required": "Description is required.",
+      "date_format": "Invalid date format. Use YYYY-MM-DD.",
+      "time_format": "Invalid time format. Use HH:MM (00-23:00-59).",
+      "recur_format": "Invalid recurrence format. Example: 1d, 7d, 2h, 1m.",
+      "command_not_found": "Command '{cmd}' not found on the system."
+    },
+    "saved": "File saved.",
+    "form_label": "Details"
   }
 }

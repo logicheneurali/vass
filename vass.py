@@ -37,6 +37,12 @@ from tts_engine import TtsEngine
 from event_reminder import EventReminder
 from idle_tracker import IdleTracker
 
+import builtins as _builtins
+_original_print = _builtins.print
+def _ts_print(*args, **kwargs):
+    _original_print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]", *args, **kwargs)
+_builtins.print = _ts_print
+
 
 def _load_version():
     try:
@@ -149,6 +155,7 @@ class VassApp:
         self.ai_api_key = self.settings.get("api_key", "")
         self.ai_model = self.settings["ai_model"]
         self.system_message = self.settings["system_message"]
+        self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
         self.gui_x = self.settings["gui_x"]
         self.gui_y = self.settings["gui_y"]
         self.gui_width = self.settings["gui_width"]
@@ -283,6 +290,7 @@ class VassApp:
                 result["api_key"] = config.get("ai", "api_key", fallback="")
             result["ai_model"] = config.get("ai", "model", fallback="gemma-4-E2B-it-Q8_0")
             result["system_message"] = config.get("ai", "system_message", fallback="")
+            result["allow_ai_scripts"] = config.get("ai", "allow_ai_scripts", fallback="false").lower() == "true"
             
             result["gui_x"] = config.getint("gui", "x", fallback=100)
             result["gui_y"] = config.getint("gui", "y", fallback=100)
@@ -322,6 +330,7 @@ class VassApp:
             result["api_key"] = ""
             result["ai_model"] = "gemma-4-E2B-it-Q8_0"
             result["system_message"] = "Sei un assistente vocale utile e conciso."
+            result["allow_ai_scripts"] = False
             result["gui_x"] = 100
             result["gui_y"] = 100
             result["gui_width"] = 220
@@ -449,6 +458,7 @@ class VassApp:
                         old_url = self.ai_url
                         self.ai_url = self.settings["ai_url"]
                         self.system_message = self.settings.get("system_message", "")
+                        self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
                         if self.ai_url != old_url:
                             self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
                         self.mcp_server_url = self.settings["mcp_server_url"]
@@ -628,7 +638,8 @@ class VassApp:
                             self._nf_print_counter += 1
                             if self._nf_print_counter >= 250:
                                 self._nf_print_counter = 0
-                                print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
+                                if nf > self.noise_pause_threshold:
+                                    print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
                             if self.noise_pause and nf > self.noise_pause_threshold:
                                 self._noise_high_frames += 1
                                 frames_per_sec = 50
@@ -1017,43 +1028,11 @@ class VassApp:
 
             mcp, tools = init_mcp(self.mcp_server_url, timeout=10)
 
-            memory_content = ""
-            if tools and mcp and self.memory_mode != "none":
-                for t_def in tools:
-                    if t_def["function"]["name"] == "read_file":
-                        try:
-                            result = mcp.call_tool("read_file", {"path": "memory.json"})
-                            text = result.get("content", [{}])[0].get("text", "")
-                            mem_data = json.loads(text) if text else {}
-                            parts = []
-                            if self.memory_mode == "full":
-                                summary_text = "No Info"
-                                summary_id = mem_data.get("summary_id", "")
-                                if summary_id:
-                                    sf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root", "memory", f"{summary_id}.json")
-                                    if os.path.exists(sf_path):
-                                        with open(sf_path, encoding="utf-8") as sf:
-                                            summary_text = json.load(sf).get("info", "")
-                                parts.append(f"summary : {summary_text}")
-                            for vid in mem_data.get("history", []):
-                                hf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root", "memory", f"{vid}.json")
-                                if os.path.exists(hf_path):
-                                    try:
-                                        with open(hf_path, encoding="utf-8") as hf:
-                                            entry = json.load(hf).get("info", "")
-                                        entry_data = json.loads(entry)
-                                        role = "user" if entry_data.get("role") == "user" else "assistant"
-                                        parts.append(f"{role}: {entry_data['content']}")
-                                    except Exception:
-                                        pass
-                            if parts:
-                                memory_content = "\n\nPrevious conversations:\n" + "\n".join(parts)
-                        except Exception:
-                            pass
-                        break
+            memory_content = self._build_memory_content(mcp, tools)
 
+            tools_block = MCP_PROMPT + vas_ref if self.allow_ai_scripts else ""
             messages = [
-                {"role": "system", "content": memory_content + system_content + MCP_PROMPT + vas_ref},
+                {"role": "system", "content": memory_content + system_content + tools_block},
                 {"role": "user", "content": prompt}
             ]
             kwargs = dict(
@@ -1147,6 +1126,48 @@ class VassApp:
             print(f"Error calling AI Agent: {e}")
             threading.Thread(target=self.tts.speak, args=(err_msg,), daemon=True).start()
             self.set_state("listening")
+
+    def _build_memory_content(self, mcp=None, tools=None):
+        if self.memory_mode == "none":
+            return ""
+        if mcp is None or tools is None:
+            from utils import init_mcp
+            mcp, tools = init_mcp(self.mcp_server_url, timeout=10)
+        if not mcp or not tools:
+            return ""
+        for t_def in tools:
+            if t_def["function"]["name"] == "read_file":
+                try:
+                    result = mcp.call_tool("read_file", {"path": "memory.json"})
+                    text = result.get("content", [{}])[0].get("text", "")
+                    mem_data = json.loads(text) if text else {}
+                    parts = []
+                    if self.memory_mode == "full":
+                        summary_text = "No Info"
+                        summary_id = mem_data.get("summary_id", "")
+                        if summary_id:
+                            sf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root", "memory", f"{summary_id}.json")
+                            if os.path.exists(sf_path):
+                                with open(sf_path, encoding="utf-8") as sf:
+                                    summary_text = json.load(sf).get("info", "")
+                        parts.append(f"summary : {summary_text}")
+                    for vid in mem_data.get("history", []):
+                        hf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Allowed_root", "memory", f"{vid}.json")
+                        if os.path.exists(hf_path):
+                            try:
+                                with open(hf_path, encoding="utf-8") as hf:
+                                    entry = json.load(hf).get("info", "")
+                                entry_data = json.loads(entry)
+                                role = "user" if entry_data.get("role") == "user" else "assistant"
+                                parts.append(f"{role}: {entry_data['content']}")
+                            except Exception:
+                                pass
+                    if parts:
+                        return "\n\nPrevious conversations:\n" + "\n".join(parts)
+                except Exception:
+                    pass
+                break
+        return ""
 
     def _classify_message(self, user_message):
         print(f"[Classify] Starting classification for: {user_message[:80]}...")

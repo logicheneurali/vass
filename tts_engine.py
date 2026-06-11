@@ -41,20 +41,12 @@ class TtsEngine:
 
         self._speak_queue = deque()
         self._speak_lock = threading.Lock()
-        threading.Thread(target=self._speak_worker, daemon=True).start()
 
     def speak(self, text, speed=1.0):
-        with self._speak_lock:
-            self._speak_queue.append((text, speed))
+        self._speak_kokoro(text, speed)
 
     def speak_nowait(self, text, speed=1.0):
-        self.tts_busy.acquire()
-        try:
-            self._tts_done.clear()
-            self._speak_kokoro(text, speed)
-            self._tts_done.wait()
-        finally:
-            self.tts_busy.release()
+        self._speak_kokoro(text, speed)
 
     def _speak_worker(self):
         while True:
@@ -261,7 +253,7 @@ class TtsEngine:
         self.tts_playing = False
         self._tts_done.set()
         prev = self._state_before_tts
-        if prev == "waiting":
+        if prev in ("waiting", "running_script"):
             prev = "listening"
         self._set_state(prev)
         self.gui.stop_tts_playback()

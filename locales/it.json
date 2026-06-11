@@ -17,7 +17,8 @@
       "scripts": "Scripts",
       "history": "Cronologia",
       "exit": "Esci",
-      "sources": "Fonti Online"
+      "sources": "Fonti Online",
+      "events": "Eventi e operazioni"
     },
     "dialog": {
       "exit_title": "Uscita",
@@ -87,7 +88,8 @@
     "close": {
       "title": "Salvare?",
       "message": "Salvare le modifiche prima di chiudere?"
-    }
+    },
+    "allow_ai_scripts": "Permetti alla AI di generare scripts"
   },
   "settings_editor": {
     "title": "Impostazioni VASS",
@@ -284,5 +286,41 @@
     "resend_sent": "Richiesta inviata all'AI. VASS la elaborerà.",
     "read": "Leggi",
     "filter": "Filtra messaggi..."
+  },
+  "events_editor": {
+    "title": "Eventi e operazioni",
+    "categories_label": "Categoria",
+    "categories": {
+      "events": "Eventi",
+      "schedules": "Operazioni pianificate"
+    },
+    "list_label": "Elenco",
+    "fields": {
+      "date": "Data",
+      "time": "Ora",
+      "duration": "Durata (min)",
+      "description": "Descrizione",
+      "recur": "Ricorrenza",
+      "command": "Comando",
+      "arguments": "Argomenti"
+    },
+    "buttons": {
+      "add": "Aggiungi",
+      "update": "Aggiorna",
+      "delete": "Elimina",
+      "save": "Salva"
+    },
+    "dialog": {
+      "error": "Errore"
+    },
+    "errors": {
+      "required": "Descrizione obbligatoria.",
+      "date_format": "Formato data non valido. Usa YYYY-MM-DD.",
+      "time_format": "Formato ora non valido. Usa HH:MM (00-23:00-59).",
+      "recur_format": "Formato ricorrenza non valido. Es: 1d, 7d, 2h, 1m.",
+      "command_not_found": "Comando '{cmd}' non trovato nel sistema."
+    },
+    "saved": "File salvato.",
+    "form_label": "Dettagli"
   }
 }

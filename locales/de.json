@@ -17,7 +17,8 @@
       "scripts": "Skripte",
       "exit": "Beenden",
       "history": "History",
-      "sources": "Online-Quellen"
+      "sources": "Online-Quellen",
+      "events": "Ereignisse & Abläufe"
     },
     "dialog": {
       "exit_title": "Beenden",
@@ -199,7 +200,8 @@
     "close": {
       "title": "Save?",
       "message": "Save changes before closing?"
-    }
+    },
+    "allow_ai_scripts": "KI darf Skripte generieren"
   },
   "commands_editor": {
     "title": "VASS Befehlseditor",
@@ -284,5 +286,41 @@
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "Lesen",
     "filter": "Filter messages..."
+  },
+  "events_editor": {
+    "title": "Ereignisse und Abläufe",
+    "categories_label": "Kategorie",
+    "categories": {
+      "events": "Ereignisse",
+      "schedules": "Geplante Abläufe"
+    },
+    "list_label": "Liste",
+    "fields": {
+      "date": "Datum",
+      "time": "Zeit",
+      "duration": "Dauer (Min)",
+      "description": "Beschreibung",
+      "recur": "Wiederholung",
+      "command": "Befehl",
+      "arguments": "Argumente"
+    },
+    "buttons": {
+      "add": "Hinzufügen",
+      "update": "Aktualisieren",
+      "delete": "Löschen",
+      "save": "Speichern"
+    },
+    "dialog": {
+      "error": "Fehler"
+    },
+    "errors": {
+      "required": "Beschreibung erforderlich.",
+      "date_format": "Ungültiges Datumsformat. YYYY-MM-DD verwenden.",
+      "time_format": "Ungültiges Zeitformat. HH:MM verwenden (00-23:00-59).",
+      "recur_format": "Ungültiges Wiederholungsformat. Beispiel: 1d, 7d, 2h, 1m.",
+      "command_not_found": "Befehl '{cmd}' nicht im System gefunden."
+    },
+    "saved": "Datei gespeichert.",
+    "form_label": "Details"
   }
 }
