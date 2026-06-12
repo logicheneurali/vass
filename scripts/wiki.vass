@@ -1,0 +1,5 @@
+# wiki.vass - search Wikipedia
+$q = trim($param1)
+say($_exec_message)
+$result = ai("Search Wikipedia for '{$q}' and summarize in 2-3 sentences. Visit https://{$_lang}.wikipedia.org/wiki/{$q} if possible. Plain text only. Respond in the user language.")
+say($result)

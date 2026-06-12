@@ -1,0 +1,6 @@
+# recipe.vass - search recipes
+$q = trim($param1)
+say($_exec_message)
+$sources = readfile("recipes_{$_lang}.json")
+$result = ai("Here is a list of recipe sites in JSON: {$sources}. Search for a recipe for '{$q}' on each site and give me the best one with ingredients and basic steps. Plain text only. Respond in the user language.")
+say($result)

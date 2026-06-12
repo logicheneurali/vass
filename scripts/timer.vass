@@ -1,0 +1,7 @@
+# timer.vass — multilingual countdown timer
+$dur = $param1
+ifempty($dur, exit(), "")
+$n = ai("Convert '{$dur}' to (number of hours)h(number of minutes)m(number of seconds)s format.Reply ONLY the result no other text.\n\n\nConvert the relative time references into absolute ones for the calculation, ("in one hour" becomes 11/08/2035 18 30 and then calculate the differences in hours/minutes/seconds.)")
+$n = trim($n)
+$r = timer_start($n)
+say($r)

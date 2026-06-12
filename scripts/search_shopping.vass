@@ -1,0 +1,6 @@
+# search_shopping.vass - search deals on shopping sites
+$sources = readfile("shopping_{$_lang}.json")
+$q = trim($param1)
+say($_exec_message)
+$results = ai("Here is a list of shopping sites in JSON: {$sources}. Search for '{$q}' on each of these sites and find me the best 3 offers with prices. Plain text only, no formatting. Respond in the user language.")
+say($results)

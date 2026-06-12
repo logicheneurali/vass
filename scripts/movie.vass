@@ -1,0 +1,6 @@
+# movie.vass - search movie info
+$q = trim($param1)
+say($_exec_message)
+$sources = readfile("movies_{$_lang}.json")
+$result = ai("Here is a list of movie review sites in JSON: {$sources}. Search for reviews and info about '{$q}' on each site. Give me rating, year, director, and a brief summary. Plain text only. Respond in the user language.")
+say($result)

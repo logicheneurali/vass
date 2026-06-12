@@ -1,0 +1,5 @@
+# currency.vass - convert currency
+say($_exec_message)
+$sources = readfile("currency_{$_lang}.json")
+$result = ai("Here is a list of currency exchange sites in JSON: {$sources}. Visit each site and tell me the current exchange rate for EUR/USD and a few other major currencies. Plain text only. Respond in the user language.")
+say($result)

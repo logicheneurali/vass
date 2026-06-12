@@ -1,0 +1,5 @@
+# weather.vass - get weather forecast
+say($_exec_message)
+$sources = readfile("weather_{$_lang}.json")
+$report = ai("Here is a list of weather sites in JSON: {$sources}. Visit each site and get today's weather forecast. Plain text only. Respond in the user language.")
+say($report)

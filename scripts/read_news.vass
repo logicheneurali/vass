@@ -1,0 +1,5 @@
+# read_news.vass - read latest news from configured language sources
+say($_exec_message)
+$sources = readfile("news_sources_{$_lang}.json")
+$parsed = ai("Here is a list of news sources in JSON: {$sources}. Visit each site main page and use webfetch tool to read me the top 3 most important news of today. Plain text only, no formatting. Respond in the user language.")
+say($parsed)

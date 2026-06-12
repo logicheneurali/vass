@@ -1,0 +1,3 @@
+# datetime.vass - speak current date and time
+$now = getdatetime($_lang)
+say("Sono le {$now}")
