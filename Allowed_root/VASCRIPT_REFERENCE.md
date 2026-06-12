@@ -133,6 +133,34 @@ savetags("food,health,pets")    # saves to memory_tags.json if relevance >= 10
 $result = savetags("generic")   # returns "skipped: relevance 1 < 10"
 ```
 
+### `timer_start(duration)`
+Starts a countdown timer. Duration in compact format (e.g. `1h`, `20m`, `30s`, `1h30m`). Max 5 simultaneous timers. Minimum 1 minute. No auth required.
+```
+$r = timer_start("1h30m")
+say($r)    # says "Timer: avviato"
+```
+
+### `timer_list()`
+Lists active timers with remaining time. No auth required.
+```
+$list = timer_list()
+say($list)    # says "Timer attivi:\n  abc123: 1h30m (54m remaining)"
+```
+
+### `timer_cancel(id)`
+Cancels a timer by its ID. No auth required.
+```
+$r = timer_cancel("abc123")
+say($r)    # says "Timer abc123 cancellato"
+```
+
+### `notify(text, priority?)`
+Creates an in-app notification with optional priority (1-10, default 1). Appears in the bell icon popup. No auth required.
+```
+notify("Timer scaduto", 8)
+notify("Operazione completata")
+```
+
 ### `getdatetime()`
 Returns current local date and time in "YYYY-MM-DD HH:MM" format. No auth required.
 ```

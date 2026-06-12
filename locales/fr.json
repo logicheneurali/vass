@@ -60,7 +60,10 @@
     },
     "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move",
     "chat_tooltip": "Écrire un message à l'IA",
-    "chat_placeholder": "Écrivez ici et appuyez sur Entrée..."
+    "chat_placeholder": "Écrivez ici et appuyez sur Entrée...",
+    "notifications": "Notifications",
+    "mark_read": "Marquer tout comme lu",
+    "no_notifications": "Aucune notification"
   },
   "settings_editor": {
     "title": "Paramètres VASS",
@@ -333,5 +336,16 @@
     },
     "saved": "Fichier enregistré.",
     "form_label": "Détails"
+  },
+  "timer": {
+    "expired": "Minuteur {duration} expiré.",
+    "started": "Minuteur: démarré",
+    "max_reached": "Limite de 5 minuteurs atteinte",
+    "list_header": "Minuteurs actifs:",
+    "list_item": "  {id}: {duration} ({remaining} restants)",
+    "none_active": "Aucun minuteur actif",
+    "not_found": "Minuteur {id} introuvable",
+    "cancelled": "Minuteur {id} annulé",
+    "min_duration": "Durée minimale minuteur: {min} minute(s)"
   }
 }

@@ -60,7 +60,10 @@
     },
     "button_tooltip": "点击 = 更改状态 | 滚轮 = 音量 | 拖动 = 移动",
     "chat_tooltip": "输入消息给AI",
-    "chat_placeholder": "在此输入并按回车..."
+    "chat_placeholder": "在此输入并按回车...",
+    "notifications": "通知",
+    "mark_read": "全部标记为已读",
+    "no_notifications": "无通知"
   },
   "settings_editor": {
     "title": "VASS 设置",
@@ -334,5 +337,16 @@
     },
     "saved": "文件已保存。",
     "form_label": "详情"
+  },
+  "timer": {
+    "expired": "计时器 {duration} 已到期。",
+    "started": "计时器: 已启动",
+    "max_reached": "已达到5个计时器上限",
+    "list_header": "活动计时器:",
+    "list_item": "  {id}: {duration} (剩余 {remaining})",
+    "none_active": "没有活动计时器",
+    "not_found": "未找到计时器 {id}",
+    "cancelled": "计时器 {id} 已取消",
+    "min_duration": "计时器最短时长: {min}分钟"
   }
 }

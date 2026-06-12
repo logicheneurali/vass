@@ -60,7 +60,10 @@
     },
     "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move",
     "chat_tooltip": "Escreva uma mensagem para a IA",
-    "chat_placeholder": "Escreva aqui e pressione Enter..."
+    "chat_placeholder": "Escreva aqui e pressione Enter...",
+    "notifications": "Notificações",
+    "mark_read": "Marcar tudo como lido",
+    "no_notifications": "Sem notificações"
   },
   "settings_editor": {
     "title": "Configurações VASS",
@@ -333,5 +336,16 @@
     },
     "saved": "Arquivo salvo.",
     "form_label": "Detalhes"
+  },
+  "timer": {
+    "expired": "Temporizador {duration} expirado.",
+    "started": "Temporizador: iniciado",
+    "max_reached": "Limite de 5 temporizadores atingido",
+    "list_header": "Temporizadores ativos:",
+    "list_item": "  {id}: {duration} ({remaining} restantes)",
+    "none_active": "Nenhum temporizador ativo",
+    "not_found": "Temporizador {id} não encontrado",
+    "cancelled": "Temporizador {id} cancelado",
+    "min_duration": "Duração mínima temporizador: {min} minuto(s)"
   }
 }

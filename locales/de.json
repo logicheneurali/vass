@@ -60,7 +60,10 @@
     },
     "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move",
     "chat_tooltip": "Nachricht an die KI schreiben",
-    "chat_placeholder": "Hier schreiben und Enter drücken..."
+    "chat_placeholder": "Hier schreiben und Enter drücken...",
+    "notifications": "Benachrichtigungen",
+    "mark_read": "Alle als gelesen markieren",
+    "no_notifications": "Keine Benachrichtigungen"
   },
   "settings_editor": {
     "title": "VASS Einstellungen",
@@ -333,5 +336,16 @@
     },
     "saved": "Datei gespeichert.",
     "form_label": "Details"
+  },
+  "timer": {
+    "expired": "Timer {duration} abgelaufen.",
+    "started": "Timer: gestartet",
+    "max_reached": "Maximal 5 Timer erreicht",
+    "list_header": "Aktive Timer:",
+    "list_item": "  {id}: {duration} ({remaining} übrig)",
+    "none_active": "Keine aktiven Timer",
+    "not_found": "Timer {id} nicht gefunden",
+    "cancelled": "Timer {id} abgebrochen",
+    "min_duration": "Mindestdauer Timer: {min} Minute(n)"
   }
 }

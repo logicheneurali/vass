@@ -60,7 +60,10 @@
     },
     "button_tooltip": "クリック = 状態変更 | ホイール = 音量 | ドラッグ = 移動",
     "chat_tooltip": "AIにメッセージを入力",
-    "chat_placeholder": "ここに入力してEnterを押す..."
+    "chat_placeholder": "ここに入力してEnterを押す...",
+    "notifications": "通知",
+    "mark_read": "すべて既読にする",
+    "no_notifications": "通知なし"
   },
   "settings_editor": {
     "title": "VASS 設定",
@@ -334,5 +337,16 @@
     },
     "saved": "ファイルを保存しました。",
     "form_label": "詳細"
+  },
+  "timer": {
+    "expired": "タイマー {duration} が終了しました。",
+    "started": "タイマー: 開始",
+    "max_reached": "タイマーは最大5個までです",
+    "list_header": "アクティブなタイマー:",
+    "list_item": "  {id}: {duration} (残り {remaining})",
+    "none_active": "アクティブなタイマーはありません",
+    "not_found": "タイマー {id} が見つかりません",
+    "cancelled": "タイマー {id} をキャンセルしました",
+    "min_duration": "タイマーの最小時間: {min}分"
   }
 }

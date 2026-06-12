@@ -227,6 +227,27 @@ class VassGUI(QMainWindow):
 
         self._left_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self._right_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
+        self._bell_btn = QPushButton("")
+        self._bell_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #888888; "
+            "border: none; font-size: 10px; padding: 2px 4px; }"
+            "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+        )
+        self._bell_btn.setFixedWidth(20)
+        self._bell_btn.setToolTip(self._t("gui.notifications"))
+        self._bell_menu = QMenu()
+        self._bell_menu.setStyleSheet(
+            "QMenu { background-color: #2d2d2d; color: #e0e0e0; "
+            "border: 1px solid #3c3c3c; padding: 4px; max-height: 400px; }"
+            "QMenu::item { padding: 6px 20px; }"
+            "QMenu::item:selected { background-color: #3d3d3d; }"
+        )
+        self._bell_btn.clicked.connect(
+            lambda: self._bell_menu.exec(self._bell_btn.mapToGlobal(self._bell_btn.rect().bottomLeft()))
+        )
+        row.addWidget(self._bell_btn)
+
         row.addSpacerItem(self._left_spacer)
         row.addWidget(self.stacked)
         row.addSpacerItem(self._right_spacer)
@@ -435,10 +456,10 @@ class VassGUI(QMainWindow):
 
     def _build_loading_widget(self):
         self.loading_widget = QWidget()
-        self.loading_widget.setStyleSheet("background-color: #1e1e1e;")
+        self.loading_widget.setStyleSheet("background: transparent;")
         lo = QVBoxLayout(self.loading_widget)
         lo.setContentsMargins(0, 0, 0, 0)
-        self.loading_label = QLabel(self._t("gui.states.loading"))
+        self.loading_label = QLabel("...")
         f = QFont(self._font_family, self._font_size)
         f.setBold(True)
         self.loading_label.setFont(f)
@@ -572,6 +593,44 @@ class VassGUI(QMainWindow):
     def set_replay_visible(self, visible):
         self.replay_btn.setVisible(visible)
 
+    def _update_bell(self):
+        if not self.app:
+            return
+        count = self.app.notification_manager.unread_count()
+        if count > 0:
+            self._bell_btn.setText(str(count))
+            self._bell_btn.setStyleSheet(
+                "QPushButton { background: transparent; color: #e74c3c; "
+                "border: none; font-size: 10px; padding: 2px 4px; font-weight: bold; }"
+                "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+            )
+        else:
+            self._bell_btn.setText("")
+            self._bell_btn.setStyleSheet(
+                "QPushButton { background: transparent; color: #888888; "
+                "border: none; font-size: 10px; padding: 2px 4px; }"
+                "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+            )
+        self._populate_bell_menu()
+
+    def _populate_bell_menu(self):
+        self._bell_menu.clear()
+        if not self.app:
+            return
+        notifs = self.app.notification_manager.list_all()
+        if not notifs:
+            self._bell_menu.addAction(self._t("gui.no_notifications"))
+            return
+        for n in notifs:
+            color = self.app.notification_manager.color_for(n["priority"])
+            prefix = "● " if not n["read"] else "  "
+            text = f"{prefix}[{n['ts']}] {n['text']}"
+            act = self._bell_menu.addAction(text)
+            act.setEnabled(False)
+        self._bell_menu.addSeparator()
+        mark_act = self._bell_menu.addAction(self._t("gui.mark_read"))
+        mark_act.triggered.connect(lambda: self.app.notification_manager.mark_all_read())
+
     def _on_replay(self):
         import threading
         path = os.path.join(BASE, "Allowed_root", "last_response.txt")
@@ -606,7 +665,7 @@ class VassGUI(QMainWindow):
             right_w += 16
         if self._chat_input.isVisible():
             right_w += max(self._chat_input.width(), self._chat_input.sizeHint().width())
-        self._left_spacer.changeSize(right_w, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self._left_spacer.changeSize(max(0, right_w - 20), 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self._right_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self.centralWidget().layout().invalidate()
 

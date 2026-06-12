@@ -53,6 +53,7 @@ _TOOL_SYNTAX = {
     "read_file": "read_file(path) — example: read_file('events.json')",
     "write_file": "write_file(path, content) — example: write_file('events.json', '{...}')",
     "current_time": "current_time() — no parameters",
+    "to_timestamp": "to_timestamp(date) — example: to_timestamp('2026-06-12 14:30')",
     "calculate": "calculate(expression) — example: calculate('2+2')",
     "execute": "execute(command) — example: execute('ping localhost')",
     "disk_space": "disk_space() — no parameters",
@@ -218,6 +219,11 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def current_time() -> str:
         """Get the current date and time."""
         return await _tool("current_time", "", datetime_.current_time(), config)
+
+    @mcp.tool()
+    async def to_timestamp(date_str: str) -> str:
+        """Convert a date/time string to Unix timestamp. Supports: 'YYYY-MM-DD', 'YYYY-MM-DD HH:MM', 'YYYY-MM-DD HH:MM:SS'"""
+        return await _tool("to_timestamp", f"date={date_str}", datetime_.convert_date_to_timestamp(date_str), config)
 
     @mcp.tool()
     async def calculate(expression: str) -> str:

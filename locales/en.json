@@ -60,7 +60,10 @@
       "cancel": "Cancel"
     },
     "chat_tooltip": "Type a message to the AI",
-    "chat_placeholder": "Type here and press Enter..."
+    "chat_placeholder": "Type here and press Enter...",
+    "notifications": "Notifications",
+    "mark_read": "Mark all as read",
+    "no_notifications": "No notifications"
   },
   "settings_editor": {
     "title": "VASS Settings",
@@ -333,5 +336,16 @@
     },
     "saved": "File saved.",
     "form_label": "Details"
+  },
+  "timer": {
+    "expired": "Timer {duration} expired.",
+    "started": "Timer: started",
+    "max_reached": "Maximum of 5 timers reached",
+    "list_header": "Active timers:",
+    "list_item": "  {id}: {duration} ({remaining} left)",
+    "none_active": "No active timers",
+    "not_found": "Timer {id} not found",
+    "cancelled": "Timer {id} cancelled",
+    "min_duration": "Minimum timer duration: {min} minute(s)"
   }
 }

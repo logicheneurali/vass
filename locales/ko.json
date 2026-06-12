@@ -60,7 +60,10 @@
     },
     "button_tooltip": "클릭 = 상태 변경 | 휠 = 볼륨 | 드래그 = 이동",
     "chat_tooltip": "AI에게 메시지 입력",
-    "chat_placeholder": "여기에 입력하고 Enter..."
+    "chat_placeholder": "여기에 입력하고 Enter...",
+    "notifications": "알림",
+    "mark_read": "모두 읽음으로 표시",
+    "no_notifications": "알림 없음"
   },
   "settings_editor": {
     "title": "VASS 설정",
@@ -334,5 +337,16 @@
     },
     "saved": "파일이 저장되었습니다.",
     "form_label": "세부사항"
+  },
+  "timer": {
+    "expired": "타이머 {duration}이(가) 종료되었습니다.",
+    "started": "타이머: 시작됨",
+    "max_reached": "최대 5개의 타이머에 도달했습니다",
+    "list_header": "활성 타이머:",
+    "list_item": "  {id}: {duration} ({remaining} 남음)",
+    "none_active": "활성 타이머가 없습니다",
+    "not_found": "타이머 {id}을(를) 찾을 수 없습니다",
+    "cancelled": "타이머 {id}이(가) 취소되었습니다",
+    "min_duration": "최소 타이머 시간: {min}분"
   }
 }

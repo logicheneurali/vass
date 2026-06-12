@@ -60,7 +60,10 @@
       "cancel": "Annulla"
     },
     "chat_tooltip": "Scrivi un messaggio all'AI",
-    "chat_placeholder": "Scrivi qui e premi Invio..."
+    "chat_placeholder": "Scrivi qui e premi Invio...",
+    "notifications": "Notifiche",
+    "mark_read": "Segna tutte come lette",
+    "no_notifications": "Nessuna notifica"
   },
   "scripts_editor": {
     "title": "VASScript Editor",
@@ -333,5 +336,16 @@
     },
     "saved": "File salvato.",
     "form_label": "Dettagli"
+  },
+  "timer": {
+    "expired": "Timer {duration} scaduto.",
+    "started": "Timer: avviato",
+    "max_reached": "Limite di 5 timer raggiunto",
+    "list_header": "Timer attivi:",
+    "list_item": "  {id}: {duration} ({remaining} rimasti)",
+    "none_active": "Nessun timer attivo",
+    "not_found": "Timer {id} non trovato",
+    "cancelled": "Timer {id} cancellato",
+    "min_duration": "Durata minima timer: {min} minuto/i"
   }
 }

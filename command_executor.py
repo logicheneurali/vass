@@ -90,7 +90,9 @@ class CommandExecutor:
         return matched / max(len(kw_words), 1)
 
     def find_matching_command(self, transcribed_text):
-        transcribed_lower = transcribed_text.lower().strip()
+        transcribed_lower = re.sub(r'[,!?;:]', ' ', transcribed_text.lower()).strip()
+        transcribed_lower = re.sub(r'\.$', '', transcribed_lower)
+        transcribed_lower = re.sub(r'\s+', ' ', transcribed_lower)
         if not transcribed_lower:
             return None
 

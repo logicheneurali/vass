@@ -8,7 +8,7 @@ import time
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify"}
 
 
 def _validate_recur(recur):
@@ -82,7 +82,10 @@ class VASScript:
                 continue
             if self.line_callback:
                 self.line_callback(i + 1, total)
-            self._execute_line(line)
+            result = self._execute_line(line)
+            if line.strip() and not line.strip().startswith("#"):
+                rstr = str(result) if result else "(empty)"
+                print(f"[VASScript] {line.strip()} -> {rstr}")
 
     def execute_file(self, path):
         with open(path, encoding="utf-8") as f:
@@ -496,6 +499,22 @@ class VASScript:
         if name == "savetags":
             tags = evaluated[0] if evaluated else ""
             return self._manage_memory_tags(tags)
+
+        if name == "timer_start":
+            dur = evaluated[0] if evaluated else ""
+            return self.app.timer_manager.start(dur)
+
+        if name == "timer_list":
+            return self.app.timer_manager.list_all()
+
+        if name == "timer_cancel":
+            tid = evaluated[0] if evaluated else ""
+            return self.app.timer_manager.cancel(tid)
+
+        if name == "notify":
+            text = evaluated[0] if evaluated else ""
+            priority = int(evaluated[1]) if len(evaluated) > 1 and evaluated[1].strip().isdigit() else 1
+            return self.app.notification_manager.add(text, priority)
 
         if name == "getdatetime":
             from datetime import datetime

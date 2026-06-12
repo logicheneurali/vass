@@ -225,6 +225,10 @@ class VassApp:
         self.script_queue = ScriptQueue(self)
         self.state = "loading"
         self.state_lock = threading.RLock()
+        from timer_manager import TimerManager
+        self.timer_manager = TimerManager(self)
+        from notification_manager import NotificationManager
+        self.notification_manager = NotificationManager()
         self.conversation_history = []
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "trascrizione"
         self.memory_mode = "full"
@@ -1677,6 +1681,7 @@ if __name__ == "__main__":
     def _start_vass():
         _state["app"] = VassApp(gui=gui)
         gui.app = _state["app"]
+        _state["app"].notification_manager.gui = gui
         gui.chat_text_signal.connect(_state["app"]._process_chat_text)
         gui.set_state("loading")
         def _run_safe():

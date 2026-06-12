@@ -11,6 +11,9 @@ tools:
   current_time:
     whitelist: ["127.0.0.1", "::1", "localhost"]
     blacklist: []
+  to_timestamp:
+    whitelist: ["127.0.0.1", "::1", "localhost"]
+    blacklist: []
   calculate:
     whitelist: ["127.0.0.1", "::1", "localhost"]
     blacklist: []
