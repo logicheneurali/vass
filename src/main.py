@@ -145,9 +145,11 @@ class ScriptQueue:
 class VassApp:
     def __init__(self, gui, settings_file="config/settings.ini"):
         self.gui = gui
-        self.audio_handler = AudioHandler()
         self.settings_file = settings_file
         self.settings = self._load_settings()
+        inp = int(self.settings.get("input_device", self.settings.get("audio", {}).get("input_device", -1)))
+        out = int(self.settings.get("output_device", self.settings.get("audio", {}).get("output_device", -1)))
+        self.audio_handler = AudioHandler(input_device=inp)
         self.language = self.settings["language"]
         self.wake_word_sensitivity = self.settings["sensitivity"]
         self.wake_word = self.settings.get("wakeword", "vass")
@@ -172,6 +174,7 @@ class VassApp:
             state_setter=self.set_state,
             tts_volume=tts_volume,
             language=self.language,
+            output_device=out,
         )
         self.tts.preload()
         self.gui.volume_top_bar.set_volume(tts_volume)

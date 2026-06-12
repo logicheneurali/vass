@@ -60,14 +60,15 @@ def kill_process(proc):
 
 # ── Audio utility ────────────────────────────────────────────────────────────
 
-def beep(volume=0.6):
+def beep(volume=0.6, output_device=-1):
     import os
     import soundfile as sf
     import sounddevice as sd
+    device = None if output_device < 0 else output_device
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sounds", "beep.wav")
     try:
         data, sr = sf.read(path)
-        sd.play(data * volume, sr)
+        sd.play(data * volume, sr, device=device)
         sd.wait()
     except Exception as e:
         print(f"[Beep] Error: {e}")
@@ -205,48 +206,55 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
     if not (msg.tool_calls and mcp and tools):
         return msg
 
-    for tc in msg.tool_calls:
-        tool_name = tc.function.name
-        tool_args = tc.function.arguments
-        print(f"[MCP] Call: {tool_name}({tool_args})")
-        messages.append({
-            "role": "assistant",
-            "content": None,
-            "tool_calls": [{
-                "id": tc.id,
-                "type": "function",
-                "function": {
-                    "name": tc.function.name,
-                    "arguments": tc.function.arguments
-                }
-            }]
-        })
-        try:
-            args = json.loads(tc.function.arguments)
-            result = mcp.call_tool(tc.function.name, args)
-            if isinstance(result, dict) and "content" in result:
-                parts = []
-                for item in result["content"]:
-                    if isinstance(item, dict) and item.get("type") == "text":
-                        parts.append(item.get("text", ""))
-                out = "\n".join(parts)
-            else:
-                out = json.dumps(result, ensure_ascii=False) if isinstance(result, dict) else str(result)
-        except Exception as e:
-            out = f"Errore: {e}"
-        messages.append({
-            "role": "tool",
-            "tool_call_id": tc.id,
-            "content": out
-        })
+    MAX_TURNS = 10
+    for _ in range(MAX_TURNS):
+        for tc in msg.tool_calls:
+            tool_name = tc.function.name
+            tool_args = tc.function.arguments
+            print(f"[MCP] Call: {tool_name}({tool_args})")
+            messages.append({
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [{
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments
+                    }
+                }]
+            })
+            try:
+                args = json.loads(tc.function.arguments)
+                result = mcp.call_tool(tc.function.name, args)
+                if isinstance(result, dict) and "content" in result:
+                    parts = []
+                    for item in result["content"]:
+                        if isinstance(item, dict) and item.get("type") == "text":
+                            parts.append(item.get("text", ""))
+                    out = "\n".join(parts)
+                else:
+                    out = json.dumps(result, ensure_ascii=False) if isinstance(result, dict) else str(result)
+            except Exception as e:
+                out = f"Errore: {e}"
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "content": out
+            })
 
-    resp = call_with_retry(lambda: openai_client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        extra_body={"disable_thinking": True}
-    ), log_prefix=log_prefix)
-    return resp.choices[0].message
+        resp = call_with_retry(lambda: openai_client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools,
+            temperature=temperature,
+            extra_body={"disable_thinking": True}
+        ), log_prefix=log_prefix)
+        msg = resp.choices[0].message
+        if not msg.tool_calls:
+            return msg
+
+    return msg
 
 
 def init_mcp(mcp_server_url, timeout=120, log_prefix="[AI]"):

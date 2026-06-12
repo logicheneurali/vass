@@ -107,7 +107,9 @@
       "noise_pause_duration": "Pause delay (sec)",
       "context_length": "Context length (tokens)",
       "overflow_strategy": "Overflow strategy",
-      "allow_ai_scripts": "AI scripts"
+      "allow_ai_scripts": "AI scripts",
+      "input_device": "Recording",
+      "output_device": "Playback"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -159,7 +161,8 @@
       "resources": "System resources",
       "locale": "Language",
       "events": "Events",
-      "noise": "Noise"
+      "noise": "Noise",
+      "audio": "Audio input/output"
     },
     "buttons": {
       "save": "Save",

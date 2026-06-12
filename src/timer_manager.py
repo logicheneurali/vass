@@ -89,21 +89,27 @@ class TimerManager:
                 tts._tts_done.wait()
         except Exception:
             pass
-        try:
-            from utils import beep
-            for x in range(5):
-                beep(self.app.tts.tts_volume)
-                _time.sleep(0.15)
-        except Exception:
-            pass
+        self._play_alert(2)
         self.app.tts.speak(msg)
         try:
             self.app.tts._tts_done.wait()
-            from utils import beep
-            for x in range(5):
-                beep(self.app.tts.tts_volume)
-                _time.sleep(0.15)
+            self._play_alert(2)
         except Exception:
+            pass
+
+    @staticmethod
+    def _play_alert(count=1):
+        try:
+            import os
+            import soundfile as sf
+            import sounddevice as sd
+            path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sounds", "alert.wav")
+            data, sr = sf.read(path)
+            for _ in range(count):
+                sd.play(data, sr)
+                sd.wait()
+        except Exception:
+            pass
             pass
 
     @staticmethod

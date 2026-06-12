@@ -107,7 +107,9 @@
       "noise_pause_duration": "一時停止遅延 (秒)",
       "context_length": "コンテキスト長 (トークン)",
       "overflow_strategy": "オーバーフロー戦略",
-      "allow_ai_scripts": "AIスクリプト"
+      "allow_ai_scripts": "AIスクリプト",
+      "input_device": "録音",
+      "output_device": "再生"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -159,7 +161,8 @@
       "resources": "System resources",
       "locale": "言語",
       "events": "イベント",
-      "noise": "ノイズ"
+      "noise": "ノイズ",
+      "audio": "オーディオ入出力"
     },
     "buttons": {
       "save": "保存",

@@ -5,9 +5,10 @@ import queue
 import time
 
 class AudioHandler:
-    def __init__(self, sample_rate=16000, channels=1, frame_duration_ms=20):
+    def __init__(self, sample_rate=16000, channels=1, frame_duration_ms=20, input_device=-1):
         self.sample_rate = sample_rate
         self.channels = channels
+        self.input_device = None if input_device < 0 else input_device
         self.frame_size = int(sample_rate * frame_duration_ms / 1000)
         self.vad = webrtcvad.Vad(2)
         self.audio_queue = queue.Queue(maxsize=500)  # Increased from 100
@@ -32,7 +33,8 @@ class AudioHandler:
             channels=self.channels,
             callback=self.audio_callback,
             blocksize=self.frame_size,
-            latency='high'  # Use high latency to prevent overflow
+            latency='high',
+            device=self.input_device
         )
         self.stream.start()
 

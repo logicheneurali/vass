@@ -290,6 +290,23 @@ class SettingsEditor(QMainWindow):
                     if idx >= 0:
                         entry.setCurrentIndex(idx)
                     group_layout.addWidget(entry, row, 1)
+                elif key in ("input_device", "output_device"):
+                    entry = QComboBox()
+                    entry.addItem("Automatico (-1)", -1)
+                    try:
+                        import sounddevice as sd
+                        kind = "input" if key == "input_device" else "output"
+                        for d in sd.query_devices():
+                            ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
+                            if ch > 0:
+                                entry.addItem(f"{d['index']}: {d['name']}", d['index'])
+                    except Exception:
+                        pass
+                    current_val = self.config.getint(section, key)
+                    idx = entry.findData(current_val)
+                    if idx >= 0:
+                        entry.setCurrentIndex(idx)
+                    group_layout.addWidget(entry, row, 1)
                 else:
                     entry = QLineEdit()
                     entry.setText(self.config.get(section, key))

@@ -107,7 +107,9 @@
       "noise_pause_duration": "일시정지 지연 (초)",
       "context_length": "컨텍스트 길이 (토큰)",
       "overflow_strategy": "오버플로우 전략",
-      "allow_ai_scripts": "AI 스크립트"
+      "allow_ai_scripts": "AI 스크립트",
+      "input_device": "녹음",
+      "output_device": "재생"
     },
     "field_descriptions": {
       "x": "화면 X 위치",
@@ -159,7 +161,8 @@
       "resources": "System resources",
       "locale": "언어",
       "events": "이벤트",
-      "noise": "소음"
+      "noise": "소음",
+      "audio": "오디오 입출력"
     },
     "buttons": {
       "save": "저장",

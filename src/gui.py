@@ -7,7 +7,7 @@ from PySide6.QtGui import QPainter, QColor, QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
-    QLineEdit, QSpacerItem, QSizePolicy,
+    QLineEdit, QSpacerItem, QSizePolicy, QWidgetAction,
 )
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -629,10 +629,18 @@ class VassGUI(QMainWindow):
             return
         for n in notifs:
             color = self.app.notification_manager.color_for(n["priority"])
-            prefix = "● " if not n["read"] else "  "
-            text = f"{prefix}[{n['ts']}] {n['text']}"
-            act = self._bell_menu.addAction(text)
-            act.setEnabled(False)
+            bullet = f'<span style="color:{color};">●</span>' if not n["read"] else "  "
+            ts = n.get("ts", "")
+            txt = n.get("text", "")
+            html = f'{bullet} <span style="color:#aaaaaa;">[{ts}]</span> {txt}'
+            lbl = QLabel(html)
+            lbl.setStyleSheet("color: #e0e0e0; padding: 4px 16px; font-size: 12px;")
+            lbl.setWordWrap(True)
+            lbl.setMinimumWidth(280)
+            lbl.setMaximumWidth(450)
+            act = QWidgetAction(self._bell_menu)
+            act.setDefaultWidget(lbl)
+            self._bell_menu.addAction(act)
         self._bell_menu.addSeparator()
         mark_act = self._bell_menu.addAction(self._t("gui.mark_read"))
         mark_act.triggered.connect(lambda: self.app.notification_manager.mark_all_read())

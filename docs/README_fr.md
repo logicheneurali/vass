@@ -6,15 +6,21 @@ VASS est un assistant vocal pour Windows, macOS et Linux. Il répond aux command
 
 **Mot d'activation par défaut :** "Erika"
 
-**Fonctionnalités principales :**
-- Reconnaissance vocale via Whisper (faster-whisper)
-- Synthèse vocale naturelle via Kokoro TTS
+**Fonctionnalités principales:**
+- Reconnaissance vocale via Whisper (faster-whisper) avec noise floor adaptatif
+- Synthèse vocale naturelle via Kokoro TTS avec chaîne de secours à 4 niveaux
 - IA locale ou distante (llama.cpp, OpenAI, tout serveur compatible)
-- Scripting VASScript pour l'automatisation du bureau
-- Gestion des événements et rappels
-- Serveur MCP avec 15 outils pour l'orchestration IA
-- Historique des conversations
-- Support de 9 langues (italien, anglais, allemand, français, espagnol, portugais, japonais, coréen, chinois)
+- Scripting VASScript pour automatisation bureau avec 25+ fonctions
+- Gestion d'événements et planifications avec éditeur GUI
+- Minuteur multilingue à commande vocale (5 simultanés)
+- Serveur MCP avec 21 outils pour orchestration IA
+- Mémoire permanente avec classification et résumé automatiques
+- Visualiseur d'historique avec actions par message
+- Support 9 langues
+- Protection contre le débordement de contexte
+- Sélection du périphérique audio (entrée/sortie)
+- Appel d'outils multi-tour pour tâches IA complexes
+
 
 ---
 

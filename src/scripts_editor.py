@@ -109,6 +109,12 @@ TEMPLATES = {
     "clipboardset": 'clipboardset("testo da copiare")',
     "readinfo": 'readinfo("id_file")',
     "writeinfo": 'writeinfo("dati da salvare")',
+    "timer_start": 'timer_start("1h30m")',
+    "timer_list": '$lista = timer_list()\nsay($lista)',
+    "timer_cancel": 'timer_cancel("id_timer")',
+    "notify": 'notify("Operazione completata", 5)',
+    "savetags": 'savetags("food,health,pets")',
+    "delevent": 'delevent("riunione")',
     "listen → say": '$testo = listen()\nsay($testo)',
     "screen_search → listen → screen_search": (
         '$richiesta = listen("Cosa vuoi cercare?")\n'

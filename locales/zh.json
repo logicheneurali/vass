@@ -107,7 +107,9 @@
       "noise_pause_duration": "暂停延迟 (秒)",
       "context_length": "上下文长度 (令牌)",
       "overflow_strategy": "溢出策略",
-      "allow_ai_scripts": "AI脚本"
+      "allow_ai_scripts": "AI脚本",
+      "input_device": "录音",
+      "output_device": "播放"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
@@ -159,7 +161,8 @@
       "resources": "System resources",
       "locale": "语言",
       "events": "事件",
-      "noise": "噪音"
+      "noise": "噪音",
+      "audio": "音频输入/输出"
     },
     "buttons": {
       "save": "保存",

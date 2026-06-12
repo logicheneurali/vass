@@ -20,12 +20,13 @@ _KOKORO_LANGS = {
 
 
 class TtsEngine:
-    def __init__(self, gui, state_getter, state_setter, tts_volume, language="en"):
+    def __init__(self, gui, state_getter, state_setter, tts_volume, language="en", output_device=-1):
         self.gui = gui
         self._get_state = state_getter
         self._set_state = state_setter
         self.tts_volume = tts_volume
         self.language = language
+        self.output_device = None if output_device < 0 else output_device
 
         self.tts_playing = False
         self.tts_busy = threading.Lock()
@@ -101,7 +102,7 @@ class TtsEngine:
         if peak > 0:
             self._tts_data = self._tts_data * (self.tts_volume / peak)
         self._tts_play_start = time.time()
-        sd.play(self._tts_data, self._tts_sr)
+        sd.play(self._tts_data, self._tts_sr, device=self.output_device)
         threading.Thread(target=self._tts_playback_monitor, daemon=True).start()
         if self.gui:
             self.gui.volume_top_bar.set_volume(self.tts_volume)

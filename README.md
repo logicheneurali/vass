@@ -9,14 +9,19 @@ VASS is a voice assistant for Windows, macOS, and Linux. It responds to voice co
 **Default wake word:** "Erika"
 
 **Key features:**
-- Voice recognition via Whisper (faster-whisper)
-- Natural speech synthesis via Kokoro TTS
+- Voice recognition via Whisper (faster-whisper) with adaptive noise floor
+- Natural speech synthesis via Kokoro TTS with 4-step fallback chain
 - Local or remote AI (llama.cpp, OpenAI, any compatible server)
-- VASScript scripting for desktop automation
-- Event and reminder management
-- MCP server with 15 tools for AI orchestration
-- Conversation history
+- VASScript scripting for desktop automation with 25+ built-in functions
+- Event and schedule management with editor GUI
+- Multilingual countdown timer (voice-activated, 5 simultaneous)
+- MCP server with 21 tools for AI orchestration (web, files, events, tags, script execution)
+- Permanent memory with automatic classification and summarization
+- Conversation history viewer with per-message actions
 - 9 language support (Italian, English, German, French, Spanish, Portuguese, Japanese, Korean, Chinese)
+- Context overflow protection (truncate or AI summarization)
+- Audio device selection (input/output)
+- Multi-turn tool calling for complex AI tasks
 
 <sub>[Italiano](docs/README_it.md) · [English](docs/README_en.md) · [Deutsch](docs/README_de.md) · [Français](docs/README_fr.md) · [Español](docs/README_es.md) · [Português](docs/README_pt.md) · [日本語](docs/README_ja.md) · [한국어](docs/README_ko.md) · [中文](docs/README_zh.md)</sub>
 

@@ -107,7 +107,9 @@
       "noise_pause_duration": "Pausenverzögerung (Sek)",
       "context_length": "Kontextlänge (Token)",
       "overflow_strategy": "Überlaufstrategie",
-      "allow_ai_scripts": "KI-Skripte"
+      "allow_ai_scripts": "KI-Skripte",
+      "input_device": "Aufnahme",
+      "output_device": "Wiedergabe"
     },
     "field_descriptions": {
       "x": "Bildschirm X-Position",
@@ -159,7 +161,8 @@
       "resources": "Systemressourcen",
       "locale": "Sprache",
       "events": "Ereignisse",
-      "noise": "Geräusch"
+      "noise": "Geräusch",
+      "audio": "Audio Ein-/Ausgabe"
     },
     "buttons": {
       "save": "Speichern",

@@ -136,7 +136,9 @@
       "noise_pause_duration": "Durata prima pausa (sec)",
       "context_length": "Lunghezza contesto (token)",
       "overflow_strategy": "Strategia overflow",
-      "allow_ai_scripts": "Script AI"
+      "allow_ai_scripts": "Script AI",
+      "input_device": "Registrazione",
+      "output_device": "Riproduzione"
     },
     "field_descriptions": {
       "x": "Posizione X sullo schermo",
@@ -188,7 +190,8 @@
       "resources": "Risorse di sistema",
       "locale": "Lingua",
       "events": "Eventi",
-      "noise": "Rumore"
+      "noise": "Rumore",
+      "audio": "Audio input/output"
     },
     "buttons": {
       "save": "Salva",
