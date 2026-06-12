@@ -41,7 +41,7 @@ class EventReminder:
         self._last_schedule_mtime = 0
 
     def _root_dir(self):
-        return os.path.dirname(os.path.abspath(__file__))
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     def _events_path(self):
         return os.path.join(self._root_dir(), "Allowed_root", "events.json")

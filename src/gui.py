@@ -10,7 +10,8 @@ from PySide6.QtWidgets import (
     QLineEdit, QSpacerItem, QSizePolicy,
 )
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC = os.path.join(BASE, "src")
 
 
 class WaveformPlayer(QWidget):
@@ -278,12 +279,17 @@ class VassGUI(QMainWindow):
             "QMenu::item { padding: 6px 20px; }"
             "QMenu::item:selected { background-color: #0d7377; }"
         )
-        self._menu.addAction(self._t("gui.menu.commands"), self.open_commands)
         self._menu.addAction(self._t("gui.menu.settings"), self.open_settings)
+        self._menu.addAction(self._t("gui.menu.commands"), self.open_commands)
         self._menu.addAction(self._t("gui.menu.scripts"), self.open_scripts)
         self._menu.addAction(self._t("gui.menu.history"), self.open_history)
         self._menu.addAction(self._t("gui.menu.sources"), self.open_sources)
         self._menu.addAction(self._t("gui.menu.events"), self.open_events)
+        self._help_menu = self._menu.addMenu(self._t("gui.menu.help"))
+        self._help_menu.addAction(self._t("gui.menu.help_usage"), self._open_help_usage)
+        self._help_menu.addAction(self._t("gui.menu.help_commands"), self._open_help_commands)
+        self._help_menu.addAction(self._t("gui.menu.help_vasscript"), self._open_help_vasscript)
+        self._open_windows = []
         self._menu.addSeparator()
         self._mode_chat = self._menu.addAction(self._t("gui.mode.chat"))
         self._mode_chat.setCheckable(True)
@@ -816,7 +822,7 @@ class VassGUI(QMainWindow):
             y = int(y / scale)
             w = int(w / scale)
             h = int(h / scale)
-            script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "highlight_toast.ps1")
+            script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "highlight_toast.ps1")
             subprocess.Popen(
                 ["powershell", "-NoProfile", "-File", script,
                  "-x", str(x), "-y", str(y), "-w", str(w), "-h", str(h), "-dur", str(duration)],
@@ -885,13 +891,13 @@ class VassGUI(QMainWindow):
         _sp.Popen(["python", script] + list(extra_args))
 
     def open_settings(self):
-        self._open_unique_window("settings", os.path.join(BASE, "settings_editor.py"), "--lang", self.language)
+        self._open_unique_window("settings", os.path.join(SRC, "settings_editor.py"), "--lang", self.language)
 
     def open_commands(self):
-        self._open_unique_window("commands", os.path.join(BASE, "commands_editor.py"), "--lang", self.language)
+        self._open_unique_window("commands", os.path.join(SRC, "commands_editor.py"), "--lang", self.language)
 
     def open_scripts(self):
-        self._open_unique_window("scripts", os.path.join(BASE, "scripts_editor.py"), "--lang", self.language)
+        self._open_unique_window("scripts", os.path.join(SRC, "scripts_editor.py"), "--lang", self.language)
 
     def open_history(self):
         import json, time
@@ -923,13 +929,61 @@ class VassGUI(QMainWindow):
             pass
         with open(data_path, "w", encoding="utf-8") as f:
             json.dump(entries, f, ensure_ascii=False)
-        self._open_unique_window("history", os.path.join(BASE, "history_viewer.py"), "--lang", self.language)
+        self._open_unique_window("history", os.path.join(SRC, "history_viewer.py"), "--lang", self.language)
 
     def open_sources(self):
-        self._open_unique_window("sources", os.path.join(BASE, "sources_editor.py"), "--lang", self.language)
+        self._open_unique_window("sources", os.path.join(SRC, "sources_editor.py"), "--lang", self.language)
 
     def open_events(self):
-        self._open_unique_window("events", os.path.join(BASE, "events_editor.py"), "--lang", self.language)
+        self._open_unique_window("events", os.path.join(SRC, "events_editor.py"), "--lang", self.language)
+
+    def _open_help_usage(self):
+        import os
+        readme = os.path.join(BASE, "docs", f"README_{self.language}.md")
+        if not os.path.exists(readme):
+            readme = os.path.join(BASE, "README.md")
+        from markdown_viewer import MarkdownViewer
+        v = MarkdownViewer(title=self._t("gui.menu.help_usage"), file_path=readme)
+        v.show()
+        self._open_windows.append(v)
+
+    def _open_help_commands(self):
+        import configparser, os
+        content = "# Comandi disponibili\n\n"
+        sections = []
+        lang_path = os.path.join(BASE, "config", f"commands_{self.language}.ini")
+        if os.path.exists(lang_path):
+            cfg = configparser.ConfigParser()
+            cfg.read(lang_path, encoding="utf-8")
+            for s in cfg.sections():
+                items = []
+                for k, v in cfg.items(s):
+                    items.append(f"- **{k}** → `{v}`")
+                if items:
+                    sections.append(f"## Comandi interni — {s}\n\n" + "\n".join(sorted(items)))
+        user_path = os.path.join(BASE, "config", "commands.ini")
+        if os.path.exists(user_path):
+            cfg = configparser.ConfigParser()
+            cfg.read(user_path, encoding="utf-8")
+            for s in cfg.sections():
+                items = []
+                for k, v in cfg.items(s):
+                    items.append(f"- **{k}** → `{v}`")
+                if items:
+                    sections.append(f"## Comandi utente — {s}\n\n" + "\n".join(sorted(items)))
+        content += "\n\n".join(sections) if sections else "*Nessun comando disponibile*"
+        from markdown_viewer import MarkdownViewer
+        v = MarkdownViewer(title=self._t("gui.menu.help_commands"), content=content)
+        v.show()
+        self._open_windows.append(v)
+
+    def _open_help_vasscript(self):
+        import os
+        path = os.path.join(BASE, "Allowed_root", "VASCRIPT_REFERENCE.md")
+        from markdown_viewer import MarkdownViewer
+        v = MarkdownViewer(title=self._t("gui.menu.help_vasscript"), file_path=path)
+        v.show()
+        self._open_windows.append(v)
 
     def _is_fullscreen(self):
         if sys.platform == "win32":

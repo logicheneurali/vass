@@ -73,7 +73,7 @@ class CommandsEditor(QMainWindow):
         super().__init__()
         self.lang = language
         if commands_file is None:
-            self.commands_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "commands.ini")
+            self.commands_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "commands.ini")
         else:
             self.commands_file = commands_file
         self.config = configparser.ConfigParser()

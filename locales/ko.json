@@ -18,7 +18,11 @@
       "exit": "종료",
       "history": "기록",
       "sources": "온라인 소스",
-      "events": "이벤트 및 일정"
+      "events": "이벤트 및 일정",
+      "help": "도움말",
+      "help_usage": "사용법",
+      "help_commands": "명령어",
+      "help_vasscript": "VASScript"
     },
     "dialog": {
       "exit_title": "종료",

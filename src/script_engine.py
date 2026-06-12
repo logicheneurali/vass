@@ -248,7 +248,7 @@ class VASScript:
                 system_content = f"{base}\n\n{date_prefix}{now}".strip()
 
                 memory_content = self.app._build_memory_content()
-                from vass import MCP_PROMPT, _load_vascript_reference
+                from main import MCP_PROMPT, _load_vascript_reference
                 vas_ref = _load_vascript_reference()
                 tools_block = MCP_PROMPT + vas_ref if self.app.allow_ai_scripts else ""
                 system_content = memory_content + system_content + tools_block
@@ -645,7 +645,7 @@ class VASScript:
 
     def _manage_memory_tags(self, tags):
         from pathlib import Path
-        vass_root = Path(__file__).resolve().parent
+        vass_root = Path(__file__).resolve().parent.parent
         allowed_root = vass_root / "Allowed_root"
 
         TAG_WEIGHTS = {
@@ -692,7 +692,7 @@ class VASScript:
 
     def _manage_info(self, action, arg):
         from pathlib import Path
-        vass_root = Path(__file__).resolve().parent
+        vass_root = Path(__file__).resolve().parent.parent
         memory_dir = vass_root / "Allowed_root" / "memory"
         memory_dir.mkdir(parents=True, exist_ok=True)
 

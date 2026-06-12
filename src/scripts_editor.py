@@ -57,7 +57,7 @@ QMenu::item:selected {{
 }}
 """
 
-SCRIPT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts")
+SCRIPT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 
 TEMPLATES = {
     "ai": 'ai("prompt")',
@@ -136,7 +136,7 @@ class ScriptsEditor(QMainWindow):
         return t(path, self.lang)
 
     def _settings_path(self):
-        return os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "settings.ini")
+        return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "settings.ini")
 
     def _load_allow_ai_setting(self):
         try:

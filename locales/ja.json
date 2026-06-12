@@ -18,7 +18,11 @@
       "exit": "終了",
       "history": "履歴",
       "sources": "オンラインソース",
-      "events": "イベントとスケジュール"
+      "events": "イベントとスケジュール",
+      "help": "ヘルプ",
+      "help_usage": "使い方",
+      "help_commands": "コマンド",
+      "help_vasscript": "VASScript"
     },
     "dialog": {
       "exit_title": "終了",

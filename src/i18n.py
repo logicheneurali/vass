@@ -1,7 +1,7 @@
 import json
 import os
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _locale_cache = {}
 
 def load_lang(lang):

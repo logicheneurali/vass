@@ -18,7 +18,11 @@
       "history": "History",
       "exit": "Exit",
       "sources": "Online Sources",
-      "events": "Events & schedules"
+      "events": "Events & schedules",
+      "help": "Help",
+      "help_usage": "Usage",
+      "help_commands": "Commands",
+      "help_vasscript": "VASScript"
     },
     "dialog": {
       "exit_title": "Exit",

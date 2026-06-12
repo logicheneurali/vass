@@ -126,7 +126,7 @@ class TtsEngine:
                 from kokoro import KPipeline
                 print(f"[TTS] Loading Kokoro pipeline (lang={self._kokoro_code}, voice={self._kokoro_voice})...")
                 self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
-            self._tts_wav_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
+            self._tts_wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             wav_path = self._tts_wav_path
             generator = self._kokoro_pipeline(text, voice=self._kokoro_voice, speed=speed)
             all_audio = []
@@ -159,7 +159,7 @@ class TtsEngine:
         try:
             from kokoro import KPipeline
             pipeline = KPipeline(lang_code=lang_code)
-            wav_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
+            wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             generator = pipeline(text, voice=voice, speed=speed)
             all_audio = []
             for gs, ps, audio in generator:

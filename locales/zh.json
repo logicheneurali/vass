@@ -18,7 +18,11 @@
       "exit": "退出",
       "history": "历史",
       "sources": "在线来源",
-      "events": "事件和计划"
+      "events": "事件和计划",
+      "help": "帮助",
+      "help_usage": "使用说明",
+      "help_commands": "命令",
+      "help_vasscript": "VASScript"
     },
     "dialog": {
       "exit_title": "退出",

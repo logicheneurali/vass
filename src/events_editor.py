@@ -63,7 +63,7 @@ QSpinBox {{
 }}
 """
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOWED = os.path.join(BASE, "Allowed_root")
 
 CATEGORIES = ["events", "schedules"]

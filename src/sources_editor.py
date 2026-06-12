@@ -57,7 +57,7 @@ QComboBox QAbstractItemView {{
 }}
 """
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOWED = os.path.join(BASE, "Allowed_root")
 
 CATEGORIES = ["news_sources", "shopping", "weather", "currency", "recipes", "movies"]

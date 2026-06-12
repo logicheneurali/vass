@@ -64,7 +64,7 @@ def beep(volume=0.6):
     import os
     import soundfile as sf
     import sounddevice as sd
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sounds", "beep.wav")
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sounds", "beep.wav")
     try:
         data, sr = sf.read(path)
         sd.play(data * volume, sr)

@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QTextBrowser, QMessageBox,
 )
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 USER_COLOR = "#2ecc71"
 AI_COLOR = "#3498db"
@@ -176,7 +176,6 @@ class HistoryViewer(QMainWindow):
 
 def _tl(path, lang):
     try:
-        sys.path.insert(0, BASE)
         from i18n import t
         return t(path, lang)
     except Exception:

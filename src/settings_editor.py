@@ -78,7 +78,7 @@ class SettingsEditor(QMainWindow):
         super().__init__()
         self.lang = language
         if settings_file is None:
-            self.settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "settings.ini")
+            self.settings_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "settings.ini")
         else:
             self.settings_file = settings_file
         self.config = configparser.ConfigParser()
@@ -90,7 +90,7 @@ class SettingsEditor(QMainWindow):
 
     def _get_supported_languages(self):
         supported = []
-        locales_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales")
+        locales_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "locales")
         if os.path.isdir(locales_dir):
             for fname in os.listdir(locales_dir):
                 if fname.endswith(".json"):

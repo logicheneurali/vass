@@ -18,7 +18,11 @@
       "history": "Cronologia",
       "exit": "Esci",
       "sources": "Fonti Online",
-      "events": "Eventi e operazioni"
+      "events": "Eventi e operazioni",
+      "help": "Help",
+      "help_usage": "Utilizzo",
+      "help_commands": "Comandi",
+      "help_vasscript": "VASScript"
     },
     "dialog": {
       "exit_title": "Uscita",

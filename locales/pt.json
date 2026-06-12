@@ -18,7 +18,11 @@
       "exit": "Sair",
       "history": "History",
       "sources": "Fontes Online",
-      "events": "Eventos e operações"
+      "events": "Eventos e operações",
+      "help": "Ajuda",
+      "help_usage": "Uso",
+      "help_commands": "Comandos",
+      "help_vasscript": "VASScript"
     },
     "dialog": {
       "exit_title": "Sair",

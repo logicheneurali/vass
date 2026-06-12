@@ -973,7 +973,7 @@ def main():
     # ── STEP 4: Copy files ───────────────────────────────────────────────────
     step(5, _("step_copy"))
 
-    src = Path(__file__).resolve().parent
+    src = Path(__file__).resolve().parent.parent
     print(f"  {_('source', src)}")
     copy_tree_filtered(src, dest)
 
@@ -1075,7 +1075,7 @@ def main():
         with open(launcher, "w", encoding="utf-8") as f:
             f.write('@echo off\r\n')
             f.write(f'cd /d "{dest}"\r\n')
-            f.write(f'".venv\\Scripts\\python.exe" "vass.py"\r\n')
+            f.write(f'".venv\\Scripts\\python.exe" "start_vass.py"\r\n')
             f.write('pause\r\n')
     elif sys.platform == "darwin":
         launcher = dest / "vass.command"
@@ -1083,7 +1083,7 @@ def main():
             f.write('#!/bin/bash\n')
             f.write('cd "$(dirname "$0")"\n')
             f.write('source ".venv/bin/activate"\n')
-            f.write('exec python vass.py\n')
+            f.write('exec python start_vass.py\n')
         os.chmod(launcher, 0o755)
     else:
         launcher = dest / "vass.sh"
@@ -1091,7 +1091,7 @@ def main():
             f.write('#!/bin/bash\n')
             f.write('cd "$(dirname "$0")"\n')
             f.write('source ".venv/bin/activate"\n')
-            f.write('exec python vass.py\n')
+            f.write('exec python start_vass.py\n')
         os.chmod(launcher, 0o755)
 
     print(f"  {C_GREEN}{_('launcher_ok', launcher.name)}{C_RESET}")
@@ -1113,9 +1113,9 @@ def main():
     print(f"    {C_BOLD}{_('summary_howto_launcher', launcher.name)}{C_RESET}")
     print(f"  {_('summary_howto_terminal')}")
     if sys.platform == "win32":
-        print(f"    {C_BOLD}cd \"{dest}\" && .venv\\Scripts\\python vass.py{C_RESET}")
+        print(f"    {C_BOLD}cd \"{dest}\" && .venv\\Scripts\\python start_vass.py{C_RESET}")
     else:
-        print(f"    {C_BOLD}cd \"{dest}\" && .venv/bin/python vass.py{C_RESET}")
+        print(f"    {C_BOLD}cd \"{dest}\" && .venv/bin/python start_vass.py{C_RESET}")
     print()
     print(f"  {C_YELLOW}{_('summary_note')}{C_RESET}")
     print(f"  {_('summary_note_server', url)}")
