@@ -233,6 +233,8 @@ Schedules (automated procedures) are in `schedule.json` and trigger command exec
 
 ## Troubleshooting
 
+> **Important:** This application depends heavily on the AI model used. Ineffective models or models not suited for MCP tool usage may compromise functionality.
+
 ### VASS won't start
 - Check Python 3.13+: `python --version`
 - Verify `.venv` exists and contains dependencies

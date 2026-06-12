@@ -39,7 +39,31 @@ class MarkdownViewer(QMainWindow):
         if file_path and os.path.exists(file_path):
             with open(file_path, encoding="utf-8") as f:
                 content = f.read()
+        content = self._preprocess(content)
         self.browser.setMarkdown(content)
+        self.browser.setStyleSheet(
+            "p { margin-top: 8px; margin-bottom: 8px; } "
+            "h1, h2, h3 { margin-top: 16px; margin-bottom: 8px; } "
+            "pre { margin: 8px 0; padding: 8px; border-radius: 3px; } "
+            "code { background-color: #2d2d2d; padding: 1px 4px; border-radius: 2px; } "
+            "li { margin: 2px 0; } "
+        )
+
+    @staticmethod
+    def _preprocess(text):
+        lines = text.split('\n')
+        result = []
+        prev_empty = False
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                if not prev_empty:
+                    result.append('')
+                prev_empty = True
+            else:
+                result.append(line)
+                prev_empty = False
+        return '\n'.join(result)
 
     @staticmethod
     def show_file(title, file_path):

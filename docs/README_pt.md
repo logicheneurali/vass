@@ -228,6 +228,8 @@ Os agendamentos (procedimentos automatizados) estão em `schedule.json` e aciona
 
 ## Resolução de problemas
 
+> **Importante:** Esta aplicação depende fortemente do modelo de IA utilizado. Modelos ineficazes ou não adequados para ferramentas MCP podem comprometer o funcionamento.
+
 ### O VASS não inicia
 - Verifique Python 3.13+: `python --version`
 - Verifique se `.venv` existe e contém as dependências

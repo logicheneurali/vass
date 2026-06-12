@@ -9,7 +9,7 @@ import time
 
 import shutil
 
-_SAFE_CMD_RE = re.compile(r'^[a-zA-Z0-9_\-.:\\/ ]+\.(exe|bat|ps1|py|cmd|vbs)$')
+_SAFE_CMD_RE = re.compile(r'^[a-zA-Z0-9_\-.:\\/ ]+\.(exe|bat|ps1|py|cmd|vbs|vass)$')
 
 
 def _validate_command(command, arguments):
@@ -379,9 +379,23 @@ class EventReminder:
 
         started_msg = t("events.schedule_started", self.lang).replace("{description}", desc)
         self.app.tts.speak(started_msg)
-        if hasattr(self.app, 'notification_manager'):
-            self.app.notification_manager.add(started_msg, priority=7)
         print(f"[Schedules] Started: {desc} -> {command} {arguments}")
+
+        # Check if command is a .vass script
+        if command.lower().endswith(".vass") or os.path.splitext(command)[1].lower() == ".vass":
+            script_name = os.path.splitext(os.path.basename(command))[0]
+            if not os.path.exists(command):
+                scripts_dir = os.path.join(self._root_dir(), "scripts")
+                candidate = os.path.join(scripts_dir, os.path.basename(command))
+                if os.path.exists(candidate):
+                    command = candidate
+                    script_name = os.path.splitext(os.path.basename(command))[0]
+            if hasattr(self.app, '_run_script'):
+                self.app._run_script(script_name)
+            else:
+                failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
+                self.app.tts.speak(failed_msg)
+            return
 
         if not _validate_command(command, arguments):
             failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)

@@ -197,10 +197,10 @@ class EventsEditor(QMainWindow):
         self.cmd_edit = QLineEdit()
         self.cmd_edit.setPlaceholderText("python")
         row_cmd.addWidget(self.cmd_edit)
-        btn_cmd_browse = QPushButton("...")
-        btn_cmd_browse.setFixedWidth(28)
-        btn_cmd_browse.clicked.connect(self._browse_command)
-        row_cmd.addWidget(btn_cmd_browse)
+        self._btn_cmd_browse = QPushButton("...")
+        self._btn_cmd_browse.setFixedWidth(28)
+        self._btn_cmd_browse.clicked.connect(self._browse_command)
+        row_cmd.addWidget(self._btn_cmd_browse)
         form_grid.addLayout(row_cmd)
 
         row3 = QHBoxLayout()
@@ -214,10 +214,10 @@ class EventsEditor(QMainWindow):
         self.workdir_edit = QLineEdit()
         self.workdir_edit.setPlaceholderText("C:\\...")
         row3.addWidget(self.workdir_edit)
-        btn_wd_browse = QPushButton("...")
-        btn_wd_browse.setFixedWidth(28)
-        btn_wd_browse.clicked.connect(self._browse_workdir)
-        row3.addWidget(btn_wd_browse)
+        self._btn_wd_browse = QPushButton("...")
+        self._btn_wd_browse.setFixedWidth(28)
+        self._btn_wd_browse.clicked.connect(self._browse_workdir)
+        row3.addWidget(self._btn_wd_browse)
         form_grid.addLayout(row3)
 
         row_recur = QHBoxLayout()
@@ -257,10 +257,12 @@ class EventsEditor(QMainWindow):
         is_schedule = self._current_category == "schedules"
         self._cmd_label.setVisible(is_schedule)
         self.cmd_edit.setVisible(is_schedule)
+        self._btn_cmd_browse.setVisible(is_schedule)
         self._args_label.setVisible(is_schedule)
         self.args_edit.setVisible(is_schedule)
         self._workdir_label.setVisible(is_schedule)
         self.workdir_edit.setVisible(is_schedule)
+        self._btn_wd_browse.setVisible(is_schedule)
 
     def _on_cat_change(self, idx):
         data = self.cat_combo.currentData()
@@ -272,7 +274,7 @@ class EventsEditor(QMainWindow):
 
     def _browse_command(self):
         path, _ = QFileDialog.getOpenFileName(self, self._t("events_editor.dialog.select_command"),
-            "", "Eseguibili (*.exe *.bat *.ps1 *.py *.cmd *.vbs);;Tutti i file (*.*)")
+            "", "Eseguibili (*.exe *.bat *.ps1 *.py *.cmd *.vbs *.vass);;Tutti i file (*.*)")
         if path:
             self.cmd_edit.setText(path)
 
@@ -333,9 +335,12 @@ class EventsEditor(QMainWindow):
                 return False
             exe = cmd.split()[0]
             if not shutil.which(exe) and not os.path.exists(exe):
-                QMessageBox.warning(self, self._t("events_editor.dialog.error"),
-                    self._t("events_editor.errors.command_not_found").replace("{cmd}", exe))
-                return False
+                # Allow .vass scripts as commands
+                vass_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", f"{exe}.vass")
+                if not os.path.exists(vass_path) and not cmd.lower().endswith(".vass"):
+                    QMessageBox.warning(self, self._t("events_editor.dialog.error"),
+                        self._t("events_editor.errors.command_not_found").replace("{cmd}", exe))
+                    return False
 
             wd = self.workdir_edit.text().strip()
             if wd:

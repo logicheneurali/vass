@@ -230,6 +230,8 @@ Le schedulazioni (procedure automatiche) sono in `schedule.json` e attivano l'es
 
 ## Risoluzione problemi
 
+> **Importante:** Questa applicazione dipende fortemente dal modello AI utilizzato. Modelli poco efficaci o non adatti all'uso dei tool MCP potrebbero comprometterne il funzionamento.
+
 ### VASS non si avvia
 - Verifica Python 3.13+: `python --version`
 - Verifica che `.venv` esista e contenga le dipendenze

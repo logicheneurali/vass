@@ -1,12 +1,14 @@
 {
   "schedules": [
     {
-      "date": "2026-06-11",
-      "time": "12:28",
+      "date": "2026-06-13",
+      "time": "07:10",
       "duration": 60,
-      "description": "xxx",
-      "command": "powershell",
-      "name": "xxx_2026-06-11_12:28"
+      "description": "Aggiornamento report AI",
+      "id": "67a7564e",
+      "recur": "1d",
+      "command": "C:/Users/effed/Documents/Python/vass/scripts/modelli_AI.vass",
+      "name": "aggiornamento_report_ai_2026-06-13_07:10"
     }
   ]
 }

@@ -228,6 +228,8 @@ Les planifications (procédures automatisées) sont dans `schedule.json` et déc
 
 ## Dépannage
 
+> **Important:** Cette application dépend fortement du modèle IA utilisé. Des modèles inefficaces ou inadaptés aux outils MCP peuvent compromettre le fonctionnement.
+
 ### VASS ne démarre pas
 - Vérifiez Python 3.13+ : `python --version`
 - Vérifiez que `.venv` existe et contient les dépendances

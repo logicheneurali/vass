@@ -228,6 +228,8 @@ Las programaciones (procedimientos automatizados) están en `schedule.json` y ac
 
 ## Solución de problemas
 
+> **Importante:** Esta aplicación depende en gran medida del modelo de IA utilizado. Modelos ineficaces o no adecuados para herramientas MCP pueden comprometer la funcionalidad.
+
 ### VASS no se inicia
 - Verifica Python 3.13+: `python --version`
 - Verifica que `.venv` exista y contenga las dependencias

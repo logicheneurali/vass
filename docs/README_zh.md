@@ -227,6 +227,8 @@ python scripts_editor.py
 
 ## 故障排除
 
+> **重要:** 此应用程序在很大程度上依赖于所使用的 AI 模型。效果不佳或不适合使用 MCP 工具的模型可能会影响功能。
+
 ### VASS 无法启动
 - 检查 Python 3.13+：`python --version`
 - 验证 `.venv` 存在并包含依赖项

@@ -228,6 +228,8 @@ Zeitpläne (automatisierte Abläufe) befinden sich in `schedule.json` und lösen
 
 ## Fehlerbehebung
 
+> **Wichtig:** Diese Anwendung hängt stark vom verwendeten KI-Modell ab. Ineffektive oder für MCP-Tools ungeeignete Modelle können die Funktionalität beeinträchtigen.
+
 ### VASS startet nicht
 - Python 3.13+ prüfen: `python --version`
 - Prüfen, ob `.venv` existiert und Abhängigkeiten enthält
