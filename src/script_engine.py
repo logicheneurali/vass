@@ -8,7 +8,7 @@ import time
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web"}
 
 
 def _validate_recur(recur):
@@ -516,6 +516,23 @@ class VASScript:
             priority = int(evaluated[1]) if len(evaluated) > 1 and evaluated[1].strip().isdigit() else 1
             return self.app.notification_manager.add(text, priority)
 
+        if name == "inject":
+            text = evaluated[0] if evaluated else ""
+            self.app.inject_context(text)
+            return "ok"
+
+        if name == "inject_memory":
+            text = evaluated[0] if evaluated else ""
+            return self.app.inject_memory(text)
+
+        if name == "fetch_text":
+            url = evaluated[0] if evaluated else ""
+            return self._fetch_web(url, "webfetch")
+
+        if name == "search_web":
+            query = evaluated[0] if evaluated else ""
+            return self._fetch_web(query, "websearch")
+
         if name == "getdatetime":
             from datetime import datetime
             lang = (evaluated[0] if evaluated else "").strip().lower()
@@ -878,6 +895,26 @@ class VASScript:
             return f"ok: removed '{removed.get('description')}' on {removed.get('date')} at {removed.get('time')}"
 
         return "error: unknown action"
+
+    def _fetch_web(self, param, tool_name):
+        if not param:
+            return "error: url/query required"
+        from utils import init_mcp
+        mcp, _ = init_mcp(self.app.mcp_server_url, timeout=60)
+        if not mcp:
+            return "error: MCP not available"
+        try:
+            arg = {"webfetch": "url", "websearch": "query"}[tool_name]
+            result = mcp.call_tool(tool_name, {arg: param})
+            if isinstance(result, dict) and "content" in result:
+                parts = []
+                for item in result["content"]:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        parts.append(item.get("text", ""))
+                return "\n".join(parts)
+            return str(result)
+        except Exception as e:
+            return f"error: {e}"
 
     def _do_say(self, text, speed=1.0):
         self.app.tts.speak_nowait(text, speed)

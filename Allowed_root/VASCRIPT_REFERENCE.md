@@ -199,6 +199,43 @@ notify("Operazione completata")
 ```
 
 
+### **`fetch_text(url)`**
+Downloads a web page and returns its text content. Uses headless Chromium via MCP. No auth required.
+
+```
+$content = fetch_text("https://example.com")
+say($content)
+```
+
+
+### **`search_web(query)`**
+Searches the web using DuckDuckGo. Returns top results as JSON. No auth required.
+
+```
+$results = search_web("latest news")
+say($results)
+```
+
+
+### **`inject(text)`**
+Injects a low-priority context note into the AI's next conversation. Notes are ephemeral (lost on restart) and dropped first when context is full. No auth required.
+
+```
+inject("The user prefers dark themes")
+inject("User's name is Fabio")
+```
+
+
+### **`inject_memory(text)`**
+Persistently saves text to the conversation memory. The text is stored as a system-level note and loaded into the AI context on subsequent requests. Returns the memory ID. No auth required.
+
+```
+$id = inject_memory("User has a cat named Luna")
+$id = inject_memory("User prefers Italian language")
+say("Saved: {$id}")
+```
+
+
 ### **`getdatetime()`**
 Returns current local date and time in "YYYY-MM-DD HH:MM" format. No auth required.
 

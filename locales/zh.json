@@ -217,7 +217,9 @@
       "title": "Save?",
       "message": "Save changes before closing?"
     },
-    "allow_ai_scripts": "允许AI生成脚本"
+    "allow_ai_scripts": "允许AI生成脚本",
+    "functions_panel": "函数",
+    "select_function": "选择一个函数以查看帮助"
   },
   "commands_editor": {
     "title": "VASS 命令编辑器",

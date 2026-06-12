@@ -2,13 +2,13 @@
   "schedules": [
     {
       "date": "2026-06-13",
-      "time": "07:10",
+      "time": "19:05",
       "duration": 60,
       "description": "Aggiornamento report AI",
       "id": "67a7564e",
       "recur": "1d",
       "command": "C:/Users/effed/Documents/Python/vass/scripts/modelli_AI.vass",
-      "name": "aggiornamento_report_ai_2026-06-13_07:10"
+      "name": "aggiornamento_report_ai_2026-06-13_19:05"
     }
   ]
 }

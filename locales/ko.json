@@ -217,7 +217,9 @@
       "title": "Save?",
       "message": "Save changes before closing?"
     },
-    "allow_ai_scripts": "AI가 스크립트를 생성하도록 허용"
+    "allow_ai_scripts": "AI가 스크립트를 생성하도록 허용",
+    "functions_panel": "함수",
+    "select_function": "함수를 선택하면 도움말이 표시됩니다"
   },
   "commands_editor": {
     "title": "VASS 명령 편집기",

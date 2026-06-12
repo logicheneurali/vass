@@ -217,7 +217,9 @@
       "title": "Save?",
       "message": "Save changes before closing?"
     },
-    "allow_ai_scripts": "Permitir que a IA gere scripts"
+    "allow_ai_scripts": "Permitir que a IA gere scripts",
+    "functions_panel": "Funções",
+    "select_function": "Selecione uma função para ver ajuda"
   },
   "commands_editor": {
     "title": "Editor de comandos VASS",

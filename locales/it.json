@@ -96,7 +96,9 @@
       "title": "Salvare?",
       "message": "Salvare le modifiche prima di chiudere?"
     },
-    "allow_ai_scripts": "Permetti alla AI di generare scripts"
+    "allow_ai_scripts": "Permetti alla AI di generare scripts",
+    "functions_panel": "Funzioni",
+    "select_function": "Seleziona una funzione per vederne la guida"
   },
   "settings_editor": {
     "title": "Impostazioni VASS",

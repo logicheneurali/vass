@@ -217,7 +217,9 @@
       "title": "Save?",
       "message": "Save changes before closing?"
     },
-    "allow_ai_scripts": "KI darf Skripte generieren"
+    "allow_ai_scripts": "KI darf Skripte generieren",
+    "functions_panel": "Funktionen",
+    "select_function": "Funktion auswählen für Hilfe"
   },
   "commands_editor": {
     "title": "VASS Befehlseditor",

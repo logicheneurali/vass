@@ -217,7 +217,9 @@
       "title": "Save?",
       "message": "Save changes before closing?"
     },
-    "allow_ai_scripts": "AIにスクリプト生成を許可"
+    "allow_ai_scripts": "AIにスクリプト生成を許可",
+    "functions_panel": "関数",
+    "select_function": "関数を選択するとヘルプが表示されます"
   },
   "commands_editor": {
     "title": "VASS コマンドエディタ",

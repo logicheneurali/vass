@@ -193,6 +193,7 @@ class VassApp:
         self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
         self._noise_high_frames = 0
         self._nf_print_counter = 0
+        self._silent_frames = 0
         self._auto_paused_at = None
         self._running_noise_floor = None
 
@@ -232,6 +233,7 @@ class VassApp:
         self.timer_manager = TimerManager(self)
         from notification_manager import NotificationManager
         self.notification_manager = NotificationManager()
+        self.context_notes = []
         self.conversation_history = []
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "trascrizione"
         self.memory_mode = "full"
@@ -583,6 +585,16 @@ class VassApp:
                     time.sleep(0.05)
                     continue
                 frame = self.audio_handler.get_frame()
+                if frame is None:
+                    self._silent_frames += 1
+                    if self._silent_frames > 300 and not self._auto_paused_at and self.state == "listening":
+                        print("[Audio] Stream appears dead, restarting...")
+                        self.audio_handler.stop_stream()
+                        time.sleep(0.1)
+                        self.audio_handler.start_stream()
+                        self._silent_frames = 0
+                else:
+                    self._silent_frames = 0
                 if self._auto_paused_at is not None:
                     elapsed = time.time() - self._auto_paused_at
                     if elapsed >= self.noise_pause_duration:
@@ -1121,8 +1133,11 @@ class VassApp:
             memory_content = self._build_memory_content(mcp, tools)
 
             tools_block = MCP_PROMPT + vas_ref if self.allow_ai_scripts else ""
+            notes_block = "\n".join(self.context_notes)
+            if notes_block:
+                notes_block = f"Context notes (low priority, can be ignored if context is full):\n{notes_block}\n\n"
             messages = [
-                {"role": "system", "content": memory_content + system_content + tools_block},
+                {"role": "system", "content": notes_block + memory_content + system_content + tools_block},
                 {"role": "user", "content": prompt}
             ]
             kwargs = dict(
@@ -1216,6 +1231,34 @@ class VassApp:
             print(f"Error calling AI Agent: {e}")
             threading.Thread(target=self.tts.speak, args=(err_msg,), daemon=True).start()
             self.set_state("listening")
+
+    def inject_context(self, text):
+        self.context_notes.append(text.strip())
+        if len(self.context_notes) > 50:
+            self.context_notes = self.context_notes[-50:]
+
+    def inject_memory(self, text):
+        import json, time as _time
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        mem_dir = os.path.join(root, "Allowed_root", "memory")
+        os.makedirs(mem_dir, exist_ok=True)
+        vid = str(int(_time.time() * 1000))
+        entry = {"info": json.dumps({"role": "system", "content": text.strip()}, ensure_ascii=False)}
+        entry_path = os.path.join(mem_dir, f"{vid}.json")
+        with open(entry_path, "w", encoding="utf-8") as f:
+            json.dump(entry, f, ensure_ascii=False, indent=2)
+        mem_path = os.path.join(root, "Allowed_root", "memory.json")
+        existing = {}
+        if os.path.exists(mem_path):
+            with open(mem_path, encoding="utf-8") as f:
+                existing = json.load(f)
+        history = existing.get("history", [])
+        history.append(vid)
+        existing["history"] = history[-20:]
+        with open(mem_path, "w", encoding="utf-8") as f:
+            json.dump(existing, f, ensure_ascii=False, indent=2)
+        print(f"[Memory] inject_memory: {vid} ({len(text)} chars)")
+        return vid
 
     def _build_memory_content(self, mcp=None, tools=None):
         if self.memory_mode == "none":

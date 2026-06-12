@@ -115,6 +115,10 @@ TEMPLATES = {
     "notify": 'notify("Operazione completata", 5)',
     "savetags": 'savetags("food,health,pets")',
     "delevent": 'delevent("riunione")',
+    "fetch_text": '$contenuto = fetch_text("https://example.com")\nsay($contenuto)',
+    "search_web": '$risultati = search_web("python tutorial")\nsay($risultati)',
+    "inject": 'inject("L\'utente preferisce il tema scuro")',
+    "inject_memory": 'inject_memory("Informazione importante da ricordare")',
     "listen → say": '$testo = listen()\nsay($testo)',
     "screen_search → listen → screen_search": (
         '$richiesta = listen("Cosa vuoi cercare?")\n'
@@ -216,8 +220,8 @@ class ScriptsEditor(QMainWindow):
         self.save_btn.setEnabled(self._dirty)
 
     def _build_ui(self):
-        self.resize(800, 550)
-        self.setMinimumSize(700, 450)
+        self.resize(1000, 550)
+        self.setMinimumSize(900, 450)
         self.setStyleSheet(BASE_STYLESHEET)
 
         central = QWidget()
@@ -227,6 +231,7 @@ class ScriptsEditor(QMainWindow):
         layout.setSpacing(10)
 
         left_group = QGroupBox(self._t("scripts_editor.left_panel"))
+        left_group.setFixedWidth(200)
         left_layout = QVBoxLayout(left_group)
 
         self.list_widget = QListWidget()
@@ -300,10 +305,58 @@ class ScriptsEditor(QMainWindow):
 
         layout.addWidget(right_group, 2)
 
+        help_group = QGroupBox(self._t("scripts_editor.functions_panel"))
+        help_group.setFixedWidth(200)
+        help_layout = QVBoxLayout(help_group)
+
+        self.func_list = QListWidget()
+        func_names = sorted(k for k in TEMPLATES.keys() if "→" not in k)
+        self.func_list.addItems(func_names)
+        self.func_list.currentTextChanged.connect(self._on_func_select)
+        self.func_list.itemDoubleClicked.connect(self._insert_func)
+        help_layout.addWidget(self.func_list)
+
+        self.func_help = QLabel(self._t("scripts_editor.select_function"))
+        self.func_help.setStyleSheet(f"color: {LABEL_FG}; font-size: 11px;")
+        self.func_help.setWordWrap(True)
+        self.func_help.setAlignment(Qt.AlignmentFlag.AlignTop)
+        help_layout.addWidget(self.func_help)
+
+        layout.addWidget(help_group)
+
+        self._load_func_reference()
+
         QShortcut(QKeySequence("Ctrl+S"), self, self._save)
+
+    def _load_func_reference(self):
+        import re, os
+        self._func_ref = {}
+        ref_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "VASCRIPT_REFERENCE.md")
+        if not os.path.exists(ref_path):
+            return
+        with open(ref_path, encoding="utf-8") as f:
+            content = f.read()
+        # Parse each ### section
+        for match in re.finditer(r'### \*\*`([^`]+)`\*\*\n(.*?)(?=\n### |\n## |\Z)', content, re.DOTALL):
+            func_sig = match.group(1)
+            body = match.group(2).strip()
+            func_name = func_sig.split("(")[0].strip()
+            self._func_ref[func_name] = func_sig + "\n" + body
 
     def _insert_template(self, code):
         self.editor.insertPlainText(code + "\n")
+
+    def _on_func_select(self, name):
+        if name and hasattr(self, '_func_ref') and name in self._func_ref:
+            self.func_help.setText(self._func_ref[name])
+        else:
+            self.func_help.setText(self._t("scripts_editor.select_function"))
+
+    def _insert_func(self, item):
+        name = item.text()
+        if name and name in TEMPLATES:
+            code = TEMPLATES[name].split("\n")[0]
+            self.editor.insertPlainText(code)
 
     def _on_text_changed(self):
         self._dirty = True
