@@ -120,7 +120,8 @@
       "gmail_max_results": "最大メール数",
       "google_home_enabled": "Google Home",
       "google_home_model_id": "モデルID",
-      "google_home_device_id": "デバイスID"
+      "google_home_device_id": "デバイスID",
+      "word_learning_enabled": "適応学習（実験的）"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -170,7 +171,8 @@
       "gmail_max_results": "各同期で確認する最近のメール数",
       "google_home_enabled": "Google Home制御を有効にする（ブロードキャスト、スマートホーム、質問）",
       "google_home_model_id": "Actions ConsoleのデバイスモデルID",
-      "google_home_device_id": "Actions ConsoleのデバイスインスタンスID"
+      "google_home_device_id": "Actions ConsoleのデバイスインスタンスID",
+      "word_learning_enabled": "成功したコマンドを生成する単語を学習し、認識を優先します。データはword_weights.jsonに保存されます。"
     },
     "section_labels": {
       "gui": "ウィンドウ",

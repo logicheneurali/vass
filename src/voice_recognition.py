@@ -2,6 +2,24 @@ import numpy as np
 from faster_whisper import WhisperModel
 import threading
 
+_NEGATIVE_PROMPT = {
+    "it": "musica, televisione, radio, rumore, traffico, vento, pioggia",
+    "en": "music, television, radio, noise, traffic, wind, rain",
+    "de": "Musik, Fernsehen, Radio, Larm, Verkehr, Wind, Regen",
+    "fr": "musique, television, radio, bruit, circulation, vent, pluie",
+    "es": "musica, television, radio, ruido, trafico, viento, lluvia",
+    "pt": "musica, televisao, radio, barulho, transito, vento, chuva",
+    "ja": "音楽、テレビ、ラジオ、騒音、交通、風、雨",
+    "ko": "음악, TV, 라디오, 소음, 교통, 바람, 비",
+    "zh": "音乐, 电视, 广播, 噪音, 交通, 风, 雨",
+}
+
+_IGNORE_WORD = {
+    "it": "Ignora", "en": "Ignore", "de": "Ignorieren",
+    "fr": "Ignorer", "es": "Ignorar", "pt": "Ignorar",
+    "ja": "無視", "ko": "무시", "zh": "忽略",
+}
+
 
 def _cuda_available():
     try:
@@ -94,17 +112,18 @@ class VoiceRecognition:
         audio_data = np.concatenate(self.speech_buffer)
         
         try:
-            # Use tiny model for fast prediction
+            negative = _NEGATIVE_PROMPT.get(self.whisper_language, _NEGATIVE_PROMPT["en"])
+            ignore = _IGNORE_WORD.get(self.whisper_language, "Ignore")
+            prompt = f"{self.wake_prompt}. {ignore}: {negative}"
             segments, _ = self.wakeword_model.transcribe(
                 audio_data,
                 language=self.whisper_language,
                 beam_size=1,
                 word_timestamps=False,
-                initial_prompt=self.wake_prompt
+                initial_prompt=prompt
             )
             text = " ".join([seg.text for seg in segments]).lower().strip()
             print(f"[WakeWord Check] Transcribed: '{text}'")
-            
             return any(v in text for v in self.wake_variants)
         except Exception as e:
             print(f"[WakeWord Error] {e}")

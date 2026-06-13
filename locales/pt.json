@@ -120,7 +120,8 @@
       "gmail_max_results": "Máx emails por sync",
       "google_home_enabled": "Google Home",
       "google_home_model_id": "ID do modelo",
-      "google_home_device_id": "ID do dispositivo"
+      "google_home_device_id": "ID do dispositivo",
+      "word_learning_enabled": "Aprendizado adaptativo (EXPERIMENTAL)"
     },
     "field_descriptions": {
       "x": "Posição X na tela",
@@ -170,7 +171,8 @@
       "gmail_max_results": "Quantos emails recentes verificar a cada sync",
       "google_home_enabled": "Ativar controle Google Home (broadcast, smart home, ask)",
       "google_home_model_id": "ID do modelo de dispositivo do Actions Console",
-      "google_home_device_id": "ID da instância do dispositivo do Actions Console"
+      "google_home_device_id": "ID da instância do dispositivo do Actions Console",
+      "word_learning_enabled": "Aprende quais palavras produzem comandos bem-sucedidos e favorece seu reconhecimento. Dados salvos em word_weights.json."
     },
     "section_labels": {
       "gui": "Janela",

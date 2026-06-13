@@ -120,7 +120,8 @@
       "gmail_max_results": "Max emails per sync",
       "google_home_enabled": "Google Home",
       "google_home_model_id": "Model ID",
-      "google_home_device_id": "Device ID"
+      "google_home_device_id": "Device ID",
+      "word_learning_enabled": "Adaptive learning (EXPERIMENTAL)"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -170,7 +171,8 @@
       "gmail_max_results": "How many recent emails to check at each sync",
       "google_home_enabled": "Enable Google Home control (broadcast, smart home, ask)",
       "google_home_model_id": "Device model ID from Actions Console",
-      "google_home_device_id": "Device instance ID from Actions Console"
+      "google_home_device_id": "Device instance ID from Actions Console",
+      "word_learning_enabled": "Learns which words produce successful commands and favors their recognition. Data saved to word_weights.json."
     },
     "section_labels": {
       "gui": "Window",

@@ -120,7 +120,8 @@
       "gmail_max_results": "最大邮件数",
       "google_home_enabled": "Google Home",
       "google_home_model_id": "模型ID",
-      "google_home_device_id": "设备ID"
+      "google_home_device_id": "设备ID",
+      "word_learning_enabled": "自适应学习（实验性）"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
@@ -170,7 +171,8 @@
       "gmail_max_results": "每次同步检查的最近邮件数",
       "google_home_enabled": "启用Google Home控制（广播、智能家居、询问）",
       "google_home_model_id": "Actions Console中的设备模型ID",
-      "google_home_device_id": "Actions Console中的设备实例ID"
+      "google_home_device_id": "Actions Console中的设备实例ID",
+      "word_learning_enabled": "学习哪些词语能产生成功命令，并优先识别它们。数据保存在word_weights.json中。"
     },
     "section_labels": {
       "gui": "窗口",

@@ -102,8 +102,8 @@ class ScriptQueue:
         self._worker_thread = threading.Thread(target=self._worker, daemon=True)
         self._worker_thread.start()
 
-    def enqueue(self, name_or_code=None, code=None, params=None, result_callback=None, source=""):
-        item = (name_or_code, code, params, result_callback, source)
+    def enqueue(self, name_or_code=None, code=None, params=None, result_callback=None, source="", transcribed_text=None):
+        item = (name_or_code, code, params, result_callback, source, transcribed_text)
         with self._lock:
             self._queue.append(item)
             qlen = len(self._queue)
@@ -135,12 +135,12 @@ class ScriptQueue:
             if item is None:
                 time.sleep(0.1)
                 continue
-            name_or_code, code, params, result_callback, source = item
-            self._execute_script(name_or_code, code, params, result_callback)
+            name_or_code, code, params, result_callback, source, transcribed_text = item
+            self._execute_script(name_or_code, code, params, result_callback, transcribed_text)
             time.sleep(0.1)
 
-    def _execute_script(self, name_or_code, code, params, result_callback):
-        self.app._execute_script_impl(name_or_code, code, params, result_callback, self)
+    def _execute_script(self, name_or_code, code, params, result_callback, transcribed_text=None):
+        self.app._execute_script_impl(name_or_code, code, params, result_callback, self, transcribed_text)
 
 
 class VassApp:
@@ -168,6 +168,7 @@ class VassApp:
         self.gui_font_family = self.settings["gui_font_family"]
         self.gui_font_size = self.settings["gui_font_size"]
         self.command_similarity = self.settings["command_similarity"]
+        self.word_learning_enabled = self.settings.get("word_learning_enabled", False)
         tts_volume = self.settings.get("volume", 0.95)
         self.tts = TtsEngine(
             gui=gui,
@@ -222,7 +223,7 @@ class VassApp:
             transcribe_prompt=wr_transcribe,
             wake_variants=wr_variants
         )
-        self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language)
+        self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language, word_learning_enabled=self.word_learning_enabled)
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
         if self.context_length <= 0:
             threading.Thread(target=self._detect_context_length, daemon=True).start()
@@ -316,6 +317,7 @@ class VassApp:
             result["gui_font_family"] = config.get("gui", "font_family", fallback="Segoe UI")
             result["gui_font_size"] = config.getint("gui", "font_size", fallback=12)
             result["command_similarity"] = config.getfloat("commands", "similarity", fallback=0.6)
+            result["word_learning_enabled"] = config.get("commands", "word_learning_enabled", fallback="false").lower() == "true"
             result["volume"] = config.getfloat("tts", "volume", fallback=0.95)
             result["mcp_server_url"] = config.get("ai", "mcp_server_url", fallback="")
             result["memory_tokens"] = config.getint("ai", "memory_tokens", fallback=2000)
@@ -377,6 +379,7 @@ class VassApp:
             result["gui_font_family"] = "Segoe UI"
             result["gui_font_size"] = 12
             result["command_similarity"] = 0.6
+            result["word_learning_enabled"] = False
             result["volume"] = 0.95
             result["mcp_server_url"] = ""
             result["memory_tokens"] = 2000
@@ -503,6 +506,7 @@ class VassApp:
                         last_mtime = mtime
                         self.settings = self._load_settings()
                         self.command_executor.similarity_threshold = self.settings["command_similarity"]
+                        self.command_executor.word_learning_enabled = self.settings.get("word_learning_enabled", False)
                         self.ai_api_key = self.settings.get("api_key", "")
                         self.openai_client.api_key = self.ai_api_key or "not-needed"
                         self.ai_model = self.settings["ai_model"]
@@ -1038,13 +1042,15 @@ class VassApp:
         if matched_command and is_script_command(matched_command):
             print(f"Executing script command: {matched_command}")
             script_name = strip_script_prefix(matched_command)
-            self._run_script(script_name, params=matched_vars)
+            self._run_script(script_name, params=matched_vars, transcribed_text=transcribed_text)
             return
         if matched_command:
             print(f"Executing command: {matched_command}")
-            threading.Thread(target=self._execute_and_speak, args=(matched_command,), daemon=True).start()
+            ok = self.command_executor.execute_command(matched_command)
+            self.command_executor.track_command_outcome(transcribed_text, ok)
         else:
             print("No matching command found. Sending to AI Agent.")
+            self.command_executor.track_command_outcome(transcribed_text, True)
             threading.Thread(target=self._handle_ai_fallback, args=(transcribed_text,), daemon=True).start()
 
     def _execute_and_speak(self, command):
@@ -1053,10 +1059,10 @@ class VassApp:
             return
         self.command_executor.execute_command(command)
 
-    def _run_script(self, name_or_code=None, result_callback=None, code=None, params=None):
-        self.script_queue.enqueue(name_or_code, code, params, result_callback, "direct")
+    def _run_script(self, name_or_code=None, result_callback=None, code=None, params=None, transcribed_text=None):
+        self.script_queue.enqueue(name_or_code, code, params, result_callback, "direct", transcribed_text)
 
-    def _execute_script_impl(self, name_or_code, code, params, result_callback, queue):
+    def _execute_script_impl(self, name_or_code, code, params, result_callback, queue, transcribed_text=None):
         import json as _json
         script_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
         if code is not None:

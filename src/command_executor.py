@@ -2,17 +2,38 @@ import configparser
 import subprocess
 import os
 import difflib
+import json
+import math
 import re
 from urllib.parse import quote
 
 
+def _levenshtein(a, b):
+    if len(a) < len(b):
+        return _levenshtein(b, a)
+    if len(b) == 0:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a):
+        cur = [i + 1]
+        for j, cb in enumerate(b):
+            cur.append(min(prev[j + 1] + 1, cur[j] + 1, prev[j] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
 class CommandExecutor:
-    def __init__(self, commands_file="config/commands.ini", similarity_threshold=0.6, language="en"):
+    def __init__(self, commands_file="config/commands.ini", similarity_threshold=0.6, language="en",
+                 word_learning_enabled=False):
         self.commands_file = commands_file
         self.similarity_threshold = similarity_threshold
         self.language = language
+        self.word_learning_enabled = word_learning_enabled
         self.commands = {}
+        self._word_weights = {}
+        self._weights_path = None
         self.load_commands()
+        self._load_word_weights()
 
     def load_commands(self):
         if not os.path.exists(self.commands_file):
@@ -23,7 +44,7 @@ class CommandExecutor:
             self.commands.clear()
             for section in config.sections():
                 for key, value in config.items(section):
-                    self.commands[key.lower().strip()] = value
+                    self._add_command(key, value)
 
         lang_file = f"config/commands_{self.language}.ini"
         if os.path.exists(lang_file):
@@ -31,15 +52,123 @@ class CommandExecutor:
             config.read(lang_file, encoding="utf-8")
             for section in config.sections():
                 for key, value in config.items(section):
-                    self.commands[key.lower().strip()] = value
+                    self._add_command(key, value)
             print(f"Commands loaded: {len(self.commands)} total (including {lang_file})")
         else:
             print(f"Commands loaded: {len(self.commands)} total")
 
+    def _add_command(self, key, value):
+        keyword = key.lower().strip()
+        if "," in keyword:
+            parts = keyword.split(",")
+            first = parts[0].strip()
+            last = parts[-1].strip()
+            var_suffix = ""
+            m = re.search(r'(\{\w+\}.*)$', last)
+            if m and not re.search(r'\{\w+\}', first):
+                var_suffix = " " + m.group(1)
+            for i, part in enumerate(parts):
+                alt = part.strip()
+                if i == len(parts) - 1 and var_suffix:
+                    alt = re.sub(r'\s*\{\w+\}.*$', '', alt).strip()
+                if alt:
+                    self.commands[alt + var_suffix] = value
+        else:
+            self.commands[keyword] = value
+
     def reload_commands(self):
         self.commands.clear()
         self.load_commands()
+        self._load_word_weights()
         print(f"Commands reloaded. Total: {len(self.commands)}")
+
+    # ── Word weights (adaptive learning, experimental) ─────────────────────
+
+    def _weights_file(self):
+        if self._weights_path is None:
+            self._weights_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "Allowed_root", "word_weights.json")
+        return self._weights_path
+
+    def _load_word_weights(self):
+        if not self.word_learning_enabled:
+            return
+        try:
+            with open(self._weights_file(), encoding="utf-8") as f:
+                self._word_weights = json.load(f)
+        except Exception:
+            self._word_weights = {}
+
+    def _save_word_weights(self):
+        if not self.word_learning_enabled:
+            return
+        try:
+            os.makedirs(os.path.dirname(self._weights_file()), exist_ok=True)
+            with open(self._weights_file(), "w", encoding="utf-8") as f:
+                json.dump(self._word_weights, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    def track_command_outcome(self, transcribed_text, success):
+        if not self.word_learning_enabled or not transcribed_text:
+            return
+        for word in transcribed_text.lower().strip().split():
+            w = re.sub(r'[^a-z0-9]', '', word)
+            if len(w) < 2 or w.isdigit():
+                continue
+            entry = self._word_weights.get(w, {"success": 0, "fail": 0})
+            if success:
+                entry["success"] += 1
+            else:
+                entry["fail"] += 1
+            usage = entry["success"] + entry["fail"]
+            sr = (entry["success"] + 1) / (entry["fail"] + 1)
+            entry["weight"] = round(sr * (1 + math.log(usage + 1) * 0.1), 4)
+            self._word_weights[w] = entry
+        self._save_word_weights()
+
+    def correct_transcription(self, transcribed_text):
+        if not self.word_learning_enabled or not self._word_weights:
+            return transcribed_text
+        words = transcribed_text.lower().strip().split()
+        corrected = []
+        changed = False
+        for word in words:
+            clean = re.sub(r'[^a-z0-9]', '', word)
+            if clean not in self._word_weights:
+                w_entry = self._word_weights.get(clean, {"weight": 1.0})
+            else:
+                w_entry = self._word_weights[clean]
+            if w_entry.get("weight", 1.0) >= 0.8:
+                corrected.append(word)
+                continue
+            best, best_w = None, 0
+            for cand, c_entry in self._word_weights.items():
+                cw = c_entry.get("weight", 1.0)
+                if cw <= max(w_entry.get("weight", 1.0), 1.0):
+                    continue
+                if abs(len(clean) - len(cand)) > 2:
+                    continue
+                if _levenshtein(clean, cand) <= 2 and cw > best_w:
+                    best, best_w = cand, cw
+            if best:
+                corrected.append(best)
+                changed = True
+            else:
+                corrected.append(word)
+        result = " ".join(corrected)
+        if changed:
+            print(f"[WordWeights] Corrected: '{transcribed_text.lower().strip()}' -> '{result}'")
+        return result
+
+    def get_top_weighted_prompt(self):
+        if not self._word_weights:
+            return ""
+        sorted_words = sorted(self._word_weights.items(),
+                              key=lambda x: x[1].get("weight", 1.0), reverse=True)
+        top = [w for w, e in sorted_words if e.get("weight", 1.0) > 1.5][:20]
+        return ", ".join(top) if top else ""
 
     @staticmethod
     def _parse_variables(keyword):
@@ -93,6 +222,7 @@ class CommandExecutor:
         transcribed_lower = re.sub(r'[,!?;:]', ' ', transcribed_text.lower()).strip()
         transcribed_lower = re.sub(r'\.$', '', transcribed_lower)
         transcribed_lower = re.sub(r'\s+', ' ', transcribed_lower)
+        transcribed_lower = self.correct_transcription(transcribed_lower)
         if not transcribed_lower:
             return None
 
@@ -144,9 +274,14 @@ class CommandExecutor:
                 except KeyError:
                     return None, None
                 param_dict = {f"param{i+1}": v for i, v in enumerate(fmt_vars.values())}
+                for i, word in enumerate(transcribed_text.strip().split(), start=1):
+                    param_dict[f"cword{i}"] = word
                 var_info = ', '.join(f'{k}={v}' for k, v in best_vars.items())
                 print(f"[Fuzzy] '{transcribed_text}' -> '{best_keyword}' (ratio: {best_ratio:.2f}, vars: {{{var_info}}})")
             else:
+                param_dict = {}
+                for i, word in enumerate(transcribed_text.strip().split(), start=1):
+                    param_dict[f"cword{i}"] = word
                 print(f"[Fuzzy] '{transcribed_text}' -> '{best_keyword}' (ratio: {best_ratio:.2f})")
             return cmd, param_dict
         return None, None

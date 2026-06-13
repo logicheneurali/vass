@@ -24,6 +24,57 @@ API_SCOPE = "https://www.googleapis.com/auth/assistant-sdk-prototype"
 GRPC_TIMEOUT = 15
 
 
+_FAILURE_KEYWORDS = {
+    "it": ["non ho capito", "mi dispiace", "scusa", "non posso", "non riesco",
+           "non posso aiutarti", "non so", "non capisco", "impossibile",
+           "mi ripeti", "puoi ripetere", "ripeti cosa"],
+    "en": ["i don't understand", "i'm sorry", "i can't", "i cannot",
+           "i don't know", "i'm not able", "unable to", "i'm afraid",
+           "repeat that", "say that again", "can you repeat"],
+    "de": ["habe ich nicht verstanden", "es tut mir leid", "kann ich nicht",
+           "weiß ich nicht", "leider nicht",
+           "wiederholen", "wie bitte", "nochmal"],
+    "fr": ["je n'ai pas compris", "je suis desole", "je ne peux pas",
+           "je ne sais pas", "desole", "impossible",
+           "repetez", "repeter", "peux-tu repeter", "comment"],
+    "es": ["no he entendido", "lo siento", "no puedo", "no se",
+           "no lo se", "imposible", "disculpa",
+           "repitelo", "puedes repetir", "repite"],
+    "pt": ["nao entendi", "sinto muito", "nao posso", "nao sei",
+           "desculpa", "impossivel",
+           "repita", "pode repetir", "pode dizer de novo"],
+    "ja": ["わかりません", "ごめんなさい", "できません", "申し訳ありません",
+           "もう一度", "繰り返して", "何です"],
+    "ko": ["이해하지 못했습니다", "죄송합니다", "할 수 없습니다", "모르겠습니다",
+           "다시 말씀해", "다시 말해", "반복"],
+    "zh": ["我不明白", "对不起", "我不能", "我不知道", "抱歉",
+           "再说一次", "重复", "请重复", "再说一遍"],
+}
+
+
+def _classify_gh_response(audio_bytes, lang="it"):
+    if not audio_bytes:
+        return True
+    try:
+        import numpy as np
+        arr = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        from faster_whisper import WhisperModel
+        model = WhisperModel("tiny", device="cpu", compute_type="int8")
+        segments, _ = model.transcribe(arr, language=lang[:2], beam_size=1,
+                                       word_timestamps=False)
+        text = " ".join([seg.text for seg in segments]).lower().strip()
+        keywords = _FAILURE_KEYWORDS.get(lang[:2] if len(lang) > 1 else lang, _FAILURE_KEYWORDS["en"])
+        for kw in keywords:
+            if kw in text:
+                print(f"[GoogleHome] Failure detected: '{text}' (matched '{kw}')")
+                return False
+        print(f"[GoogleHome] Response: '{text}' -> success")
+        return True
+    except Exception as e:
+        print(f"[GoogleHome] Classification error: {e}")
+        return True
+
+
 class GoogleHome:
     def __init__(self, model_id="", device_id="", lang="it"):
         self._model_id = model_id

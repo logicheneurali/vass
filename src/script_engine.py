@@ -1079,10 +1079,20 @@ class VASScript:
                         self.app.tts.enqueue("Servizio Google Home non disponibile al momento.")
                     else:
                         self.app.tts.enqueue("Comando Google Home non riuscito.")
-            elif result.get("audio") and play_audio:
-                gh.play_audio_response(result["audio"], output_device)
-            elif result.get("text") and play_audio:
-                self.app.tts.enqueue(result["text"])
+                if hasattr(self.app, 'command_executor'):
+                    self.app.command_executor.track_command_outcome(text, False)
+            elif result.get("audio"):
+                from google_home import _classify_gh_response
+                ok = _classify_gh_response(result["audio"], self.app.language)
+                if hasattr(self.app, 'command_executor'):
+                    self.app.command_executor.track_command_outcome(text, ok)
+                if play_audio:
+                    gh.play_audio_response(result["audio"], output_device)
+            elif result.get("text"):
+                if play_audio:
+                    self.app.tts.enqueue(result["text"])
+                if hasattr(self.app, 'command_executor'):
+                    self.app.command_executor.track_command_outcome(text, True)
             gh.close()
 
         threading.Thread(target=_run_gh, daemon=True).start()
