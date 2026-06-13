@@ -51,6 +51,7 @@ Allowed_root/memory/
 Allowed_root/memory.json
 Allowed_root/events.json
 Allowed_root/schedule.json
+Allowed_root/schedules.json
 Allowed_root/.history_view.json
 Allowed_root/backup_memory.json
 Allowed_root/bk_memory.json
@@ -60,6 +61,7 @@ Allowed_root/gmail_seen.json
 
 # VASS - user config (use config/settings.example.ini as template)
 config/settings.ini
+config/settings.ini.bk
 config/commands.ini
 
 # VASS - temporary files

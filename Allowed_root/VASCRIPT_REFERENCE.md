@@ -266,6 +266,25 @@ say($results)
 ```
 
 
+### **`get_weather(location?)`**
+Returns current weather data as JSON and auto-populates convenience variables. Uses IP geolocation if no location is specified. Uses wttr.in (free, no API key required).
+
+The function returns a JSON object with flat keys. When stored in a variable, use dot notation:
+
+```
+$tt = get_weather("Milano")
+say("A {$tt.city} ci sono {$tt.temperature} gradi")
+```
+
+The auto-populated convenience variables let you skip the prefix:
+
+```
+$meteo = get_weather()
+say("Descrizione: {$meteo.description}")
+say("Temperatura: $temperature C, percepita: $feels_like, unita: $temperature_unit_system")
+```
+
+
 ### **`inject(text)`**
 Injects a low-priority context note into the AI's next conversation. Notes are ephemeral (lost on restart) and dropped first when context is full. No auth required.
 

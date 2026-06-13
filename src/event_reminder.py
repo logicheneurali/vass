@@ -222,7 +222,7 @@ class EventReminder:
             from dateutil.relativedelta import relativedelta
         except ImportError:
             relativedelta = None
-        m = re.match(r"^(\d+)([hdm])$", recur)
+        m = re.match(r"^(\d+)([mhdwM])$", recur)
         if not m:
             return date_str, time_str
         num, unit = int(m.group(1)), m.group(2)
@@ -230,11 +230,15 @@ class EventReminder:
             dt = _dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         except Exception:
             return date_str, time_str
-        if unit == "h":
+        if unit == "m":
+            dt += _td(minutes=num)
+        elif unit == "h":
             dt += _td(hours=num)
         elif unit == "d":
             dt += _td(days=num)
-        elif unit == "m":
+        elif unit == "w":
+            dt += _td(weeks=num)
+        elif unit == "M":
             if relativedelta:
                 dt += relativedelta(months=num)
             else:
@@ -374,6 +378,7 @@ class EventReminder:
         desc = sc.get("description", "Sconosciuta")
         command = sc.get("command", "")
         arguments = sc.get("arguments", "")
+        silent = sc.get("silent", "false").lower() == "true"
 
         try:
             from i18n import t
@@ -381,8 +386,9 @@ class EventReminder:
             def t(k, lang):
                 return k
 
-        started_msg = t("events.schedule_started", self.lang).replace("{description}", desc)
-        self.app.tts.enqueue(started_msg)
+        if not silent:
+            started_msg = t("events.schedule_started", self.lang).replace("{description}", desc)
+            self.app.tts.enqueue(started_msg)
         print(f"[Schedules] Started: {desc} -> {command} {arguments}")
 
         # Check if command is a .vass script
@@ -396,14 +402,15 @@ class EventReminder:
                     script_name = os.path.splitext(os.path.basename(command))[0]
             if hasattr(self.app, '_run_script'):
                 self.app._run_script(script_name)
-            else:
+            elif not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
                 self.app.tts.enqueue(failed_msg)
             return
 
         if not _validate_command(command, arguments):
-            failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-            self.app.tts.enqueue(failed_msg)
+            if not silent:
+                failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
+                self.app.tts.enqueue(failed_msg)
             return
 
         try:
@@ -431,12 +438,14 @@ class EventReminder:
                 msg = t("events.schedule_done", self.lang).replace("{description}", desc)
             else:
                 msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-            self.app.tts.enqueue(msg)
+            if not silent:
+                self.app.tts.enqueue(msg)
             if hasattr(self.app, 'notification_manager'):
                 self.app.notification_manager.add(msg, priority=9 if r.returncode != 0 else 7)
         except Exception:
-            failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-            self.app.tts.enqueue(failed_msg)
+            if not silent:
+                failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
+                self.app.tts.enqueue(failed_msg)
             if hasattr(self.app, 'notification_manager'):
                 self.app.notification_manager.add(failed_msg, priority=9)
 

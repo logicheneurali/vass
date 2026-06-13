@@ -70,7 +70,7 @@ CATEGORIES = ["events", "schedules"]
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TIME_RE = re.compile(r"^\d{2}:\d{2}$")
-RECUR_RE = re.compile(r"^\d+[hdm]$")
+RECUR_RE = re.compile(r"^\d+[mhdwM]$")
 
 
 def _load(path):
@@ -224,12 +224,15 @@ class EventsEditor(QMainWindow):
         self._recur_label = QLabel(self._t("events_editor.fields.recur"))
         row_recur.addWidget(self._recur_label)
         self.recur_edit = QLineEdit()
-        self.recur_edit.setPlaceholderText("1d / 7d / 2h ...")
+        self.recur_edit.setPlaceholderText("30m / 2h / 1d / 1w / 1M")
         row_recur.addWidget(self.recur_edit)
         self._enabled_cb = QCheckBox(self._t("events_editor.fields.enabled"))
         self._enabled_cb.setChecked(True)
         self._enabled_cb.setStyleSheet(f"color: {LABEL_FG};")
         row_recur.addWidget(self._enabled_cb)
+        self._silent_cb = QCheckBox(self._t("events_editor.fields.silent"))
+        self._silent_cb.setStyleSheet(f"color: {LABEL_FG};")
+        row_recur.addWidget(self._silent_cb)
         row_recur.addStretch()
         form_grid.addLayout(row_recur)
         layout.addWidget(form_group)
@@ -300,6 +303,8 @@ class EventsEditor(QMainWindow):
             self.workdir_edit.setText(item.get("workingdir", ""))
             enabled = item.get("enabled", "true")
             self._enabled_cb.setChecked(enabled.lower() != "false")
+            silent = item.get("silent", "false")
+            self._silent_cb.setChecked(silent.lower() == "true")
 
     def _validate(self):
         date = self.date_edit.text().strip()
@@ -403,6 +408,8 @@ class EventsEditor(QMainWindow):
             if wd:
                 item["workingdir"] = wd
         item["enabled"] = "true" if self._enabled_cb.isChecked() else "false"
+        if self._silent_cb.isChecked():
+            item["silent"] = "true"
         desc = self.desc_edit.text().strip()
         date = self.date_edit.text().strip()
         time_str = self.time_edit.text().strip()

@@ -129,6 +129,7 @@ TEMPLATES = {
     "gcal_search": '$eventi = gcal_search("dentista")\nsay($eventi)',
     "google_home_command": 'google_home_command("accendi le luci", false)',
     "google_home_ask": '$risposta = google_home_ask("che tempo fa domani?")\nsay($risposta)',
+    "get_weather": '$tt = get_weather("Milano")\nsay("A {$tt.city} ci sono {$tt.temperature} gradi, percepiti {$tt.feels_like}")',
     "listen → say": '$testo = listen()\nsay($testo)',
     "screen_search → listen → screen_search": (
         '$richiesta = listen("Cosa vuoi cercare?")\n'

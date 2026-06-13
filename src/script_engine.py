@@ -8,7 +8,23 @@ import time
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather"}
+
+
+def _is_int_str(s):
+    try:
+        int(s)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def _is_float_str(s):
+    try:
+        float(s)
+        return "." in str(s) or "e" in str(s).lower()
+    except (ValueError, TypeError):
+        return False
 
 
 def _gh_disable_google_services(app):
@@ -151,7 +167,11 @@ class VASScript:
         token = tokens[pos]
 
         if token.startswith("$"):
-            return ("var", token[1:]), pos + 1
+            var_name = token[1:]
+            while pos + 2 < len(tokens) and tokens[pos + 1] == "." and tokens[pos + 2][0].isalpha():
+                var_name += "." + tokens[pos + 2]
+                pos += 2
+            return ("var", var_name), pos + 1
 
         if token.startswith('"') or token.startswith("'"):
             return ("str", token[1:-1]), pos + 1
@@ -181,8 +201,25 @@ class VASScript:
             name = m.group(1)
             if name.startswith("$"):
                 name = name[1:]
+            if "." in name:
+                return self._resolve_dotted_var(name)
             return self.vars.get(name, m.group(0))
-        return re.sub(r"\{(\$?\w+)\}", _repl, text)
+        return re.sub(r"\{(\$?\w+(?:\.\w+)*)\}", _repl, text)
+
+    def _resolve_dotted_var(self, path):
+        parts = path.split(".")
+        val = self.vars.get(parts[0], "")
+        if not val:
+            return ""
+        for part in parts[1:]:
+            try:
+                obj = json.loads(val) if isinstance(val, str) else val
+                val = obj.get(part, "")
+            except Exception:
+                return ""
+        if isinstance(val, dict) or isinstance(val, list):
+            return json.dumps(val, ensure_ascii=False)
+        return str(val)
 
     def _evaluate(self, node):
         if node is None:
@@ -193,9 +230,15 @@ class VASScript:
         if typ == "num":
             return str(node[1])
         if typ == "var":
-            return self.vars.get(node[1], "")
+            name = node[1]
+            if "." in name:
+                return self._resolve_dotted_var(name)
+            return self.vars.get(name, "")
         if typ == "ident":
-            return self.vars.get(node[1], node[1])
+            name = node[1]
+            if name in self.vars:
+                return self.vars[name]
+            return name
         if typ == "call":
             return self._call_function(node[1], node[2])
         return ""
@@ -228,8 +271,14 @@ class VASScript:
             return ""
 
         if name in ("ifgreater", "ifless", "ifgreaterequal", "iflessequal"):
-            a = float(self._evaluate(args[0])) if args else 0.0
-            b = float(self._evaluate(args[1])) if len(args) > 1 else 0.0
+            a_str = self._evaluate(args[0]) if args else "0"
+            b_str = self._evaluate(args[1]) if len(args) > 1 else "0"
+            if _is_int_str(b_str) and _is_int_str(a_str):
+                a, b = int(a_str), int(b_str)
+            elif _is_float_str(b_str) and _is_float_str(a_str):
+                a, b = float(a_str), float(b_str)
+            else:
+                a, b = a_str, b_str
             if name == "ifgreater":
                 cond = a > b
             elif name == "ifless":
@@ -588,6 +637,10 @@ class VASScript:
         if name == "google_home_ask":
             mute = evaluated[1].strip().lower() == "false" if len(evaluated) > 1 else False
             return self._gh_exec(evaluated[0] if evaluated else "", play_audio=not mute)
+
+        if name == "get_weather":
+            loc = evaluated[0] if evaluated else ""
+            return self._do_weather(loc)
 
         if name == "getdatetime":
             from datetime import datetime
@@ -1038,6 +1091,52 @@ class VASScript:
     def _do_say(self, text, speed=1.0):
         self.app.tts.speak_nowait(text, speed)
         self.app.tts._tts_done.wait()
+
+    def _do_weather(self, location=""):
+        import urllib.request, urllib.parse, json
+        try:
+            encoded = urllib.parse.quote(location.strip()) if location.strip() else ""
+            base = f"https://wttr.in/{encoded}" if encoded else "https://wttr.in/"
+            url = f"{base}?format=j1"
+            r = urllib.request.urlopen(url, timeout=10)
+            data = json.loads(r.read().decode())
+            nearest = (data.get("nearest_area") or [{}])[0]
+            city = (nearest.get("areaName") or [{}])[0].get("value", "")
+            region = (nearest.get("region") or [{}])[0].get("value", "")
+            country = (nearest.get("country") or [{}])[0].get("value", "")
+            cc = (data.get("current_condition") or [{}])[0]
+            temp_c = float(cc.get("temp_C", 0))
+            feels_c = float(cc.get("FeelsLikeC", 0))
+            humidity = int(cc.get("humidity", 0))
+            desc = (cc.get("weatherDesc") or [{}])[0].get("value", "")
+            wind_speed = float(cc.get("windspeedKmph", 0))
+            wind_dir = cc.get("winddir16Point", "")
+            obs_time = cc.get("observation_time", "")
+            result = {
+                "city": city,
+                "region": region,
+                "country": country,
+                "temperature": temp_c,
+                "feels_like": feels_c,
+                "humidity": humidity,
+                "description": desc,
+                "wind_speed": wind_speed,
+                "wind_direction": wind_dir,
+                "observation_time": obs_time,
+                "temperature_unit_system": "Celsius",
+            }
+            result_json = json.dumps(result, ensure_ascii=False)
+            self.vars["temperature"] = str(temp_c)
+            self.vars["feels_like"] = str(feels_c)
+            self.vars["temperature_unit_system"] = "Celsius"
+            self.vars["humidity"] = str(humidity)
+            self.vars["weather_description"] = desc
+            self.vars["wind_speed"] = str(wind_speed)
+            self.vars["wind_direction"] = wind_dir
+            self.vars["weather_city"] = city
+            return result_json
+        except Exception as e:
+            return f'{{"error": "{str(e)}"}}'
 
     def _execute_line(self, line):
         tokens = self._tokenize(line)

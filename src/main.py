@@ -312,9 +312,9 @@ class VassApp:
             result["gui_x"] = config.getint("gui", "x", fallback=100)
             result["gui_y"] = config.getint("gui", "y", fallback=100)
             result["gui_width"] = config.getint("gui", "width", fallback=220)
-            result["gui_height"] = config.getint("gui", "height", fallback=60)
+            result["gui_height"] = config.getint("gui", "height", fallback=32)
             result["gui_font_family"] = config.get("gui", "font_family", fallback="Segoe UI")
-            result["gui_font_size"] = config.getint("gui", "font_size", fallback=14)
+            result["gui_font_size"] = config.getint("gui", "font_size", fallback=12)
             result["command_similarity"] = config.getfloat("commands", "similarity", fallback=0.6)
             result["volume"] = config.getfloat("tts", "volume", fallback=0.95)
             result["mcp_server_url"] = config.get("ai", "mcp_server_url", fallback="")
@@ -373,9 +373,9 @@ class VassApp:
             result["gui_x"] = 100
             result["gui_y"] = 100
             result["gui_width"] = 220
-            result["gui_height"] = 60
+            result["gui_height"] = 32
             result["gui_font_family"] = "Segoe UI"
-            result["gui_font_size"] = 14
+            result["gui_font_size"] = 12
             result["command_similarity"] = 0.6
             result["volume"] = 0.95
             result["mcp_server_url"] = ""
@@ -416,8 +416,8 @@ class VassApp:
                 "system_message": "Sei un assistente vocale utile e conciso."
             }
             config["gui"] = {
-                "x": "100", "y": "100", "width": "220", "height": "60",
-                "font_family": "Segoe UI", "font_size": "14"
+                "x": "100", "y": "100", "width": "220", "height": "32",
+                "font_family": "Segoe UI", "font_size": "12"
             }
             config["commands"] = {"similarity": "0.6"}
             config["tts"] = {"tts_engine": "kokoro", "volume": "0.95"}
@@ -1662,13 +1662,13 @@ def main():
             gui_x = config.getint("gui", "x", fallback=100)
             gui_y = config.getint("gui", "y", fallback=100)
             gui_width = config.getint("gui", "width", fallback=220)
-            gui_height = config.getint("gui", "height", fallback=60)
+            gui_height = config.getint("gui", "height", fallback=32)
             gui_font_family = config.get("gui", "font_family", fallback="Segoe UI")
-            gui_font_size = config.getint("gui", "font_size", fallback=14)
+            gui_font_size = config.getint("gui", "font_size", fallback=12)
             gui_language = config.get("locale", "language", fallback="en")
         else:
-            gui_x, gui_y, gui_width, gui_height = 100, 100, 220, 60
-            gui_font_family, gui_font_size = "Segoe UI", 14
+            gui_x, gui_y, gui_width, gui_height = 100, 100, 220, 32
+            gui_font_family, gui_font_size = "Segoe UI", 12
             gui_language = "en"
         
         if args.compress_memory:
