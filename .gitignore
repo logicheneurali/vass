@@ -46,21 +46,19 @@ bump.py
 # VASS - misc utilities
 highlight_toast.ps1
 
-# VASS - runtime data (personal/conversations)
-Allowed_root/memory/
-Allowed_root/memory.json
-Allowed_root/events.json
-Allowed_root/schedule.json
-Allowed_root/schedules.json
-Allowed_root/.history_view.json
-Allowed_root/backup_memory.json
-Allowed_root/bk_memory.json
-Allowed_root/news.json
-Allowed_root/last_response.txt
-Allowed_root/gmail_seen.json
-
-# VASS - user data (gmail tracking — never commit)
+# VASS - runtime data (personal/conversations/conversation)
+**/memory.json
+**/memory_tags.json
+**/events.json
+**/schedule.json
+**/schedules.json
+**/backup_memory.json
+**/bk_memory.json
+**/last_response.txt
 **/gmail_seen.json
+Allowed_root/memory/
+Allowed_root/news.json
+Allowed_root/.history_view.json
 
 # VASS - user config (use config/settings.example.ini as template)
 config/settings.ini
