@@ -60,6 +60,7 @@ Allowed_root/last_response.txt
 # VASS - user config (use config/settings.example.ini as template)
 config/settings.ini
 config/commands.ini
+config/gmail_seen.json
 
 # VASS - temporary files
 tts_output_*.wav
