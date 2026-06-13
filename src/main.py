@@ -812,7 +812,7 @@ class VassApp:
         gmail = GmailHandler()
         minutes = int(self.settings.get("gmail_sync_minutes", 5))
         max_results = int(self.settings.get("gmail_max_results", 10))
-        seen_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "gmail_seen.json")
+        seen_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "gmail_seen.json")
         print(f"[Gmail] Sync started (every {minutes}m, max {max_results} msgs)")
         try:
             new = gmail.check_new(seen_path, max_results=max_results)
