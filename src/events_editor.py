@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QGroupBox,
-    QLineEdit, QMessageBox, QComboBox, QSpinBox, QFileDialog,
+    QLineEdit, QMessageBox, QComboBox, QSpinBox, QFileDialog, QCheckBox,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG)
@@ -226,6 +226,10 @@ class EventsEditor(QMainWindow):
         self.recur_edit = QLineEdit()
         self.recur_edit.setPlaceholderText("1d / 7d / 2h ...")
         row_recur.addWidget(self.recur_edit)
+        self._enabled_cb = QCheckBox(self._t("events_editor.fields.enabled"))
+        self._enabled_cb.setChecked(True)
+        self._enabled_cb.setStyleSheet(f"color: {LABEL_FG};")
+        row_recur.addWidget(self._enabled_cb)
         row_recur.addStretch()
         form_grid.addLayout(row_recur)
         layout.addWidget(form_group)
@@ -294,6 +298,8 @@ class EventsEditor(QMainWindow):
             self.cmd_edit.setText(item.get("command", ""))
             self.args_edit.setText(item.get("arguments", ""))
             self.workdir_edit.setText(item.get("workingdir", ""))
+            enabled = item.get("enabled", "true")
+            self._enabled_cb.setChecked(enabled.lower() != "false")
 
     def _validate(self):
         date = self.date_edit.text().strip()
@@ -396,6 +402,7 @@ class EventsEditor(QMainWindow):
             wd = self.workdir_edit.text().strip()
             if wd:
                 item["workingdir"] = wd
+        item["enabled"] = "true" if self._enabled_cb.isChecked() else "false"
         desc = self.desc_edit.text().strip()
         date = self.date_edit.text().strip()
         time_str = self.time_edit.text().strip()

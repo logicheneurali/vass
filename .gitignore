@@ -35,8 +35,10 @@ scripts/
 # VASS - windows shortcut
 VASS.lnk
 
-# Secrets
+# Secrets / Credentials
 google_client_secret.json
+credentials/*.json
+credentials/*.token
 
 # VASS - dev tools
 bump.py

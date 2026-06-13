@@ -94,6 +94,8 @@ class EventReminder:
         groups = {}
 
         for ev in events:
+            if ev.get("enabled", "true").lower() == "false":
+                continue
             event_ts = self._parse_ts(ev)
             if event_ts is None:
                 continue
@@ -168,6 +170,8 @@ class EventReminder:
         groups = {}
 
         for sc in schedules:
+            if sc.get("enabled", "true").lower() == "false":
+                continue
             sched_ts = self._parse_ts(sc)
             if sched_ts is None:
                 continue
@@ -378,7 +382,7 @@ class EventReminder:
                 return k
 
         started_msg = t("events.schedule_started", self.lang).replace("{description}", desc)
-        self.app.tts.speak(started_msg)
+        self.app.tts.enqueue(started_msg)
         print(f"[Schedules] Started: {desc} -> {command} {arguments}")
 
         # Check if command is a .vass script
@@ -394,12 +398,12 @@ class EventReminder:
                 self.app._run_script(script_name)
             else:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-                self.app.tts.speak(failed_msg)
+                self.app.tts.enqueue(failed_msg)
             return
 
         if not _validate_command(command, arguments):
             failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-            self.app.tts.speak(failed_msg)
+            self.app.tts.enqueue(failed_msg)
             return
 
         try:
@@ -427,12 +431,12 @@ class EventReminder:
                 msg = t("events.schedule_done", self.lang).replace("{description}", desc)
             else:
                 msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-            self.app.tts.speak(msg)
+            self.app.tts.enqueue(msg)
             if hasattr(self.app, 'notification_manager'):
                 self.app.notification_manager.add(msg, priority=9 if r.returncode != 0 else 7)
         except Exception:
             failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-            self.app.tts.speak(failed_msg)
+            self.app.tts.enqueue(failed_msg)
             if hasattr(self.app, 'notification_manager'):
                 self.app.notification_manager.add(failed_msg, priority=9)
 
@@ -485,7 +489,7 @@ class EventReminder:
             time.sleep(2)
             if not self._running:
                 return
-        self.app.tts.speak(msg)
+        self.app.tts.enqueue(msg)
         if hasattr(self.app, 'notification_manager'):
             self.app.notification_manager.add(msg, priority=7)
         print(f"[Events] Fired: {msg}")

@@ -59,7 +59,7 @@ QSlider::sub-page:horizontal {{
 }}
 """
 
-BOOLEAN_KEYS = {"llama_autostart", "noise_pause"}
+BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled"}
 HIDDEN_KEYS = {"lastmode"}
 
 COMBO_OPTIONS = {
@@ -86,6 +86,7 @@ class SettingsEditor(QMainWindow):
         self.entries = {}
         self._slider_widgets = {}
         self._original_api_key = self._load_original_api_key()
+        self._google_disabled = False
         self.build_ui()
 
     def _get_supported_languages(self):
@@ -203,6 +204,23 @@ class SettingsEditor(QMainWindow):
 
             api_key_injected = False
             row = 0
+
+            if section == "google":
+                from setup_google import is_google_configured
+                if not is_google_configured():
+                    warn_text = t("settings_editor.warnings.google_not_configured", self.lang)
+                    warn_lbl = QLabel(warn_text)
+                    warn_lbl.setStyleSheet(
+                        "color: #e74c3c; font-size: 12px; font-weight: bold; "
+                        "padding: 8px; background-color: #3d1a1a; border-radius: 3px;"
+                    )
+                    warn_lbl.setWordWrap(True)
+                    group_layout.addWidget(warn_lbl, 0, 0, 1, 2)
+                    row = 2
+                    self._google_disabled = True
+                else:
+                    self._google_disabled = False
+
             for i, key in enumerate(self.config.options(section)):
                 if section == "ai" and key == "api_key":
                     continue
@@ -307,6 +325,16 @@ class SettingsEditor(QMainWindow):
                     if idx >= 0:
                         entry.setCurrentIndex(idx)
                     group_layout.addWidget(entry, row, 1)
+                elif key == "calendar_setup":
+                    entry = QPushButton(t(f"settings_editor.field_labels.{key}", self.lang))
+                    entry.setStyleSheet(
+                        f"QPushButton {{ background-color: {BTN_BG}; color: {BTN_FG}; "
+                        f"border: none; border-radius: 3px; padding: 8px 12px; "
+                        f"font-weight: bold; }}"
+                        "QPushButton:hover { background-color: #0d7377; }"
+                    )
+                    entry.clicked.connect(self._launch_google_setup)
+                    group_layout.addWidget(entry, row, 1)
                 else:
                     entry = QLineEdit()
                     entry.setText(self.config.get(section, key))
@@ -344,6 +372,21 @@ class SettingsEditor(QMainWindow):
                     self._add_api_key_field(section, group_layout, row)
 
                 row += 2
+
+            if section == "google" and self._google_disabled:
+                google_keys = ["calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled"]
+                for gk in google_keys:
+                    ge = self.entries.get((section, gk))
+                    if ge is None:
+                        continue
+                    if isinstance(ge, QCheckBox):
+                        ge.setEnabled(False)
+                        ge.setChecked(False)
+                    elif isinstance(ge, QWidget):
+                        cb = ge.findChild(QCheckBox)
+                        if cb:
+                            cb.setEnabled(False)
+                            cb.setChecked(False)
 
             content_layout.addWidget(group)
 
@@ -461,11 +504,18 @@ class SettingsEditor(QMainWindow):
             old_wakeword = self.config.get("wakeword", "wakeword", fallback=None)
 
         for (section, key), entry in self.entries.items():
+            if self._google_disabled and section == "google" and key in {"calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled"}:
+                value = "false"
+                self.config.set(section, key, value)
+                continue
+            if key == "calendar_setup":
+                continue
             if (section, key) in self._slider_widgets:
                 slider, scale = self._slider_widgets[(section, key)]
                 value = f"{slider.value() * scale:.3f}".rstrip("0").rstrip(".")
             elif isinstance(entry, QComboBox):
                 value = entry.currentData() if entry.currentData() is not None else entry.currentText()
+                value = str(value)
             elif isinstance(entry, QCheckBox):
                 value = "true" if entry.isChecked() else "false"
             elif isinstance(entry, QWidget) and key in BOOLEAN_KEYS:
@@ -514,6 +564,11 @@ class SettingsEditor(QMainWindow):
         else:
             btn.setText("🔴 " + t("settings_editor.buttons.llama_off", self.lang))
             btn.setStyleSheet(f"background-color: {BTN_BG}; color: #e74c3c; border: none; border-radius: 3px; padding: 4px 10px; font-weight: bold;")
+
+    def _launch_google_setup(self):
+        import subprocess, os
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "setup_google.py")
+        subprocess.Popen(["python", path, "--lang", self.lang])
 
     def _start_llama_server(self):
         from utils import start_llama_server

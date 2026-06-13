@@ -95,6 +95,10 @@ TEMPLATES = {
     "len": 'len($testo)',
     "contains": 'contains($testo, "cerca")',
     "equals": 'equals($a, $b)',
+    "ifgreater": 'ifgreater($x, 10, say("maggiore"), say("minore"))',
+    "ifless": 'ifless($x, 5, say("minore"), say("maggiore"))',
+    "ifgreaterequal": 'ifgreaterequal($x, 100, say("almeno 100"), say("meno di 100"))',
+    "iflessequal": 'iflessequal($x, 50, say("al massimo 50"), say("sopra 50"))',
     "addevent": 'addevent("2026-06-15", "14:30", "60", "Riunione")',
     "addevent ricorsivo": 'addevent("2026-06-15", "08:00", "5", "Pillola", "1d")',
     "listevents": 'listevents("2026-12-31")',
@@ -119,6 +123,12 @@ TEMPLATES = {
     "search_web": '$risultati = search_web("python tutorial")\nsay($risultati)',
     "inject": 'inject("L\'utente preferisce il tema scuro")',
     "inject_memory": 'inject_memory("Informazione importante da ricordare")',
+    "gcal_today": '$eventi = gcal_today()\nsay($eventi)',
+    "gcal_tomorrow": '$eventi = gcal_tomorrow()\nsay($eventi)',
+    "gcal_add": 'gcal_add("Riunione", "2026-06-15T14:00:00", "2026-06-15T15:00:00", "Sala A")',
+    "gcal_search": '$eventi = gcal_search("dentista")\nsay($eventi)',
+    "google_home_command": 'google_home_command("accendi le luci", false)',
+    "google_home_ask": '$risposta = google_home_ask("che tempo fa domani?")\nsay($risposta)',
     "listen → say": '$testo = listen()\nsay($testo)',
     "screen_search → listen → screen_search": (
         '$richiesta = listen("Cosa vuoi cercare?")\n'

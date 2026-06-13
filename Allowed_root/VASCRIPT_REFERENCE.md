@@ -199,6 +199,55 @@ notify("Operazione completata")
 ```
 
 
+### **`gcal_today()`**
+Returns today's Google Calendar events as JSON. Requires prior Google OAuth2 setup via setup_google.py. No auth required.
+```
+$events = gcal_today()
+say($events)
+```
+
+
+### **`gcal_tomorrow()`**
+Returns tomorrow's Google Calendar events as JSON. Requires prior Google OAuth2 setup.
+```
+$events = gcal_tomorrow()
+say($events)
+```
+
+
+### **`gcal_add(summary, start, end, description?)`**
+Adds an event to Google Calendar. start/end in ISO format 'YYYY-MM-DDTHH:MM:SS'. Requires prior Google OAuth2 setup. No auth required.
+```
+gcal_add("Meeting", "2026-06-15T14:00:00", "2026-06-15T15:00:00", "Sala A")
+```
+
+
+### **`gcal_search(query)`**
+Searches Google Calendar events by keyword. Returns JSON. Requires prior Google OAuth2 setup.
+```
+$results = gcal_search("dentist")
+say($results)
+```
+
+
+### **`google_home_command(command, play_audio?)`**
+Sends a smart home command to Google Assistant (e.g. turn on lights, set thermostat). Optional `play_audio` (default `true`): set to `false` to mute the Assistant's audio response. Requires Google Home configured and enabled.
+
+```
+google_home_command("accendi le luci del soggiorno")
+google_home_command("spegni tutto", false)
+```
+
+
+### **`google_home_ask(question, play_audio?)`**
+Asks Google Assistant a general question and plays the response. Optional `play_audio` (default `true`): set to `false` to mute.
+
+```
+$risposta = google_home_ask("che tempo fa domani?")
+$risposta = google_home_ask("che ore sono?", false)
+```
+
+
 ### **`fetch_text(url)`**
 Downloads a web page and returns its text content. Uses headless Chromium via MCP. No auth required.
 
@@ -307,6 +356,39 @@ Checks if variable is empty.
 ```
 $name = ifempty($username, "Guest", $username)
 say("Welcome {$name}")
+```
+
+
+### **`ifgreater(a, b, if_true, if_false?)`**
+Numeric comparison: returns if_true branch if a > b, otherwise if_false.
+
+```
+ifgreater($score, 10, say("Hai vinto"), say("Riprova"))
+```
+
+
+### **`ifless(a, b, if_true, if_false?)`**
+Numeric comparison: returns if_true branch if a < b, otherwise if_false.
+
+```
+ifless($temperatura, 0, say("Sotto zero!"), say("Sopra zero"))
+```
+
+
+### **`ifgreaterequal(a, b, if_true, if_false?)`**
+Numeric comparison: returns if_true branch if a >= b, otherwise if_false.
+
+```
+$msg = ifgreaterequal($eta, 18, "Maggiorenne", "Minorenne")
+say($msg)
+```
+
+
+### **`iflessequal(a, b, if_true, if_false?)`**
+Numeric comparison: returns if_true branch if a <= b, otherwise if_false.
+
+```
+iflessequal($tentativi, 3, say("Ancora possibile"), say("Game over"))
 ```
 
 ## Utility Functions

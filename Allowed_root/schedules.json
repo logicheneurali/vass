@@ -1,14 +1,35 @@
 {
   "schedules": [
     {
-      "date": "2026-06-13",
-      "time": "19:05",
+      "date": "2026-06-14",
+      "time": "07:10",
       "duration": 60,
       "description": "Aggiornamento report AI",
       "id": "67a7564e",
       "recur": "1d",
       "command": "C:/Users/effed/Documents/Python/vass/scripts/modelli_AI.vass",
-      "name": "aggiornamento_report_ai_2026-06-13_19:05"
+      "name": "aggiornamento_report_ai_2026-06-14_07:10"
+    },
+    {
+      "date": "2026-06-14",
+      "time": "07:40",
+      "duration": 60,
+      "description": "Aggiornamento report notizie principale",
+      "id": "9522e239",
+      "recur": "1d",
+      "command": "C:/Users/effed/Documents/Python/vass/scripts/notizie_principali.vass",
+      "name": "aggiornamento_report_notizie_principale_2026-06-14_07:40"
+    },
+    {
+      "date": "2028-12-13",
+      "time": "07:10",
+      "duration": 60,
+      "description": "Automazione ventilatore",
+      "id": "392cd492",
+      "recur": "30m",
+      "command": "C:/Users/effed/Documents/Python/vass/scripts/auto_ventilatore.vass",
+      "enabled": "true",
+      "name": "automazione_ventilatore_2028-12-13_07:10"
     }
   ]
 }

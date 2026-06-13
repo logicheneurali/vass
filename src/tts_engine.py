@@ -42,6 +42,8 @@ class TtsEngine:
 
         self._speak_queue = deque()
         self._speak_lock = threading.Lock()
+        self._speaker_running = True
+        threading.Thread(target=self._speak_worker, daemon=True).start()
 
     def speak(self, text, speed=1.0):
         self._speak_kokoro(text, speed)
@@ -49,20 +51,36 @@ class TtsEngine:
     def speak_nowait(self, text, speed=1.0):
         self._speak_kokoro(text, speed)
 
+    def enqueue(self, text, speed=1.0, on_done=None):
+        with self._speak_lock:
+            self._speak_queue.append((text, speed, on_done))
+        print(f"[TTS] Enqueued: {text[:60]}")
+
     def _speak_worker(self):
-        while True:
+        while self._speaker_running:
             with self._speak_lock:
                 if not self._speak_queue:
                     item = None
                 else:
                     item = self._speak_queue.popleft()
             if item:
-                text, speed = item
+                text, speed, on_done = item
+                print(f"[TTS] Worker speaking: {text[:60]}")
                 self.tts_busy.acquire()
                 try:
                     self._tts_done.clear()
                     self._speak_kokoro(text, speed)
-                    self._tts_done.wait()
+                    if not self._tts_done.wait(timeout=60):
+                        print("[TTS] WARNING: _tts_done timeout after 60s, forcing")
+                        self._tts_done.set()
+                    if on_done:
+                        try:
+                            on_done()
+                        except Exception as e:
+                            print(f"[TTS] on_done callback error: {e}")
+                except Exception as e:
+                    print(f"[TTS] Worker error: {e}")
+                    self._tts_done.set()
                 finally:
                     self.tts_busy.release()
             else:
@@ -222,6 +240,7 @@ class TtsEngine:
             return False
 
     def stop(self):
+        self._speaker_running = False
         with self._speak_lock:
             self._speak_queue.clear()
         import sounddevice as sd
@@ -258,6 +277,8 @@ class TtsEngine:
             prev = "listening"
         self._set_state(prev)
         self.gui.stop_tts_playback()
+        self._tts_data = None
+        self._tts_sr = None
         if self._tts_wav_path and os.path.exists(self._tts_wav_path):
             try:
                 os.remove(self._tts_wav_path)

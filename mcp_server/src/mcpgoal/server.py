@@ -18,6 +18,9 @@ from mcpgoal.tools.playwright import search_web as _search_web
 from mcpgoal.tools.playwright import fetch_page as _fetch_page
 from mcpgoal.tools.langcheck import check_language as _check_language
 from mcpgoal.tools.memory_tags import save_tags as _save_tags
+from mcpgoal.tools.calendar import calendar_list as _calendar_list
+from mcpgoal.tools.calendar import calendar_add as _calendar_add
+from mcpgoal.tools.calendar import calendar_search as _calendar_search
 
 client_ip_var: ContextVar[str] = ContextVar("client_ip", default="unknown")
 _loggers: dict[str, RequestLogger] = {}
@@ -69,6 +72,9 @@ _TOOL_SYNTAX = {
     "websearch": "websearch(query) — example: websearch('latest news')",
     "webfetch": "webfetch(url) — example: webfetch('https://example.com')",
     "savetags": "savetags(tags) — example: savetags('food,health,pets')",
+    "calendar_list": "calendar_list(from_date?) — example: calendar_list('2026-06-15')",
+    "calendar_add": "calendar_add(summary, start, end, description?) — example: calendar_add('Meeting', '2026-06-15T14:00:00', '2026-06-15T15:00:00')",
+    "calendar_search": "calendar_search(query) — example: calendar_search('dentist')",
 }
 
 
@@ -304,5 +310,30 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def savetags(tags: str, entry_id: str = "") -> str:
         """Classify the user's message with comma-separated memory tags. Always call after responding. Example: savetags('food,health,pets')"""
         return await _tool("savetags", f"tags={tags[:80]}", _save_tags(tags, config.allowed_root, entry_id), config)
+
+    def _gcal_enabled(cfg):
+        try:
+            root = Path(cfg.allowed_root).resolve().parent
+            import configparser
+            cp = configparser.ConfigParser()
+            cp.read(str(root / "config" / "settings.ini"), encoding="utf-8")
+            return cp.get("google", "calendar_enabled", fallback="false").lower() == "true"
+        except Exception:
+            return False
+
+    @mcp.tool()
+    async def calendar_list(from_date: str = "") -> str:
+        """List upcoming Google Calendar events. Optional from_date='YYYY-MM-DD'. Returns JSON."""
+        return await _tool("calendar_list", f"from={from_date or 'today'}", _calendar_list(from_date, enabled=_gcal_enabled(config)), config)
+
+    @mcp.tool()
+    async def calendar_add(summary: str, start: str, end: str, description: str = "") -> str:
+        """Add an event to Google Calendar. start/end in ISO format 'YYYY-MM-DDTHH:MM:SS'. Requires prior Google OAuth2 setup."""
+        return await _tool("calendar_add", f"summary={summary[:40]}", _calendar_add(summary, start, end, description, enabled=_gcal_enabled(config)), config)
+
+    @mcp.tool()
+    async def calendar_search(query: str) -> str:
+        """Search Google Calendar events by keyword. Returns JSON."""
+        return await _tool("calendar_search", f"q={query[:60]}", _calendar_search(query, enabled=_gcal_enabled(config)), config)
 
     return mcp

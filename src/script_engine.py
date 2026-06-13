@@ -8,7 +8,13 @@ import time
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask"}
+
+
+def _gh_disable_google_services(app):
+    for key in ["calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled"]:
+        app.settings[key] = "false"
+    print("[GoogleAuth] Auto-disabled all Google services due to auth error")
 
 
 def _validate_recur(recur):
@@ -219,6 +225,23 @@ class VASScript:
                 return self._evaluate(args[1])
             if var_val and len(args) > 2:
                 return self._evaluate(args[2])
+            return ""
+
+        if name in ("ifgreater", "ifless", "ifgreaterequal", "iflessequal"):
+            a = float(self._evaluate(args[0])) if args else 0.0
+            b = float(self._evaluate(args[1])) if len(args) > 1 else 0.0
+            if name == "ifgreater":
+                cond = a > b
+            elif name == "ifless":
+                cond = a < b
+            elif name == "ifgreaterequal":
+                cond = a >= b
+            else:
+                cond = a <= b
+            if cond and len(args) > 2:
+                return self._evaluate(args[2])
+            if not cond and len(args) > 3:
+                return self._evaluate(args[3])
             return ""
 
         evaluated = _eval_all(args)
@@ -532,6 +555,39 @@ class VASScript:
         if name == "search_web":
             query = evaluated[0] if evaluated else ""
             return self._fetch_web(query, "websearch")
+
+        if name == "gcal_today":
+            if not self._gcal_enabled():
+                return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
+            return self._gcal_list("today")
+
+        if name == "gcal_tomorrow":
+            if not self._gcal_enabled():
+                return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
+            return self._gcal_list("tomorrow")
+
+        if name == "gcal_add":
+            if not self._gcal_enabled():
+                return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
+            summary = evaluated[0] if evaluated else ""
+            start = evaluated[1] if len(evaluated) > 1 else ""
+            end = evaluated[2] if len(evaluated) > 2 else ""
+            desc = evaluated[3] if len(evaluated) > 3 else ""
+            return self._gcal_add(summary, start, end, desc)
+
+        if name == "gcal_search":
+            if not self._gcal_enabled():
+                return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
+            query = evaluated[0] if evaluated else ""
+            return self._gcal_search(query)
+
+        if name == "google_home_command":
+            mute = evaluated[1].strip().lower() == "false" if len(evaluated) > 1 else False
+            return self._gh_exec(evaluated[0] if evaluated else "", play_audio=not mute)
+
+        if name == "google_home_ask":
+            mute = evaluated[1].strip().lower() == "false" if len(evaluated) > 1 else False
+            return self._gh_exec(evaluated[0] if evaluated else "", play_audio=not mute)
 
         if name == "getdatetime":
             from datetime import datetime
@@ -915,6 +971,69 @@ class VASScript:
             return str(result)
         except Exception as e:
             return f"error: {e}"
+
+    def _gcal_enabled(self):
+        return self.app.settings.get("calendar_enabled", "false").lower() == "true"
+
+    def _gcal_list(self, when):
+        from google_calendar import GoogleCalendar
+        gcal = GoogleCalendar()
+        if when == "today":
+            return gcal.list_today()
+        return gcal.list_tomorrow()
+
+    def _gcal_add(self, summary, start, end, desc):
+        from google_calendar import GoogleCalendar
+        gcal = GoogleCalendar()
+        return gcal.add_event(summary, start, end, desc)
+
+    def _gcal_search(self, query):
+        from google_calendar import GoogleCalendar
+        gcal = GoogleCalendar()
+        return gcal.search_events(query)
+
+    def _gh_enabled(self):
+        return self.app.settings.get("google_home_enabled", "false").lower() == "true"
+
+    def _gh_exec(self, text, play_audio=True):
+        if not self._gh_enabled():
+            return "error: Google Home is not enabled (google_home_enabled=false in settings.ini)"
+        model_id = self.app.settings.get("google_home_model_id", "")
+        device_id = self.app.settings.get("google_home_device_id", "")
+        if not model_id or not device_id:
+            return "error: Google Home model_id or device_id not configured"
+        import threading
+        from google_home import GoogleHome
+        output_device = int(self.app.settings.get("output_device", -1))
+        output_device = None if output_device < 0 else output_device
+
+        def _run_gh():
+            gh = GoogleHome(model_id, device_id, self.app.language)
+            result = gh.send_text_query(text)
+            if "error" in result:
+                err = result["error"]
+                print(f"[GoogleHome] Error: {err}")
+                if play_audio:
+                    if err == "auth_expired":
+                        self.app.tts.enqueue("Credenziali Google scadute. Apri Impostazioni per riautorizzare.")
+                        _gh_disable_google_services(self.app)
+                    elif err == "not_authenticated":
+                        self.app.tts.enqueue("Google non configurato. Esegui la configurazione da Impostazioni.")
+                        _gh_disable_google_services(self.app)
+                    elif err == "timeout":
+                        self.app.tts.enqueue("Google Home non risponde. Riprova.")
+                    elif err == "service_unavailable":
+                        self.app.tts.enqueue("Servizio Google Home non disponibile al momento.")
+                    else:
+                        self.app.tts.enqueue("Comando Google Home non riuscito.")
+            elif result.get("audio") and play_audio:
+                gh.play_audio_response(result["audio"], output_device)
+            elif result.get("text") and play_audio:
+                self.app.tts.enqueue(result["text"])
+            gh.close()
+
+        threading.Thread(target=_run_gh, daemon=True).start()
+        return "ok"
 
     def _do_say(self, text, speed=1.0):
         self.app.tts.speak_nowait(text, speed)

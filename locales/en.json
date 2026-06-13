@@ -109,7 +109,18 @@
       "overflow_strategy": "Overflow strategy",
       "allow_ai_scripts": "AI scripts",
       "input_device": "Recording",
-      "output_device": "Playback"
+      "output_device": "Playback",
+      "calendar_setup": "Start setup",
+      "calendar_enabled": "Google Calendar",
+      "calendar_sync_enabled": "Auto sync",
+      "calendar_sync_minutes": "Sync interval (min)",
+      "calendar_sync_days": "Days to import",
+      "gmail_enabled": "Gmail",
+      "gmail_sync_minutes": "Sync interval (min)",
+      "gmail_max_results": "Max emails per sync",
+      "google_home_enabled": "Google Home",
+      "google_home_model_id": "Model ID",
+      "google_home_device_id": "Device ID"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -148,7 +159,18 @@
       "noise_pause_duration": "Consecutive seconds of high noise before pausing",
       "context_length": "Max context length in tokens (0 = auto-detect from model)",
       "overflow_strategy": "What to do when text exceeds context: truncate (cut) or summarize (requires an extra API call)",
-      "allow_ai_scripts": "AI can generate scripts"
+      "allow_ai_scripts": "AI can generate scripts",
+      "calendar_setup": "Start setup",
+      "calendar_enabled": "Enable Google Calendar access",
+      "calendar_sync_enabled": "Auto-import Google events into VASS",
+      "calendar_sync_minutes": "Sync frequency in minutes",
+      "calendar_sync_days": "How many future days to sync",
+      "gmail_enabled": "Enable Gmail access",
+      "gmail_sync_minutes": "How often to check for new emails (minutes)",
+      "gmail_max_results": "How many recent emails to check at each sync",
+      "google_home_enabled": "Enable Google Home control (broadcast, smart home, ask)",
+      "google_home_model_id": "Device model ID from Actions Console",
+      "google_home_device_id": "Device instance ID from Actions Console"
     },
     "section_labels": {
       "gui": "Window",
@@ -162,7 +184,8 @@
       "locale": "Language",
       "events": "Events",
       "noise": "Noise",
-      "audio": "Audio input/output"
+      "audio": "Audio input/output",
+      "google": "External Services"
     },
     "buttons": {
       "save": "Save",
@@ -188,6 +211,9 @@
       "llama_no_path": "llama-server path not configured in settings.ini.",
       "llama_not_found": "llama-server.exe not found in {path}.",
       "llama_started": "llama.cpp server started!"
+    },
+    "warnings": {
+      "google_not_configured": "⚠ Google credentials not configured. Run setup to enable Calendar, Gmail and Google Home services."
     }
   },
   "scripts_editor": {
@@ -321,7 +347,8 @@
       "recur": "Recurrence",
       "command": "Command",
       "arguments": "Arguments",
-      "workingdir": "Working dir"
+      "workingdir": "Working dir",
+      "enabled": "Enabled"
     },
     "buttons": {
       "add": "Add",
@@ -356,5 +383,42 @@
     "not_found": "Timer {id} not found",
     "cancelled": "Timer {id} cancelled",
     "min_duration": "Minimum timer duration: {min} minute(s)"
+  },
+  "notifications": {
+    "google_auth_expired": "⚠ Google credentials expired. Open Settings → External Services → Run Setup."
+  },
+  "setup_google": {
+    "title": "Google credentials setup",
+    "select_json": "Select JSON file",
+    "page1": {
+      "title": "Welcome",
+      "text": "To use Google Calendar, Gmail and Google Home with VASS, you need OAuth2 credentials.\n\nSTEP 1: Go to https://console.cloud.google.com\nSign in with your Google account.\n\nSTEP 2: Create or select a project\nClick the dropdown menu at the top (near the Google Cloud logo) and select an existing project or click NEW PROJECT, give it a name (e.g. VASS).\n\nSTEP 3: Enable required APIs\nSide menu → APIs & Services → Library\nSearch and enable ONE AT A TIME:\n- Google Calendar API\n- Gmail API\n- Google Assistant API\n\nSTEP 4: Configure OAuth consent screen\nSide menu → APIs & Services → https://console.cloud.google.com/apis/credentials/consent\n- Choose External (external user)\n- Fill in: App name (e.g. VASS), support email, developer email\n- Save and continue (no extra scopes needed)\n\n⚠️ IMPORTANT - Test users vs Publishing:\nIf you leave the app in Testing mode:\n  • Go to the Audience section of the OAuth consent screen\n  • Under Test users, click + ADD USERS\n  • Enter YOUR email (e.g. youraddress@gmail.com)\n  • Click SAVE\n  • WARNING: in Testing mode the token expires after 7 days!\n\nTo avoid expiration, make the app PUBLIC:\n  • On the OAuth consent screen page, click PUBLISH APP at the top\n  • Confirm. The app is still only usable by you (not on a store)\n  • The token will no longer expire\n\nSTEP 5: Create OAuth2 credentials\nSide menu → APIs & Services → https://console.cloud.google.com/apis/credentials\nClick + CREATE CREDENTIALS at the top → OAuth client ID\n- Application type: Desktop application\n- Name: VASS Desktop\n- Click CREATE\n\nSTEP 6: Download the JSON file\nIn the popup window, click DOWNLOAD JSON\nSave it in a folder you'll remember (e.g. Downloads)\n\nSTEP 7: Click Next to select the downloaded JSON file."
+    },
+    "page2": {
+      "title": "Upload credentials",
+      "status": "Click the button to select the JSON file downloaded from Google Cloud Console.",
+      "ok": "File selected: {path}",
+      "error": "Error in JSON file.",
+      "already_configured": "Credentials already stored in Windows Credential Manager. You can proceed without selecting a file."
+    },
+    "page3": {
+      "title": "Authorize Google",
+      "status": "Click the button to open your browser and authorize VASS to access Google Calendar and Gmail.",
+      "authorize": "Open browser and authorize",
+      "authorizing": "Authenticating...",
+      "no_client": "Client credentials not found.",
+      "error": "Authentication error."
+    },
+    "page4": {
+      "title": "Complete",
+      "ok": "Setup complete! VASS can now access Google Calendar and Gmail."
+    },
+    "page5": {
+      "title": "Google Home (optional)",
+      "info": "To control Google Home devices (broadcast, smart home, voice commands), you need to register a device model in the Google Actions Console.\n\nWHAT IS THE ACTIONS CONSOLE\nIt is a separate console from Google Cloud. It tells Google Assistant that your VASS device is authorized to send commands.\n\nSTEP 1: Access the Actions Console\nOpen your browser: https://console.actions.google.com\nSign in with the SAME Google account used for the Cloud Console.\n\nSTEP 2: Create or select the project\nClick 'New project' or select an existing project.\nCurrent Project ID: {project_id}\n\nSTEP 3: Prepare the client_secret.json file\nThe file is needed to authorize CLI commands. If you still have the JSON downloaded from the Cloud Console, rename it to credentials/google_client_secret.json in the VASS folder.\nIf you no longer have the file, re-download it from the Cloud Console: APIs & Services -> Credentials -> click on your OAuth 2.0 Client ID -> DOWNLOAD JSON.\n\nSTEP 4: Open the terminal and create credentials\n\nWindows:\n  Start Menu, search for 'PowerShell' or 'Terminal'\n\nmacOS/Linux:\n  Open Terminal (Spotlight -> Terminal / Ctrl+Alt+T)\n\nNavigate to the VASS folder:\n  cd C:\\Users\\yourname\\Documents\\Python\\vass\n\nRun (all on one line):\n  google-oauthlib-tool --client-secrets credentials/google_client_secret.json --scope https://www.googleapis.com/auth/assistant-sdk-prototype --save\n\nThe browser will open for authorization. After authorization, the credentials.json file is created automatically.\n\nSTEP 5: Register the device model\nIn the terminal, run (all on one line):\n  googlesamples-assistant-devicetool --project-id {project_id} register-model --model vass-desktop --type LIGHT --trait action.devices.traits.OnOff --manufacturer VASS --product-name \"VASS Assistant\" --description \"VASS voice assistant\"\n\nSTEP 6: Register the device instance\nStill in the terminal, run:\n  googlesamples-assistant-devicetool --project-id {project_id} register-device --device vass-desktop-01 --model vass-desktop --nickname \"VASS\" --client-type SERVICE\n\nIf you get an error 'multiple values for keyword argument token', run this fix:\n  On Windows:\n    python -c \"import json,os; p=os.path.expandvars(r'%APPDATA%\\google-oauthlib-tool\\credentials.json'); d=json.load(open(p)); d.pop('token',None); json.dump(d,open(p,'w'))\"\n  On macOS/Linux:\n    python -c \"import json,os; p=os.path.expanduser('~/.config/google-oauthlib-tool/credentials.json'); d=json.load(open(p)); d.pop('token',None); json.dump(d,open(p,'w'))\"\n\nSTEP 7: Enter the data below\n  Model ID:  vass-desktop\n  Device ID: vass-desktop-01\n\nIf you don't have Google Home, check 'Skip'.",
+      "model_id": "Model ID",
+      "device_id": "Device ID",
+      "skip": "Skip (I don't have Google Home)"
+    }
   }
 }

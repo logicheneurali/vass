@@ -270,3 +270,35 @@ def init_mcp(mcp_server_url, timeout=120, log_prefix="[AI]"):
     except Exception as e:
         print(f"{log_prefix} MCP init failed: {e}")
         return None, None
+
+
+_HTML_ENTITIES = re.compile(r'&(?:amp|#38|lt|#60|gt|#62|quot|#34|apos|#39|nbsp|#160);')
+_HTML_TAG_RE = re.compile(r'<[^>]+>')
+_URL_RE = re.compile(r'https?://[^\s<>\[\]]+')
+_REPLY_RE = re.compile(r'^>\s?.*$', re.MULTILINE)
+_SIGNATURE_RE = re.compile(r'-- \n.*', re.DOTALL)
+_CONTROL_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202f\ufeff]')
+_MARKDOWN_RE = re.compile(r'[*_#`]')
+_MULTI_PUNCT = re.compile(r'([!?.])\1+')
+_MULTI_SPACE = re.compile(r'\s+')
+
+
+def clean_for_tts(text, max_len=300):
+    if not text:
+        return ""
+    entities = {"&amp;": "&", "&#38;": "&", "&lt;": "<", "&#60;": "<",
+                "&gt;": ">", "&#62;": ">", "&quot;": "\"", "&#34;": "\"",
+                "&apos;": "'", "&#39;": "'", "&nbsp;": " ", "&#160;": " "}
+    for entity, replacement in entities.items():
+        text = text.replace(entity, replacement)
+    text = _HTML_TAG_RE.sub("", text)
+    text = _URL_RE.sub("[link]", text)
+    text = _REPLY_RE.sub("", text)
+    text = _SIGNATURE_RE.sub("", text)
+    text = _CONTROL_RE.sub("", text)
+    text = _MARKDOWN_RE.sub("", text)
+    text = _MULTI_PUNCT.sub(r'\1', text)
+    text = _MULTI_SPACE.sub(" ", text).strip()
+    if len(text) > max_len:
+        text = text[:max_len].rsplit(" ", 1)[0] + "..."
+    return text

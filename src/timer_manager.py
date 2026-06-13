@@ -83,19 +83,8 @@ class TimerManager:
         msg = t("timer.expired", lang).replace("{duration}", self._clean_duration(info["duration"]))
         if hasattr(self.app, 'notification_manager'):
             self.app.notification_manager.add(msg, priority=8)
-        try:
-            tts = self.app.tts
-            if hasattr(tts, '_tts_done'):
-                tts._tts_done.wait()
-        except Exception:
-            pass
         self._play_alert(2)
-        self.app.tts.speak(msg)
-        try:
-            self.app.tts._tts_done.wait()
-            self._play_alert(2)
-        except Exception:
-            pass
+        self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2))
 
     @staticmethod
     def _play_alert(count=1):

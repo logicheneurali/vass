@@ -758,6 +758,8 @@ class VassGUI(QMainWindow):
     def _on_stop_tts(self):
         self._tts_polling = False
         self.stacked.setCurrentWidget(self.btn)
+        self.player.data = None
+        self.player.peaks = []
 
     def request_auth(self, script_name, func_name):
         import threading
@@ -952,6 +954,7 @@ class VassGUI(QMainWindow):
             readme = os.path.join(BASE, "README.md")
         from markdown_viewer import MarkdownViewer
         v = MarkdownViewer(title=self._t("gui.menu.help_usage"), file_path=readme)
+        v.destroyed.connect(lambda obj=v: self._open_windows.remove(obj) if obj in self._open_windows else None)
         v.show()
         self._open_windows.append(v)
 
@@ -982,6 +985,7 @@ class VassGUI(QMainWindow):
         content += "\n\n".join(sections) if sections else "*Nessun comando disponibile*"
         from markdown_viewer import MarkdownViewer
         v = MarkdownViewer(title=self._t("gui.menu.help_commands"), content=content)
+        v.destroyed.connect(lambda obj=v: self._open_windows.remove(obj) if obj in self._open_windows else None)
         v.show()
         self._open_windows.append(v)
 
@@ -990,6 +994,7 @@ class VassGUI(QMainWindow):
         path = os.path.join(BASE, "Allowed_root", "VASCRIPT_REFERENCE.md")
         from markdown_viewer import MarkdownViewer
         v = MarkdownViewer(title=self._t("gui.menu.help_vasscript"), file_path=path)
+        v.destroyed.connect(lambda obj=v: self._open_windows.remove(obj) if obj in self._open_windows else None)
         v.show()
         self._open_windows.append(v)
 

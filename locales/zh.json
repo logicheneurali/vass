@@ -109,7 +109,18 @@
       "overflow_strategy": "溢出策略",
       "allow_ai_scripts": "AI脚本",
       "input_device": "录音",
-      "output_device": "播放"
+      "output_device": "播放",
+      "calendar_setup": "开始设置",
+      "calendar_enabled": "Google 日历",
+      "calendar_sync_enabled": "自动同步",
+      "calendar_sync_minutes": "同步间隔 (分钟)",
+      "calendar_sync_days": "导入天数",
+      "gmail_enabled": "Gmail",
+      "gmail_sync_minutes": "同步间隔（分钟）",
+      "gmail_max_results": "最大邮件数",
+      "google_home_enabled": "Google Home",
+      "google_home_model_id": "模型ID",
+      "google_home_device_id": "设备ID"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
@@ -148,7 +159,18 @@
       "noise_pause_duration": "暂停前连续高噪音秒数",
       "context_length": "最大上下文长度（令牌，0=自动检测）",
       "overflow_strategy": "文本超出上下文时的处理: truncate (截断) 或 summarize (摘要，需要额外API调用)",
-      "allow_ai_scripts": "AI可以生成脚本"
+      "allow_ai_scripts": "AI可以生成脚本",
+      "calendar_setup": "开始设置",
+      "calendar_enabled": "启用 Google 日历访问",
+      "calendar_sync_enabled": "自动导入 Google 事件",
+      "calendar_sync_minutes": "同步频率（分钟）",
+      "calendar_sync_days": "同步未来天数",
+      "gmail_enabled": "启用Gmail访问",
+      "gmail_sync_minutes": "检查新邮件的间隔（分钟）",
+      "gmail_max_results": "每次同步检查的最近邮件数",
+      "google_home_enabled": "启用Google Home控制（广播、智能家居、询问）",
+      "google_home_model_id": "Actions Console中的设备模型ID",
+      "google_home_device_id": "Actions Console中的设备实例ID"
     },
     "section_labels": {
       "gui": "窗口",
@@ -162,7 +184,8 @@
       "locale": "语言",
       "events": "事件",
       "noise": "噪音",
-      "audio": "音频输入/输出"
+      "audio": "音频输入/输出",
+      "google": "外部服务"
     },
     "buttons": {
       "save": "保存",
@@ -188,6 +211,9 @@
       "llama_no_path": "settings.ini中未配置llama-server路径。",
       "llama_not_found": "在{path}中找不到llama-server.exe。",
       "llama_started": "llama.cpp服务器已启动！"
+    },
+    "warnings": {
+      "google_not_configured": "⚠ Google凭据未配置。请运行设置以启用Calendar、Gmail和Google Home服务。"
     }
   },
   "scripts_editor": {
@@ -322,7 +348,8 @@
       "recur": "重复",
       "command": "命令",
       "arguments": "参数",
-      "workingdir": "工作目录"
+      "workingdir": "工作目录",
+      "enabled": "启用"
     },
     "buttons": {
       "add": "添加",
@@ -357,5 +384,42 @@
     "not_found": "未找到计时器 {id}",
     "cancelled": "计时器 {id} 已取消",
     "min_duration": "计时器最短时长: {min}分钟"
+  },
+  "notifications": {
+    "google_auth_expired": "⚠ Google凭据已过期。请打开设置 → 外部服务 → 运行配置。"
+  },
+  "setup_google": {
+    "title": "Google 凭据设置",
+    "select_json": "选择 JSON 文件",
+    "page1": {
+      "title": "欢迎",
+      "text": "要在 VASS 中使用 Google 日历、Gmail 和 Google Home，您需要 OAuth2 凭据。\n\n第1步: 前往 https://console.cloud.google.com\n使用您的 Google 账号登录。\n\n第2步: 创建或选择项目\n点击顶部的下拉菜单（Google Cloud 徽标附近），选择现有项目或点击「新建项目」，为其命名（例如 VASS）。\n\n第3步: 启用所需的 API\n侧边菜单 → API 和服务 → 库\n逐一搜索并启用:\n- Google Calendar API\n- Gmail API\n- Google Assistant API\n\n第4步: 配置 OAuth 同意屏幕\n侧边菜单 → API 和服务 → https://console.cloud.google.com/apis/credentials/consent\n- 选择「外部」（外部用户）\n- 填写: 应用名称（例如 VASS）、支持电子邮件、开发者电子邮件\n- 保存并继续（无需额外范围）\n\n⚠️ 重要 - 测试用户与发布:\n如果您将应用保留在测试模式:\n  • 前往 OAuth 同意屏幕的「受众」部分\n  • 在「测试用户」下，点击「+ 添加用户」\n  • 输入您的电子邮件（例如 yourname@gmail.com）\n  • 点击「保存」\n  • 注意: 测试模式下，令牌在 7 天后过期!\n\n为避免过期，请将应用设为公开:\n  • 在 OAuth 同意屏幕页面，点击顶部的「发布应用」\n  • 确认。该应用仅供您使用（不在应用商店中）\n  • 令牌将不再过期\n\n第5步: 创建 OAuth2 凭据\n侧边菜单 → API 和服务 → https://console.cloud.google.com/apis/credentials\n点击顶部的「+ 创建凭据」→ OAuth 客户端 ID\n- 应用类型: 桌面应用\n- 名称: VASS Desktop\n- 点击「创建」\n\n第6步: 下载 JSON 文件\n在弹出窗口中，点击「下载 JSON」\n将其保存到您能记住的文件夹中（例如 下载）\n\n第7步: 点击「下一步」选择已下载的 JSON 文件。"
+    },
+    "page2": {
+      "title": "上传凭据",
+      "status": "点击按钮选择 JSON 文件。",
+      "ok": "已选择文件: {path}",
+      "error": "JSON 文件错误。",
+      "already_configured": "凭据已存储在Windows凭据管理器中。您无需选择文件即可继续。"
+    },
+    "page3": {
+      "title": "授权 Google",
+      "status": "点击按钮打开浏览器。",
+      "authorize": "打开浏览器并授权",
+      "authorizing": "认证中...",
+      "no_client": "未找到客户端凭据。",
+      "error": "认证错误。"
+    },
+    "page4": {
+      "title": "完成",
+      "ok": "设置完成！VASS 现在可以访问 Google 日历和 Gmail。"
+    },
+    "page5": {
+      "title": "Google Home（可选）",
+      "info": "要控制Google Home设备（广播、智能家居、语音命令），您需要在Google Actions Console中注册设备模型。\n\n什么是Actions Console\n这是一个与Google Cloud分离的独立控制台。它告诉Google Assistant您的VASS设备有权发送命令。\n\n第1步：访问Actions Console\n打开浏览器：https://console.actions.google.com\n使用与Cloud Console相同的Google账号登录。\n\n第2步：创建或选择项目\n点击「New project」或选择现有项目。\n当前项目ID：{project_id}\n\n第3步：准备client_secret.json文件\n该文件用于授权终端命令。如果您还保留着从Cloud Console下载的JSON文件，请将其重命名为credentials/google_client_secret.json并放在VASS文件夹中。\n如果您已没有该文件，请从Cloud Console重新下载：APIs & Services -> 凭据 -> 点击您的OAuth 2.0客户端ID -> 下载JSON。\n\n第4步：打开终端并创建凭据\n\nWindows：\n  开始菜单，搜索「PowerShell」或「终端」\n\nmacOS/Linux：\n  打开终端（Spotlight -> Terminal / Ctrl+Alt+T）\n\n导航到VASS文件夹：\n  cd C:\\Users\\您的用户名\\Documents\\Python\\vass\n\n运行（全部在一行中）：\n  google-oauthlib-tool --client-secrets credentials/google_client_secret.json --scope https://www.googleapis.com/auth/assistant-sdk-prototype --save\n\n浏览器将打开以进行授权。授权后，credentials.json文件将自动创建。\n\n第5步：注册设备模型\n在终端中运行（全部在一行中）：\n  googlesamples-assistant-devicetool --project-id {project_id} register-model --model vass-desktop --type LIGHT --trait action.devices.traits.OnOff --manufacturer VASS --product-name \"VASS Assistant\" --description \"VASS voice assistant\"\n\n第6步：注册设备实例\n继续在终端中运行：\n  googlesamples-assistant-devicetool --project-id {project_id} register-device --device vass-desktop-01 --model vass-desktop --nickname \"VASS\" --client-type SERVICE\n\n如果出现「multiple values for keyword argument token」错误，请运行以下修复命令：\n  python -c \"import json,os; p=os.path.expandvars(r'%APPDATA%\\google-oauthlib-tool\\credentials.json'); d=json.load(open(p)); d.pop('token',None); json.dump(d,open(p,'w'))\"\n\n第7步：在下方输入数据\n  模型ID：  vass-desktop\n  设备ID：vass-desktop-01\n\n如果没有Google Home，请勾选「跳过」。",
+      "model_id": "模型ID",
+      "device_id": "设备ID",
+      "skip": "跳过（没有Google Home）"
+    }
   }
 }

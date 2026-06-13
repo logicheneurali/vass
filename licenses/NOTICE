@@ -1,0 +1,42 @@
+VASS - Third-Party Notices
+===========================
+
+This application includes the following third-party software
+components, each under its own license.
+
+
+Google APIs & Authentication
+-----------------------------
+  google-api-python-client    (Apache 2.0)  https://github.com/googleapis/google-api-python-client
+  google-auth                 (Apache 2.0)  https://github.com/googleapis/google-auth-library-python
+  google-auth-oauthlib        (Apache 2.0)  https://github.com/googleapis/google-auth-library-python-oauthlib
+  google-auth-httplib2        (Apache 2.0)  https://github.com/googleapis/google-auth-library-python-httplib2
+  google-api-core             (Apache 2.0)  https://github.com/googleapis/python-api-core
+
+Google Assistant SDK
+--------------------
+  google-assistant-sdk        (Apache 2.0)  https://github.com/googlesamples/assistant-sdk-python
+  google-assistant-grpc       (Apache 2.0)  https://github.com/googlesamples/assistant-sdk-python
+
+gRPC & Protocol Buffers
+-----------------------
+  grpcio                      (Apache 2.0)  https://github.com/grpc/grpc
+  protobuf                    (BSD 3-Clause) https://github.com/protocolbuffers/protobuf
+
+HTTP & Networking
+-----------------
+  httplib2                    (MIT)         https://github.com/httplib2/httplib2
+  uritemplate                 (BSD/Apache)  https://github.com/python-hyper/uritemplate
+
+Cryptography & Security
+-----------------------
+  cryptography                (Apache 2.0/BSD) https://github.com/pyca/cryptography
+  pyasn1                      (BSD 2-Clause)   https://github.com/pyasn1/pyasn1
+  pyasn1_modules              (BSD)            https://github.com/pyasn1/pyasn1-modules
+  keyring                     (MIT)            https://github.com/jaraco/keyring
+  cachetools                  (MIT)            https://github.com/tkem/cachetools
+  rsa                         (Apache 2.0)     https://github.com/sybrenstuvel/python-rsa
+
+
+Full license texts are provided in the APACHE-2.0.txt, MIT.txt,
+BSD-3-Clause.txt, and BSD-2-Clause.txt files in this directory.

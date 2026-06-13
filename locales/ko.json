@@ -109,7 +109,18 @@
       "overflow_strategy": "오버플로우 전략",
       "allow_ai_scripts": "AI 스크립트",
       "input_device": "녹음",
-      "output_device": "재생"
+      "output_device": "재생",
+      "calendar_setup": "설정 시작",
+      "calendar_enabled": "Google 캘린더",
+      "calendar_sync_enabled": "자동 동기화",
+      "calendar_sync_minutes": "동기화 간격 (분)",
+      "calendar_sync_days": "가져올 일수",
+      "gmail_enabled": "Gmail",
+      "gmail_sync_minutes": "동기화 간격(분)",
+      "gmail_max_results": "최대 이메일 수",
+      "google_home_enabled": "Google Home",
+      "google_home_model_id": "모델 ID",
+      "google_home_device_id": "기기 ID"
     },
     "field_descriptions": {
       "x": "화면 X 위치",
@@ -148,7 +159,18 @@
       "noise_pause_duration": "일시정지 전 연속 높은 소음 시간 (초)",
       "context_length": "최대 컨텍스트 길이 (토큰, 0=자동 감지)",
       "overflow_strategy": "텍스트가 컨텍스트를 초과할 경우: truncate (자르기) 또는 summarize (요약, 추가 API 호출 필요)",
-      "allow_ai_scripts": "AI가 스크립트를 생성할 수 있음"
+      "allow_ai_scripts": "AI가 스크립트를 생성할 수 있음",
+      "calendar_setup": "설정 시작",
+      "calendar_enabled": "Google 캘린더 액세스 활성화",
+      "calendar_sync_enabled": "Google 이벤트 자동 가져오기",
+      "calendar_sync_minutes": "동기화 빈도 (분)",
+      "calendar_sync_days": "동기화할 미래 일수",
+      "gmail_enabled": "Gmail 액세스 활성화",
+      "gmail_sync_minutes": "새 이메일 확인 간격(분)",
+      "gmail_max_results": "각 동기화 시 확인할 최근 이메일 수",
+      "google_home_enabled": "Google Home 제어 활성화 (브로드케스트, 스마트홈, 질문)",
+      "google_home_model_id": "Actions Console의 기기 모델 ID",
+      "google_home_device_id": "Actions Console의 기기 인스턴스 ID"
     },
     "section_labels": {
       "gui": "창",
@@ -162,7 +184,8 @@
       "locale": "언어",
       "events": "이벤트",
       "noise": "소음",
-      "audio": "오디오 입출력"
+      "audio": "오디오 입출력",
+      "google": "외부 서비스"
     },
     "buttons": {
       "save": "저장",
@@ -188,6 +211,9 @@
       "llama_no_path": "llama-server 경로가 settings.ini에 설정되어 있지 않습니다.",
       "llama_not_found": "llama-server.exe를 {path}에서 찾을 수 없습니다.",
       "llama_started": "llama.cpp 서버가 시작되었습니다!"
+    },
+    "warnings": {
+      "google_not_configured": "⚠ Google 자격 증명이 구성되지 않았습니다. Calendar, Gmail, Google Home 서비스를 활성화하려면 설정을 실행하세요."
     }
   },
   "scripts_editor": {
@@ -322,7 +348,8 @@
       "recur": "반복",
       "command": "명령",
       "arguments": "인수",
-      "workingdir": "작업 폴더"
+      "workingdir": "작업 폴더",
+      "enabled": "활성화"
     },
     "buttons": {
       "add": "추가",
@@ -357,5 +384,42 @@
     "not_found": "타이머 {id}을(를) 찾을 수 없습니다",
     "cancelled": "타이머 {id}이(가) 취소되었습니다",
     "min_duration": "최소 타이머 시간: {min}분"
+  },
+  "notifications": {
+    "google_auth_expired": "⚠ Google 자격 증명이 만료되었습니다. 설정 → 외부 서비스 → 설정 실행을 여세요."
+  },
+  "setup_google": {
+    "title": "Google 자격 증명 설정",
+    "select_json": "JSON 파일 선택",
+    "page1": {
+      "title": "환영합니다",
+      "text": "VASS에서 Google 캘린더, Gmail, Google Home을 사용하려면 OAuth2 자격 증명이 필요합니다.\n\n1단계: https://console.cloud.google.com 방문\nGoogle 계정으로 로그인합니다.\n\n2단계: 프로젝트 생성 또는 선택\n상단 드롭다운 메뉴(Google Cloud 로고 근처)를 클릭하고 기존 프로젝트를 선택하거나 '새 프로젝트'를 클릭하여 이름을 지정합니다(예: VASS).\n\n3단계: 필요한 API 활성화\n사이드 메뉴 → API 및 서비스 → 라이브러리\n하나씩 검색하여 활성화:\n- Google Calendar API\n- Gmail API\n- Google Assistant API\n\n4단계: OAuth 동의 화면 구성\n사이드 메뉴 → API 및 서비스 → https://console.cloud.google.com/apis/credentials/consent\n- 외부(외부 사용자) 선택\n- 입력: 앱 이름(예: VASS), 지원 이메일, 개발자 이메일\n- 저장 후 계속(추가 범위 불필요)\n\n⚠️ 중요 - 테스트 사용자 vs 게시:\n앱을 테스트 모드로 두면:\n  • OAuth 동의 화면의 대상 섹션으로 이동\n  • 테스트 사용자 아래 '+ 사용자 추가' 클릭\n  • 본인 이메일 입력(예: yourname@gmail.com)\n  • '저장' 클릭\n  • 주의: 테스트 모드에서는 토큰이 7일 후 만료됩니다!\n\n만료를 방지하려면 앱을 공개:\n  • OAuth 동의 화면 페이지에서 상단 '앱 게시' 클릭\n  • 확인. 앱은 본인만 사용 가능합니다(스토어에 없음)\n  • 토큰이 더 이상 만료되지 않습니다\n\n5단계: OAuth2 자격 증명 생성\n사이드 메뉴 → API 및 서비스 → https://console.cloud.google.com/apis/credentials\n상단 '+ 자격 증명 만들기' → OAuth 클라이언트 ID 클릭\n- 애플리케이션 유형: 데스크톱 애플리케이션\n- 이름: VASS Desktop\n- '만들기' 클릭\n\n6단계: JSON 파일 다운로드\n팝업 창에서 'JSON 다운로드' 클릭\n기억할 폴더에 저장합니다(예: 다운로드)\n\n7단계: '다음'을 클릭하여 다운로드한 JSON 파일을 선택합니다."
+    },
+    "page2": {
+      "title": "자격 증명 업로드",
+      "status": "버튼을 클릭하여 JSON 파일을 선택하세요.",
+      "ok": "선택된 파일: {path}",
+      "error": "JSON 파일 오류.",
+      "already_configured": "자격 증명이 이미 Windows 자격 증명 관리자에 저장되어 있습니다. 파일을 선택하지 않고 계속할 수 있습니다."
+    },
+    "page3": {
+      "title": "Google 인증",
+      "status": "버튼을 클릭하여 브라우저를 엽니다.",
+      "authorize": "브라우저 열기 및 인증",
+      "authorizing": "인증 중...",
+      "no_client": "클라이언트 자격 증명을 찾을 수 없습니다.",
+      "error": "인증 오류."
+    },
+    "page4": {
+      "title": "완료",
+      "ok": "설정 완료! VASS가 이제 Google 캘린더와 Gmail에 액세스할 수 있습니다."
+    },
+    "page5": {
+      "title": "Google Home (선택 사항)",
+      "info": "Google Home 기기를 제어하려면(브로드캐스트, 스마트홈, 음성 명령) Google Actions Console에서 기기 모델을 등록해야 합니다.\n\nActions Console이란\nGoogle Cloud와는 별도의 콘솔입니다. Google Assistant에 VASS 기기가 명령을 보낼 권한이 있음을 알려줍니다.\n\n1단계: Actions Console에 접속\n브라우저를 엽니다: https://console.actions.google.com\nCloud Console에서 사용한 것과 동일한 Google 계정으로 로그인합니다.\n\n2단계: 프로젝트 생성 또는 선택\n'New project'를 클릭하거나 기존 프로젝트를 선택합니다.\n현재 프로젝트 ID: {project_id}\n\n3단계: client_secret.json 파일 준비\n이 파일은 터미널 명령어 인증에 필요합니다. Cloud Console에서 다운로드한 JSON을 아직 가지고 있다면 VASS 폴더의 credentials/google_client_secret.json으로 이름을 변경하세요.\n파일이 더 이상 없다면 Cloud Console에서 다시 다운로드하세요: APIs & Services -> 사용자 인증 정보 -> OAuth 2.0 클라이언트 ID 클릭 -> JSON 다운로드.\n\n4단계: 터미널을 열고 인증 정보 생성\n\nWindows:\n  시작 메뉴에서 'PowerShell' 또는 '터미널' 검색\n\nmacOS/Linux:\n  터미널 열기 (Spotlight -> Terminal / Ctrl+Alt+T)\n\nVASS 폴더로 이동:\n  cd C:\\Users\\사용자명\\Documents\\Python\\vass\n\n실행 (모두 한 줄로):\n  google-oauthlib-tool --client-secrets credentials/google_client_secret.json --scope https://www.googleapis.com/auth/assistant-sdk-prototype --save\n\n브라우저가 열리고 인증을 요청합니다. 인증 후 credentials.json 파일이 자동으로 생성됩니다.\n\n5단계: 기기 모델 등록\n터미널에서 실행 (모두 한 줄로):\n  googlesamples-assistant-devicetool --project-id {project_id} register-model --model vass-desktop --type LIGHT --trait action.devices.traits.OnOff --manufacturer VASS --product-name \"VASS Assistant\" --description \"VASS voice assistant\"\n\n6단계: 기기 인스턴스 등록\n터미널에서 계속 실행:\n  googlesamples-assistant-devicetool --project-id {project_id} register-device --device vass-desktop-01 --model vass-desktop --nickname \"VASS\" --client-type SERVICE\n\n'multiple values for keyword argument token' 오류가 발생하면 다음 수정 명령어를 실행하세요:\n  python -c \"import json,os; p=os.path.expandvars(r'%APPDATA%\\google-oauthlib-tool\\credentials.json'); d=json.load(open(p)); d.pop('token',None); json.dump(d,open(p,'w'))\"\n\n7단계: 아래 데이터 입력\n  모델 ID:  vass-desktop\n  기기 ID: vass-desktop-01\n\nGoogle Home이 없으면 '건너뛰기'를 체크하세요.",
+      "model_id": "모델 ID",
+      "device_id": "기기 ID",
+      "skip": "건너뛰기 (Google Home 없음)"
+    }
   }
 }

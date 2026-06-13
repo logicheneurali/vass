@@ -23,13 +23,14 @@ except ImportError:
     print("Missing dependencies. Run: pip install -r requirements.txt")
     sys.exit(1)
 
-faulthandler.enable(open("faulthandler.log", "w"))
+_faulthandler_file = open("faulthandler.log", "w")
+faulthandler.enable(_faulthandler_file)
 
 from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server
+from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts
 from gui import VassGUI
 from i18n import t
 from script_engine import VASScript
@@ -147,8 +148,8 @@ class VassApp:
         self.gui = gui
         self.settings_file = settings_file
         self.settings = self._load_settings()
-        inp = int(self.settings.get("input_device", self.settings.get("audio", {}).get("input_device", -1)))
-        out = int(self.settings.get("output_device", self.settings.get("audio", {}).get("output_device", -1)))
+        inp = int(self.settings.get("input_device", -1))
+        out = int(self.settings.get("output_device", -1))
         self.audio_handler = AudioHandler(input_device=inp)
         self.language = self.settings["language"]
         self.wake_word_sensitivity = self.settings["sensitivity"]
@@ -196,6 +197,7 @@ class VassApp:
         self._silent_frames = 0
         self._auto_paused_at = None
         self._running_noise_floor = None
+        self._memory_cache = None
 
         reminder_advance = self.settings.get("reminder_advance", 3600)
         self.idle_tracker = IdleTracker()
@@ -331,6 +333,26 @@ class VassApp:
             result["noise_pause"] = config.get("noise", "noise_pause", fallback="false").lower() == "true"
             result["noise_pause_threshold"] = config.getfloat("noise", "noise_pause_threshold", fallback=0.002)
             result["noise_pause_duration"] = config.getint("noise", "noise_pause_duration", fallback=30)
+            result["input_device"] = config.getint("audio", "input_device", fallback=-1)
+            result["output_device"] = config.getint("audio", "output_device", fallback=-1)
+            result["calendar_enabled"] = config.get("google", "calendar_enabled", fallback="false")
+            result["calendar_sync_enabled"] = config.get("google", "calendar_sync_enabled", fallback="false")
+            result["calendar_sync_minutes"] = config.getint("google", "calendar_sync_minutes", fallback=30)
+            result["calendar_sync_days"] = config.getint("google", "calendar_sync_days", fallback=7)
+            result["gmail_enabled"] = config.get("google", "gmail_enabled", fallback="false")
+            result["gmail_sync_minutes"] = config.getint("google", "gmail_sync_minutes", fallback=5)
+            result["gmail_max_results"] = config.getint("google", "gmail_max_results", fallback=10)
+            result["google_home_enabled"] = config.get("google", "google_home_enabled", fallback="false")
+            result["google_home_model_id"] = config.get("google", "google_home_model_id", fallback="")
+            result["google_home_device_id"] = config.get("google", "google_home_device_id", fallback="")
+
+            from setup_google import is_google_configured
+            if not is_google_configured():
+                result["calendar_enabled"] = "false"
+                result["calendar_sync_enabled"] = "false"
+                result["gmail_enabled"] = "false"
+                result["google_home_enabled"] = "false"
+                print("[Settings] Google OAuth2 not configured — all Google services disabled")
 
             print(f"[Settings] Loaded -> Model: {result['ai_model']} | Lang: {result['language']}")
             return result
@@ -372,6 +394,18 @@ class VassApp:
             result["noise_pause"] = False
             result["noise_pause_threshold"] = 0.002
             result["noise_pause_duration"] = 30
+            result["input_device"] = -1
+            result["output_device"] = -1
+            result["calendar_enabled"] = "false"
+            result["calendar_sync_enabled"] = "false"
+            result["calendar_sync_minutes"] = 30
+            result["calendar_sync_days"] = 7
+            result["gmail_enabled"] = "false"
+            result["gmail_sync_minutes"] = 5
+            result["gmail_max_results"] = 10
+            result["google_home_enabled"] = "false"
+            result["google_home_model_id"] = ""
+            result["google_home_device_id"] = ""
 
             config["locale"] = {"language": lang}
             config["wakeword"] = {"sensitivity": "0.005", "wakeword": "vass"}
@@ -571,6 +605,10 @@ class VassApp:
             threading.Thread(target=self.event_reminder.run, daemon=True).start()
         threading.Thread(target=self._health_check_loop, daemon=True).start()
         threading.Thread(target=self._health_check_once, daemon=True).start()
+        if self.settings.get("calendar_sync_enabled", "false").lower() == "true":
+            threading.Thread(target=self._sync_calendar_loop, daemon=True).start()
+        if self.settings.get("gmail_enabled", "false").lower() == "true":
+            threading.Thread(target=self._sync_gmail_loop, daemon=True).start()
         self.gui.set_mode_display(self.mode)
         self.gui.update_memory_bar()
 
@@ -750,6 +788,55 @@ class VassApp:
             print(f"[Health] {health_url} unreachable: {e}")
         self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
 
+    def _sync_calendar_loop(self):
+        time.sleep(5)
+        from google_calendar import GoogleCalendar
+        gcal = GoogleCalendar()
+        minutes = int(self.settings.get("calendar_sync_minutes", 30))
+        days = int(self.settings.get("calendar_sync_days", 7))
+        events_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "events.json")
+        try:
+            gcal.sync_to_vass(events_path, days=days)
+        except Exception as e:
+            print(f"[GCal] Sync error: {e}")
+        while self.running:
+            time.sleep(minutes * 60)
+            try:
+                gcal.sync_to_vass(events_path, days=days)
+            except Exception as e:
+                print(f"[GCal] Sync error: {e}")
+
+    def _sync_gmail_loop(self):
+        time.sleep(5)
+        from gmail_handler import GmailHandler
+        gmail = GmailHandler()
+        minutes = int(self.settings.get("gmail_sync_minutes", 5))
+        max_results = int(self.settings.get("gmail_max_results", 10))
+        seen_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "gmail_seen.json")
+        print(f"[Gmail] Sync started (every {minutes}m, max {max_results} msgs)")
+        try:
+            new = gmail.check_new(seen_path, max_results=max_results)
+            self._announce_emails(new)
+        except Exception as e:
+            print(f"[Gmail] Sync error: {e}")
+        while self.running:
+            time.sleep(minutes * 60)
+            try:
+                new = gmail.check_new(seen_path, max_results=max_results)
+                self._announce_emails(new)
+            except Exception as e:
+                print(f"[Gmail] Sync error: {e}")
+
+    def _announce_emails(self, emails):
+        if not emails:
+            return
+        for em in emails:
+            from_parts = clean_for_tts(em['from'], 80)
+            subj = clean_for_tts(em['subject'], 120)
+            snip = clean_for_tts(em['snippet'], 200)
+            text = f"Nuova email da {from_parts}. Oggetto: {subj}. {snip}"
+            self.tts.enqueue(text)
+
     def _start_llamacpp(self):
         proc, status = start_llama_server(
             self.llama_server_path,
@@ -763,6 +850,10 @@ class VassApp:
 
     def stop(self):
         self.running = False
+        try:
+            _faulthandler_file.close()
+        except Exception:
+            pass
         import subprocess as _sp
         if self.mcp_process:
             kill_process(self.mcp_process)
@@ -1177,12 +1268,13 @@ class VassApp:
             mem_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory")
             os.makedirs(mem_dir, exist_ok=True)
             try:
-                existing = {}
-                try:
-                    with open(mem_path, encoding="utf-8") as f:
-                        existing = json.load(f)
-                except Exception:
-                    pass
+                if self._memory_cache is None:
+                    try:
+                        with open(mem_path, encoding="utf-8") as f:
+                            self._memory_cache = json.load(f)
+                    except Exception:
+                        self._memory_cache = {}
+                existing = self._memory_cache
                 saved_ids = []
                 for entry in self.conversation_history[-2:]:
                     vid = str(int(time.time() * 1000))
@@ -1196,6 +1288,7 @@ class VassApp:
                 mem = {"history": merged_ids}
                 if "summary_id" in existing:
                     mem["summary_id"] = existing["summary_id"]
+                self._memory_cache = mem
                 with open(mem_path, "w", encoding="utf-8") as f:
                     json.dump(mem, f, ensure_ascii=False, indent=2)
                 # Light cleanup: move unreferenced files to archive every N saves

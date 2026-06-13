@@ -109,7 +109,18 @@
       "overflow_strategy": "オーバーフロー戦略",
       "allow_ai_scripts": "AIスクリプト",
       "input_device": "録音",
-      "output_device": "再生"
+      "output_device": "再生",
+      "calendar_setup": "設定を開始",
+      "calendar_enabled": "Googleカレンダー",
+      "calendar_sync_enabled": "自動同期",
+      "calendar_sync_minutes": "同期間隔 (分)",
+      "calendar_sync_days": "インポートする日数",
+      "gmail_enabled": "Gmail",
+      "gmail_sync_minutes": "同期間隔（分）",
+      "gmail_max_results": "最大メール数",
+      "google_home_enabled": "Google Home",
+      "google_home_model_id": "モデルID",
+      "google_home_device_id": "デバイスID"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -148,7 +159,18 @@
       "noise_pause_duration": "一時停止前の連続した高ノイズ秒数",
       "context_length": "最大コンテキスト長（トークン、0=自動検出）",
       "overflow_strategy": "テキストがコンテキストを超えた場合: truncate (切り捨て) または summarize (要約、追加API呼び出しが必要)",
-      "allow_ai_scripts": "AIがスクリプトを生成できる"
+      "allow_ai_scripts": "AIがスクリプトを生成できる",
+      "calendar_setup": "設定を開始",
+      "calendar_enabled": "Googleカレンダーアクセスを有効化",
+      "calendar_sync_enabled": "Googleイベントを自動インポート",
+      "calendar_sync_minutes": "同期頻度（分）",
+      "calendar_sync_days": "同期する将来の日数",
+      "gmail_enabled": "Gmailアクセスを有効にする",
+      "gmail_sync_minutes": "新しいメールを確認する間隔（分）",
+      "gmail_max_results": "各同期で確認する最近のメール数",
+      "google_home_enabled": "Google Home制御を有効にする（ブロードキャスト、スマートホーム、質問）",
+      "google_home_model_id": "Actions ConsoleのデバイスモデルID",
+      "google_home_device_id": "Actions ConsoleのデバイスインスタンスID"
     },
     "section_labels": {
       "gui": "ウィンドウ",
@@ -162,7 +184,8 @@
       "locale": "言語",
       "events": "イベント",
       "noise": "ノイズ",
-      "audio": "オーディオ入出力"
+      "audio": "オーディオ入出力",
+      "google": "外部サービス"
     },
     "buttons": {
       "save": "保存",
@@ -188,6 +211,9 @@
       "llama_no_path": "llama-serverのパスがsettings.iniで設定されていません。",
       "llama_not_found": "llama-server.exeが{path}に見つかりません。",
       "llama_started": "llama.cppサーバーが起動しました！"
+    },
+    "warnings": {
+      "google_not_configured": "⚠ Google認証情報が設定されていません。Calendar、Gmail、Google Homeサービスを有効にするには設定を実行してください。"
     }
   },
   "scripts_editor": {
@@ -322,7 +348,8 @@
       "recur": "繰り返し",
       "command": "コマンド",
       "arguments": "引数",
-      "workingdir": "作業ディレクトリ"
+      "workingdir": "作業ディレクトリ",
+      "enabled": "有効"
     },
     "buttons": {
       "add": "追加",
@@ -357,5 +384,42 @@
     "not_found": "タイマー {id} が見つかりません",
     "cancelled": "タイマー {id} をキャンセルしました",
     "min_duration": "タイマーの最小時間: {min}分"
+  },
+  "notifications": {
+    "google_auth_expired": "⚠ Google認証情報の有効期限が切れました。設定 → 外部サービス → セットアップを実行してください。"
+  },
+  "setup_google": {
+    "title": "Google認証情報の設定",
+    "select_json": "JSONファイルを選択",
+    "page1": {
+      "title": "ようこそ",
+      "text": "VASSでGoogleカレンダー、Gmail、Google Homeを使用するには、OAuth2認証情報が必要です。\n\nステップ1: https://console.cloud.google.com にアクセス\nGoogleアカウントでサインインします。\n\nステップ2: プロジェクトを作成または選択\n上部のドロップダウンメニュー（Google Cloudロゴの近く）をクリックし、既存のプロジェクトを選択するか「新しいプロジェクト」をクリックして名前を付けます（例: VASS）。\n\nステップ3: 必要なAPIを有効化\nサイドメニュー → APIとサービス → ライブラリ\n1つずつ検索して有効化:\n- Google Calendar API\n- Gmail API\n- Google Assistant API\n\nステップ4: OAuth同意画面を設定\nサイドメニュー → APIとサービス → https://console.cloud.google.com/apis/credentials/consent\n- 外部（外部ユーザー）を選択\n- 入力: アプリ名（例: VASS）、サポートメール、デベロッパーメール\n- 保存して続行（追加スコープは不要）\n\n⚠️ 重要 - テストユーザーと公開:\nアプリをテストモードのままにした場合:\n  • OAuth同意画面の「対象」セクションに移動\n  • テストユーザーの下で「+ ユーザーを追加」をクリック\n  • 自分のメールアドレスを入力（例: yourname@gmail.com）\n  • 「保存」をクリック\n  • 注意: テストモードではトークンが7日で期限切れになります!\n\n期限切れを防ぐには、アプリを公開:\n  • OAuth同意画面ページで、上部の「アプリを公開」をクリック\n  • 確認。アプリはあなただけが使用可能です（ストアにはありません）\n  • トークンは期限切れになりません\n\nステップ5: OAuth2認証情報を作成\nサイドメニュー → APIとサービス → https://console.cloud.google.com/apis/credentials\n上部の「+ 認証情報を作成」→ OAuthクライアントID をクリック\n- アプリケーションタイプ: デスクトップアプリケーション\n- 名前: VASS Desktop\n- 「作成」をクリック\n\nステップ6: JSONファイルをダウンロード\n表示されるウィンドウで「JSONをダウンロード」をクリック\n覚えやすいフォルダに保存します（例: ダウンロード）\n\nステップ7: 「次へ」をクリックしてダウンロードしたJSONファイルを選択します。"
+    },
+    "page2": {
+      "title": "認証情報をアップロード",
+      "status": "ボタンをクリックしてJSONファイルを選択してください。",
+      "ok": "選択されたファイル: {path}",
+      "error": "JSONファイルエラー。",
+      "already_configured": "資格情報は既にWindows資格情報マネージャーに保存されています。ファイルを選択せずに続行できます。"
+    },
+    "page3": {
+      "title": "Googleを認証",
+      "status": "ボタンをクリックしてブラウザを開きます。",
+      "authorize": "ブラウザを開いて認証",
+      "authorizing": "認証中...",
+      "no_client": "クライアント認証情報が見つかりません。",
+      "error": "認証エラー。"
+    },
+    "page4": {
+      "title": "完了",
+      "ok": "セットアップ完了！VASSがGoogleカレンダーとGmailにアクセスできるようになりました。"
+    },
+    "page5": {
+      "title": "Google Home（オプション）",
+      "info": "Google Homeデバイスを制御する（ブロードキャスト、スマートホーム、音声コマンド）には、Google Actions Consoleでデバイスモデルを登録する必要があります。\n\nActions Consoleとは\nGoogle Cloudとは別のコンソールです。Google Assistantに、VASSデバイスがコマンドを送信する権限があることを伝えます。\n\n手順1: Actions Consoleにアクセス\nブラウザを開きます: https://console.actions.google.com\nCloud Consoleで使用したのと同じGoogleアカウントでログインします。\n\n手順2: プロジェクトを作成または選択\n「New project」をクリックするか、既存のプロジェクトを選択します。\n現在のプロジェクトID: {project_id}\n\n手順3: client_secret.jsonファイルを準備\nこのファイルはターミナルコマンドの認証に必要です。Cloud ConsoleからダウンロードしたJSONをまだお持ちの場合は、VASSフォルダ内のcredentials/google_client_secret.jsonにリネームしてください。\nファイルがない場合は、Cloud Consoleから再ダウンロードしてください: APIs & Services -> 認証情報 -> 自分のOAuth 2.0クライアントIDをクリック -> JSONをダウンロード。\n\n手順4: ターミナルを開いて認証情報を作成\n\nWindows:\n  スタートメニューで「PowerShell」または「ターミナル」を検索\n\nmacOS/Linux:\n  ターミナルを開く（Spotlight -> Terminal / Ctrl+Alt+T）\n\nVASSフォルダに移動:\n  cd C:\\Users\\ユーザー名\\Documents\\Python\\vass\n\n実行（すべて1行で）:\n  google-oauthlib-tool --client-secrets credentials/google_client_secret.json --scope https://www.googleapis.com/auth/assistant-sdk-prototype --save\n\nブラウザが開いて認証を求めます。認証後、credentials.jsonファイルが自動的に作成されます。\n\n手順5: デバイスモデルを登録\nターミナルで実行（すべて1行で）:\n  googlesamples-assistant-devicetool --project-id {project_id} register-model --model vass-desktop --type LIGHT --trait action.devices.traits.OnOff --manufacturer VASS --product-name \"VASS Assistant\" --description \"VASS voice assistant\"\n\n手順6: デバイスインスタンスを登録\nターミナルで続けて実行:\n  googlesamples-assistant-devicetool --project-id {project_id} register-device --device vass-desktop-01 --model vass-desktop --nickname \"VASS\" --client-type SERVICE\n\n「multiple values for keyword argument token」エラーが発生した場合は、以下の修正コマンドを実行してください:\n  python -c \"import json,os; p=os.path.expandvars(r'%APPDATA%\\google-oauthlib-tool\\credentials.json'); d=json.load(open(p)); d.pop('token',None); json.dump(d,open(p,'w'))\"\n\n手順7: 以下のデータを入力\n  モデルID:  vass-desktop\n  デバイスID: vass-desktop-01\n\nGoogle Homeをお持ちでない場合は「スキップ」にチェックを入れてください。",
+      "model_id": "モデルID",
+      "device_id": "デバイスID",
+      "skip": "スキップ（Google Homeなし）"
+    }
   }
 }
