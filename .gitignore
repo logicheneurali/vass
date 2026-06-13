@@ -63,6 +63,7 @@ Allowed_root/gmail_seen.json
 config/settings.ini
 config/settings.ini.bk
 config/commands.ini
+config/gmail_seen.json
 
 # VASS - temporary files
 tts_output_*.wav
