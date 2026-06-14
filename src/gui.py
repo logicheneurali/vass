@@ -953,7 +953,7 @@ class VassGUI(QMainWindow):
 
         if archive_files:
             entries.append({"role": "separator", "content": "----------- Archivio -----------", "ts": ""})
-            archive_files.sort(reverse=True)
+            archive_files.sort()
             needed = min(len(archive_files), 100 - len(entries))
             for vid in archive_files[:needed]:
                 hf = os.path.join(mem_dir, f"{vid}.json")
