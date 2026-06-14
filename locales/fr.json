@@ -389,7 +389,8 @@
   "notifications": {
     "google_auth_expired": "⚠ Identifiants Google expirés. Ouvrez Paramètres → Services Externes → Lancer la configuration.",
     "new_email": "Nouveau mail de {from}: {subject}",
-    "email_truncated": "... Message complet sur Gmail"
+    "email_truncated": "... Message complet sur Gmail",
+    "auto_model_selected": "Modele IA manquant. Auto-selectionne: {model}"
   },
   "setup_google": {
     "title": "Configuration identifiants Google",

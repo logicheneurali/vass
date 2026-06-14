@@ -390,7 +390,8 @@
   "notifications": {
     "google_auth_expired": "⚠ Google凭据已过期。请打开设置 → 外部服务 → 运行配置。",
     "new_email": "新邮件 来自{from}: {subject}",
-    "email_truncated": "... 完整内容在Gmail查看"
+    "email_truncated": "... 完整内容在Gmail查看",
+    "auto_model_selected": "AI模型缺失。已自动选择: {model}"
   },
   "setup_google": {
     "title": "Google 凭据设置",

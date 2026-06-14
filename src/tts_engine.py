@@ -43,6 +43,7 @@ class TtsEngine:
         self._speak_queue = deque()
         self._speak_lock = threading.Lock()
         self._speaker_running = True
+        self._sd_abort = threading.Event()
         threading.Thread(target=self._speak_worker, daemon=True).start()
 
     def speak(self, text, speed=1.0):
@@ -113,6 +114,7 @@ class TtsEngine:
 
     def _play_wav(self, wav_path, speed=1.0):
         self._tts_done.clear()
+        self._sd_abort.clear()
         import sounddevice as sd
         import soundfile as sf
         self._tts_data, self._tts_sr = sf.read(wav_path)
@@ -120,8 +122,28 @@ class TtsEngine:
         if peak > 0:
             self._tts_data = self._tts_data * (self.tts_volume / peak)
         self._tts_play_start = time.time()
-        sd.play(self._tts_data, self._tts_sr, device=self.output_device)
-        threading.Thread(target=self._tts_playback_monitor, daemon=True).start()
+        self._sd_pos = 0
+
+        def _cb(outdata, frames, _time, _status):
+            if self._sd_abort.is_set():
+                raise sd.CallbackAbort()
+            n = min(len(self._tts_data) - self._sd_pos, frames)
+            outdata[:n, 0] = self._tts_data[self._sd_pos:self._sd_pos + n]
+            self._sd_pos += n
+            if n < frames:
+                outdata[n:, 0] = 0
+                raise sd.CallbackStop()
+
+        try:
+            self._sd_stream = sd.OutputStream(
+                samplerate=self._tts_sr, device=self.output_device,
+                channels=1, callback=_cb, finished_callback=self._on_stream_finished)
+            self._sd_stream.start()
+        except Exception as e:
+            print(f"[TTS] OutputStream error: {e}")
+            self._tts_done.set()
+            return
+
         if self.gui:
             self.gui.volume_top_bar.set_volume(self.tts_volume)
         self.gui.start_tts_playback(
@@ -130,6 +152,10 @@ class TtsEngine:
             total_samples=len(self._tts_data),
             on_complete=self._on_tts_done
         )
+
+    def _on_stream_finished(self):
+        if self.gui:
+            self.gui.schedule(0, self._on_tts_done)
 
     def _speak_kokoro(self, text, speed=1.0):
         self._save_state_and_set_playing()
@@ -243,8 +269,12 @@ class TtsEngine:
         self._speaker_running = False
         with self._speak_lock:
             self._speak_queue.clear()
-        import sounddevice as sd
-        sd.stop()
+        self._sd_abort.set()
+        if hasattr(self, '_sd_stream') and getattr(self, '_sd_stream', None):
+            try:
+                self._sd_stream.abort()
+            except Exception:
+                pass
         self._on_tts_done()
 
     def get_position(self):

@@ -389,7 +389,8 @@
   "notifications": {
     "google_auth_expired": "⚠ Google-Anmeldeinformationen abgelaufen. Öffnen Sie Einstellungen → Externe Dienste → Setup starten.",
     "new_email": "Neue Mail von {from}: {subject}",
-    "email_truncated": "... Vollständiger Text auf Gmail"
+    "email_truncated": "... Vollständiger Text auf Gmail",
+    "auto_model_selected": "KI-Modell fehlt. Automatisch ausgewaehlt: {model}"
   },
   "setup_google": {
     "title": "Google-Anmeldeinformationen",

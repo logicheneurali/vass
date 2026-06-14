@@ -389,7 +389,8 @@
   "notifications": {
     "google_auth_expired": "⚠ Credenciais Google expiradas. Abra Configurações → Serviços Externos → Iniciar configuração.",
     "new_email": "Novo e-mail de {from}: {subject}",
-    "email_truncated": "... Texto completo no Gmail"
+    "email_truncated": "... Texto completo no Gmail",
+    "auto_model_selected": "Modelo IA ausente. Auto-selecionado: {model}"
   },
   "setup_google": {
     "title": "Configuração credenciais Google",

@@ -390,7 +390,8 @@
   "notifications": {
     "google_auth_expired": "⚠ Google認証情報の有効期限が切れました。設定 → 外部サービス → セットアップを実行してください。",
     "new_email": "新着メール {from}より: {subject}",
-    "email_truncated": "... 全文はGmailで"
+    "email_truncated": "... 全文はGmailで",
+    "auto_model_selected": "AIモデルが見つかりません。自動選択されました: {model}"
   },
   "setup_google": {
     "title": "Google認証情報の設定",

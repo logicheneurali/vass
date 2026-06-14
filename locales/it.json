@@ -389,7 +389,8 @@
   "notifications": {
     "google_auth_expired": "⚠ Credenziali Google scadute. Apri Impostazioni → Servizi Esterni → Avvia configurazione.",
     "new_email": "Nuova Mail da {from}: {subject}",
-    "email_truncated": "... Testo completo su Gmail"
+    "email_truncated": "... Testo completo su Gmail",
+    "auto_model_selected": "Modello AI mancante. Auto-selezionato {model}"
   },
   "setup_google": {
     "title": "Setup credenziali Google",

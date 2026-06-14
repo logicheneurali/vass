@@ -389,7 +389,8 @@
   "notifications": {
     "google_auth_expired": "⚠ Google credentials expired. Open Settings → External Services → Run Setup.",
     "new_email": "New Mail from {from}: {subject}",
-    "email_truncated": "... Full message on Gmail"
+    "email_truncated": "... Full message on Gmail",
+    "auto_model_selected": "AI model missing. Auto-selected {model}"
   },
   "setup_google": {
     "title": "Google credentials setup",

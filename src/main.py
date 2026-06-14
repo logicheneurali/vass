@@ -227,6 +227,8 @@ class VassApp:
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
         if self.context_length <= 0:
             threading.Thread(target=self._detect_context_length, daemon=True).start()
+        if not self.ai_model.strip() and self.llama_server_path.strip():
+            threading.Thread(target=self._auto_select_model, daemon=True).start()
         self.running = False
         self._trim_lock = threading.Lock()
         self.script_queue = ScriptQueue(self)
@@ -446,6 +448,12 @@ class VassApp:
                     f.write(f"gui.set_state failed: {e}\n")
 
     def handle_button_press(self):
+        try:
+            self._handle_button_press_impl()
+        except Exception as e:
+            print(f"[ButtonPress] Error: {e}")
+
+    def _handle_button_press_impl(self):
         with self.state_lock:
             current = self.state
             if current == "listening":
@@ -473,7 +481,10 @@ class VassApp:
                 self.set_state("listening")
 
     def stop_playback(self):
-        self.tts.stop()
+        try:
+            self.tts.stop()
+        except Exception as e:
+            print(f"[StopPlayback] Error: {e}")
 
     def _watch_commands_file(self):
         commands_path = self.command_executor.commands_file
@@ -510,6 +521,8 @@ class VassApp:
                         self.ai_api_key = self.settings.get("api_key", "")
                         self.openai_client.api_key = self.ai_api_key or "not-needed"
                         self.ai_model = self.settings["ai_model"]
+                        if not self.ai_model.strip() and self.settings.get("llama_server_path", "").strip():
+                            threading.Thread(target=self._auto_select_model, daemon=True).start()
                         old_url = self.ai_url
                         self.ai_url = self.settings["ai_url"]
                         self.system_message = self.settings.get("system_message", "")
@@ -1244,14 +1257,59 @@ class VassApp:
                 model=self.ai_model,
                 messages=messages,
                 temperature=0.7,
+                max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, len(m["content"]) // 2) for m in messages) - (2500 if tools else 0) - 256, 4096)),
                 extra_body={"disable_thinking": True}
             )
 
             if tools:
                 kwargs["tools"] = tools
 
-            print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools)}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}")
-            msg = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs)).choices[0].message
+            ctx_available = (self.context_length or 4096)
+            prompt_tokens_est = sum(max(1, len(m["content"]) // 2) for m in messages)
+            if tools:
+                prompt_tokens_est += 2500
+            if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
+                if tools and tools_block in messages[0]["content"]:
+                    messages[0]["content"] = messages[0]["content"][:messages[0]["content"].rfind(tools_block)].rstrip()
+                    kwargs.pop("tools", None)
+                    prompt_tokens_est = sum(max(1, len(m["content"]) // 2) for m in messages)
+                    kwargs["max_tokens"] = max(200, min(ctx_available - prompt_tokens_est - 128, 4096))
+                    print(f"[AI] Dropped MCP tools to fit context ({prompt_tokens_est} prompt est, {kwargs['max_tokens']} max_tok)")
+                if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
+                    excess = (prompt_tokens_est + kwargs["max_tokens"] - ctx_available) * 2 + 200
+                    trim_at = max(500, len(messages[0]["content"]) - excess)
+                    messages[0]["content"] = messages[0]["content"][:trim_at]
+                    kwargs["max_tokens"] = max(200, ctx_available - len(messages[0]["content"]) // 2 - len(messages[1]["content"]) // 2 - 128)
+                    print(f"[AI] Trimmed system prompt by {excess} chars to fit context")
+
+            print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools)}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}, max_tokens={kwargs.get('max_tokens', 'N/A')}")
+
+            overflow_retries = 3
+            msg = None
+            while overflow_retries > 0:
+                try:
+                    msg = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs)).choices[0].message
+                    break
+                except Exception as e:
+                    err_str = str(e)
+                    if "exceed_context" in err_str.lower() or "10240" in err_str or "10266" in err_str:
+                        overflow_retries -= 1
+                        if "tools" in kwargs and tools:
+                            kwargs.pop("tools", None)
+                            messages[0]["content"] = messages[0]["content"][:messages[0]["content"].rfind(tools_block)].rstrip() if tools_block in messages[0]["content"] else messages[0]["content"]
+                            kwargs["messages"] = messages
+                            kwargs["max_tokens"] = max(200, (self.context_length or 4096) - sum(max(1, len(m["content"]) // 2) for m in messages) - 128)
+                            print(f"[AI] Context overflow - retrying without tools (attempt {4 - overflow_retries}/3)")
+                        else:
+                            excess = len(messages[0]["content"]) // 4
+                            messages[0]["content"] = messages[0]["content"][:-excess] if excess > 0 else messages[0]["content"][:2000]
+                            kwargs["messages"] = messages
+                            kwargs["max_tokens"] = max(200, (self.context_length or 4096) - sum(max(1, len(m["content"]) // 2) for m in messages) - 128)
+                            print(f"[AI] Context overflow - trimming system content (attempt {4 - overflow_retries}/3)")
+                    else:
+                        raise e
+            if not msg:
+                raise RuntimeError("Failed to get AI response after retrying context overflow")
             if msg.tool_calls:
                 for tc in msg.tool_calls:
                     print(f"[AI] Tool call: {tc.function.name}({tc.function.arguments[:200]})")
@@ -1412,7 +1470,15 @@ class VassApp:
                 resp = client.get(url)
             models = resp.json().get("data", [])
             if models:
-                ctx = models[0].get("max_seq_len", 0)
+                ctx = 0
+                for m in models:
+                    meta = m.get("meta", {})
+                    if meta.get("n_ctx", 0) > 0:
+                        ctx = meta["n_ctx"]
+                        break
+                    if m.get("max_seq_len", 0) > 0:
+                        ctx = m["max_seq_len"]
+                        break
                 if ctx > 0:
                     self.context_length = ctx
                     print(f"[Settings] Context length detected from model: {ctx} tokens")
@@ -1422,6 +1488,56 @@ class VassApp:
         if self.context_length <= 0:
             self.context_length = 4096
             print(f"[Settings] Context length fallback: {self.context_length} tokens")
+
+    def _auto_select_model(self):
+        ai_model = self.settings.get("ai_model", "").strip()
+        llama_path = self.settings.get("llama_server_path", "").strip()
+        if ai_model or not llama_path:
+            return
+
+        try:
+            import httpx
+            url = f"{self.ai_url.rstrip('/')}/models"
+            with httpx.Client(timeout=5) as client:
+                resp = client.get(url)
+            models = resp.json().get("data", [])
+
+            candidates = []
+            for m in models:
+                mid = m["id"]
+                meta = m.get("meta") or {}
+                params = meta.get("n_params", float("inf"))
+                if meta.get("size", 0) > 0 and params <= 12_000_000_000:
+                    candidates.append((params, mid))
+
+            if not candidates:
+                for m in models:
+                    mid = m["id"]
+                    if "gemma" in mid.lower() or "qwen" in mid.lower():
+                        candidates.append((float("inf"), mid))
+                        break
+                if not candidates and models:
+                    candidates = [(float("inf"), models[0]["id"])]
+
+            if not candidates:
+                return
+
+            candidates.sort()
+            selected = candidates[0][1]
+            params = candidates[0][0]
+            self.ai_model = selected
+            self.settings["ai_model"] = selected
+            self._save_setting("ai", "model", selected)
+            p_text = f"{params/1e9:.1f}B" if params < float("inf") else "?"
+            print(f"[Settings] Auto-selected AI model: {selected} ({p_text} params)")
+            from i18n import t
+            msg = t("notifications.auto_model_selected", self.language).replace("{model}", selected)
+            if hasattr(self, 'notification_manager'):
+                self.notification_manager.add(msg, priority=6)
+            if hasattr(self, 'tts') and self.tts:
+                self.tts.enqueue(msg)
+        except Exception as e:
+            print(f"[Settings] Auto model selection failed: {e}")
 
     def _classify_message(self, user_message):
         print(f"[Classify] Starting classification for: {user_message[:80]}...")
