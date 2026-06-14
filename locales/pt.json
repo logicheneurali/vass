@@ -331,7 +331,8 @@
     "resend": "Resend",
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "Ler",
-    "filter": "Filter messages..."
+    "filter": "Filter messages...",
+    "archive_separator": "Arquivado"
   },
   "events_editor": {
     "title": "Eventos e operações",

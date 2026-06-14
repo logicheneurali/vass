@@ -312,8 +312,8 @@ class VassApp:
             result["context_length"] = config.getint("ai", "context_length", fallback=0)
             result["overflow_strategy"] = config.get("ai", "overflow_strategy", fallback="truncate")
             
-            result["gui_x"] = config.getint("gui", "x", fallback=100)
-            result["gui_y"] = config.getint("gui", "y", fallback=100)
+            result["gui_x"] = config.getint("gui", "x", fallback=1541)
+            result["gui_y"] = config.getint("gui", "y", fallback=52)
             result["gui_width"] = config.getint("gui", "width", fallback=220)
             result["gui_height"] = config.getint("gui", "height", fallback=32)
             result["gui_font_family"] = config.get("gui", "font_family", fallback="Segoe UI")
@@ -370,12 +370,12 @@ class VassApp:
             result["ai_url"] = "http://127.0.0.1:8080/v1"
             result["api_key"] = ""
             result["ai_model"] = "gemma-4-E2B-it-Q8_0"
-            result["system_message"] = "Sei un assistente vocale utile e conciso."
+            result["system_message"] = "You are a helpful and concise voice assistant."
             result["allow_ai_scripts"] = False
             result["context_length"] = 0
             result["overflow_strategy"] = "truncate"
-            result["gui_x"] = 100
-            result["gui_y"] = 100
+            result["gui_x"] = 1541
+            result["gui_y"] = 52
             result["gui_width"] = 220
             result["gui_height"] = 32
             result["gui_font_family"] = "Segoe UI"
@@ -413,22 +413,52 @@ class VassApp:
             result["google_home_device_id"] = ""
 
             config["locale"] = {"language": lang}
+            config["gui"] = {
+                "x": "1541", "y": "52", "width": "220", "height": "32",
+                "font_family": "Segoe UI", "font_size": "12", "lastmode": "c"
+            }
             config["wakeword"] = {"sensitivity": "0.005", "wakeword": "vass"}
+            config["commands"] = {"similarity": "0.6", "word_learning_enabled": "false"}
+            config["tts"] = {"tts_engine": "kokoro", "volume": "0.95"}
+            config["llamacpp"] = {
+                "llama_server_path": "",
+                "llama_server_working_directory": "",
+                "llama_server_arguments": "",
+                "llama_autostart": "false"
+            }
             config["ai"] = {
                 "url": "http://127.0.0.1:8080/v1",
                 "api_key": "",
                 "model": "gemma-4-E2B-it-Q8_0",
-                "system_message": "Sei un assistente vocale utile e conciso."
+                "system_message": "You are a helpful and concise voice assistant.",
+                "mcp_server_url": "",
+                "blacklist": "",
+                "memory_tokens": "2000",
+                "allow_ai_scripts": "false",
+                "context_length": "0",
+                "overflow_strategy": "truncate"
             }
-            config["gui"] = {
-                "x": "100", "y": "100", "width": "220", "height": "32",
-                "font_family": "Segoe UI", "font_size": "12"
-            }
-            config["commands"] = {"similarity": "0.6"}
-            config["tts"] = {"tts_engine": "kokoro", "volume": "0.95"}
             config["resources"] = {"cpu_max": "75", "ram_max": "99", "gpu_max": "75", "vram_max": "99", "resource_timeout": "10"}
-            config["ai"]["mcp_server_url"] = ""
-            config["ai"]["blacklist"] = ""
+            config["events"] = {"reminder_advance": "3600"}
+            config["noise"] = {
+                "noise_pause": "false",
+                "noise_pause_threshold": "0.002",
+                "noise_pause_duration": "30"
+            }
+            config["audio"] = {"input_device": "-1", "output_device": "-1"}
+            config["google"] = {
+                "calendar_enabled": "false",
+                "calendar_sync_enabled": "false",
+                "calendar_sync_minutes": "30",
+                "calendar_sync_days": "7",
+                "gmail_enabled": "false",
+                "gmail_sync_minutes": "5",
+                "gmail_max_results": "10",
+                "google_home_enabled": "false",
+                "google_home_model_id": "",
+                "google_home_device_id": "",
+                "calendar_setup": "start"
+            }
             os.makedirs(os.path.dirname(abs_path), exist_ok=True)
             with open(abs_path, "w", encoding="utf-8") as f:
                 config.write(f)
@@ -1784,15 +1814,15 @@ def main():
         
         if os.path.exists(abs_path):
             config.read(abs_path, encoding="utf-8")
-            gui_x = config.getint("gui", "x", fallback=100)
-            gui_y = config.getint("gui", "y", fallback=100)
+            gui_x = config.getint("gui", "x", fallback=1541)
+            gui_y = config.getint("gui", "y", fallback=52)
             gui_width = config.getint("gui", "width", fallback=220)
             gui_height = config.getint("gui", "height", fallback=32)
             gui_font_family = config.get("gui", "font_family", fallback="Segoe UI")
             gui_font_size = config.getint("gui", "font_size", fallback=12)
             gui_language = config.get("locale", "language", fallback="en")
         else:
-            gui_x, gui_y, gui_width, gui_height = 100, 100, 220, 32
+            gui_x, gui_y, gui_width, gui_height = 1541, 52, 220, 32
             gui_font_family, gui_font_size = "Segoe UI", 12
             gui_language = "en"
         
