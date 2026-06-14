@@ -331,8 +331,7 @@
     "resend": "Reinvia",
     "resend_sent": "Richiesta inviata all'AI. VASS la elaborerà.",
     "read": "Leggi",
-    "filter": "Filtra messaggi...",
-    "archive_separator": "Archiviato"
+    "filter": "Filtra messaggi..."
   },
   "events_editor": {
     "title": "Eventi e operazioni",

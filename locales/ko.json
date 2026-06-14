@@ -332,8 +332,7 @@
     "resend": "Resend",
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "읽기",
-    "filter": "Filter messages...",
-    "archive_separator": "보관됨"
+    "filter": "Filter messages..."
   },
   "events_editor": {
     "title": "이벤트 및 일정",
