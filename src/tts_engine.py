@@ -76,6 +76,7 @@ class TtsEngine:
                     if not self._tts_done.wait(timeout=60):
                         print("[TTS] WARNING: _tts_done timeout after 60s, forcing")
                         self._tts_done.set()
+                    self._on_tts_done()
                     if on_done:
                         try:
                             on_done()
@@ -159,8 +160,7 @@ class TtsEngine:
 
     def _on_stream_finished(self):
         self._cleanup_wav()
-        if self.gui:
-            self.gui.schedule(0, self._on_tts_done)
+        self._tts_done.set()
 
     def _cleanup_wav(self):
         path = getattr(self, '_wav_to_clean', '')
@@ -197,7 +197,8 @@ class TtsEngine:
                 self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
             self._tts_wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             wav_path = self._tts_wav_path
-            generator = self._kokoro_pipeline(text, voice=self._kokoro_voice, speed=speed)
+            generator = self._kokoro_pipeline(text, voice=self._kokoro_voice, speed=speed,
+                                               split_pattern=r'(?<=[.!?])\s+')
             all_audio = []
             for gs, ps, audio in generator:
                 all_audio.append(audio)
@@ -229,7 +230,8 @@ class TtsEngine:
             from kokoro import KPipeline
             pipeline = KPipeline(lang_code=lang_code)
             wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
-            generator = pipeline(text, voice=voice, speed=speed)
+            generator = pipeline(text, voice=voice, speed=speed,
+                                  split_pattern=r'(?<=[.!?])\s+')
             all_audio = []
             for gs, ps, audio in generator:
                 all_audio.append(audio)

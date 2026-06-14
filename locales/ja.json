@@ -332,7 +332,8 @@
     "resend": "Resend",
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "読む",
-    "filter": "Filter messages..."
+    "filter": "Filter messages...",
+    "archive_separator": "アーカイブ済み"
   },
   "events_editor": {
     "title": "イベントとスケジュール",

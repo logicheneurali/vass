@@ -51,7 +51,8 @@ def _to_html(history_data, lang):
         content = entry.get("content", "")
         ts = entry.get("ts", "")
         if role == "separator":
-            parts.append(f'<div style="width:100%; text-align:center; color:#aaa; padding:10px 0; font-size:11px; border-top:1px solid #555; border-bottom:1px solid #555; margin:8px 0;">{_escape_html(content)}</div>')
+            label = _tl("history_viewer.archive_separator", lang)
+            parts.append(f'<div style="width:100%; text-align:center; color:#aaa; padding:10px 0; font-size:13px; border-top:1px solid #555; border-bottom:1px solid #555; margin:8px 0;">{_escape_html(label)}</div>')
             continue
         if not ts:
             ts = datetime.now().strftime("%d/%m %H:%M")

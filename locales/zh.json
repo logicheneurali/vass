@@ -332,7 +332,8 @@
     "resend": "Resend",
     "resend_sent": "Request sent to AI. VASS will process it.",
     "read": "阅读",
-    "filter": "Filter messages..."
+    "filter": "Filter messages...",
+    "archive_separator": "已归档"
   },
   "events_editor": {
     "title": "事件和计划",
