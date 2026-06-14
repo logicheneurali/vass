@@ -918,14 +918,18 @@ class VassGUI(QMainWindow):
         entries = []
         all_ids = []
         summary_id = ""
+        min_history_id = 0
         try:
             if os.path.exists(mem_path):
                 with open(mem_path, encoding="utf-8") as f:
                     meta = json.load(f)
                 summary_id = meta.get("summary_id", "")
-                for vid in meta.get("history", []):
+                hid = meta.get("history", [])
+                for vid in hid:
                     if vid not in all_ids:
                         all_ids.append(vid)
+                if hid:
+                    min_history_id = int(min(int(v) for v in hid if v.isdigit()))
         except Exception:
             pass
 
@@ -944,8 +948,12 @@ class VassGUI(QMainWindow):
 
         all_ids.sort(reverse=True)
         capped = all_ids[:100]
+        separator_inserted = False
 
         for vid in capped:
+            if min_history_id and not separator_inserted and int(vid) < min_history_id:
+                entries.append({"role": "separator", "content": "Archivio", "ts": ""})
+                separator_inserted = True
             hf = os.path.join(mem_dir, f"{vid}.json")
             if os.path.exists(hf):
                 try:
