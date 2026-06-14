@@ -22,7 +22,8 @@
       "help": "Hilfe",
       "help_usage": "Benutzung",
       "help_commands": "Befehle",
-      "help_vasscript": "VASScript"
+      "help_vasscript": "VASScript",
+      "memory_editor": "Dauerhafter Speicher"
     },
     "dialog": {
       "exit_title": "Beenden",
@@ -426,5 +427,51 @@
       "device_id": "Geräte-ID",
       "skip": "Überspringen (kein Google Home)"
     }
+  },
+  "memory_editor": {
+    "title": "Dauerhafter Speicher",
+    "tagged_entries": "Markierte Konversationen",
+    "content": "Inhalt",
+    "tags": "Etiketten",
+    "relevance": "Relevanz: {rel}",
+    "add_tag": "Hinzufügen",
+    "remove_tag": "Entfernen",
+    "delete_entry": "Eintrag löschen",
+    "delete_confirm": "Diesen Eintrag aus dem dauerhaften Speicher entfernen?",
+    "save": "Änderungen speichern",
+    "saved": "Dauerhafter Speicher erfolgreich gespeichert.",
+    "refresh": "Neu laden",
+    "no_entries": "Keine Einträge im dauerhaften Speicher.",
+    "relevance_label": "Relevanz",
+    "cancel": "Abbrechen",
+    "manage_tags": "Tags verwalten",
+    "unsaved_title": "Ungespeicherte Änderungen",
+    "add_tag_button": "Tag hinzufügen",
+    "unsaved_changes": "Es gibt ungespeicherte Änderungen. Möchten Sie vor dem Beenden speichern?",
+    "dialog_save": "Speichern",
+    "dialog_discard": "Verwerfen",
+    "dialog_cancel": "Abbrechen",
+    "dialog_yes": "Ja",
+    "dialog_no": "Nein"
+  },
+  "tag_manager": {
+    "title": "Tag-Verwaltung",
+    "current_tags": "Aktuelle Tags",
+    "add_edit": "Hinzufügen / Bearbeiten",
+    "name": "Tag-Name",
+    "weight": "Gewicht",
+    "add": "Hinzufügen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saved": "Tag-Konfiguration gespeichert.",
+    "invalid_name": "Der Tag-Name muss ein einzelnes Wort sein (keine Leerzeichen).",
+    "delete_confirm": "Tag '{name}' löschen? Einträge, die ihn verwenden, behalten den Tag, aber er ist nicht mehr gültig.",
+    "min_relevance": "Mindestrelevanz",
+    "min_relevance_desc": "Konversationen mit einer Relevanz unter diesem Wert werden NICHT im dauerhaften Speicher gespeichert.",
+    "add_tag": "Tag hinzufügen",
+    "delete_tag": "Tag löschen",
+    "no_tags": "Keine Tags konfiguriert."
   }
 }

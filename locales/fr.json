@@ -22,7 +22,8 @@
       "help": "Aide",
       "help_usage": "Utilisation",
       "help_commands": "Commandes",
-      "help_vasscript": "VASScript"
+      "help_vasscript": "VASScript",
+      "memory_editor": "Mémoire Permanente"
     },
     "dialog": {
       "exit_title": "Quitter",
@@ -426,5 +427,51 @@
       "device_id": "ID de l'appareil",
       "skip": "Passer (pas de Google Home)"
     }
+  },
+  "memory_editor": {
+    "title": "Mémoire Permanente",
+    "tagged_entries": "Conversations Étiquetées",
+    "content": "Contenu",
+    "tags": "Étiquettes",
+    "relevance": "Pertinence: {rel}",
+    "add_tag": "Ajouter",
+    "remove_tag": "Retirer",
+    "delete_entry": "Supprimer l'entrée",
+    "delete_confirm": "Supprimer cette entrée de la mémoire permanente?",
+    "save": "Enregistrer",
+    "saved": "Mémoire permanente enregistrée avec succès.",
+    "refresh": "Recharger",
+    "no_entries": "Aucune entrée dans la mémoire permanente.",
+    "relevance_label": "Pertinence",
+    "cancel": "Annuler",
+    "manage_tags": "Gérer les tags",
+    "unsaved_title": "Modifications non enregistrées",
+    "add_tag_button": "Ajouter Tag",
+    "unsaved_changes": "Il y a des modifications non enregistrées. Voulez-vous enregistrer avant de quitter?",
+    "dialog_save": "Enregistrer",
+    "dialog_discard": "Ignorer",
+    "dialog_cancel": "Annuler",
+    "dialog_yes": "Oui",
+    "dialog_no": "Non"
+  },
+  "tag_manager": {
+    "title": "Gestionnaire de tags",
+    "current_tags": "Tags actuels",
+    "add_edit": "Ajouter / Modifier",
+    "name": "Nom du tag",
+    "weight": "Poids",
+    "add": "Ajouter",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saved": "Configuration des tags enregistrée.",
+    "invalid_name": "Le nom du tag doit être un seul mot (sans espaces).",
+    "delete_confirm": "Supprimer le tag '{name}'? Les entrées l'utilisant conserveront le tag mais il ne sera plus valide.",
+    "min_relevance": "Pertinence Minimale",
+    "min_relevance_desc": "Les conversations avec une pertinence inférieure à cette valeur ne sont PAS enregistrées dans la mémoire permanente.",
+    "add_tag": "Ajouter Tag",
+    "delete_tag": "Supprimer Tag",
+    "no_tags": "Aucun tag configuré."
   }
 }

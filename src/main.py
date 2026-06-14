@@ -306,7 +306,7 @@ class VassApp:
                 result["api_key"] = cm_key if cm_key else config.get("ai", "api_key", fallback="")
             except Exception:
                 result["api_key"] = config.get("ai", "api_key", fallback="")
-            result["ai_model"] = config.get("ai", "model", fallback="gemma-4-E2B-it-Q8_0")
+            result["ai_model"] = config.get("ai", "model", fallback="")
             result["system_message"] = config.get("ai", "system_message", fallback="")
             result["allow_ai_scripts"] = config.get("ai", "allow_ai_scripts", fallback="false").lower() == "true"
             result["context_length"] = config.getint("ai", "context_length", fallback=0)
@@ -321,7 +321,7 @@ class VassApp:
             result["command_similarity"] = config.getfloat("commands", "similarity", fallback=0.6)
             result["word_learning_enabled"] = config.get("commands", "word_learning_enabled", fallback="false").lower() == "true"
             result["volume"] = config.getfloat("tts", "volume", fallback=0.95)
-            result["mcp_server_url"] = config.get("ai", "mcp_server_url", fallback="")
+            result["mcp_server_url"] = config.get("ai", "mcp_server_url", fallback="http://localhost:9988")
             result["memory_tokens"] = config.getint("ai", "memory_tokens", fallback=2000)
             result["blacklist"] = config.get("ai", "blacklist", fallback="")
             result["llama_server_path"] = config.get("llamacpp", "llama_server_path", fallback="")
@@ -369,7 +369,7 @@ class VassApp:
             result["wakeword"] = "vass"
             result["ai_url"] = "http://127.0.0.1:8080/v1"
             result["api_key"] = ""
-            result["ai_model"] = "gemma-4-E2B-it-Q8_0"
+            result["ai_model"] = ""
             result["system_message"] = "You are a helpful and concise voice assistant."
             result["allow_ai_scripts"] = False
             result["context_length"] = 0
@@ -383,7 +383,7 @@ class VassApp:
             result["command_similarity"] = 0.6
             result["word_learning_enabled"] = False
             result["volume"] = 0.95
-            result["mcp_server_url"] = ""
+            result["mcp_server_url"] = "http://localhost:9988"
             result["memory_tokens"] = 2000
             result["blacklist"] = ""
             result["llama_server_path"] = ""
@@ -1312,7 +1312,7 @@ class VassApp:
                     kwargs["max_tokens"] = max(200, ctx_available - len(messages[0]["content"]) // 2 - len(messages[1]["content"]) // 2 - 128)
                     print(f"[AI] Trimmed system prompt by {excess} chars to fit context")
 
-            print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools)}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}, max_tokens={kwargs.get('max_tokens', 'N/A')}")
+            print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools) if tools else 0}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}, max_tokens={kwargs.get('max_tokens', 'N/A')}")
 
             overflow_retries = 3
             msg = None
@@ -1587,22 +1587,56 @@ class VassApp:
             return
 
         entry_id = ""
+        assistant_text = ""
+        history = []
         mem_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory.json")
+        mem_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory")
         try:
             with open(mem_path, encoding="utf-8") as f:
                 mem_data = json.load(f)
             history = mem_data.get("history", [])
-            if history:
+            if len(history) >= 2:
+                entry_id = history[-1]
+                user_id = history[-2]
+                for vid, role_label in [(user_id, "user"), (entry_id, "assistant")]:
+                    hf = os.path.join(mem_dir, f"{vid}.json")
+                    if os.path.exists(hf):
+                        try:
+                            with open(hf, encoding="utf-8") as hfp:
+                                info = json.loads(json.load(hfp).get("info", "{}"))
+                            if info.get("role") == "assistant":
+                                assistant_text = info.get("content", "")
+                        except Exception:
+                            pass
+            elif history:
                 entry_id = history[-1]
         except Exception:
             pass
 
         tag_list = ", ".join(sorted(TAG_WEIGHTS.keys()))
-        classify_prompt = (
-            f"Classify this user message with comma-separated tags ONLY from: {tag_list}\n\n"
-            f"Message: \"{user_message[:500]}\"\n\n"
-            f"Return ONLY the tags, nothing else. Example: personal_data,pets"
-        )
+        if assistant_text:
+            classify_prompt = (
+                f"Classify this conversation with 1-3 comma-separated tags ONLY from: {tag_list}\n\n"
+                f"User: \"{user_message[:400]}\"\n"
+                f"Assistant: \"{assistant_text[:400]}\"\n\n"
+                f"Rules:\n"
+                f"- Return ONLY 1-3 most relevant tags, nothing else.\n"
+                f"- If the conversation is generic/chatty, return ONLY 'generic'.\n"
+                f"- Example travel chat: travel,personal_interests\n"
+                f"- Example health question: health\n"
+                f"- Example small talk: generic"
+            )
+        else:
+            classify_prompt = (
+                f"Classify this user message with 1-3 comma-separated tags ONLY from: {tag_list}\n\n"
+                f"Message: \"{user_message[:500]}\"\n\n"
+                f"Rules:\n"
+                f"- Return ONLY 1-3 most relevant tags, nothing else.\n"
+                f"- If the message is generic/chatty, return ONLY 'generic'.\n"
+                f"- Example travel chat: travel,personal_interests\n"
+                f"- Example health question: health\n"
+                f"- Example small talk: generic"
+            )
         try:
             resp = self.openai_client.chat.completions.create(
                 model=self.ai_model,
@@ -1612,11 +1646,16 @@ class VassApp:
                 extra_body={"disable_thinking": True}
             )
             raw = (resp.choices[0].message.content or "").strip().lower()
-            tags = [t.strip() for t in raw.split(",") if t.strip() and t.strip() in TAG_WEIGHTS]
+            tags = [t.strip() for t in raw.split(",") if t.strip() and t.strip() in TAG_WEIGHTS][:3]
             if tags:
-                result = mcp.call_tool("savetags", {"tags": ",".join(tags), "entry_id": entry_id})
+                tags_str = ",".join(tags)
+                result = mcp.call_tool("savetags", {"tags": tags_str, "entry_id": entry_id})
                 content = result.get("content", [{}])[0].get("text", str(result))
-                print(f"[Classify] Tags: {tags} -> {content}")
+                print(f"[Classify] Tags: {tags} -> {content} (AI response)")
+                if len(history) >= 2:
+                    user_entry_id = history[-2]
+                    mcp.call_tool("savetags", {"tags": tags_str, "entry_id": user_entry_id})
+                    print(f"[Classify] Also tagged user entry {user_entry_id}")
             else:
                 print(f"[Classify] AI returned unusable tags: '{raw}'")
         except Exception as e:

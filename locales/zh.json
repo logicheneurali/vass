@@ -22,7 +22,8 @@
       "help": "帮助",
       "help_usage": "使用说明",
       "help_commands": "命令",
-      "help_vasscript": "VASScript"
+      "help_vasscript": "VASScript",
+      "memory_editor": "永久记忆"
     },
     "dialog": {
       "exit_title": "退出",
@@ -427,5 +428,51 @@
       "device_id": "设备ID",
       "skip": "跳过（没有Google Home）"
     }
+  },
+  "memory_editor": {
+    "title": "永久记忆",
+    "tagged_entries": "已标记对话",
+    "content": "内容",
+    "tags": "标签",
+    "relevance": "相关性: {rel}",
+    "add_tag": "添加",
+    "remove_tag": "移除",
+    "delete_entry": "删除条目",
+    "delete_confirm": "从永久记忆中删除此条目？",
+    "save": "保存更改",
+    "saved": "永久记忆已成功保存。",
+    "refresh": "重新加载",
+    "no_entries": "永久记忆中没有条目。",
+    "relevance_label": "相关性",
+    "cancel": "取消",
+    "manage_tags": "管理标签",
+    "unsaved_title": "未保存的更改",
+    "add_tag_button": "添加标签",
+    "unsaved_changes": "有未保存的更改。是否在退出前保存？",
+    "dialog_save": "保存",
+    "dialog_discard": "放弃",
+    "dialog_cancel": "取消",
+    "dialog_yes": "是",
+    "dialog_no": "否"
+  },
+  "tag_manager": {
+    "title": "标签管理器",
+    "current_tags": "当前标签",
+    "add_edit": "添加 / 编辑",
+    "name": "标签名",
+    "weight": "权重",
+    "add": "添加",
+    "edit": "编辑",
+    "delete": "删除",
+    "cancel": "取消",
+    "save": "保存",
+    "saved": "标签配置已保存。",
+    "invalid_name": "标签名必须是单个单词（无空格）。",
+    "delete_confirm": "删除标签'{name}'？使用它的条目将保留标签但标签将不再有效。",
+    "min_relevance": "最小相关性",
+    "min_relevance_desc": "相关性低于此值的对话不会保存到永久记忆中。",
+    "add_tag": "添加标签",
+    "delete_tag": "删除标签",
+    "no_tags": "未配置标签。"
   }
 }

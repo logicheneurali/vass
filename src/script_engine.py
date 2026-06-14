@@ -774,7 +774,7 @@ class VASScript:
         vass_root = Path(__file__).resolve().parent.parent
         allowed_root = vass_root / "Allowed_root"
 
-        TAG_WEIGHTS = {
+        DEFAULT_TAGS = {
             "personal_data": 10, "health": 10, "finance": 10,
             "family": 10, "pets": 10,
             "contacts": 8,
@@ -784,7 +784,17 @@ class VASScript:
             "deliveries": 4, "travel": 4, "tech": 4, "events": 4,
             "sales": 3, "generic": 1,
         }
+        cfg_path = allowed_root / "tags_config.json"
+        TAG_WEIGHTS = DEFAULT_TAGS
         MIN_RELEVANCE = 10
+        if cfg_path.exists():
+            try:
+                with open(cfg_path, encoding="utf-8") as f:
+                    cfg = json.loads(f.read())
+                    TAG_WEIGHTS = cfg.get("tags", DEFAULT_TAGS)
+                    MIN_RELEVANCE = cfg.get("min_relevance", 10)
+            except Exception:
+                pass
 
         tag_list = [t.strip().lower() for t in tags.split(",") if t.strip()]
         if not tag_list:

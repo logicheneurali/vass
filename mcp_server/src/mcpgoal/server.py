@@ -7,7 +7,6 @@ from mcpgoal.config import ServerConfig
 from mcpgoal.logging_.logger import RequestLogger
 from mcpgoal.middleware.acl import check_access
 from mcpgoal.tools import calculator, datetime_, executor, filesystem, web
-from mcpgoal.tools.disk_space import get_disk_space as _disk_space
 from mcpgoal.tools.vasscript import execute_vasscript as _vasscript
 from mcpgoal.tools.vasscript import execute_code as _exec_code
 from mcpgoal.tools.vasscript import info_read as _info_read
@@ -59,7 +58,6 @@ _TOOL_SYNTAX = {
     "to_timestamp": "to_timestamp(date) — example: to_timestamp('2026-06-12 14:30')",
     "calculate": "calculate(expression) — example: calculate('2+2')",
     "execute": "execute(command) — example: execute('ping localhost')",
-    "disk_space": "disk_space() — no parameters",
     "script": "script(script_name) — example: script('eventi') or script('?') to list",
     "interact": "interact(code) — example: interact(\"say('hello')\")",
     "readinfo": "readinfo(id) — example: readinfo('1780394454383')",
@@ -240,11 +238,6 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def execute(command: str) -> str:
         """Execute a system command. Only allowed commands from the configured whitelist can be run."""
         return await _tool("execute", f"cmd={command}", executor.execute(command, config.allowed_commands), config)
-
-    @mcp.tool()
-    async def disk_space() -> str:
-        """Get available disk space information."""
-        return await _tool("disk_space", "", _disk_space(), config)
 
     @mcp.tool()
     async def addevent(date: str, time: str, duration: str, description: str, recur: str = "") -> str:

@@ -3,7 +3,7 @@ import time as _time
 from pathlib import Path
 from . import to_num
 
-TAG_WEIGHTS = {
+_DEFAULT_WEIGHTS = {
     "personal_data": 10, "health": 10, "finance": 10,
     "family": 10, "pets": 10,
     "contacts": 8,
@@ -14,10 +14,29 @@ TAG_WEIGHTS = {
     "sales": 3,
     "generic": 1,
 }
+TAG_WEIGHTS = dict(_DEFAULT_WEIGHTS)
 MIN_RELEVANCE = 10
 
 
+def _refresh_weights(allowed_root):
+    global TAG_WEIGHTS, MIN_RELEVANCE
+    cfg = Path(allowed_root).resolve() / "tags_config.json" if allowed_root else None
+    if cfg and cfg.exists():
+        try:
+            loaded = json.loads(cfg.read_text(encoding="utf-8"))
+            tw = loaded.get("tags", {})
+            if tw:
+                TAG_WEIGHTS = tw
+            MIN_RELEVANCE = loaded.get("min_relevance", 10)
+            return
+        except Exception:
+            pass
+    TAG_WEIGHTS = dict(_DEFAULT_WEIGHTS)
+    MIN_RELEVANCE = 10
+
+
 async def save_tags(tags: str, allowed_root: str, entry_id: str = "") -> str:
+    _refresh_weights(allowed_root)
     tag_list = [t.strip().lower() for t in tags.split(",") if t.strip()]
     if not tag_list:
         return "error: no valid tags provided"

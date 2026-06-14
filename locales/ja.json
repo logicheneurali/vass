@@ -22,7 +22,8 @@
       "help": "ヘルプ",
       "help_usage": "使い方",
       "help_commands": "コマンド",
-      "help_vasscript": "VASScript"
+      "help_vasscript": "VASScript",
+      "memory_editor": "永続メモリ"
     },
     "dialog": {
       "exit_title": "終了",
@@ -427,5 +428,51 @@
       "device_id": "デバイスID",
       "skip": "スキップ（Google Homeなし）"
     }
+  },
+  "memory_editor": {
+    "title": "永続メモリ",
+    "tagged_entries": "タグ付き会話",
+    "content": "内容",
+    "tags": "タグ",
+    "relevance": "関連度: {rel}",
+    "add_tag": "追加",
+    "remove_tag": "削除",
+    "delete_entry": "エントリを削除",
+    "delete_confirm": "このエントリを永続メモリから削除しますか？",
+    "save": "変更を保存",
+    "saved": "永続メモリが正常に保存されました。",
+    "refresh": "再読み込み",
+    "no_entries": "永続メモリにエントリがありません。",
+    "relevance_label": "関連度",
+    "cancel": "キャンセル",
+    "manage_tags": "タグ管理",
+    "unsaved_title": "未保存の変更",
+    "add_tag_button": "タグ追加",
+    "unsaved_changes": "未保存の変更があります。終了前に保存しますか？",
+    "dialog_save": "保存",
+    "dialog_discard": "破棄",
+    "dialog_cancel": "キャンセル",
+    "dialog_yes": "はい",
+    "dialog_no": "いいえ"
+  },
+  "tag_manager": {
+    "title": "タグマネージャー",
+    "current_tags": "現在のタグ",
+    "add_edit": "追加 / 編集",
+    "name": "タグ名",
+    "weight": "重み",
+    "add": "追加",
+    "edit": "編集",
+    "delete": "削除",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "saved": "タグ設定が保存されました。",
+    "invalid_name": "タグ名は単一の単語（スペースなし）である必要があります。",
+    "delete_confirm": "タグ'{name}'を削除しますか？使用中のエントリはタグを保持しますが、無効になります。",
+    "min_relevance": "最小関連度",
+    "min_relevance_desc": "この値未満の関連度の会話は永続メモリに保存されません。",
+    "add_tag": "タグ追加",
+    "delete_tag": "タグ削除",
+    "no_tags": "タグが設定されていません。"
   }
 }

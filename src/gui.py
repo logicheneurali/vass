@@ -283,6 +283,7 @@ class VassGUI(QMainWindow):
         self._menu.addAction(self._t("gui.menu.commands"), self.open_commands)
         self._menu.addAction(self._t("gui.menu.scripts"), self.open_scripts)
         self._menu.addAction(self._t("gui.menu.history"), self.open_history)
+        self._menu.addAction(self._t("gui.menu.memory_editor"), self.open_memory_editor)
         self._menu.addAction(self._t("gui.menu.sources"), self.open_sources)
         self._menu.addAction(self._t("gui.menu.events"), self.open_events)
         self._help_menu = self._menu.addMenu(self._t("gui.menu.help"))
@@ -876,6 +877,7 @@ class VassGUI(QMainWindow):
                     "commands": "editor comandi vass",
                     "scripts": "vasscript editor",
                     "history": "cronologia conversazioni",
+                    "memory_editor": "memoria permanente",
                     "sources": "vass - fonti online",
                     "events": "vass - eventi e operazioni",
                 }
@@ -975,6 +977,9 @@ class VassGUI(QMainWindow):
         with open(data_path, "w", encoding="utf-8") as f:
             json.dump(entries, f, ensure_ascii=False)
         self._open_unique_window("history", os.path.join(SRC, "history_viewer.py"), "--lang", self.language)
+
+    def open_memory_editor(self):
+        self._open_unique_window("memory_editor", os.path.join(SRC, "memory_editor.py"), "--lang", self.language)
 
     def open_sources(self):
         self._open_unique_window("sources", os.path.join(SRC, "sources_editor.py"), "--lang", self.language)

@@ -22,7 +22,8 @@
       "help": "Ajuda",
       "help_usage": "Uso",
       "help_commands": "Comandos",
-      "help_vasscript": "VASScript"
+      "help_vasscript": "VASScript",
+      "memory_editor": "Memória Permanente"
     },
     "dialog": {
       "exit_title": "Sair",
@@ -426,5 +427,51 @@
       "device_id": "ID do dispositivo",
       "skip": "Pular (não tenho Google Home)"
     }
+  },
+  "memory_editor": {
+    "title": "Memória Permanente",
+    "tagged_entries": "Conversas Etiquetadas",
+    "content": "Conteúdo",
+    "tags": "Etiquetas",
+    "relevance": "Relevância: {rel}",
+    "add_tag": "Adicionar",
+    "remove_tag": "Remover",
+    "delete_entry": "Excluir Entrada",
+    "delete_confirm": "Remover esta entrada da memória permanente?",
+    "save": "Salvar Alterações",
+    "saved": "Memória permanente salva com sucesso.",
+    "refresh": "Recarregar",
+    "no_entries": "Nenhuma entrada na memória permanente.",
+    "relevance_label": "Relevância",
+    "cancel": "Cancelar",
+    "manage_tags": "Gerenciar Tags",
+    "unsaved_title": "Alterações não salvas",
+    "add_tag_button": "Adicionar Tag",
+    "unsaved_changes": "Há alterações não salvas. Deseja salvar antes de sair?",
+    "dialog_save": "Salvar",
+    "dialog_discard": "Descartar",
+    "dialog_cancel": "Cancelar",
+    "dialog_yes": "Sim",
+    "dialog_no": "Não"
+  },
+  "tag_manager": {
+    "title": "Gerenciador de Tags",
+    "current_tags": "Tags Atuais",
+    "add_edit": "Adicionar / Editar",
+    "name": "Nome",
+    "weight": "Peso",
+    "add": "Adicionar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "saved": "Configuração de tags salva.",
+    "invalid_name": "O nome do tag deve ser uma única palavra (sem espaços).",
+    "delete_confirm": "Excluir tag '{name}'? As entradas que o usam manterão o tag mas ele não será mais válido.",
+    "min_relevance": "Relevância Mínima",
+    "min_relevance_desc": "Conversas com relevância abaixo deste valor NÃO são salvas na memória permanente.",
+    "add_tag": "Adicionar Tag",
+    "delete_tag": "Excluir Tag",
+    "no_tags": "Nenhum tag configurado."
   }
 }

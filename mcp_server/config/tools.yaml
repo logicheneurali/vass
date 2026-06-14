@@ -20,9 +20,6 @@ tools:
   execute:
     whitelist: []
     blacklist: ["*"]
-  disk_space:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
-    blacklist: []
   script:
     whitelist: ["127.0.0.1", "::1", "localhost"]
     blacklist: []

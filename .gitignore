@@ -57,6 +57,7 @@ highlight_toast.ps1
 **/last_response.txt
 **/gmail_seen.json
 **/word_weights.json
+**/tags_config.json
 Allowed_root/memory/
 Allowed_root/news.json
 Allowed_root/.history_view.json

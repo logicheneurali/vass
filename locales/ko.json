@@ -22,7 +22,8 @@
       "help": "도움말",
       "help_usage": "사용법",
       "help_commands": "명령어",
-      "help_vasscript": "VASScript"
+      "help_vasscript": "VASScript",
+      "memory_editor": "영구 메모리"
     },
     "dialog": {
       "exit_title": "종료",
@@ -427,5 +428,51 @@
       "device_id": "기기 ID",
       "skip": "건너뛰기 (Google Home 없음)"
     }
+  },
+  "memory_editor": {
+    "title": "영구 메모리",
+    "tagged_entries": "태그된 대화",
+    "content": "내용",
+    "tags": "태그",
+    "relevance": "관련도: {rel}",
+    "add_tag": "추가",
+    "remove_tag": "제거",
+    "delete_entry": "항목 삭제",
+    "delete_confirm": "이 항목을 영구 메모리에서 삭제하시겠습니까?",
+    "save": "변경사항 저장",
+    "saved": "영구 메모리가 성공적으로 저장되었습니다.",
+    "refresh": "새로고침",
+    "no_entries": "영구 메모리에 항목이 없습니다.",
+    "relevance_label": "관련도",
+    "cancel": "취소",
+    "manage_tags": "태그 관리",
+    "unsaved_title": "저장되지 않은 변경사항",
+    "add_tag_button": "태그 추가",
+    "unsaved_changes": "저장되지 않은 변경사항이 있습니다. 종료하기 전에 저장하시겠습니까?",
+    "dialog_save": "저장",
+    "dialog_discard": "취소",
+    "dialog_cancel": "취소",
+    "dialog_yes": "예",
+    "dialog_no": "아니요"
+  },
+  "tag_manager": {
+    "title": "태그 관리자",
+    "current_tags": "현재 태그",
+    "add_edit": "추가 / 편집",
+    "name": "태그 이름",
+    "weight": "가중치",
+    "add": "추가",
+    "edit": "편집",
+    "delete": "삭제",
+    "cancel": "취소",
+    "save": "저장",
+    "saved": "태그 설정이 저장되었습니다.",
+    "invalid_name": "태그 이름은 공백 없는 단일 단어여야 합니다.",
+    "delete_confirm": "태그 '{name}'을(를) 삭제하시겠습니까? 사용 중인 항목은 태그를 유지하지만 더 이상 유효하지 않습니다.",
+    "min_relevance": "최소 관련도",
+    "min_relevance_desc": "이 값 미만의 관련도를 가진 대화는 영구 메모리에 저장되지 않습니다.",
+    "add_tag": "태그 추가",
+    "delete_tag": "태그 삭제",
+    "no_tags": "구성된 태그가 없습니다."
   }
 }

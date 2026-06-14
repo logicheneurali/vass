@@ -22,8 +22,9 @@
       "help": "Help",
       "help_usage": "Utilizzo",
       "help_commands": "Comandi",
-      "help_vasscript": "VASScript"
-    },
+  "help_vasscript": "VASScript",
+    "memory_editor": "Memoria Permanente"
+  },
     "dialog": {
       "exit_title": "Uscita",
       "exit_message": "Uscire dall'applicazione?"
@@ -426,5 +427,51 @@
       "device_id": "Device ID",
       "skip": "Salta (non ho Google Home)"
     }
+  },
+  "memory_editor": {
+    "title": "Memoria Permanente",
+    "tagged_entries": "Conversazioni Etichettate",
+    "content": "Contenuto",
+    "tags": "Etichette",
+    "relevance": "Rilevanza: {rel}",
+    "add_tag": "Aggiungi",
+    "remove_tag": "Rimuovi",
+    "delete_entry": "Elimina Voce",
+    "delete_confirm": "Eliminare questa voce dalla memoria permanente?",
+    "save": "Salva Modifiche",
+    "saved": "Memoria permanente salvata con successo.",
+    "refresh": "Ricarica",
+    "no_entries": "Nessuna voce nella memoria permanente.",
+    "relevance_label": "Rilevanza",
+    "cancel": "Annulla",
+    "manage_tags": "Gestisci Tags",
+    "unsaved_title": "Modifiche non salvate",
+    "add_tag_button": "Aggiungi Tag",
+    "unsaved_changes": "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?",
+    "dialog_save": "Salva",
+    "dialog_discard": "Ignora",
+    "dialog_cancel": "Annulla",
+    "dialog_yes": "Sì",
+    "dialog_no": "No"
+  },
+  "tag_manager": {
+    "title": "Gestione Tags",
+    "current_tags": "Tags Correnti",
+    "add_edit": "Aggiungi / Modifica",
+    "name": "Nome Tag",
+    "weight": "Peso",
+    "add": "Aggiungi",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "saved": "Configurazione tags salvata.",
+    "invalid_name": "Il nome del tag deve essere una parola singola (senza spazi).",
+    "delete_confirm": "Eliminare il tag '{name}'? Le voci che lo usano manterranno il tag ma non sarà più valido.",
+    "min_relevance": "Rilevanza Minima",
+    "min_relevance_desc": "Le conversazioni con rilevanza inferiore a questo valore NON vengono salvate nella memoria permanente.",
+    "add_tag": "Aggiungi Tag",
+    "delete_tag": "Elimina Tag",
+    "no_tags": "Nessun tag configurato."
   }
 }

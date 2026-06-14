@@ -22,7 +22,8 @@
       "help": "Help",
       "help_usage": "Usage",
       "help_commands": "Commands",
-      "help_vasscript": "VASScript"
+      "help_vasscript": "VASScript",
+      "memory_editor": "Permanent Memory"
     },
     "dialog": {
       "exit_title": "Exit",
@@ -426,5 +427,51 @@
       "device_id": "Device ID",
       "skip": "Skip (I don't have Google Home)"
     }
+  },
+  "memory_editor": {
+    "title": "Permanent Memory",
+    "tagged_entries": "Tagged Conversations",
+    "content": "Content",
+    "tags": "Tags",
+    "relevance": "Relevance: {rel}",
+    "add_tag": "Add",
+    "remove_tag": "Remove",
+    "delete_entry": "Delete Entry",
+    "delete_confirm": "Remove this entry from permanent memory?",
+    "save": "Save Changes",
+    "saved": "Permanent memory saved successfully.",
+    "refresh": "Reload",
+    "no_entries": "No entries in permanent memory.",
+    "relevance_label": "Relevance",
+    "cancel": "Cancel",
+    "manage_tags": "Manage Tags",
+    "unsaved_title": "Unsaved Changes",
+    "add_tag_button": "Add Tag",
+    "unsaved_changes": "There are unsaved changes. Do you want to save before exiting?",
+    "dialog_save": "Save",
+    "dialog_discard": "Discard",
+    "dialog_cancel": "Cancel",
+    "dialog_yes": "Yes",
+    "dialog_no": "No"
+  },
+  "tag_manager": {
+    "title": "Tag Manager",
+    "current_tags": "Current Tags",
+    "add_edit": "Add / Edit",
+    "name": "Tag Name",
+    "weight": "Weight",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saved": "Tag configuration saved.",
+    "invalid_name": "Tag name must be a single word (no spaces).",
+    "delete_confirm": "Delete tag '{name}'? Entries using it will keep the tag but it will no longer be valid.",
+    "min_relevance": "Minimum Relevance",
+    "min_relevance_desc": "Conversations with relevance below this value are NOT saved to permanent memory.",
+    "add_tag": "Add Tag",
+    "delete_tag": "Delete Tag",
+    "no_tags": "No tags configured."
   }
 }
