@@ -46,13 +46,10 @@ def _to_html(history_data, lang):
              'a:hover { color:#bbb; }',
              '</style></head>',
              f'<body style="background:{BG}; color:{FG}; font-family:Segoe UI,sans-serif; font-size:13px; margin:8px;">']
-    for orig_idx, entry in reversed(list(enumerate(history_data))):
+    for orig_idx, entry in enumerate(history_data):
         role = entry.get("role", "")
         content = entry.get("content", "")
         ts = entry.get("ts", "")
-        if role == "separator":
-            parts.append(f'<div style="text-align:center; color:#666; padding:12px 0; font-size:11px; border-top:1px solid #444; margin:8px 0;">{_escape_html(content)}</div>')
-            continue
         if not ts:
             ts = datetime.now().strftime("%d/%m %H:%M")
         is_user = role == "user"

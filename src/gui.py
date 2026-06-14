@@ -916,63 +916,53 @@ class VassGUI(QMainWindow):
         mem_path = os.path.join(BASE, "Allowed_root", "memory.json")
         mem_dir = os.path.join(BASE, "Allowed_root", "memory")
         entries = []
-        history_ids = []
+        all_ids = []
+        summary_id = ""
         try:
             if os.path.exists(mem_path):
                 with open(mem_path, encoding="utf-8") as f:
                     meta = json.load(f)
-                history_ids = meta.get("history", [])
-                for vid in history_ids:
-                    hf = os.path.join(mem_dir, f"{vid}.json")
-                    if os.path.exists(hf):
-                        with open(hf, encoding="utf-8") as hfp:
-                            info = json.load(hfp).get("info", "")
-                        entry = json.loads(info)
-                        try:
-                            ts = _dt.fromtimestamp(int(vid) / 1000).strftime("%d/%m %H:%M")
-                        except Exception:
-                            ts = ""
-                        entries.append({
-                            "role": entry.get("role", ""),
-                            "content": entry.get("content", ""),
-                            "ts": ts,
-                        })
+                summary_id = meta.get("summary_id", "")
+                for vid in meta.get("history", []):
+                    if vid not in all_ids:
+                        all_ids.append(vid)
         except Exception:
             pass
 
-        archive_files = []
         try:
             if os.path.isdir(mem_dir):
                 for fname in os.listdir(mem_dir):
                     if fname.endswith(".json"):
                         fid = fname[:-5]
-                        if fid not in history_ids and fid.isdigit():
-                            archive_files.append(fid)
+                        if fid.isdigit() and fid not in all_ids:
+                            all_ids.append(fid)
         except Exception:
             pass
 
-        if archive_files:
-            entries.append({"role": "separator", "content": "----------- Archivio -----------", "ts": ""})
-            archive_files.sort()
-            needed = min(len(archive_files), 100 - len(entries))
-            for vid in archive_files[:needed]:
-                hf = os.path.join(mem_dir, f"{vid}.json")
-                if os.path.exists(hf):
+        if summary_id and summary_id in all_ids:
+            all_ids.remove(summary_id)
+
+        all_ids.sort(reverse=True)
+        capped = all_ids[:100]
+
+        for vid in capped:
+            hf = os.path.join(mem_dir, f"{vid}.json")
+            if os.path.exists(hf):
+                try:
+                    with open(hf, encoding="utf-8") as hfp:
+                        info = json.load(hfp).get("info", "")
+                    entry = json.loads(info)
                     try:
-                        with open(hf, encoding="utf-8") as hfp:
-                            info = json.load(hfp).get("info", "")
-                        entry = json.loads(info)
-                        try:
-                            ts = _dt.fromtimestamp(int(vid) / 1000).strftime("%d/%m %H:%M")
-                        except Exception:
-                            ts = ""
-                        entries.append({
-                            "role": entry.get("role", ""),
-                            "content": entry.get("content", ""),
-                            "ts": ts,
-                        })
+                        ts = _dt.fromtimestamp(int(vid) / 1000).strftime("%d/%m %H:%M")
                     except Exception:
-                        pass
+                        ts = ""
+                    entries.append({
+                        "role": entry.get("role", ""),
+                        "content": entry.get("content", ""),
+                        "ts": ts,
+                    })
+                except Exception:
+                    pass
 
         with open(data_path, "w", encoding="utf-8") as f:
             json.dump(entries, f, ensure_ascii=False)
