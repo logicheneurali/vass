@@ -44,7 +44,9 @@ class TtsEngine:
         self._speak_lock = threading.Lock()
         self._speaker_running = True
         self._sd_abort = threading.Event()
+        self._wav_to_clean = ""
         threading.Thread(target=self._speak_worker, daemon=True).start()
+        self._cleanup_orphan_wavs()
 
     def speak(self, text, speed=1.0):
         self._speak_kokoro(text, speed)
@@ -115,9 +117,11 @@ class TtsEngine:
     def _play_wav(self, wav_path, speed=1.0):
         self._tts_done.clear()
         self._sd_abort.clear()
+        self._wav_to_clean = wav_path
         import sounddevice as sd
         import soundfile as sf
-        self._tts_data, self._tts_sr = sf.read(wav_path)
+        data, sr = sf.read(wav_path)
+        self._tts_data, self._tts_sr = data, sr
         peak = np.max(np.abs(self._tts_data))
         if peak > 0:
             self._tts_data = self._tts_data * (self.tts_volume / peak)
@@ -154,8 +158,28 @@ class TtsEngine:
         )
 
     def _on_stream_finished(self):
+        self._cleanup_wav()
         if self.gui:
             self.gui.schedule(0, self._on_tts_done)
+
+    def _cleanup_wav(self):
+        path = getattr(self, '_wav_to_clean', '')
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        self._wav_to_clean = ''
+
+    @staticmethod
+    def _cleanup_orphan_wavs():
+        import glob
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for f in glob.glob(os.path.join(root, "tts_output_*.wav")):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
 
     def _speak_kokoro(self, text, speed=1.0):
         self._save_state_and_set_playing()
@@ -275,6 +299,7 @@ class TtsEngine:
                 self._sd_stream.abort()
             except Exception:
                 pass
+        self._cleanup_wav()
         self._on_tts_done()
 
     def get_position(self):
@@ -309,6 +334,7 @@ class TtsEngine:
         self.gui.stop_tts_playback()
         self._tts_data = None
         self._tts_sr = None
+        self._cleanup_wav()
         if self._tts_wav_path and os.path.exists(self._tts_wav_path):
             try:
                 os.remove(self._tts_wav_path)
