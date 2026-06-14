@@ -837,9 +837,12 @@ class VassApp:
         for em in emails:
             from_parts = clean_for_tts(em['from'], 80)
             subj = clean_for_tts(em['subject'], 120)
-            snip = clean_for_tts(em['snippet'], 200)
+            snip = clean_for_tts(em['snippet'], 200, " " + t("notifications.email_truncated", self.language))
             text = f"Nuova email da {from_parts}. Oggetto: {subj}. {snip}"
             self.tts.enqueue(text)
+            notif = t("notifications.new_email", self.language).replace("{from}", from_parts).replace("{subject}", subj)
+            priority = 7 if em.get("important") else 5
+            self.notification_manager.add(notif, priority=priority)
 
     def _start_llamacpp(self):
         proc, status = start_llama_server(

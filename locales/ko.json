@@ -107,7 +107,7 @@
       "noise_pause_duration": "일시정지 지연 (초)",
       "context_length": "컨텍스트 길이 (토큰)",
       "overflow_strategy": "오버플로우 전략",
-      "allow_ai_scripts": "AI 스크립트",
+      "allow_ai_scripts": "AI 스크립트 생성 허용",
       "input_device": "녹음",
       "output_device": "재생",
       "calendar_setup": "설정 시작",
@@ -160,7 +160,7 @@
       "noise_pause_duration": "일시정지 전 연속 높은 소음 시간 (초)",
       "context_length": "최대 컨텍스트 길이 (토큰, 0=자동 감지)",
       "overflow_strategy": "텍스트가 컨텍스트를 초과할 경우: truncate (자르기) 또는 summarize (요약, 추가 API 호출 필요)",
-      "allow_ai_scripts": "AI가 스크립트를 생성할 수 있음",
+      "allow_ai_scripts": "활성화하면 AI가 자율적으로 VASScript 코드를 제안하고 실행할 수 있습니다. 보안을 위해 비활성화하세요.",
       "calendar_setup": "설정 시작",
       "calendar_enabled": "Google 캘린더 액세스 활성화",
       "calendar_sync_enabled": "Google 이벤트 자동 가져오기",
@@ -388,7 +388,9 @@
     "min_duration": "최소 타이머 시간: {min}분"
   },
   "notifications": {
-    "google_auth_expired": "⚠ Google 자격 증명이 만료되었습니다. 설정 → 외부 서비스 → 설정 실행을 여세요."
+    "google_auth_expired": "⚠ Google 자격 증명이 만료되었습니다. 설정 → 외부 서비스 → 설정 실행을 여세요.",
+    "new_email": "새 메일 {from}: {subject}",
+    "email_truncated": "... Gmail에서 전체 보기"
   },
   "setup_google": {
     "title": "Google 자격 증명 설정",

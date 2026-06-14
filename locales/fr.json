@@ -107,7 +107,7 @@
       "noise_pause_duration": "Délai pause (sec)",
       "context_length": "Longueur contexte (jetons)",
       "overflow_strategy": "Stratégie débordement",
-      "allow_ai_scripts": "Scripts IA",
+      "allow_ai_scripts": "Autoriser l'IA a generer des scripts",
       "input_device": "Enregistrement",
       "output_device": "Lecture",
       "calendar_setup": "Démarrer config",
@@ -160,7 +160,7 @@
       "noise_pause_duration": "Secondes consécutives de bruit élevé avant la pause",
       "context_length": "Longueur max contexte en jetons (0 = auto-détection)",
       "overflow_strategy": "Que faire si le texte dépasse le contexte: truncate (couper) ou summarize (résumer, nécessite un appel API supplémentaire)",
-      "allow_ai_scripts": "L'IA peut generer des scripts",
+      "allow_ai_scripts": "Si actif, l'IA peut proposer et executer du code VASScript de maniere autonome. Desactiver pour plus de securite.",
       "calendar_setup": "Démarrer config",
       "calendar_enabled": "Activer accès Google Agenda",
       "calendar_sync_enabled": "Importer automatiquement événements Google",
@@ -387,7 +387,9 @@
     "min_duration": "Durée minimale minuteur: {min} minute(s)"
   },
   "notifications": {
-    "google_auth_expired": "⚠ Identifiants Google expirés. Ouvrez Paramètres → Services Externes → Lancer la configuration."
+    "google_auth_expired": "⚠ Identifiants Google expirés. Ouvrez Paramètres → Services Externes → Lancer la configuration.",
+    "new_email": "Nouveau mail de {from}: {subject}",
+    "email_truncated": "... Message complet sur Gmail"
   },
   "setup_google": {
     "title": "Configuration identifiants Google",

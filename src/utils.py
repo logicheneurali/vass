@@ -283,7 +283,7 @@ _MULTI_PUNCT = re.compile(r'([!?.])\1+')
 _MULTI_SPACE = re.compile(r'\s+')
 
 
-def clean_for_tts(text, max_len=300):
+def clean_for_tts(text, max_len=300, truncated_suffix="..."):
     if not text:
         return ""
     entities = {"&amp;": "&", "&#38;": "&", "&lt;": "<", "&#60;": "<",
@@ -300,5 +300,5 @@ def clean_for_tts(text, max_len=300):
     text = _MULTI_PUNCT.sub(r'\1', text)
     text = _MULTI_SPACE.sub(" ", text).strip()
     if len(text) > max_len:
-        text = text[:max_len].rsplit(" ", 1)[0] + "..."
+        text = text[:max_len].rsplit(" ", 1)[0] + truncated_suffix
     return text

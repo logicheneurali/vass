@@ -107,7 +107,7 @@
       "noise_pause_duration": "Pausenverzögerung (Sek)",
       "context_length": "Kontextlänge (Token)",
       "overflow_strategy": "Überlaufstrategie",
-      "allow_ai_scripts": "KI-Skripte",
+      "allow_ai_scripts": "KI darf Skripte erstellen",
       "input_device": "Aufnahme",
       "output_device": "Wiedergabe",
       "calendar_setup": "Setup starten",
@@ -160,7 +160,7 @@
       "noise_pause_duration": "Aufeinanderfolgende Sekunden mit hohem Geräuschpegel vor der Pause",
       "context_length": "Max. Kontextlänge in Token (0 = Auto-Erkennung)",
       "overflow_strategy": "Was tun bei zu langem Text: truncate (abschneiden) oder summarize (zusammenfassen, erfordert extra API-Aufruf)",
-      "allow_ai_scripts": "KI kann Skripte generieren",
+      "allow_ai_scripts": "Wenn aktiv, kann die KI eigenstandig VASScript-Code vorschlagen und ausfuhren. Fur mehr Sicherheit deaktivieren.",
       "calendar_setup": "Setup starten",
       "calendar_enabled": "Google Kalender-Zugriff aktivieren",
       "calendar_sync_enabled": "Google-Ereignisse automatisch importieren",
@@ -387,7 +387,9 @@
     "min_duration": "Mindestdauer Timer: {min} Minute(n)"
   },
   "notifications": {
-    "google_auth_expired": "⚠ Google-Anmeldeinformationen abgelaufen. Öffnen Sie Einstellungen → Externe Dienste → Setup starten."
+    "google_auth_expired": "⚠ Google-Anmeldeinformationen abgelaufen. Öffnen Sie Einstellungen → Externe Dienste → Setup starten.",
+    "new_email": "Neue Mail von {from}: {subject}",
+    "email_truncated": "... Vollständiger Text auf Gmail"
   },
   "setup_google": {
     "title": "Google-Anmeldeinformationen",

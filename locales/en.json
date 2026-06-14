@@ -107,7 +107,7 @@
       "noise_pause_duration": "Pause delay (sec)",
       "context_length": "Context length (tokens)",
       "overflow_strategy": "Overflow strategy",
-      "allow_ai_scripts": "AI scripts",
+      "allow_ai_scripts": "Allow AI to generate scripts",
       "input_device": "Recording",
       "output_device": "Playback",
       "calendar_setup": "Start setup",
@@ -160,7 +160,7 @@
       "noise_pause_duration": "Consecutive seconds of high noise before pausing",
       "context_length": "Max context length in tokens (0 = auto-detect from model)",
       "overflow_strategy": "What to do when text exceeds context: truncate (cut) or summarize (requires an extra API call)",
-      "allow_ai_scripts": "AI can generate scripts",
+      "allow_ai_scripts": "When active, the AI can propose and execute VASScript code autonomously. Disable for greater security.",
       "calendar_setup": "Start setup",
       "calendar_enabled": "Enable Google Calendar access",
       "calendar_sync_enabled": "Auto-import Google events into VASS",
@@ -387,7 +387,9 @@
     "min_duration": "Minimum timer duration: {min} minute(s)"
   },
   "notifications": {
-    "google_auth_expired": "⚠ Google credentials expired. Open Settings → External Services → Run Setup."
+    "google_auth_expired": "⚠ Google credentials expired. Open Settings → External Services → Run Setup.",
+    "new_email": "New Mail from {from}: {subject}",
+    "email_truncated": "... Full message on Gmail"
   },
   "setup_google": {
     "title": "Google credentials setup",

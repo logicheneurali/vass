@@ -107,7 +107,7 @@
       "noise_pause_duration": "Retardo pausa (seg)",
       "context_length": "Longitud contexto (tokens)",
       "overflow_strategy": "Estrategia desbordamiento",
-      "allow_ai_scripts": "Scripts IA",
+      "allow_ai_scripts": "Permitir a la IA generar scripts",
       "input_device": "Grabación",
       "output_device": "Reproducción",
       "calendar_setup": "Iniciar configuración",
@@ -160,7 +160,7 @@
       "noise_pause_duration": "Segundos consecutivos de ruido alto antes de pausar",
       "context_length": "Longitud max contexto en tokens (0 = auto-detectar)",
       "overflow_strategy": "Qué hacer si el texto supera el contexto: truncate (cortar) o summarize (resumir, requiere una llamada API extra)",
-      "allow_ai_scripts": "IA puede generar scripts",
+      "allow_ai_scripts": "Si esta activo, la IA puede proponer y ejecutar codigo VASScript de forma autonoma. Desactivar para mayor seguridad.",
       "calendar_setup": "Iniciar configuración",
       "calendar_enabled": "Activar acceso Google Calendar",
       "calendar_sync_enabled": "Importar eventos Google automáticamente",
@@ -387,7 +387,9 @@
     "min_duration": "Duración mínima temporizador: {min} minuto(s)"
   },
   "notifications": {
-    "google_auth_expired": "⚠ Credenciales de Google caducadas. Abra Ajustes → Servicios Externos → Iniciar configuración."
+    "google_auth_expired": "⚠ Credenciales de Google caducadas. Abra Ajustes → Servicios Externos → Iniciar configuración.",
+    "new_email": "Nuevo correo de {from}: {subject}",
+    "email_truncated": "... Texto completo en Gmail"
   },
   "setup_google": {
     "title": "Configuración credenciales Google",

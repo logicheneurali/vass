@@ -107,7 +107,7 @@
       "noise_pause_duration": "一時停止遅延 (秒)",
       "context_length": "コンテキスト長 (トークン)",
       "overflow_strategy": "オーバーフロー戦略",
-      "allow_ai_scripts": "AIスクリプト",
+      "allow_ai_scripts": "AIにスクリプト生成を許可",
       "input_device": "録音",
       "output_device": "再生",
       "calendar_setup": "設定を開始",
@@ -160,7 +160,7 @@
       "noise_pause_duration": "一時停止前の連続した高ノイズ秒数",
       "context_length": "最大コンテキスト長（トークン、0=自動検出）",
       "overflow_strategy": "テキストがコンテキストを超えた場合: truncate (切り捨て) または summarize (要約、追加API呼び出しが必要)",
-      "allow_ai_scripts": "AIがスクリプトを生成できる",
+      "allow_ai_scripts": "有効にすると、AIが自律的にVASScriptコードを提案・実行できます。セキュリティを高めるには無効にしてください。",
       "calendar_setup": "設定を開始",
       "calendar_enabled": "Googleカレンダーアクセスを有効化",
       "calendar_sync_enabled": "Googleイベントを自動インポート",
@@ -388,7 +388,9 @@
     "min_duration": "タイマーの最小時間: {min}分"
   },
   "notifications": {
-    "google_auth_expired": "⚠ Google認証情報の有効期限が切れました。設定 → 外部サービス → セットアップを実行してください。"
+    "google_auth_expired": "⚠ Google認証情報の有効期限が切れました。設定 → 外部サービス → セットアップを実行してください。",
+    "new_email": "新着メール {from}より: {subject}",
+    "email_truncated": "... 全文はGmailで"
   },
   "setup_google": {
     "title": "Google認証情報の設定",

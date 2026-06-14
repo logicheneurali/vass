@@ -56,12 +56,14 @@ class GmailHandler:
         for h in msg.get("payload", {}).get("headers", []):
             headers[h["name"].lower()] = h["value"]
         snippet = msg.get("snippet", "")
+        label_ids = msg.get("labelIds", [])
         return {
             "id": msg["id"],
             "from": headers.get("from", "?"),
             "subject": headers.get("subject", "(nessun oggetto)"),
             "date": headers.get("date", ""),
             "snippet": snippet,
+            "important": "IMPORTANT" in label_ids,
         }
 
     def check_new(self, seen_path, max_results=10):

@@ -138,7 +138,7 @@
       "noise_pause_duration": "Durata prima pausa (sec)",
       "context_length": "Lunghezza contesto (token)",
       "overflow_strategy": "Strategia overflow",
-      "allow_ai_scripts": "Script AI",
+      "allow_ai_scripts": "Permetti AI generare script",
       "input_device": "Registrazione",
       "output_device": "Riproduzione",
       "calendar_setup": "Avvia configurazione",
@@ -191,7 +191,7 @@
       "noise_pause_duration": "Secondi consecutivi di rumore alto prima di attivare la pausa",
       "context_length": "Lunghezza massima contesto in token (0 = auto-detect dal modello)",
       "overflow_strategy": "Cosa fare se il testo supera il contesto: truncate (taglia) o summarize (riassumi, richiede una chiamata API extra)",
-      "allow_ai_scripts": "AI puo' generare scripts",
+      "allow_ai_scripts": "Se attivo, l'AI puo proporre ed eseguire codice VASScript in autonomia. Disattiva per maggiore sicurezza.",
       "calendar_setup": "Avvia configurazione",
       "calendar_enabled": "Abilita accesso Google Calendar",
       "calendar_sync_enabled": "Importa automaticamente eventi Google in VASS",
@@ -387,7 +387,9 @@
     "min_duration": "Durata minima timer: {min} minuto/i"
   },
   "notifications": {
-    "google_auth_expired": "⚠ Credenziali Google scadute. Apri Impostazioni → Servizi Esterni → Avvia configurazione."
+    "google_auth_expired": "⚠ Credenziali Google scadute. Apri Impostazioni → Servizi Esterni → Avvia configurazione.",
+    "new_email": "Nuova Mail da {from}: {subject}",
+    "email_truncated": "... Testo completo su Gmail"
   },
   "setup_google": {
     "title": "Setup credenziali Google",
