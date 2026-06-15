@@ -59,7 +59,7 @@ QSlider::sub-page:horizontal {{
 }}
 """
 
-BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts"}
+BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled"}
 HIDDEN_KEYS = {"lastmode"}
 
 COMBO_OPTIONS = {

@@ -63,7 +63,7 @@
       "limited": "メモリ: 制限付き",
       "none": "メモリ: なし"
     },
-    "button_tooltip": "クリック = 状態変更 | ホイール = 音量 | ドラッグ = 移動",
+    "button_tooltip": "クリック = 状態変更 | ホイール = 音量 | 中ボタン = 終了 | ドラッグ = 移動",
     "chat_tooltip": "AIにメッセージを入力",
     "chat_placeholder": "ここに入力してEnterを押す...",
     "notifications": "通知",
@@ -122,7 +122,9 @@
       "google_home_enabled": "Google Home",
       "google_home_model_id": "モデルID",
       "google_home_device_id": "デバイスID",
-      "word_learning_enabled": "適応学習（実験的）"
+      "word_learning_enabled": "適応学習（実験的）",
+      "debug_enabled": "デバッグ有効",
+      "debug_log_max_kb": "最大ログKB"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -173,7 +175,9 @@
       "google_home_enabled": "Google Home制御を有効にする（ブロードキャスト、スマートホーム、質問）",
       "google_home_model_id": "Actions ConsoleのデバイスモデルID",
       "google_home_device_id": "Actions ConsoleのデバイスインスタンスID",
-      "word_learning_enabled": "成功したコマンドを生成する単語を学習し、認識を優先します。データはword_weights.jsonに保存されます。"
+      "word_learning_enabled": "成功したコマンドを生成する単語を学習し、認識を優先します。データはword_weights.jsonに保存されます。",
+      "debug_enabled": "log/debug.logへのファイルログとOCRデバッグ画像を有効にする",
+      "debug_log_max_kb": "デバッグログファイルの最大サイズKB（デフォルト1024）"
     },
     "section_labels": {
       "gui": "ウィンドウ",
@@ -188,7 +192,8 @@
       "events": "イベント",
       "noise": "ノイズ",
       "audio": "オーディオ入出力",
-      "google": "外部サービス"
+      "google": "外部サービス",
+      "debug": "Debug"
     },
     "buttons": {
       "save": "保存",

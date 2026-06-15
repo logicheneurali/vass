@@ -63,7 +63,7 @@
       "limited": "Memory: Limited",
       "none": "Memory: None"
     },
-    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move",
+    "button_tooltip": "Clic = Changer état | Molette = Volume | Bouton central = Quitter | Glisser = Déplacer",
     "chat_tooltip": "Écrire un message à l'IA",
     "chat_placeholder": "Écrivez ici et appuyez sur Entrée...",
     "notifications": "Notifications",
@@ -122,7 +122,9 @@
       "google_home_enabled": "Google Home",
       "google_home_model_id": "ID du modèle",
       "google_home_device_id": "ID de l'appareil",
-      "word_learning_enabled": "Apprentissage adaptatif (EXPÉRIMENTAL)"
+      "word_learning_enabled": "Apprentissage adaptatif (EXPÉRIMENTAL)",
+      "debug_enabled": "Debug actif",
+      "debug_log_max_kb": "Max KB log"
     },
     "field_descriptions": {
       "x": "Position X à l'écran",
@@ -173,7 +175,9 @@
       "google_home_enabled": "Activer le contrôle Google Home (diffusion, maison connectée, ask)",
       "google_home_model_id": "ID du modèle d'appareil depuis Actions Console",
       "google_home_device_id": "ID d'instance de l'appareil depuis Actions Console",
-      "word_learning_enabled": "Apprend quels mots produisent des commandes réussies et favorise leur reconnaissance. Données sauvegardées dans word_weights.json."
+      "word_learning_enabled": "Apprend quels mots produisent des commandes réussies et favorise leur reconnaissance. Données sauvegardées dans word_weights.json.",
+      "debug_enabled": "Active la journalisation dans log/debug.log et les images de debug OCR",
+      "debug_log_max_kb": "Taille max du fichier debug en KB (défaut 1024)"
     },
     "section_labels": {
       "gui": "Fenêtre",
@@ -188,7 +192,8 @@
       "events": "Événements",
       "noise": "Bruit",
       "audio": "Entrée/sortie audio",
-      "google": "Services Externes"
+      "google": "Services Externes",
+      "debug": "Debug"
     },
     "buttons": {
       "save": "Enregistrer",

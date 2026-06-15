@@ -63,7 +63,7 @@
       "limited": "Memory: Limited",
       "none": "Memory: None"
     },
-    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move",
+    "button_tooltip": "Clic = Cambiar estado | Rueda = Volumen | Botón central = Salir | Arrastrar = Mover",
     "chat_tooltip": "Escribe un mensaje a la IA",
     "chat_placeholder": "Escribe aquí y pulsa Enter...",
     "notifications": "Notificaciones",
@@ -122,7 +122,9 @@
       "google_home_enabled": "Google Home",
       "google_home_model_id": "ID del modelo",
       "google_home_device_id": "ID del dispositivo",
-      "word_learning_enabled": "Aprendizaje adaptativo (EXPERIMENTAL)"
+      "word_learning_enabled": "Aprendizaje adaptativo (EXPERIMENTAL)",
+      "debug_enabled": "Debug activo",
+      "debug_log_max_kb": "Max KB log"
     },
     "field_descriptions": {
       "x": "Posición X en pantalla",
@@ -173,7 +175,9 @@
       "google_home_enabled": "Activar control de Google Home (difusión, hogar inteligente, ask)",
       "google_home_model_id": "ID del modelo de dispositivo desde Actions Console",
       "google_home_device_id": "ID de instancia del dispositivo desde Actions Console",
-      "word_learning_enabled": "Aprende qué palabras producen comandos exitosos y favorece su reconocimiento. Datos guardados en word_weights.json."
+      "word_learning_enabled": "Aprende qué palabras producen comandos exitosos y favorece su reconocimiento. Datos guardados en word_weights.json.",
+      "debug_enabled": "Activa el registro en log/debug.log e imágenes de debug OCR",
+      "debug_log_max_kb": "Tamaño máximo del archivo debug en KB (por defecto 1024)"
     },
     "section_labels": {
       "gui": "Ventana",
@@ -188,7 +192,8 @@
       "events": "Eventos",
       "noise": "Ruido",
       "audio": "Entrada/salida de audio",
-      "google": "Servicios Externos"
+      "google": "Servicios Externos",
+      "debug": "Debug"
     },
     "buttons": {
       "save": "Guardar",

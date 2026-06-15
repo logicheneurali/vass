@@ -83,11 +83,11 @@ class VASScript:
     def _preprocess_screen(frame):
         import numpy as np
         try:
-            from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+            from PIL import Image, ImageEnhance, ImageOps
             pil_img = Image.fromarray(frame[:, :, :3])
             pil_img = ImageOps.grayscale(pil_img)
             pil_img = ImageEnhance.Contrast(pil_img).enhance(2.0)
-            pil_img = pil_img.filter(ImageFilter.SHARPEN)
+            pil_img = ImageOps.autocontrast(pil_img, cutoff=2)
             return np.stack([np.array(pil_img)] * 3, axis=-1)
         except Exception:
             return frame
@@ -459,6 +459,13 @@ class VASScript:
                 img = sct.grab(monitor)
                 frame = np.array(img)
             frame = self._preprocess_screen(frame)
+            if getattr(self.app, 'debug_enabled', False):
+                import uuid, os as _os
+                _os.makedirs("log", exist_ok=True)
+                from PIL import Image as _PILImage
+                debug_path = _os.path.join("log", f"ocr_debug_{uuid.uuid4().hex[:6]}.png")
+                _PILImage.fromarray(frame[:,:,:3]).save(debug_path)
+                print(f"[OCR Debug] Saved preprocessed image: {debug_path}")
             lang_codes = self._ocr_langs()
             if VASScript._ocr_reader is None or VASScript._ocr_active_langs != lang_codes:
                 import easyocr
@@ -470,22 +477,28 @@ class VASScript:
             import difflib as _difflib
             matches = []
             for bbox, text, conf in results:
-                ratio = _difflib.SequenceMatcher(None, query.lower(), text.lower()).ratio()
-                if ratio >= 0.80:
-                    xs = [p[0] for p in bbox]
-                    ys = [p[1] for p in bbox]
-                    min_x, max_x = min(xs), max(xs)
-                    min_y, max_y = min(ys), max(ys)
-                    cx = (min_x + max_x) / 2
-                    cy = (min_y + max_y) / 2
-                    matches.append({
-                        "text": text,
-                        "x": int(cx),
-                        "y": int(cy),
-                        "w": int(max_x - min_x),
-                        "h": int(max_y - min_y),
-                        "ratio": ratio,
-                    })
+                ql = query.lower()
+                tl = text.lower()
+                if ql in tl:
+                    ratio = 1.0
+                else:
+                    ratio = _difflib.SequenceMatcher(None, ql, tl).ratio()
+                    if ratio < 0.70:
+                        continue
+                xs = [p[0] for p in bbox]
+                ys = [p[1] for p in bbox]
+                min_x, max_x = min(xs), max(xs)
+                min_y, max_y = min(ys), max(ys)
+                cx = (min_x + max_x) / 2
+                cy = (min_y + max_y) / 2
+                matches.append({
+                    "text": text,
+                    "x": int(cx),
+                    "y": int(cy),
+                    "w": int(max_x - min_x),
+                    "h": int(max_y - min_y),
+                    "ratio": ratio,
+                })
             if matches:
                 matches.sort(key=lambda m: m["ratio"], reverse=True)
                 best = matches[0]

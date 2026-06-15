@@ -23,7 +23,8 @@ except ImportError:
     print("Missing dependencies. Run: pip install -r requirements.txt")
     sys.exit(1)
 
-_faulthandler_file = open("faulthandler.log", "w")
+os.makedirs("log", exist_ok=True)
+_faulthandler_file = open("log/faulthandler.log", "w")
 faulthandler.enable(_faulthandler_file)
 
 from audio_handler import AudioHandler
@@ -43,6 +44,35 @@ _original_print = _builtins.print
 def _ts_print(*args, **kwargs):
     _original_print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]", *args, **kwargs)
 _builtins.print = _ts_print
+
+
+class _TeeOutput:
+    def __init__(self, *files):
+        self._files = files
+    def write(self, text):
+        for f in self._files:
+            f.write(text)
+            f.flush()
+    def flush(self):
+        for f in self._files:
+            f.flush()
+
+
+def _rotate_debug_log(path, max_bytes):
+    if not os.path.exists(path):
+        return
+    if os.path.getsize(path) <= max_bytes:
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        target = max_bytes // 2
+        while lines and sum(len(l) for l in lines) > target:
+            lines.pop(0)
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+    except Exception:
+        pass
 
 
 def _load_version():
@@ -160,6 +190,7 @@ class VassApp:
         self.system_message = self.settings["system_message"]
         self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
         self.context_length = self.settings.get("context_length", 0)
+        self.debug_enabled = self.settings.get("debug_enabled", False)
         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
         self.gui_x = self.settings["gui_x"]
         self.gui_y = self.settings["gui_y"]
@@ -350,6 +381,9 @@ class VassApp:
             result["google_home_model_id"] = config.get("google", "google_home_model_id", fallback="")
             result["google_home_device_id"] = config.get("google", "google_home_device_id", fallback="")
 
+            result["debug_enabled"] = config.get("debug", "debug_enabled", fallback="false").lower() == "true"
+            result["debug_log_max_kb"] = config.getint("debug", "debug_log_max_kb", fallback=1024)
+
             from setup_google import is_google_configured
             if not is_google_configured():
                 result["calendar_enabled"] = "false"
@@ -411,6 +445,8 @@ class VassApp:
             result["google_home_enabled"] = "false"
             result["google_home_model_id"] = ""
             result["google_home_device_id"] = ""
+            result["debug_enabled"] = False
+            result["debug_log_max_kb"] = 1024
 
             config["locale"] = {"language": lang}
             config["gui"] = {
@@ -459,6 +495,10 @@ class VassApp:
                 "google_home_device_id": "",
                 "calendar_setup": "start"
             }
+            config["debug"] = {
+                "debug_enabled": "false",
+                "debug_log_max_kb": "1024"
+            }
             os.makedirs(os.path.dirname(abs_path), exist_ok=True)
             with open(abs_path, "w", encoding="utf-8") as f:
                 config.write(f)
@@ -467,14 +507,13 @@ class VassApp:
     def set_state(self, new_state, detail=""):
         with self.state_lock:
             self.state = new_state
-            from log_utils import rotate_if_needed
-            rotate_if_needed("debug.log", 500_000, 2)
-            with open("debug.log", "a") as f:
+            os.makedirs("log", exist_ok=True)
+            with open("log/debug.log", "a") as f:
                 f.write(f"set_state: {new_state}\n")
             try:
                 self.gui.set_state(new_state, detail)
             except Exception as e:
-                with open("crash.log", "a") as f:
+                with open("log/crash.log", "a") as f:
                     f.write(f"gui.set_state failed: {e}\n")
 
     def handle_button_press(self):
@@ -559,6 +598,7 @@ class VassApp:
                         self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
                         self.context_length = self.settings.get("context_length", 0)
                         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
+                        self.debug_enabled = self.settings.get("debug_enabled", False)
                         if self.ai_url != old_url:
                             self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
                         self.mcp_server_url = self.settings["mcp_server_url"]
@@ -636,6 +676,25 @@ class VassApp:
             print(f"[Settings] Could not save position: {e}")
 
     def run(self):
+        # Cleanup old OCR debug images from previous sessions
+        try:
+            import glob as _glob
+            for f in _glob.glob("log/ocr_debug_*.png"):
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass
+        except Exception:
+            pass
+
+        if self.settings.get("debug_enabled", False):
+            os.makedirs("log", exist_ok=True)
+            max_bytes = int(self.settings.get("debug_log_max_kb", 1024)) * 1024
+            _rotate_debug_log("log/debug.log", max_bytes)
+            self._debug_file = open("log/debug.log", "a", encoding="utf-8")
+            self._debug_original_stdout = sys.stdout
+            sys.stdout = _TeeOutput(sys.__stdout__, self._debug_file)
+
         print(f"VASS v{__version__} - Voice assistant software")
         self.voice_recognition.load_models()
         self.set_state("listening")
@@ -904,6 +963,9 @@ class VassApp:
             _faulthandler_file.close()
         except Exception:
             pass
+        if hasattr(self, '_debug_file') and self._debug_file:
+            sys.stdout = getattr(self, '_debug_original_stdout', sys.__stdout__)
+            self._debug_file.close()
         import subprocess as _sp
         if self.mcp_process:
             kill_process(self.mcp_process)

@@ -485,6 +485,9 @@ class VassGUI(QMainWindow):
         self.btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def _btn_press(self, event):
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self._exit_app()
+            return
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_start = event.globalPosition().toPoint()
             self._drag_pos = self._drag_start
@@ -1145,11 +1148,6 @@ class VassGUI(QMainWindow):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.RightButton:
-            import time as _tm
-            now = _tm.time()
-            last = getattr(self, '_last_right_click', 0)
-            if now - last < 1.5:
-                QApplication.quit()
-            self._last_right_click = now
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self._exit_app()
         super().mousePressEvent(event)

@@ -38,7 +38,7 @@
       "limited": "Memory: Limited",
       "none": "Memory: None"
     },
-    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move",
+    "button_tooltip": "Click = Change state | Wheel = Volume | Middle button = Exit | Drag = Move",
     "bar": {
       "memory": "Memory usage",
       "volume": "Volume",
@@ -122,7 +122,9 @@
       "google_home_enabled": "Google Home",
       "google_home_model_id": "Model ID",
       "google_home_device_id": "Device ID",
-      "word_learning_enabled": "Adaptive learning (EXPERIMENTAL)"
+      "word_learning_enabled": "Adaptive learning (EXPERIMENTAL)",
+      "debug_enabled": "Debug enabled",
+      "debug_log_max_kb": "Max log KB"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -173,7 +175,9 @@
       "google_home_enabled": "Enable Google Home control (broadcast, smart home, ask)",
       "google_home_model_id": "Device model ID from Actions Console",
       "google_home_device_id": "Device instance ID from Actions Console",
-      "word_learning_enabled": "Learns which words produce successful commands and favors their recognition. Data saved to word_weights.json."
+      "word_learning_enabled": "Learns which words produce successful commands and favors their recognition. Data saved to word_weights.json.",
+      "debug_enabled": "Enable file logging to log/debug.log and OCR debug images",
+      "debug_log_max_kb": "Maximum debug log file size in KB (default 1024)"
     },
     "section_labels": {
       "gui": "Window",
@@ -188,7 +192,8 @@
       "events": "Events",
       "noise": "Noise",
       "audio": "Audio input/output",
-      "google": "External Services"
+      "google": "External Services",
+      "debug": "Debug"
     },
     "buttons": {
       "save": "Save",

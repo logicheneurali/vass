@@ -63,7 +63,7 @@
       "limited": "Memory: Limited",
       "none": "Memory: None"
     },
-    "button_tooltip": "Click = Change state | Wheel = Volume | Drag = Move",
+    "button_tooltip": "Klick = Status ändern | Rad = Lautstärke | Mittlere Taste = Beenden | Ziehen = Verschieben",
     "chat_tooltip": "Nachricht an die KI schreiben",
     "chat_placeholder": "Hier schreiben und Enter drücken...",
     "notifications": "Benachrichtigungen",
@@ -122,7 +122,9 @@
       "google_home_enabled": "Google Home",
       "google_home_model_id": "Modell-ID",
       "google_home_device_id": "Geräte-ID",
-      "word_learning_enabled": "Adaptives Lernen (EXPERIMENTELL)"
+      "word_learning_enabled": "Adaptives Lernen (EXPERIMENTELL)",
+      "debug_enabled": "Debug aktiv",
+      "debug_log_max_kb": "Max Log KB"
     },
     "field_descriptions": {
       "x": "Bildschirm X-Position",
@@ -173,7 +175,9 @@
       "google_home_enabled": "Google Home-Steuerung aktivieren (Broadcast, Smart Home, Ask)",
       "google_home_model_id": "Gerätemodell-ID aus der Actions Console",
       "google_home_device_id": "Geräteinstanz-ID aus der Actions Console",
-      "word_learning_enabled": "Lernt, welche Wörter erfolgreiche Befehle erzeugen und bevorzugt deren Erkennung. Daten werden in word_weights.json gespeichert."
+      "word_learning_enabled": "Lernt, welche Wörter erfolgreiche Befehle erzeugen und bevorzugt deren Erkennung. Daten werden in word_weights.json gespeichert.",
+      "debug_enabled": "Aktiviert Datei-Logging in log/debug.log und OCR-Debug-Bilder",
+      "debug_log_max_kb": "Maximale Debug-Log-Dateigröße in KB (Standard 1024)"
     },
     "section_labels": {
       "gui": "Fenster",
@@ -188,7 +192,8 @@
       "events": "Ereignisse",
       "noise": "Geräusch",
       "audio": "Audio Ein-/Ausgabe",
-      "google": "Externe Dienste"
+      "google": "Externe Dienste",
+      "debug": "Debug"
     },
     "buttons": {
       "save": "Speichern",

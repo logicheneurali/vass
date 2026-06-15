@@ -1,4 +1,5 @@
 import configparser
+import itertools
 import subprocess
 import os
 import difflib
@@ -59,22 +60,25 @@ class CommandExecutor:
 
     def _add_command(self, key, value):
         keyword = key.lower().strip()
-        if "," in keyword:
-            parts = keyword.split(",")
-            first = parts[0].strip()
-            last = parts[-1].strip()
-            var_suffix = ""
-            m = re.search(r'(\{\w+\}.*)$', last)
-            if m and not re.search(r'\{\w+\}', first):
-                var_suffix = " " + m.group(1)
-            for i, part in enumerate(parts):
-                alt = part.strip()
-                if i == len(parts) - 1 and var_suffix:
-                    alt = re.sub(r'\s*\{\w+\}.*$', '', alt).strip()
-                if alt:
-                    self.commands[alt + var_suffix] = value
-        else:
-            self.commands[keyword] = value
+        var_suffix = ""
+        m = re.search(r'(\{\w+\}.*)$', keyword)
+        if m:
+            var_suffix = m.group(1)
+            keyword = re.sub(r'\s*\{\w+\}.*$', '', keyword).strip()
+        if not keyword:
+            return
+        columns = keyword.split()
+        col_alternatives = []
+        for col in columns:
+            if "," in col:
+                col_alternatives.append([a.strip() for a in col.split(",") if a.strip()])
+            else:
+                col_alternatives.append([col])
+        for combo in itertools.product(*col_alternatives):
+            cmd_keyword = " ".join(combo)
+            if var_suffix:
+                cmd_keyword += " " + var_suffix
+            self.commands[cmd_keyword] = value
 
     def reload_commands(self):
         self.commands.clear()

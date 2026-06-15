@@ -73,6 +73,7 @@ config/commands.ini
 # VASS - temporary files
 tts_output_*.wav
 *.log
+log/
 mcp_server/LOG/
 
 # VASS - dev files
