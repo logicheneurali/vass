@@ -198,14 +198,15 @@ class TtsEngine:
             self._tts_wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             wav_path = self._tts_wav_path
             generator = self._kokoro_pipeline(text, voice=self._kokoro_voice, speed=speed,
-                                               split_pattern=r'(?<=[.!?])\s+')
+                                               split_pattern=r'(?<=[.!?])\s+|\n+')
             all_audio = []
             for gs, ps, audio in generator:
                 all_audio.append(audio)
             if all_audio:
                 audio = torch.cat(all_audio).numpy()
                 sf.write(wav_path, audio, 24000)
-                print(f"[TTS] Kokoro WAV saved")
+                dur = len(audio) / 24000
+                print(f"[TTS] Kokoro WAV: {len(all_audio)} chunks, {dur:.1f}s")
             else:
                 raise RuntimeError("Kokoro generated no audio")
         except Exception as e:
@@ -231,14 +232,15 @@ class TtsEngine:
             pipeline = KPipeline(lang_code=lang_code)
             wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             generator = pipeline(text, voice=voice, speed=speed,
-                                  split_pattern=r'(?<=[.!?])\s+')
+                                  split_pattern=r'(?<=[.!?])\s+|\n+')
             all_audio = []
             for gs, ps, audio in generator:
                 all_audio.append(audio)
             if all_audio:
                 audio = torch.cat(all_audio).numpy()
                 sf.write(wav_path, audio, 24000)
-                print(f"[TTS] Kokoro ({lang_code}) WAV saved")
+                dur = len(audio) / 24000
+                print(f"[TTS] Kokoro ({lang_code}) WAV: {len(all_audio)} chunks, {dur:.1f}s")
                 self._play_wav(wav_path, speed)
                 return True
         except Exception as e:

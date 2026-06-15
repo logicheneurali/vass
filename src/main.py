@@ -1378,6 +1378,13 @@ class VassApp:
 
             print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools) if tools else 0}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}, max_tokens={kwargs.get('max_tokens', 'N/A')}")
 
+            if self.debug_enabled:
+                sys_txt = messages[0]['content']
+                sys_len = len(sys_txt)
+                print(f"[Debug] --- AI Request ---")
+                print(f"[Debug] System ({sys_len} chars):\n{sys_txt[:1000]}{'...[truncated]' if sys_len > 1000 else ''}")
+                print(f"[Debug] User ({len(messages[1]['content'])} chars):\n{messages[1]['content']}")
+
             overflow_retries = 3
             msg = None
             while overflow_retries > 0:
@@ -1417,6 +1424,9 @@ class VassApp:
             ai_response = strip_think_tags(ai_response)
 
             print(f"AI Agent Response: {ai_response}")
+
+            if self.debug_enabled:
+                print(f"[Debug] --- AI Response ({len(ai_response)} chars) ---\n{ai_response}")
 
             if not script_called:
                 self.conversation_history.append({"role": "user", "content": prompt})

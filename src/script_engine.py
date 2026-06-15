@@ -339,10 +339,23 @@ class VASScript:
             if tools:
                 kwargs["tools"] = tools
 
+            if getattr(self.app, 'debug_enabled', False):
+                if messages:
+                    sys_txt = messages[0].get("content", "")
+                    sys_len = len(sys_txt)
+                    print(f"[Debug] --- [VASScript] AI Request ---")
+                    print(f"[Debug] [VASScript] System ({sys_len} chars):\n{sys_txt[:1000]}{'...[truncated]' if sys_len > 1000 else ''}")
+                usr_txt = messages[-1].get("content", "") if messages else prompt
+                print(f"[Debug] [VASScript] User ({len(usr_txt)} chars):\n{usr_txt}")
+
             msg = call_with_retry(lambda: self.app.openai_client.chat.completions.create(**kwargs), log_prefix="[VASScript]").choices[0].message
             msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]")
 
-            return msg.content or ""
+            resp = msg.content or ""
+            if getattr(self.app, 'debug_enabled', False):
+                print(f"[Debug] --- [VASScript] AI Response ({len(resp)} chars) ---\n{resp}")
+
+            return resp
 
         if name == "say":
             text = evaluated[0] if evaluated else ""
