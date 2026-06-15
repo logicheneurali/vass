@@ -175,6 +175,30 @@ bloquear ecrã = rundll32.exe user32.dll,LockWorkStation
 
 4. **Fallback à IA**: se nenhum comando exceder o limiar de similaridade, a frase é enviada à IA para uma resposta em linguagem natural.
 
+#### Alternativas com vírgulas (produto cartesiano)
+
+Podes especificar várias alternativas para cada posição usando vírgulas. Os **espaços** separam posições, as **vírgulas** separam alternativas dentro de uma posição. O VASS gera todas as combinações possíveis (produto cartesiano).
+
+```ini
+# Posição única: alternativas para a preposição
+click the,on text {text}
+```
+Gera 3 padrões: `click the text {text}`, `click on text {text}`, `click text {text}`.
+
+```ini
+# Duas posições: cada posição tem as suas próprias alternativas
+aa,xx bb,cc {var}
+```
+Gera 4 padrões: `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2x2 = 4).
+
+```ini
+# Misto: palavra fixa + alternativas
+turn on,off {device}
+```
+Gera 2 padrões: `turn on {device}`, `turn off {device}` (sem espaço entre `on` e `off` → mesma posição).
+
+A frase pronunciada é comparada com todos os padrões gerados. A melhor correspondência fuzzy vence.
+
 #### Tipos de ações
 
 | Prefixo | Exemplo | Comportamento |

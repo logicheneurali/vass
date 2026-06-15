@@ -177,6 +177,30 @@ lock screen = rundll32.exe user32.dll,LockWorkStation
 
 4. **AI fallback**: if no command exceeds the similarity threshold, the phrase is sent to the AI for a natural language response.
 
+#### Comma alternatives (Cartesian product)
+
+You can specify multiple alternatives for each word position using commas. **Spaces** separate word positions, **commas** separate alternatives within a position. VASS generates all possible combinations (Cartesian product).
+
+```ini
+# Single position: alternatives for the preposition
+click the,on text {text}
+```
+Generates 3 patterns: `click the text {text}`, `click on text {text}`, `click text {text}`.
+
+```ini
+# Two positions: each position has its own alternatives
+aa,xx bb,cc {var}
+```
+Generates 4 patterns: `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2x2 = 4).
+
+```ini
+# Mixed: fixed word + alternatives
+turn on,off {device}
+```
+Generates 2 patterns: `turn on {device}`, `turn off {device}` (no space between `on` and `off` -> same position).
+
+The spoken phrase is compared against all generated patterns. The best fuzzy match wins.
+
 #### Action types
 
 | Prefix | Example | Behavior |

@@ -174,6 +174,30 @@ VASS 可在两种模式下运行，可通过弹出菜单（主按钮右侧的 �
 
 4. **AI 回退**：如果没有任何命令超过相似度阈值，该短语将发送给 AI 进行自然语言回复。
 
+#### 逗号替代（笛卡尔乘积）
+
+你可以使用逗号为每个位置指定多个替代项。**空格**分隔位置，**逗号**分隔位置内的替代项。VASS 生成所有可能的组合（笛卡尔乘积）。
+
+```ini
+# 单个位置：介词的替代
+click the,on text {text}
+```
+生成 3 个模式：`click the text {text}`, `click on text {text}`, `click text {text}`。
+
+```ini
+# 两个位置：每个位置有自己的替代
+aa,xx bb,cc {var}
+```
+生成 4 个模式：`aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2x2 = 4)。
+
+```ini
+# 混合：固定单词 + 替代
+turn on,off {device}
+```
+生成 2 个模式：`turn on {device}`, `turn off {device}`（`on` 和 `off` 之间没有空格 → 同一位置）。
+
+语音短语与所有生成的模式进行比较。最佳模糊匹配胜出。
+
 #### 操作类型
 
 | 前缀 | 示例 | 行为 |

@@ -175,6 +175,30 @@ verrouiller l'écran = rundll32.exe user32.dll,LockWorkStation
 
 4. **Fallback IA** : si aucune commande ne dépasse le seuil de similarité, la phrase est envoyée à l'IA pour une réponse en langage naturel.
 
+#### Alternatives avec virgules (produit cartésien)
+
+Vous pouvez spécifier plusieurs alternatives pour chaque position en utilisant des virgules. Les **espaces** séparent les positions, les **virgules** séparent les alternatives au sein d'une position. VASS génère toutes les combinaisons possibles (produit cartésien).
+
+```ini
+# Position unique : alternatives pour la préposition
+click the,on text {text}
+```
+Génère 3 motifs : `click the text {text}`, `click on text {text}`, `click text {text}`.
+
+```ini
+# Deux positions : chaque position a ses propres alternatives
+aa,xx bb,cc {var}
+```
+Génère 4 motifs : `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2x2 = 4).
+
+```ini
+# Mixte : mot fixe + alternatives
+turn on,off {device}
+```
+Génère 2 motifs : `turn on {device}`, `turn off {device}` (pas d'espace entre `on` et `off` → même position).
+
+La phrase prononcée est comparée à tous les motifs générés. La meilleure correspondance fuzzy l'emporte.
+
 #### Types d'actions
 
 | Préfixe | Exemple | Comportement |

@@ -175,6 +175,30 @@ bildschirm sperren = rundll32.exe user32.dll,LockWorkStation
 
 4. **KI-Fallback**: Wenn kein Befehl den Ähnlichkeitsschwellenwert überschreitet, wird der Satz zur natürlichen Sprachbeantwortung an die KI gesendet.
 
+#### Komma-Alternativen (Kartesisches Produkt)
+
+Sie können mehrere Alternativen für jede Wortposition mit Kommas angeben. **Leerzeichen** trennen Wortpositionen, **Kommas** trennen Alternativen innerhalb einer Position. VASS generiert alle möglichen Kombinationen (kartesisches Produkt).
+
+```ini
+# Einzelne Position: Alternativen für die Präposition
+click the,on text {text}
+```
+Generiert 3 Muster: `click the text {text}`, `click on text {text}`, `click text {text}`.
+
+```ini
+# Zwei Positionen: jede Position hat ihre eigenen Alternativen
+aa,xx bb,cc {var}
+```
+Generiert 4 Muster: `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2x2 = 4).
+
+```ini
+# Gemischt: festes Wort + Alternativen
+turn on,off {device}
+```
+Generiert 2 Muster: `turn on {device}`, `turn off {device}` (kein Leerzeichen zwischen `on` und `off` → gleiche Position).
+
+Der gesprochene Satz wird mit allen generierten Mustern verglichen. Die beste Fuzzy-Übereinstimmung gewinnt.
+
 #### Aktionstypen
 
 | Präfix | Beispiel | Verhalten |

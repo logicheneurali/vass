@@ -175,6 +175,30 @@ bloquear pantalla = rundll32.exe user32.dll,LockWorkStation
 
 4. **Fallback a IA**: si ningún comando supera el umbral de similitud, la frase se envía a la IA para una respuesta en lenguaje natural.
 
+#### Alternativas con comas (producto cartesiano)
+
+Puedes especificar múltiples alternativas para cada posición usando comas. Los **espacios** separan posiciones, las **comas** separan alternativas dentro de una posición. VASS genera todas las combinaciones posibles (producto cartesiano).
+
+```ini
+# Posición única: alternativas para la preposición
+click the,on text {text}
+```
+Genera 3 patrones: `click the text {text}`, `click on text {text}`, `click text {text}`.
+
+```ini
+# Dos posiciones: cada posición tiene sus propias alternativas
+aa,xx bb,cc {var}
+```
+Genera 4 patrones: `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2x2 = 4).
+
+```ini
+# Mixto: palabra fija + alternativas
+turn on,off {device}
+```
+Genera 2 patrones: `turn on {device}`, `turn off {device}` (sin espacio entre `on` y `off` → misma posición).
+
+La frase pronunciada se compara con todos los patrones generados. Gana la mejor coincidencia fuzzy.
+
 #### Tipos de acciones
 
 | Prefijo | Ejemplo | Comportamiento |
