@@ -431,7 +431,7 @@ class VassApp:
                 "api_key": "",
                 "model": "gemma-4-E2B-it-Q8_0",
                 "system_message": "You are a helpful and concise voice assistant.",
-                "mcp_server_url": "",
+                "mcp_server_url": "http://localhost:9988",
                 "blacklist": "",
                 "memory_tokens": "2000",
                 "allow_ai_scripts": "false",

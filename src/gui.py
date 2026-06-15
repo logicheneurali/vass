@@ -229,9 +229,9 @@ class VassGUI(QMainWindow):
         self._left_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self._right_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
-        self._bell_btn = QPushButton("")
+        self._bell_btn = QPushButton("0")
         self._bell_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #888888; "
+            "QPushButton { background: transparent; color: #3f3f3f; "
             "border: none; font-size: 10px; padding: 2px 4px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -612,9 +612,9 @@ class VassGUI(QMainWindow):
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )
         else:
-            self._bell_btn.setText("")
+            self._bell_btn.setText("0")
             self._bell_btn.setStyleSheet(
-                "QPushButton { background: transparent; color: #888888; "
+                "QPushButton { background: transparent; color: #3f3f3f; "
                 "border: none; font-size: 10px; padding: 2px 4px; }"
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )

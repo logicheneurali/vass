@@ -46,7 +46,7 @@ class VoiceRecognition:
         self.energy_threshold = sensitivity
         self.speech_buffer = []
         self.is_speaking = False
-        self.silence_timeout = 10
+        self.silence_timeout = 15
         self.silence_counter = 0
         self.max_speech_chunks = 120
 
@@ -110,7 +110,12 @@ class VoiceRecognition:
             return False
             
         audio_data = np.concatenate(self.speech_buffer)
-        
+
+        dur_ms = len(audio_data) / 16.0
+        energy = float(np.sqrt(np.mean(audio_data ** 2)))
+        peak = float(np.max(np.abs(audio_data)))
+        print(f"[WakeWord Debug] samples={len(audio_data)} dur={dur_ms:.0f}ms energy={energy:.6f} peak={peak:.4f}")
+
         try:
             negative = _NEGATIVE_PROMPT.get(self.whisper_language, _NEGATIVE_PROMPT["en"])
             ignore = _IGNORE_WORD.get(self.whisper_language, "Ignore")
@@ -120,10 +125,13 @@ class VoiceRecognition:
                 language=self.whisper_language,
                 beam_size=1,
                 word_timestamps=False,
-                initial_prompt=prompt
+                initial_prompt=prompt,
+                condition_on_previous_text=False,
+                no_speech_threshold=0.5,
+                compression_ratio_threshold=None,
             )
             text = " ".join([seg.text for seg in segments]).lower().strip()
-            print(f"[WakeWord Check] Transcribed: '{text}'")
+            print(f"[WakeWord Check] Transcribed: '{text[:40]}'")
             return any(v in text for v in self.wake_variants)
         except Exception as e:
             print(f"[WakeWord Error] {e}")
