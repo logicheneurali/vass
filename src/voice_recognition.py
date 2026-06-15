@@ -44,6 +44,7 @@ class VoiceRecognition:
 
         # VAD (Voice Activity Detection) state
         self.energy_threshold = sensitivity
+        self.input_volume = 1.0
         self.speech_buffer = []
         self.is_speaking = False
         self.silence_timeout = 15
@@ -144,6 +145,8 @@ class VoiceRecognition:
             self.silence_counter = 0
 
     def transcribe_audio(self, audio_data, sample_rate=16000):
+        if self.input_volume != 1.0:
+            audio_data = audio_data * self.input_volume
         max_val = np.max(np.abs(audio_data))
         if max_val > 0:
             audio_data = audio_data * (0.5 / max_val)

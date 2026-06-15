@@ -69,6 +69,8 @@ COMBO_OPTIONS = {
 SLIDER_CONFIG = {
     "sensitivity": {"min": 1, "max": 20, "scale": 0.001, "default": 5},
     "similarity":  {"min": 0, "max": 100, "scale": 0.01, "default": 60},
+    "input_volume":  {"min": 1, "max": 100, "scale": 0.01, "default": 100},
+    "output_volume": {"min": 1, "max": 100, "scale": 0.01, "default": 100},
 }
 
 

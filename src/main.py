@@ -200,7 +200,7 @@ class VassApp:
         self.gui_font_size = self.settings["gui_font_size"]
         self.command_similarity = self.settings["command_similarity"]
         self.word_learning_enabled = self.settings.get("word_learning_enabled", False)
-        tts_volume = self.settings.get("volume", 0.95)
+        tts_volume = self.settings.get("volume", 0.95) * self.settings.get("output_volume", 1.0)
         self.tts = TtsEngine(
             gui=gui,
             state_getter=lambda: self.state,
@@ -254,6 +254,7 @@ class VassApp:
             transcribe_prompt=wr_transcribe,
             wake_variants=wr_variants
         )
+        self.voice_recognition.input_volume = self.settings.get("input_volume", 1.0)
         self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language, word_learning_enabled=self.word_learning_enabled)
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
         if self.context_length <= 0:
@@ -370,6 +371,8 @@ class VassApp:
             result["noise_pause_duration"] = config.getint("noise", "noise_pause_duration", fallback=30)
             result["input_device"] = config.getint("audio", "input_device", fallback=-1)
             result["output_device"] = config.getint("audio", "output_device", fallback=-1)
+            result["input_volume"] = config.getfloat("audio", "input_volume", fallback=1.0)
+            result["output_volume"] = config.getfloat("audio", "output_volume", fallback=1.0)
             result["calendar_enabled"] = config.get("google", "calendar_enabled", fallback="false")
             result["calendar_sync_enabled"] = config.get("google", "calendar_sync_enabled", fallback="false")
             result["calendar_sync_minutes"] = config.getint("google", "calendar_sync_minutes", fallback=30)
@@ -435,6 +438,8 @@ class VassApp:
             result["noise_pause_duration"] = 30
             result["input_device"] = -1
             result["output_device"] = -1
+            result["input_volume"] = 1.0
+            result["output_volume"] = 1.0
             result["calendar_enabled"] = "false"
             result["calendar_sync_enabled"] = "false"
             result["calendar_sync_minutes"] = 30
@@ -481,7 +486,7 @@ class VassApp:
                 "noise_pause_threshold": "0.002",
                 "noise_pause_duration": "30"
             }
-            config["audio"] = {"input_device": "-1", "output_device": "-1"}
+            config["audio"] = {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "output_volume": "1.0"}
             config["google"] = {
                 "calendar_enabled": "false",
                 "calendar_sync_enabled": "false",
@@ -607,8 +612,11 @@ class VassApp:
                         self.llama_server_path = self.settings.get("llama_server_path", "")
                         self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
                         tv = self.settings.get("volume", 0.95)
-                        self.tts.update_settings(tv)
-                        self.gui.volume_top_bar.set_volume(tv)
+                        ov = self.settings.get("output_volume", 1.0)
+                        effective = tv * ov
+                        self.tts.update_settings(effective)
+                        self.gui.volume_top_bar.set_volume(effective)
+                        self.voice_recognition.input_volume = self.settings.get("input_volume", 1.0)
                         self.noise_pause = self.settings.get("noise_pause", False)
                         self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
                         self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)

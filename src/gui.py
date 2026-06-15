@@ -1131,16 +1131,19 @@ class VassGUI(QMainWindow):
     def wheelEvent(self, event):
         if self.app and self.app.tts:
             delta = event.angleDelta().y() / 120.0
-            new_vol = max(0.0, min(1.0, self.app.tts.tts_volume + delta * 0.05))
-            self.app.tts.update_settings(new_vol)
-            self.volume_top_bar.set_volume(new_vol)
+            ov = self.app.settings.get("output_volume", 1.0)
+            current_eff = self.app.tts.tts_volume
+            new_eff = max(0.0, min(1.0, current_eff + delta * 0.05))
+            new_base = max(0.0, min(1.0, new_eff / ov)) if ov > 0 else new_eff
+            self.app.tts.update_settings(new_eff)
+            self.volume_top_bar.set_volume(new_eff)
             try:
                 import configparser
                 cfg = configparser.ConfigParser()
                 settings_path = os.path.join(BASE, "config", "settings.ini")
                 if os.path.exists(settings_path):
                     cfg.read(settings_path)
-                cfg.set("tts", "volume", f"{new_vol:.2f}")
+                cfg.set("tts", "volume", f"{new_base:.2f}")
                 with open(settings_path, "w") as f:
                     cfg.write(f)
             except Exception:
