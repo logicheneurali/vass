@@ -185,10 +185,10 @@ lock screen = rundll32.exe user32.dll,LockWorkStation
 You can specify multiple alternatives for each word position using commas. **Spaces** separate word positions, **commas** separate alternatives within a position. VASS generates all possible combinations (Cartesian product).
 
 ```ini
-# Single position: alternatives for the article/preposition
-clicca il,su,sul testo {text}
+# Single position: alternatives for the preposition
+click the,on text {text}
 ```
-Generates 3 patterns: `clicca il testo {text}`, `clicca su testo {text}`, `clicca sul testo {text}`.
+Generates 3 patterns: `click the text {text}`, `click on text {text}`, `click text {text}`.
 
 ```ini
 # Two positions: each position has its own alternatives
@@ -198,9 +198,9 @@ Generates 4 patterns: `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}`
 
 ```ini
 # Mixed: fixed word + alternatives
-accendi,spegni {device}
+turn on,off {device}
 ```
-Generates 2 patterns: `accendi {device}`, `spegni {device}` (no space between `accendi` and `spegni` → same position).
+Generates 2 patterns: `turn on {device}`, `turn off {device}` (no space between `on` and `off` → same position).
 
 The spoken phrase is matched against all generated patterns. The best fuzzy match wins.
 
