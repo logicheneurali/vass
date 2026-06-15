@@ -310,7 +310,7 @@ class SettingsEditor(QMainWindow):
                     group_layout.addWidget(entry, row, 1)
                 elif key in ("input_device", "output_device"):
                     entry = QComboBox()
-                    entry.addItem("Automatico (-1)", -1)
+                    entry.addItem(t("settings_editor.audio_default_device", self.lang), -1)
                     try:
                         import sounddevice as sd
                         kind = "input" if key == "input_device" else "output"

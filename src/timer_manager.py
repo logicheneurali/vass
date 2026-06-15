@@ -99,7 +99,6 @@ class TimerManager:
                 sd.wait()
         except Exception:
             pass
-            pass
 
     @staticmethod
     def _clean_duration(dur):

@@ -217,7 +217,8 @@
     },
     "warnings": {
       "google_not_configured": "⚠ Identifiants Google non configurés. Lancez le setup pour activer les services Calendar, Gmail et Google Home."
-    }
+    },
+    "audio_default_device": "Auto (-1)"
   },
   "scripts_editor": {
     "title": "Éditeur de scripts VASS",

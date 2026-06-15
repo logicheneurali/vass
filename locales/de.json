@@ -217,7 +217,8 @@
     },
     "warnings": {
       "google_not_configured": "⚠ Google-Anmeldeinformationen nicht konfiguriert. Führen Sie das Setup aus, um Calendar-, Gmail- und Google Home-Dienste zu aktivieren."
-    }
+    },
+    "audio_default_device": "Auto (-1)"
   },
   "scripts_editor": {
     "title": "VASScript Editor",

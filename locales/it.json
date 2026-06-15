@@ -248,7 +248,8 @@
     },
     "warnings": {
       "google_not_configured": "⚠ Credenziali Google non configurate. Esegui il setup per attivare i servizi Calendar, Gmail e Google Home."
-    }
+    },
+    "audio_default_device": "Automatico (-1)"
   },
   "commands_editor": {
     "title": "Editor comandi VASS",

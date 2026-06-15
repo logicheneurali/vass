@@ -367,7 +367,6 @@ class VassGUI(QMainWindow):
         self.player.mouseReleaseEvent = self._btn_release
 
         # TTS polling
-        self._tts_on_complete = None
         self._tts_polling = False
 
         # Opacity animations
@@ -395,8 +394,6 @@ class VassGUI(QMainWindow):
         self.volume_signal.connect(self._on_volume)
 
         self._auto_fade_enabled = True
-        self._auto_fade_target = 1.0
-        self._auto_fade_active = False
         import threading as _th
         _th.Thread(target=self._auto_fade_loop, daemon=True).start()
 
@@ -737,7 +734,6 @@ class VassGUI(QMainWindow):
         self.start_tts_signal.emit(data, samplerate, total_samples, on_complete)
 
     def _on_start_tts(self, data, samplerate, total_samples, on_complete):
-        self._tts_on_complete = on_complete
         self.player.load_data(data, samplerate)
         self.stacked.setCurrentWidget(self.player)
         self._tts_polling = True
@@ -1150,5 +1146,10 @@ class VassGUI(QMainWindow):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
-            QApplication.quit()
+            import time as _tm
+            now = _tm.time()
+            last = getattr(self, '_last_right_click', 0)
+            if now - last < 1.5:
+                QApplication.quit()
+            self._last_right_click = now
         super().mousePressEvent(event)

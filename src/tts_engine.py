@@ -313,17 +313,6 @@ class TtsEngine:
     def update_settings(self, tts_volume):
         self.tts_volume = tts_volume
 
-    def _tts_playback_monitor(self):
-        import sounddevice as sd
-        try:
-            sd.wait()
-        except sd.CallbackAbort:
-            pass
-        except Exception:
-            pass
-        if self.gui:
-            self.gui.schedule(0, self._on_tts_done)
-
     def _on_tts_done(self):
         if not self.tts_playing:
             return

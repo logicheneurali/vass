@@ -530,8 +530,8 @@ class VassApp:
                         last_mtime = mtime
                         self.command_executor.reload_commands()
                         print(f"[Watch] Commands reloaded from {commands_path}")
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[Watch] Commands watcher error: {e}")
 
     def _watch_settings_file(self):
         abs_path = os.path.abspath(self.settings_file)
@@ -587,8 +587,8 @@ class VassApp:
                             self.gui_x, self.gui_y, self.gui_width, self.gui_height))
                         self.gui.schedule(0, self.gui._clamp_to_screen)
                         print(f"[Watch] Settings reloaded from {abs_path}")
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[Watch] Settings watcher error: {e}")
 
     def _watch_script_queue(self):
         queue_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "exec_queue.json")
@@ -617,8 +617,8 @@ class VassApp:
                     print(f"[ScriptQueue] Completed: {label} -> {r.get('status')}")
 
                 self._run_script(name_or_code=script_name if script_name else None, result_callback=_write_result, code=code or None)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[Watch] Script queue watcher error: {e}")
 
     def save_gui_position(self, x, y):
         config = configparser.ConfigParser()
@@ -1098,12 +1098,6 @@ class VassApp:
             print("No matching command found. Sending to AI Agent.")
             self.command_executor.track_command_outcome(transcribed_text, True)
             threading.Thread(target=self._handle_ai_fallback, args=(transcribed_text,), daemon=True).start()
-
-    def _execute_and_speak(self, command):
-        if is_script_command(command):
-            self._run_script(strip_script_prefix(command))
-            return
-        self.command_executor.execute_command(command)
 
     def _run_script(self, name_or_code=None, result_callback=None, code=None, params=None, transcribed_text=None):
         self.script_queue.enqueue(name_or_code, code, params, result_callback, "direct", transcribed_text)
