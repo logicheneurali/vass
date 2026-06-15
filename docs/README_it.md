@@ -177,6 +177,30 @@ blocca tutto = rundll32.exe user32.dll,LockWorkStation
 
 4. **Fallback all'AI**: se nessun comando supera la soglia di similarità, la frase viene inviata all'AI per una risposta in linguaggio naturale.
 
+#### Alternative con virgole (prodotto cartesiano)
+
+Puoi specificare più alternative per ogni posizione usando le virgole. Gli **spazi** separano le posizioni, le **virgole** separano le alternative dentro una posizione. VASS genera tutte le combinazioni possibili (prodotto cartesiano).
+
+```ini
+# Posizione singola: alternative per l'articolo/preposizione
+clicca il,su,sul testo {text}
+```
+Genera 3 pattern: `clicca il testo {text}`, `clicca su testo {text}`, `clicca sul testo {text}`.
+
+```ini
+# Due posizioni: ogni posizione ha le sue alternative
+aa,xx bb,cc {var}
+```
+Genera 4 pattern: `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2×2 = 4).
+
+```ini
+# Misto: parola fissa + alternative
+accendi,spegni {device}
+```
+Genera 2 pattern: `accendi {device}`, `spegni {device}` (nessuno spazio tra `accendi` e `spegni` → stessa posizione).
+
+La frase pronunciata viene confrontata con tutti i pattern generati. Vince il miglior match fuzzy.
+
 #### Tipi di azioni
 
 | Prefisso | Esempio | Comportamento |
