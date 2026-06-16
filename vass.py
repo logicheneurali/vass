@@ -38,7 +38,7 @@ try:
 except ImportError as e:
     msg = f"Missing dependencies ({e}).\nRun: pip install -r requirements.txt"
     try:
-        if sys.stdout and not sys.stdout.isatty():
+        if sys.stdout is None or not sys.stdout.isatty():
             if sys.platform == "win32":
                 import ctypes
                 ctypes.windll.user32.MessageBoxW(0, msg, "VASS - Errore", 0x10)
