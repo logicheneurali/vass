@@ -1129,16 +1129,17 @@ def main():
     else:
         print(f"  {_('pip_preinstall')}")
         pre_cmds = [("numpy", "numpy"), ("torch", "torch"), ("kokoro", "kokoro>=0.7.16")]
+        extra_opts = [[], [], ["--ignore-requires-python"]]
         rcs = []
-        for pkg_label, pkg_spec in pre_cmds:
-            rc, _out, _err = run(venv_pip(dest) + ["install", pkg_spec], cwd=str(dest), show=False)
-            rcs.append((pkg_label, pkg_spec, rc))
-        failed = [(l, s, r) for l, s, r in rcs if r != 0]
+        for (pkg_label, pkg_spec), opts in zip(pre_cmds, extra_opts):
+            rc, _out, _err = run(venv_pip(dest) + ["install", pkg_spec] + opts, cwd=str(dest), show=False)
+            rcs.append((pkg_label, pkg_spec, rc, opts))
+        failed = [(l, s, r, o) for l, s, r, o in rcs if r != 0]
         if failed:
             print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
-            for pkg_label, pkg_spec, rcode in failed:
+            for pkg_label, pkg_spec, rcode, opts in failed:
                 print(f"  {C_RED}{pkg_label}: exit code {rcode}, retrying with output:{C_RESET}")
-                run(venv_pip(dest) + ["install", pkg_spec], cwd=str(dest), show=True)
+                run(venv_pip(dest) + ["install", pkg_spec] + opts, cwd=str(dest), show=True)
             _verify_imports(dest)
             sys.exit(1)
         print(f"  {_('pip_running')}")
