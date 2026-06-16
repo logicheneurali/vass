@@ -882,7 +882,8 @@ def _verify_imports(dest: Path):
     ]
     py = venv_python(dest)
     results = []
-    w_pkg, w_ver = 24, 10
+    w_pkg = max(len(p[0]) for p in pkgs) + 2
+    w_ver = 10
     print(f"\n  {C_BOLD}{_('step_postcheck')}{C_RESET}\n")
     print(f"  ╔{'═' * w_pkg}╤{'═' * w_ver}╤══════╗")
     print(f"  ║ {_('check_header_pkg'):<{w_pkg - 2}} │ {_('check_header_ver'):<{w_ver - 2}} │ {_('check_header_st'):<4} ║")
