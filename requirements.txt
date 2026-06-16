@@ -23,6 +23,9 @@ easyocr>=1.7.0
 pillow>=10.0.0
 psutil>=5.9.0
 misaki>=0.7.0
+num2words
+espeakng-loader
+phonemizer-fork
 fugashi>=1.0.0
 unidic-lite>=1.0.0
 jaconv>=0.3.0
