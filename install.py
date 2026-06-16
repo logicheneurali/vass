@@ -1127,11 +1127,17 @@ def main():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
         print(f"  {_('pip_preinstall')}")
-        rc1, _out, _err = run(venv_pip(dest) + ["install", "numpy"], cwd=str(dest), show=False)
-        rc2, _out, _err = run(venv_pip(dest) + ["install", "torch"], cwd=str(dest), show=False)
-        rc3, _out, _err = run(venv_pip(dest) + ["install", "kokoro>=0.7.16"], cwd=str(dest), show=False)
-        if rc1 != 0 or rc2 != 0 or rc3 != 0:
+        pre_cmds = [("numpy", "numpy"), ("torch", "torch"), ("kokoro", "kokoro>=0.7.16")]
+        rcs = []
+        for pkg_label, pkg_spec in pre_cmds:
+            rc, _out, _err = run(venv_pip(dest) + ["install", pkg_spec], cwd=str(dest), show=False)
+            rcs.append((pkg_label, pkg_spec, rc))
+        failed = [(l, s, r) for l, s, r in rcs if r != 0]
+        if failed:
             print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
+            for pkg_label, pkg_spec, rcode in failed:
+                print(f"  {C_RED}{pkg_label}: exit code {rcode}, retrying with output:{C_RESET}")
+                run(venv_pip(dest) + ["install", pkg_spec], cwd=str(dest), show=True)
             _verify_imports(dest)
             sys.exit(1)
         print(f"  {_('pip_running')}")
