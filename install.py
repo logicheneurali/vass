@@ -1129,7 +1129,7 @@ def main():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
         print(f"  {_('pip_preinstall')}")
-        pre_cmds = [("numpy", "numpy"), ("torch", "torch"), ("kokoro", "kokoro>=0.7.16")]
+        pre_cmds = [("numpy", "numpy"), ("torch", "torch"), ("kokoro", "kokoro==0.7.16")]
         extra_opts = [[], [], ["--ignore-requires-python"]]
         rcs = []
         for (pkg_label, pkg_spec), opts in zip(pre_cmds, extra_opts):
