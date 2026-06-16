@@ -1134,8 +1134,8 @@ def main():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
         print(f"  {_('pip_preinstall')}")
-        pre_cmds = [("numpy", "numpy"), ("torch", "torch"), ("kokoro", "kokoro==0.7.16")]
-        extra_opts = [[], [], ["--no-deps", "--ignore-requires-python"]]
+        pre_cmds = [("numpy", "numpy"), ("torch", "torch")]
+        extra_opts = [[], []]
         rcs = []
         for (pkg_label, pkg_spec), opts in zip(pre_cmds, extra_opts):
             rc, _out, _err = run(venv_pip(dest) + ["install", pkg_spec] + opts, cwd=str(dest), show=False)
@@ -1150,7 +1150,7 @@ def main():
             sys.exit(1)
         print(f"  {_('pip_running')}")
         print(f"  {C_DIM}{_('pip_wait')}{C_RESET}\n")
-        rc, _out, stderr = run(venv_pip(dest) + ["install", "-r", str(req_file)], cwd=str(dest), show=True)
+        rc, _out, stderr = run(venv_pip(dest) + ["install", "-r", str(req_file), "--ignore-requires-python"], cwd=str(dest), show=True)
         if rc != 0:
             print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
             if stderr:
