@@ -82,6 +82,7 @@ _SECTION_DEFAULTS = {
         "calendar_sync_minutes": "30", "calendar_sync_days": "7",
         "gmail_enabled": "false", "gmail_sync_minutes": "5", "gmail_max_results": "10",
         "google_home_enabled": "false", "google_home_model_id": "", "google_home_device_id": "",
+        "calendar_setup": "start",
     },
     "debug": {"debug_enabled": "false", "debug_log_max_kb": "1024"},
 }
