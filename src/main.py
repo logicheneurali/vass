@@ -20,7 +20,21 @@ import faulthandler
 try:
     import numpy as np
 except ImportError:
-    print("Missing dependencies. Run: pip install -r requirements.txt")
+    msg = "Missing dependencies. Run: pip install -r requirements.txt"
+    try:
+        if not sys.stdout or not sys.stdout.isatty():
+            if sys.platform == "win32":
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(0, msg, "VASS - Errore", 0x10)
+            elif sys.platform == "darwin":
+                import subprocess
+                subprocess.run(["osascript", "-e", f'display dialog "{msg}" with title "VASS - Errore" buttons {{"OK"}}'], timeout=5)
+            else:
+                import subprocess
+                subprocess.run(["notify-send", "VASS - Errore", msg], timeout=5)
+    except Exception:
+        pass
+    print(msg)
     sys.exit(1)
 
 os.makedirs("log", exist_ok=True)
@@ -1940,7 +1954,7 @@ def main():
         parser = argparse.ArgumentParser(description="VASS Voice Assistant")
         parser.add_argument("--compress-memory", action="store_true", help="Comprimi memory.json tramite AI e poi esci")
         parser.add_argument("--version", action="version", version=f"VASS v{__version__}")
-        args = parser.parse_args()
+        args, _ = parser.parse_known_args()
     
         # Load settings first to get GUI params
         import configparser

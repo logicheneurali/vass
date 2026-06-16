@@ -1109,7 +1109,8 @@ def main():
     print(f"    {C_BOLD}{_('summary_howto_launcher', launcher.name)}{C_RESET}")
     print(f"  {_('summary_howto_terminal')}")
     if sys.platform == "win32":
-        print(f"    {C_BOLD}cd \"{dest}\" && .venv\\Scripts\\pythonw vass.py{C_RESET}")
+        print(f"    {C_BOLD}cd \"{dest}\"{C_RESET}")
+        print(f"    {C_BOLD}.venv\\Scripts\\pythonw vass.py{C_RESET}")
     else:
         print(f"    {C_BOLD}cd \"{dest}\" && .venv/bin/python vass.py{C_RESET}")
     print()
