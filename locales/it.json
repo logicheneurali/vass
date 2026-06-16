@@ -362,7 +362,8 @@
       "command": "Comando",
       "arguments": "Argomenti",
       "workingdir": "Cartella di lavoro",
-      "enabled": "Abilitato"
+      "enabled": "Abilitato",
+      "silent": "Silenzioso"
     },
     "buttons": {
       "add": "Aggiungi",

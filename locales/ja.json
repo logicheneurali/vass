@@ -363,7 +363,8 @@
       "command": "コマンド",
       "arguments": "引数",
       "workingdir": "作業ディレクトリ",
-      "enabled": "有効"
+      "enabled": "有効",
+      "silent": "サイレント"
     },
     "buttons": {
       "add": "追加",

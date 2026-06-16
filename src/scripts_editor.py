@@ -93,8 +93,10 @@ TEMPLATES = {
     "exit": 'exit()',
     "trim": 'trim($testo)',
     "len": 'len($testo)',
+    "tonum": 'tonum($x)',
     "contains": 'contains($testo, "cerca")',
     "equals": 'equals($a, $b)',
+    "ifequals": 'ifequals($a, $b, say("uguali"), say("diversi"))',
     "ifgreater": 'ifgreater($x, 10, say("maggiore"), say("minore"))',
     "ifless": 'ifless($x, 5, say("minore"), say("maggiore"))',
     "ifgreaterequal": 'ifgreaterequal($x, 100, say("almeno 100"), say("meno di 100"))',
@@ -113,6 +115,8 @@ TEMPLATES = {
     "clipboardset": 'clipboardset("testo da copiare")',
     "readinfo": 'readinfo("id_file")',
     "writeinfo": 'writeinfo("dati da salvare")',
+    "readstate": 'readstate("ventilatore")',
+    "writestate": 'writestate("ventilatore", "acceso")',
     "timer_start": 'timer_start("1h30m")',
     "timer_list": '$lista = timer_list()\nsay($lista)',
     "timer_cancel": 'timer_cancel("id_timer")',
@@ -130,6 +134,7 @@ TEMPLATES = {
     "google_home_command": 'google_home_command("accendi le luci", false)',
     "google_home_ask": '$risposta = google_home_ask("che tempo fa domani?")\nsay($risposta)',
     "get_weather": '$tt = get_weather("Milano")\nsay("A {$tt.city} ci sono {$tt.temperature} gradi, percepiti {$tt.feels_like}")',
+    "getidle": '$idle = getidle()\nifgreater($idle.idle_seconds, 600, say("Inattivo da " + trim($idle.idle_seconds) + "s"), say("Attivo"))',
     "listen → say": '$testo = listen()\nsay($testo)',
     "screen_search → listen → screen_search": (
         '$richiesta = listen("Cosa vuoi cercare?")\n'
@@ -427,6 +432,12 @@ class ScriptsEditor(QMainWindow):
             return
         self._dirty = False
         self._update_title()
+        script_name = os.path.splitext(self._current_file)[0]
+        try:
+            import keyring
+            keyring.delete_password("vass-auth", script_name)
+        except Exception:
+            pass
 
     def _test_script(self):
         code = self.editor.toPlainText().strip()
@@ -504,6 +515,12 @@ class ScriptsEditor(QMainWindow):
         )
         if reply != QMessageBox.Yes:
             return
+        script_name = os.path.splitext(name)[0]
+        try:
+            import keyring
+            keyring.delete_password("vass-auth", script_name)
+        except Exception:
+            pass
         path = os.path.join(self._scripts_dir(), name)
         try:
             os.remove(path)

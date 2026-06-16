@@ -132,13 +132,13 @@ class ScriptQueue:
         self._worker_thread = threading.Thread(target=self._worker, daemon=True)
         self._worker_thread.start()
 
-    def enqueue(self, name_or_code=None, code=None, params=None, result_callback=None, source="", transcribed_text=None):
-        item = (name_or_code, code, params, result_callback, source, transcribed_text)
+    def enqueue(self, name_or_code=None, code=None, params=None, result_callback=None, source="", transcribed_text=None, silent=False):
+        item = (name_or_code, code, params, result_callback, source, transcribed_text, silent)
         with self._lock:
             self._queue.append(item)
             qlen = len(self._queue)
         if qlen == 1:
-            self.app.set_state("running_script")
+            self.app.set_state("running_script", silent_gui=silent)
         elif qlen > 1:
             print(f"[ScriptQueue] Queued {source or 'script'} (position {qlen})")
 
@@ -165,12 +165,12 @@ class ScriptQueue:
             if item is None:
                 time.sleep(0.1)
                 continue
-            name_or_code, code, params, result_callback, source, transcribed_text = item
-            self._execute_script(name_or_code, code, params, result_callback, transcribed_text)
+            name_or_code, code, params, result_callback, source, transcribed_text, silent = item
+            self._execute_script(name_or_code, code, params, result_callback, transcribed_text, silent)
             time.sleep(0.1)
 
-    def _execute_script(self, name_or_code, code, params, result_callback, transcribed_text=None):
-        self.app._execute_script_impl(name_or_code, code, params, result_callback, self, transcribed_text)
+    def _execute_script(self, name_or_code, code, params, result_callback, transcribed_text=None, silent=False):
+        self.app._execute_script_impl(name_or_code, code, params, result_callback, self, transcribed_text, silent)
 
 
 class VassApp:
@@ -255,6 +255,7 @@ class VassApp:
             wake_variants=wr_variants
         )
         self.voice_recognition.input_volume = self.settings.get("input_volume", 1.0)
+        self.voice_recognition.debug_enabled = self.debug_enabled
         self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language, word_learning_enabled=self.word_learning_enabled)
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
         if self.context_length <= 0:
@@ -509,17 +510,18 @@ class VassApp:
                 config.write(f)
             return result
 
-    def set_state(self, new_state, detail=""):
+    def set_state(self, new_state, detail="", silent_gui=False):
         with self.state_lock:
             self.state = new_state
             os.makedirs("log", exist_ok=True)
             with open("log/debug.log", "a") as f:
                 f.write(f"set_state: {new_state}\n")
-            try:
-                self.gui.set_state(new_state, detail)
-            except Exception as e:
-                with open("log/crash.log", "a") as f:
-                    f.write(f"gui.set_state failed: {e}\n")
+            if not silent_gui:
+                try:
+                    self.gui.set_state(new_state, detail)
+                except Exception as e:
+                    with open("log/crash.log", "a") as f:
+                        f.write(f"gui.set_state failed: {e}\n")
 
     def handle_button_press(self):
         try:
@@ -604,6 +606,7 @@ class VassApp:
                         self.context_length = self.settings.get("context_length", 0)
                         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
                         self.debug_enabled = self.settings.get("debug_enabled", False)
+                        self.voice_recognition.debug_enabled = self.debug_enabled
                         if self.ai_url != old_url:
                             self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
                         self.mcp_server_url = self.settings["mcp_server_url"]
@@ -817,10 +820,10 @@ class VassApp:
                                 self._running_noise_floor = 0.99 * self._running_noise_floor + 0.01 * nf
                             nf = self._running_noise_floor
                             self._nf_print_counter += 1
-                            if self._nf_print_counter >= 250:
-                                self._nf_print_counter = 0
-                                if nf > self.noise_pause_threshold:
-                                    print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
+                        if self._nf_print_counter >= 250:
+                            self._nf_print_counter = 0
+                            if nf > self.noise_pause_threshold and self.debug_enabled:
+                                print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
                             if self.noise_pause and nf > self.noise_pause_threshold:
                                 self._noise_high_frames += 1
                                 frames_per_sec = 50
@@ -883,10 +886,12 @@ class VassApp:
             try:
                 r = httpx.get(health_url, timeout=5)
                 ok = r.status_code == 200
-                print(f"[Health] {health_url} -> {r.status_code}")
+                if self.debug_enabled:
+                    print(f"[Health] {health_url} -> {r.status_code}")
             except Exception as e:
                 ok = False
-                print(f"[Health] {health_url} unreachable: {e}")
+                if self.debug_enabled:
+                    print(f"[Health] {health_url} unreachable: {e}")
             self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
 
     def _health_check_once(self):
@@ -896,10 +901,12 @@ class VassApp:
         try:
             r = httpx.get(health_url, timeout=5)
             ok = r.status_code == 200
-            print(f"[Health] {health_url} -> {r.status_code}")
+            if self.debug_enabled:
+                print(f"[Health] {health_url} -> {r.status_code}")
         except Exception as e:
             ok = False
-            print(f"[Health] {health_url} unreachable: {e}")
+            if self.debug_enabled:
+                print(f"[Health] {health_url} unreachable: {e}")
         self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
 
     def _sync_calendar_loop(self):
@@ -1169,10 +1176,10 @@ class VassApp:
             self.command_executor.track_command_outcome(transcribed_text, True)
             threading.Thread(target=self._handle_ai_fallback, args=(transcribed_text,), daemon=True).start()
 
-    def _run_script(self, name_or_code=None, result_callback=None, code=None, params=None, transcribed_text=None):
-        self.script_queue.enqueue(name_or_code, code, params, result_callback, "direct", transcribed_text)
+    def _run_script(self, name_or_code=None, result_callback=None, code=None, params=None, transcribed_text=None, silent=False):
+        self.script_queue.enqueue(name_or_code, code, params, result_callback, "direct", transcribed_text, silent=silent)
 
-    def _execute_script_impl(self, name_or_code, code, params, result_callback, queue, transcribed_text=None):
+    def _execute_script_impl(self, name_or_code, code, params, result_callback, queue, transcribed_text=None, silent=False):
         import json as _json
         script_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
         if code is not None:
@@ -1198,6 +1205,13 @@ class VassApp:
 
         def _auth_set(script, data):
             import keyring
+            if is_file and script_path:
+                try:
+                    import hashlib
+                    with open(script_path, "rb") as f:
+                        data["_hash"] = hashlib.sha256(f.read()).hexdigest()
+                except Exception:
+                    pass
             keyring.set_password("vass-auth", script, _json.dumps(data))
 
         def _migrate_auth_ini():
@@ -1222,6 +1236,17 @@ class VassApp:
 
         def _load_auth(func_name=None):
             data = _auth_get(script_name)
+            if is_file and script_path and "_hash" in data:
+                try:
+                    import hashlib
+                    with open(script_path, "rb") as f:
+                        current_hash = hashlib.sha256(f.read()).hexdigest()
+                    if current_hash != data["_hash"]:
+                        import keyring
+                        keyring.delete_password("vass-auth", script_name)
+                        return None
+                except Exception:
+                    pass
             if data.get("_all_"):
                 return "all"
             if func_name and data.get(func_name):
@@ -1269,15 +1294,15 @@ class VassApp:
             return
 
         if code_text:
-            self.set_state("running_script")
+            self.set_state("running_script", silent_gui=silent)
             script_error = None
             engine = None
             try:
                 engine = VASScript(
                     self, script_name=script_name, auth_callback=_auth_callback,
                     line_callback=lambda c, t: [
-                        self.gui.set_state("running_script", f"{c}/{t}"),
-                        self.gui.memory_bar.set_value(c, 1, t)
+                        self.set_state("running_script", f"{c}/{t}", silent_gui=silent),
+                        (None if silent else self.gui.memory_bar.set_value(c, 1, t))
                     ]
                 )
                 queue._active_engine = engine
@@ -1295,7 +1320,7 @@ class VassApp:
             finally:
                 queue._active_engine = None
                 if len(self.script_queue._queue) == 0:
-                    self.set_state("listening")
+                    self.set_state("listening", silent_gui=silent)
 
             if script_error and not result_callback:
                 threading.Thread(target=self.tts.speak, args=(f"Errore script: {script_error}",), daemon=True).start()

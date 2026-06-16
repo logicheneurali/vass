@@ -21,6 +21,17 @@ from mcpgoal.tools.calendar import calendar_list as _calendar_list
 from mcpgoal.tools.calendar import calendar_add as _calendar_add
 from mcpgoal.tools.calendar import calendar_search as _calendar_search
 
+_GET_IDLE = None
+try:
+    _PROJECT_ROOT = str(Path(__file__).resolve().parent.parent.parent.parent / "src")
+    import sys as _sys
+    if _PROJECT_ROOT not in _sys.path:
+        _sys.path.insert(0, _PROJECT_ROOT)
+    from idle_tracker import IdleTracker
+    _GET_IDLE = IdleTracker().get_total_idle_seconds
+except Exception:
+    pass
+
 client_ip_var: ContextVar[str] = ContextVar("client_ip", default="unknown")
 _loggers: dict[str, RequestLogger] = {}
 
@@ -303,6 +314,17 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def savetags(tags: str, entry_id: str = "") -> str:
         """Classify the user's message with comma-separated memory tags. Always call after responding. Example: savetags('food,health,pets')"""
         return await _tool("savetags", f"tags={tags[:80]}", _save_tags(tags, config.allowed_root, entry_id), config)
+
+    if _GET_IDLE is not None:
+        import json as _json
+
+        async def _getidle_impl() -> str:
+            seconds = _GET_IDLE()
+            return _json.dumps({"idle_seconds": round(seconds, 1)})
+
+        @mcp.tool()
+        async def getidle() -> str:
+            return await _tool("getidle", "", _getidle_impl(), config)
 
     def _gcal_enabled(cfg):
         try:

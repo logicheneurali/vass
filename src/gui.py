@@ -155,6 +155,45 @@ class MemoryBar(QWidget):
             painter.fillRect(center - half, 0, fw, h, self._color)
 
 
+class _ChatLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._history = []
+        self._history_index = 0
+        self._saved_text = ""
+
+    def add_to_history(self, text):
+        if text and (not self._history or self._history[-1] != text):
+            self._history.append(text)
+        self._history_index = len(self._history)
+        self._saved_text = ""
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Up:
+            if not self._history:
+                return
+            if self._history_index == len(self._history):
+                self._saved_text = self.text()
+            if self._history_index > 0:
+                self._history_index -= 1
+                self.setText(self._history[self._history_index])
+                self.setCursorPosition(len(self.text()))
+            return
+        elif event.key() == Qt.Key_Down:
+            if not self._history:
+                return
+            if self._history_index < len(self._history) - 1:
+                self._history_index += 1
+                self.setText(self._history[self._history_index])
+                self.setCursorPosition(len(self.text()))
+            elif self._history_index == len(self._history) - 1:
+                self._history_index = len(self._history)
+                self.setText(self._saved_text)
+                self.setCursorPosition(len(self.text()))
+            return
+        super().keyPressEvent(event)
+
+
 class VassGUI(QMainWindow):
     set_state_signal = Signal(str, str)
     update_memory_signal = Signal()
@@ -331,7 +370,7 @@ class VassGUI(QMainWindow):
         self._chat_btn.clicked.connect(self._toggle_chat_input)
         row.addWidget(self._chat_btn)
 
-        self._chat_input = QLineEdit()
+        self._chat_input = _ChatLineEdit()
         self._chat_input.setMaxLength(128000)
         self._chat_input.setPlaceholderText(self._t("gui.chat_placeholder"))
         self._chat_input.setStyleSheet(
@@ -701,6 +740,7 @@ class VassGUI(QMainWindow):
     def _send_chat_text(self):
         text = self._chat_input.text().strip()
         if text:
+            self._chat_input.add_to_history(text)
             self.chat_text_signal.emit(text)
         self._collapse_chat()
 

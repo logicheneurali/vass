@@ -8,7 +8,7 @@ import time
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle"}
 
 
 def _is_int_str(s):
@@ -22,7 +22,7 @@ def _is_int_str(s):
 def _is_float_str(s):
     try:
         float(s)
-        return "." in str(s) or "e" in str(s).lower()
+        return True
     except (ValueError, TypeError):
         return False
 
@@ -54,6 +54,13 @@ def _recur_label(recur):
 class VASScript:
     _ocr_reader = None
     _ocr_active_langs = None
+    _weather_cache = {}
+    _weather_cache_ttl = 900
+    _fetch_cache = {}
+    _fetch_cache_ttl = 300
+    _search_cache = {}
+    _search_cache_ttl = 600
+    _state = {}
 
     def __init__(self, app, script_name="inline", auth_callback=None, line_callback=None):
         self.app = app
@@ -270,10 +277,12 @@ class VASScript:
                 return self._evaluate(args[2])
             return ""
 
-        if name in ("ifgreater", "ifless", "ifgreaterequal", "iflessequal"):
+        if name in ("ifgreater", "ifless", "ifgreaterequal", "iflessequal", "ifequals"):
             a_str = self._evaluate(args[0]) if args else "0"
             b_str = self._evaluate(args[1]) if len(args) > 1 else "0"
-            if _is_int_str(b_str) and _is_int_str(a_str):
+            if name == "ifequals":
+                a, b = a_str, b_str
+            elif _is_int_str(b_str) and _is_int_str(a_str):
                 a, b = int(a_str), int(b_str)
             elif _is_float_str(b_str) and _is_float_str(a_str):
                 a, b = float(a_str), float(b_str)
@@ -285,8 +294,10 @@ class VASScript:
                 cond = a < b
             elif name == "ifgreaterequal":
                 cond = a >= b
-            else:
+            elif name == "iflessequal":
                 cond = a <= b
+            else:
+                cond = a == b
             if cond and len(args) > 2:
                 return self._evaluate(args[2])
             if not cond and len(args) > 3:
@@ -363,6 +374,11 @@ class VASScript:
             self._do_say(text, speed)
             return ""
 
+        if name == "say_async":
+            text = evaluated[0] if evaluated else ""
+            self.app.tts.enqueue(text)
+            return ""
+
         if name == "listen":
             prompt = evaluated[0] if evaluated else ""
             if prompt:
@@ -384,6 +400,14 @@ class VASScript:
 
         if name == "len":
             return str(len(evaluated[0] if evaluated else ""))
+
+        if name == "tonum":
+            val = evaluated[0] if evaluated else ""
+            try:
+                f = float(val)
+                return str(int(f)) if f == int(f) else str(f)
+            except (ValueError, TypeError):
+                return val
 
         if name == "contains":
             text = evaluated[0] if evaluated else ""
@@ -578,6 +602,23 @@ class VASScript:
             text = evaluated[0] if evaluated else ""
             return self._manage_info("write", text)
 
+        if name == "readstate":
+            key = evaluated[0] if evaluated else ""
+            val = VASScript._state.get(key, "")
+            if getattr(self.app, 'debug_enabled', False):
+                print(f"[VASScript] readstate({key!r}) -> {val!r}")
+            return val
+
+        if name == "writestate":
+            key = evaluated[0] if evaluated else ""
+            val = evaluated[1] if len(evaluated) > 1 else ""
+            if key:
+                VASScript._state[key] = val
+                if getattr(self.app, 'debug_enabled', False):
+                    print(f"[VASScript] writestate({key!r}, {val!r}) -> ok")
+                return "ok"
+            return "error: key required"
+
         if name == "clipboardget":
             try:
                 import pyperclip
@@ -668,48 +709,80 @@ class VASScript:
             loc = evaluated[0] if evaluated else ""
             return self._do_weather(loc)
 
+        if name == "getidle":
+            if hasattr(self.app, 'idle_tracker') and self.app.idle_tracker:
+                seconds = self.app.idle_tracker.get_total_idle_seconds()
+                if getattr(self.app, 'debug_enabled', False):
+                    import time as _t
+                    input_idle = self.app.idle_tracker.get_input_idle_seconds()
+                    voice_idle = _t.time() - self.app.idle_tracker._last_voice_ts
+                    fullscreen = self.app.idle_tracker._is_fullscreen()
+                    print(f"[VASScript] getidle() -> input={input_idle:.1f}s voice={voice_idle:.1f}s fullscreen={fullscreen} total={seconds:.1f}s")
+            else:
+                try:
+                    from idle_tracker import IdleTracker
+                    seconds = IdleTracker().get_total_idle_seconds()
+                except ImportError:
+                    seconds = -1
+            return '{"idle_seconds": ' + f'{seconds:.1f}' + '}'
+
         if name == "getdatetime":
             from datetime import datetime
             lang = (evaluated[0] if evaluated else "").strip().lower()
             now = datetime.now()
+            ts = int(now.timestamp())
             if not lang:
-                return now.strftime("%Y-%m-%d %H:%M")
-            months = {
-                "it": ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
-                       "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
-                "en": ["January", "February", "March", "April", "May", "June",
-                       "July", "August", "September", "October", "November", "December"],
-                "de": ["Januar", "Februar", "März", "April", "Mai", "Juni",
-                       "Juli", "August", "September", "Oktober", "November", "Dezember"],
-                "fr": ["janvier", "février", "mars", "avril", "mai", "juin",
-                       "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
-                "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio",
-                       "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
-                "pt": ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
-                       "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
+                dt_str = now.strftime("%Y-%m-%d %H:%M")
+            else:
+                months = {
+                    "it": ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+                           "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
+                    "en": ["January", "February", "March", "April", "May", "June",
+                           "July", "August", "September", "October", "November", "December"],
+                    "de": ["Januar", "Februar", "März", "April", "Mai", "Juni",
+                           "Juli", "August", "September", "Oktober", "November", "Dezember"],
+                    "fr": ["janvier", "février", "mars", "avril", "mai", "juin",
+                           "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+                    "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                           "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+                    "pt": ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+                           "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
+                }
+                m = months.get(lang, months["en"])
+                mn = m[now.month - 1]
+                day = str(now.day)
+                year = str(now.year)
+                hm = now.strftime("%H:%M")
+                if lang == "it":
+                    dt_str = f"{day} {mn} {year} {hm}"
+                elif lang in ("en", "fr"):
+                    dt_str = f"{mn} {day}, {year} {hm}"
+                elif lang == "de":
+                    dt_str = f"{day}. {mn} {year} {hm}"
+                elif lang == "es":
+                    dt_str = f"{day} de {mn} de {year} {hm}"
+                elif lang == "pt":
+                    dt_str = f"{day} de {mn} de {year} {hm}"
+                elif lang == "ja":
+                    dt_str = f"{year}年{now.month}月{day}日 {hm}"
+                elif lang == "ko":
+                    dt_str = f"{year}년 {now.month}월 {day}일 {hm}"
+                elif lang == "zh":
+                    dt_str = f"{year}年{now.month}月{day}日 {hm}"
+                else:
+                    dt_str = now.strftime("%Y-%m-%d %H:%M")
+            result = {
+                "datetime": dt_str,
+                "date": now.strftime("%Y-%m-%d"),
+                "time": now.strftime("%H:%M"),
+                "timestamp": str(ts),
             }
-            m = months.get(lang, months["en"])
-            mn = m[now.month - 1]
-            day = str(now.day)
-            year = str(now.year)
-            hm = now.strftime("%H:%M")
-            if lang == "it":
-                return f"{day} {mn} {year} {hm}"
-            elif lang in ("en", "fr"):
-                return f"{mn} {day}, {year} {hm}"
-            elif lang == "de":
-                return f"{day}. {mn} {year} {hm}"
-            elif lang == "es":
-                return f"{day} de {mn} de {year} {hm}"
-            elif lang == "pt":
-                return f"{day} de {mn} de {year} {hm}"
-            elif lang == "ja":
-                return f"{year}年{now.month}月{day}日 {hm}"
-            elif lang == "ko":
-                return f"{year}년 {now.month}월 {day}일 {hm}"
-            elif lang == "zh":
-                return f"{year}年{now.month}月{day}日 {hm}"
-            return now.strftime("%Y-%m-%d %H:%M")
+            self.vars["datetime"] = dt_str
+            self.vars["date"] = now.strftime("%Y-%m-%d")
+            self.vars["time"] = now.strftime("%H:%M")
+            self.vars["timestamp"] = str(ts)
+            import json
+            return json.dumps(result)
 
         if name == "prettyevents":
             raw = evaluated[0] if evaluated else "[]"
@@ -783,7 +856,7 @@ class VASScript:
             if not filepath:
                 return "error: path required"
             import os as _os
-            base = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "Allowed_root")
+            base = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "Allowed_root")
             p = _os.path.normpath(_os.path.join(base, filepath))
             if not p.startswith(_os.path.normpath(base)):
                 return "error: access denied"
@@ -1044,6 +1117,13 @@ class VASScript:
     def _fetch_web(self, param, tool_name):
         if not param:
             return "error: url/query required"
+        cache, ttl = (VASScript._fetch_cache, VASScript._fetch_cache_ttl) if tool_name == "webfetch" else (VASScript._search_cache, VASScript._search_cache_ttl)
+        cache_key = param.strip().lower()
+        now = time.time()
+        if cache_key in cache:
+            ts, cached_result = cache[cache_key]
+            if now - ts < ttl:
+                return cached_result
         from utils import init_mcp
         mcp, _ = init_mcp(self.app.mcp_server_url, timeout=60)
         if not mcp:
@@ -1056,8 +1136,11 @@ class VASScript:
                 for item in result["content"]:
                     if isinstance(item, dict) and item.get("type") == "text":
                         parts.append(item.get("text", ""))
-                return "\n".join(parts)
-            return str(result)
+                result = "\n".join(parts)
+            final = str(result) if result else ""
+            if final and not final.startswith("error:"):
+                cache[cache_key] = (now, final)
+            return final
         except Exception as e:
             return f"error: {e}"
 
@@ -1138,8 +1221,50 @@ class VASScript:
         self.app.tts.speak_nowait(text, speed)
         self.app.tts._tts_done.wait()
 
+    @staticmethod
+    def _parse_time_variants(am_pm_str):
+        if not am_pm_str:
+            return "", "", ""
+        import re, time
+        m = re.match(r'(\d{1,2}):(\d{2})\s*(AM|PM)', am_pm_str, re.IGNORECASE)
+        if not m:
+            return am_pm_str, am_pm_str, ""
+        h, minute, ampm = int(m.group(1)), int(m.group(2)), m.group(3).upper()
+        if ampm == "PM" and h != 12:
+            h += 12
+        elif ampm == "AM" and h == 12:
+            h = 0
+        h24 = f"{h:02d}:{minute:02d}"
+        from datetime import date
+        today = date.today()
+        dt = time.mktime(time.struct_time((today.year, today.month, today.day, h, minute, 0, 0, 0, -1)))
+        return am_pm_str, h24, str(int(dt))
+
     def _do_weather(self, location=""):
         import urllib.request, urllib.parse, json
+        cache_key = location.strip().lower() or "__auto__"
+        now = time.time()
+        if cache_key in VASScript._weather_cache:
+            ts, cached = VASScript._weather_cache[cache_key]
+            if now - ts < VASScript._weather_cache_ttl:
+                self.vars["temperature"] = str(cached["temperature"])
+                self.vars["feels_like"] = str(cached["feels_like"])
+                self.vars["temperature_unit_system"] = cached.get("temperature_unit_system", "Celsius")
+                self.vars["humidity"] = str(cached["humidity"])
+                self.vars["weather_description"] = cached.get("description", "")
+                self.vars["wind_speed"] = str(cached["wind_speed"])
+                self.vars["wind_direction"] = cached.get("wind_direction", "")
+                self.vars["weather_city"] = cached.get("city", "")
+                self.vars["sunrise"] = cached.get("sunrise", "")
+                self.vars["sunrise_24h"] = cached.get("sunrise_24h", "")
+                self.vars["sunrise_timestamp"] = cached.get("sunrise_timestamp", "")
+                self.vars["sunset"] = cached.get("sunset", "")
+                self.vars["sunset_24h"] = cached.get("sunset_24h", "")
+                self.vars["sunset_timestamp"] = cached.get("sunset_timestamp", "")
+                self.vars["observation_time"] = cached.get("observation_time", "")
+                self.vars["observation_time_24h"] = cached.get("observation_time_24h", "")
+                self.vars["observation_time_timestamp"] = cached.get("observation_time_timestamp", "")
+                return json.dumps(cached, ensure_ascii=False)
         try:
             encoded = urllib.parse.quote(location.strip()) if location.strip() else ""
             base = f"https://wttr.in/{encoded}" if encoded else "https://wttr.in/"
@@ -1158,6 +1283,13 @@ class VASScript:
             wind_speed = float(cc.get("windspeedKmph", 0))
             wind_dir = cc.get("winddir16Point", "")
             obs_time = cc.get("observation_time", "")
+            astro = (data.get("weather") or [{}])[0].get("astronomy", [{}])[0] or {}
+            sr_raw = astro.get("sunrise", "")
+            ss_raw = astro.get("sunset", "")
+            sr, sr_24h, sr_ts = VASScript._parse_time_variants(sr_raw)
+            ss, ss_24h, ss_ts = VASScript._parse_time_variants(ss_raw)
+            ot_raw = obs_time
+            ot, ot_24h, ot_ts = VASScript._parse_time_variants(ot_raw)
             result = {
                 "city": city,
                 "region": region,
@@ -1168,10 +1300,19 @@ class VASScript:
                 "description": desc,
                 "wind_speed": wind_speed,
                 "wind_direction": wind_dir,
-                "observation_time": obs_time,
+                "observation_time": ot,
+                "observation_time_24h": ot_24h,
+                "observation_time_timestamp": ot_ts,
                 "temperature_unit_system": "Celsius",
+                "sunrise": sr,
+                "sunrise_24h": sr_24h,
+                "sunrise_timestamp": sr_ts,
+                "sunset": ss,
+                "sunset_24h": ss_24h,
+                "sunset_timestamp": ss_ts,
             }
             result_json = json.dumps(result, ensure_ascii=False)
+            VASScript._weather_cache[cache_key] = (now, result)
             self.vars["temperature"] = str(temp_c)
             self.vars["feels_like"] = str(feels_c)
             self.vars["temperature_unit_system"] = "Celsius"
@@ -1180,6 +1321,15 @@ class VASScript:
             self.vars["wind_speed"] = str(wind_speed)
             self.vars["wind_direction"] = wind_dir
             self.vars["weather_city"] = city
+            self.vars["sunrise"] = sr
+            self.vars["sunrise_24h"] = sr_24h
+            self.vars["sunrise_timestamp"] = sr_ts
+            self.vars["sunset"] = ss
+            self.vars["sunset_24h"] = ss_24h
+            self.vars["sunset_timestamp"] = ss_ts
+            self.vars["observation_time"] = ot
+            self.vars["observation_time_24h"] = ot_24h
+            self.vars["observation_time_timestamp"] = ot_ts
             return result_json
         except Exception as e:
             return f'{{"error": "{str(e)}"}}'

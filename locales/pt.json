@@ -362,7 +362,8 @@
       "command": "Comando",
       "arguments": "Argumentos",
       "workingdir": "Pasta trabalho",
-      "enabled": "Ativado"
+      "enabled": "Ativado",
+      "silent": "Silencioso"
     },
     "buttons": {
       "add": "Adicionar",

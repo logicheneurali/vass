@@ -362,7 +362,8 @@
       "command": "Befehl",
       "arguments": "Argumente",
       "workingdir": "Arbeitsverzeichnis",
-      "enabled": "Aktiviert"
+      "enabled": "Aktiviert",
+      "silent": "Lautlos"
     },
     "buttons": {
       "add": "Hinzufügen",

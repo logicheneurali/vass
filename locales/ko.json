@@ -363,7 +363,8 @@
       "command": "명령",
       "arguments": "인수",
       "workingdir": "작업 폴더",
-      "enabled": "활성화"
+      "enabled": "활성화",
+      "silent": "무음"
     },
     "buttons": {
       "add": "추가",

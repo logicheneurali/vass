@@ -362,7 +362,8 @@
       "command": "Command",
       "arguments": "Arguments",
       "workingdir": "Working dir",
-      "enabled": "Enabled"
+      "enabled": "Enabled",
+      "silent": "Silent"
     },
     "buttons": {
       "add": "Add",

@@ -401,7 +401,7 @@ class EventReminder:
                     command = candidate
                     script_name = os.path.splitext(os.path.basename(command))[0]
             if hasattr(self.app, '_run_script'):
-                self.app._run_script(script_name)
+                self.app._run_script(script_name, silent=silent)
             elif not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
                 self.app.tts.enqueue(failed_msg)

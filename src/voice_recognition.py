@@ -45,6 +45,7 @@ class VoiceRecognition:
         # VAD (Voice Activity Detection) state
         self.energy_threshold = sensitivity
         self.input_volume = 1.0
+        self.debug_enabled = False
         self.speech_buffer = []
         self.is_speaking = False
         self.silence_timeout = 15
@@ -89,7 +90,8 @@ class VoiceRecognition:
                         avg = sum(self._noise_buffer) / len(self._noise_buffer)
                         if self._noise_floor == 0.0:
                             self._noise_floor = avg
-                            print(f"[NoiseFloor] Initial: {self._noise_floor:.6f}")
+                            if self.debug_enabled:
+                                print(f"[NoiseFloor] Initial: {self._noise_floor:.6f}")
                         else:
                             self._noise_floor = 0.9 * self._noise_floor + 0.1 * avg
                         self._noise_buffer = []
@@ -115,7 +117,8 @@ class VoiceRecognition:
         dur_ms = len(audio_data) / 16.0
         energy = float(np.sqrt(np.mean(audio_data ** 2)))
         peak = float(np.max(np.abs(audio_data)))
-        print(f"[WakeWord Debug] samples={len(audio_data)} dur={dur_ms:.0f}ms energy={energy:.6f} peak={peak:.4f}")
+        if self.debug_enabled:
+            print(f"[WakeWord Debug] samples={len(audio_data)} dur={dur_ms:.0f}ms energy={energy:.6f} peak={peak:.4f}")
 
         try:
             negative = _NEGATIVE_PROMPT.get(self.whisper_language, _NEGATIVE_PROMPT["en"])
@@ -132,7 +135,8 @@ class VoiceRecognition:
                 compression_ratio_threshold=None,
             )
             text = " ".join([seg.text for seg in segments]).lower().strip()
-            print(f"[WakeWord Check] Transcribed: '{text[:40]}'")
+            if self.debug_enabled:
+                print(f"[WakeWord Check] Transcribed: '{text[:40]}'")
             return any(v in text for v in self.wake_variants)
         except Exception as e:
             print(f"[WakeWord Error] {e}")

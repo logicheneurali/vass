@@ -285,6 +285,15 @@ say("Temperatura: $temperature C, percepita: $feels_like, unita: $temperature_un
 ```
 
 
+### **`getidle()`**
+Returns system idle time in seconds since last user input (keyboard/mouse) or voice command. Returns JSON with a single key.
+
+```
+$idle = getidle()
+ifgreater($idle.idle_seconds, 600, say("Inattivo da troppo tempo"), say("Utente attivo"))
+```
+
+
 ### **`inject(text)`**
 Injects a low-priority context note into the AI's next conversation. Notes are ephemeral (lost on restart) and dropped first when context is full. No auth required.
 
@@ -356,6 +365,25 @@ Writes text to a new info file. Returns the file ID. Requires authorization.
 $id = writeinfo("Important user data")
 say("Saved with ID: {$id}")
 ```
+
+
+### **`readstate(key)`**
+Reads a persistent key-value state from the current session memory. Returns the stored value or empty string. State is shared across all VASScript executions but lost on restart. No authorization required.
+
+```
+$last = readstate("ventilatore")
+ifequals($last, "acceso", exit(), say("Stato cambiato"))
+```
+
+
+### **`writestate(key, value)`**
+Writes a key-value pair to the current session memory. Returns "ok". State is shared across all VASScript executions but lost on restart. Useful for tracking state between scheduled script runs. No authorization required.
+
+```
+writestate("ventilatore", "acceso")
+writestate("last_check", "2026-06-15 14:30")
+```
+
 
 ## Conditional Functions
 

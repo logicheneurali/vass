@@ -157,7 +157,7 @@ class HistoryViewer(QMainWindow):
     def _read_message(self, idx):
         text = self.history_data[idx].get("content", "")
         if text:
-            self._send_script('say("' + self._esc(text) + '")')
+            self._send_script('say_async("' + self._esc(text) + '")')
 
     @staticmethod
     def _send_script(code):

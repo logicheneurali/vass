@@ -25,13 +25,12 @@ async def search_web(query: str, max_results: int = 10) -> str:
             max_results = int(max_results) if max_results.strip() else 10
     except ValueError:
         max_results = 10
-    url = f"https://lite.duckduckgo.com/lite/?q={query}"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
     try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-            r = await client.get(url, headers=headers)
+            r = await client.get("https://lite.duckduckgo.com/lite/", params={"q": query}, headers=headers)
             r.raise_for_status()
         soup = BeautifulSoup(r.text, "lxml")
         results = []

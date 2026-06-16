@@ -362,7 +362,8 @@
       "command": "Commande",
       "arguments": "Arguments",
       "workingdir": "Dossier travail",
-      "enabled": "Activé"
+      "enabled": "Activé",
+      "silent": "Silencieux"
     },
     "buttons": {
       "add": "Ajouter",
