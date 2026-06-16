@@ -897,14 +897,19 @@ def _verify_imports(dest: Path):
         results.append((pkg_name, ver, ok))
     w_pkg = max(len(r[0]) for r in results) + 2
     w_ver = max(10, max(len(r[1]) for r in results) + 2)
+    w_st = len(_('check_header_st')) + 4
     print(f"\n  {C_BOLD}{_('step_postcheck')}{C_RESET}\n")
-    print(f"  ╔{'═' * w_pkg}╤{'═' * w_ver}╤══════╗")
-    print(f"  ║ {_('check_header_pkg'):<{w_pkg - 2}} │ {_('check_header_ver'):<{w_ver - 2}} │ {_('check_header_st'):<4} ║")
-    print(f"  ╠{'═' * w_pkg}╪{'═' * w_ver}╪══════╣")
+    print(f"  ╔{'═' * w_pkg}╤{'═' * w_ver}╤{'═' * w_st}╗")
+    print(f"  ║ {_('check_header_pkg'):<{w_pkg - 2}} │ {_('check_header_ver'):<{w_ver - 2}} │ {_('check_header_st'):^{w_st - 2}} ║")
+    print(f"  ╠{'═' * w_pkg}╪{'═' * w_ver}╪{'═' * w_st}╣")
     for pkg_name, ver, ok in results:
-        status = f"{C_GREEN}✓{C_RESET}" if ok else f"{C_RED}✗{C_RESET}"
-        print(f"  ║ {pkg_name:<{w_pkg - 2}} │ {ver:<{w_ver - 2}} │  {status}  ║")
-    print(f"  ╚{'═' * w_pkg}╧{'═' * w_ver}╧══════╝")
+        symbol = f"{C_GREEN}✓{C_RESET}" if ok else f"{C_RED}✗{C_RESET}"
+        plain = "✓" if ok else "✗"
+        pad = (w_st - 2 - len(plain)) // 2
+        lhs = ' ' * pad
+        rhs = ' ' * (w_st - 2 - len(plain) - pad)
+        print(f"  ║ {pkg_name:<{w_pkg - 2}} │ {ver:<{w_ver - 2}} │ {lhs}{symbol}{rhs} ║")
+    print(f"  ╚{'═' * w_pkg}╧{'═' * w_ver}╧{'═' * w_st}╝")
     ok_count = sum(1 for _, _, o in results if o)
     total = len(results)
     color = C_GREEN if ok_count == total else C_RED
