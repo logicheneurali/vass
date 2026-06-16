@@ -75,6 +75,18 @@ SLIDER_CONFIG = {
 
 
 
+_SECTION_DEFAULTS = {
+    "audio": {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "output_volume": "1.0"},
+    "google": {
+        "calendar_enabled": "false", "calendar_sync_enabled": "false",
+        "calendar_sync_minutes": "30", "calendar_sync_days": "7",
+        "gmail_enabled": "false", "gmail_sync_minutes": "5", "gmail_max_results": "10",
+        "google_home_enabled": "false", "google_home_model_id": "", "google_home_device_id": "",
+    },
+    "debug": {"debug_enabled": "false", "debug_log_max_kb": "1024"},
+}
+
+
 class SettingsEditor(QMainWindow):
     def __init__(self, settings_file=None, language="en"):
         super().__init__()
@@ -85,6 +97,7 @@ class SettingsEditor(QMainWindow):
             self.settings_file = settings_file
         self.config = configparser.ConfigParser()
         self.load_config()
+        self._ensure_sections()
         self.entries = {}
         self._slider_widgets = {}
         self._original_api_key = self._load_original_api_key()
@@ -148,6 +161,14 @@ class SettingsEditor(QMainWindow):
     def load_config(self):
         if os.path.exists(self.settings_file):
             self.config.read(self.settings_file, encoding="utf-8")
+
+    def _ensure_sections(self):
+        for section, keys in _SECTION_DEFAULTS.items():
+            if not self.config.has_section(section):
+                self.config.add_section(section)
+            for key, default in keys.items():
+                if not self.config.has_option(section, key):
+                    self.config.set(section, key, default)
 
     def build_ui(self):
         self.setWindowTitle(t("settings_editor.title", self.lang))
