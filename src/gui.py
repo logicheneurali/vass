@@ -939,7 +939,11 @@ class VassGUI(QMainWindow):
             except Exception:
                 pass
         import subprocess as _sp
-        _sp.Popen(["python", script] + list(extra_args))
+        cmd = [sys.executable, script] + list(extra_args)
+        kwargs = {}
+        if sys.platform == "win32":
+            kwargs["creationflags"] = _sp.CREATE_NO_WINDOW
+        _sp.Popen(cmd, **kwargs)
 
     def open_settings(self):
         self._open_unique_window("settings", os.path.join(SRC, "settings_editor.py"), "--lang", self.language)
