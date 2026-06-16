@@ -882,12 +882,6 @@ def _verify_imports(dest: Path):
     ]
     py = venv_python(dest)
     results = []
-    w_pkg = max(len(p[0]) for p in pkgs) + 2
-    w_ver = 10
-    print(f"\n  {C_BOLD}{_('step_postcheck')}{C_RESET}\n")
-    print(f"  ╔{'═' * w_pkg}╤{'═' * w_ver}╤══════╗")
-    print(f"  ║ {_('check_header_pkg'):<{w_pkg - 2}} │ {_('check_header_ver'):<{w_ver - 2}} │ {_('check_header_st'):<4} ║")
-    print(f"  ╠{'═' * w_pkg}╪{'═' * w_ver}╪══════╣")
     for pkg_name, import_name in pkgs:
         code = f"import {import_name}; v = getattr({import_name}, '__version__', '?'); print(v, end='')"
         try:
@@ -900,8 +894,15 @@ def _verify_imports(dest: Path):
         except Exception:
             ok = False
             ver = "?"
-        status = f"{C_GREEN}✓{C_RESET}" if ok else f"{C_RED}✗{C_RESET}"
         results.append((pkg_name, ver, ok))
+    w_pkg = max(len(r[0]) for r in results) + 2
+    w_ver = max(10, max(len(r[1]) for r in results) + 2)
+    print(f"\n  {C_BOLD}{_('step_postcheck')}{C_RESET}\n")
+    print(f"  ╔{'═' * w_pkg}╤{'═' * w_ver}╤══════╗")
+    print(f"  ║ {_('check_header_pkg'):<{w_pkg - 2}} │ {_('check_header_ver'):<{w_ver - 2}} │ {_('check_header_st'):<4} ║")
+    print(f"  ╠{'═' * w_pkg}╪{'═' * w_ver}╪══════╣")
+    for pkg_name, ver, ok in results:
+        status = f"{C_GREEN}✓{C_RESET}" if ok else f"{C_RED}✗{C_RESET}"
         print(f"  ║ {pkg_name:<{w_pkg - 2}} │ {ver:<{w_ver - 2}} │  {status}  ║")
     print(f"  ╚{'═' * w_pkg}╧{'═' * w_ver}╧══════╝")
     ok_count = sum(1 for _, _, o in results if o)
