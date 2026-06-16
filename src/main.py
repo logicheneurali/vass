@@ -716,7 +716,10 @@ class VassApp:
             _rotate_debug_log("log/debug.log", max_bytes)
             self._debug_file = open("log/debug.log", "a", encoding="utf-8")
             self._debug_original_stdout = sys.stdout
-            sys.stdout = _TeeOutput(sys.__stdout__, self._debug_file)
+            if sys.stdout and sys.stdout.isatty():
+                sys.stdout = _TeeOutput(sys.__stdout__, self._debug_file)
+            else:
+                sys.stdout = self._debug_file
 
         print(f"VASS v{__version__} - Voice assistant software")
         self.voice_recognition.load_models()
