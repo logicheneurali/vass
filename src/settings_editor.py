@@ -163,12 +163,17 @@ class SettingsEditor(QMainWindow):
             self.config.read(self.settings_file, encoding="utf-8")
 
     def _ensure_sections(self):
+        changed = False
         for section, keys in _SECTION_DEFAULTS.items():
             if not self.config.has_section(section):
                 self.config.add_section(section)
             for key, default in keys.items():
                 if not self.config.has_option(section, key):
                     self.config.set(section, key, default)
+                    changed = True
+        if changed:
+            with open(self.settings_file, "w", encoding="utf-8") as f:
+                self.config.write(f)
 
     def build_ui(self):
         self.setWindowTitle(t("settings_editor.title", self.lang))
