@@ -1029,8 +1029,8 @@ def main():
         "font_family": "Segoe UI" if sys.platform == "win32" else "sans-serif",
         "font_size": "10",
     }
-    cfg["wakeword"] = {"wakeword": wake, "sensitivity": "0.01"}
-    cfg["commands"] = {"similarity": "0.75"}
+    cfg["wakeword"] = {"wakeword": wake, "sensitivity": "0.005"}
+    cfg["commands"] = {"similarity": "0.6", "word_learning_enabled": "false"}
     cfg["tts"] = {"tts_engine": "kokoro", "volume": "0.50"}
     cfg["ai"] = {
         "url": url,
@@ -1053,11 +1053,11 @@ def main():
             "--flash-attn on --cache-ram 4096 -c 10240 --cont-batching "
             "--sleep-idle-seconds 600 --timeout 36000"
         ),
-        "llama_autostart": "true",
+        "llama_autostart": "false",
     }
     cfg["resources"] = {
         "cpu_max": "75", "ram_max": "99", "gpu_max": "75",
-        "vram_max": "99", "resource_timeout": "30",
+        "vram_max": "99", "resource_timeout": "10",
     }
     cfg["events"] = {"reminder_advance": "3600"}
     cfg["noise"] = {"noise_pause": "false", "noise_pause_threshold": "0.002", "noise_pause_duration": "30"}
@@ -1073,25 +1073,21 @@ def main():
     if sys.platform == "win32":
         launcher = dest / "vass.bat"
         with open(launcher, "w", encoding="utf-8") as f:
-            f.write('@echo off\r\n')
             f.write(f'cd /d "{dest}"\r\n')
-            f.write(f'".venv\\Scripts\\python.exe" "start_vass.py"\r\n')
-            f.write('pause\r\n')
+            f.write(f'".venv\\Scripts\\pythonw.exe" "vass.py"\r\n')
     elif sys.platform == "darwin":
         launcher = dest / "vass.command"
         with open(launcher, "w", encoding="utf-8") as f:
             f.write('#!/bin/bash\n')
             f.write('cd "$(dirname "$0")"\n')
-            f.write('source ".venv/bin/activate"\n')
-            f.write('exec python start_vass.py\n')
+            f.write('exec ".venv/bin/python" vass.py\n')
         os.chmod(launcher, 0o755)
     else:
         launcher = dest / "vass.sh"
         with open(launcher, "w", encoding="utf-8") as f:
             f.write('#!/bin/bash\n')
             f.write('cd "$(dirname "$0")"\n')
-            f.write('source ".venv/bin/activate"\n')
-            f.write('exec python start_vass.py\n')
+            f.write('exec ".venv/bin/python" vass.py\n')
         os.chmod(launcher, 0o755)
 
     print(f"  {C_GREEN}{_('launcher_ok', launcher.name)}{C_RESET}")
@@ -1113,9 +1109,9 @@ def main():
     print(f"    {C_BOLD}{_('summary_howto_launcher', launcher.name)}{C_RESET}")
     print(f"  {_('summary_howto_terminal')}")
     if sys.platform == "win32":
-        print(f"    {C_BOLD}cd \"{dest}\" && .venv\\Scripts\\python start_vass.py{C_RESET}")
+        print(f"    {C_BOLD}cd \"{dest}\" && .venv\\Scripts\\pythonw vass.py{C_RESET}")
     else:
-        print(f"    {C_BOLD}cd \"{dest}\" && .venv/bin/python start_vass.py{C_RESET}")
+        print(f"    {C_BOLD}cd \"{dest}\" && .venv/bin/python vass.py{C_RESET}")
     print()
     print(f"  {C_YELLOW}{_('summary_note')}{C_RESET}")
     print(f"  {_('summary_note_server', url)}")
