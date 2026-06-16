@@ -519,6 +519,50 @@ _T = {
         "ko": "종속성이 설치되었습니다 — OK",
         "zh": "依赖已安装 — OK",
     },
+    "step_postcheck": {
+        "en": "Verifying installed packages",
+        "it": "Verifica pacchetti installati",
+        "de": "Uberprufung installierter Pakete",
+        "fr": "Verification des paquets installes",
+        "es": "Verificando paquetes instalados",
+        "pt": "Verificando pacotes instalados",
+        "ja": "インストールされたパッケージを確認中",
+        "ko": "설치된 패키지 확인 중",
+        "zh": "验证已安装的包",
+    },
+    "check_header_pkg": {
+        "en": "Package",
+        "it": "Pacchetto",
+        "de": "Paket",
+        "fr": "Paquet",
+        "es": "Paquete",
+        "pt": "Pacote",
+        "ja": "パッケージ",
+        "ko": "패키지",
+        "zh": "包",
+    },
+    "check_header_ver": {
+        "en": "Version",
+        "it": "Versione",
+        "de": "Version",
+        "fr": "Version",
+        "es": "Version",
+        "pt": "Versao",
+        "ja": "バージョン",
+        "ko": "버전",
+        "zh": "版本",
+    },
+    "check_header_st": {
+        "en": "Status",
+        "it": "Stato",
+        "de": "Status",
+        "fr": "Statut",
+        "es": "Estado",
+        "pt": "Estado",
+        "ja": "状態",
+        "ko": "상태",
+        "zh": "状态",
+    },
     "req_not_found": {
         "en": "requirements.txt not found, skipping pip install.",
         "it": "requirements.txt non trovato, salto installazione pip.",
@@ -814,6 +858,58 @@ def venv_pip(dest: Path) -> list[str]:
     return [venv_python(dest), "-m", "pip"]
 
 
+def _verify_imports(dest: Path):
+    """Verify that key packages are importable in the destination venv."""
+    pkgs = [
+        ("sounddevice", "sounddevice"), ("numpy", "numpy"), ("torch", "torch"),
+        ("kokoro", "kokoro"), ("faster-whisper", "faster_whisper"),
+        ("webrtcvad", "webrtcvad"), ("soundfile", "soundfile"), ("openai", "openai"),
+        ("mcp", "mcp"), ("keyring", "keyring"), ("pynput", "pynput"),
+        ("Pillow", "PIL"), ("httpx", "httpx"), ("beautifulsoup4", "bs4"),
+        ("lxml", "lxml"), ("PyYAML", "yaml"), ("structlog", "structlog"),
+        ("uvicorn", "uvicorn"), ("mss", "mss"), ("easyocr", "easyocr"),
+        ("psutil", "psutil"), ("misaki", "misaki"), ("fugashi", "fugashi"),
+        ("unidic-lite", "unidic_lite"), ("jaconv", "jaconv"),
+        ("mojimoji", "mojimoji"), ("pypinyin", "pypinyin"),
+        ("ordered-set", "ordered_set"), ("jieba", "jieba"),
+        ("cn2an", "cn2an"), ("dateparser", "dateparser"),
+        ("playwright", "playwright"), ("PyAutoGUI", "pyautogui"),
+        ("pyperclip", "pyperclip"), ("spacy", "spacy"),
+        ("cryptography", "cryptography"),
+        ("google-auth-oauthlib", "google_auth_oauthlib"),
+        ("google-api-python-client", "googleapiclient"),
+        ("PySide6", "PySide6"),
+    ]
+    py = venv_python(dest)
+    results = []
+    w_pkg, w_ver = 24, 10
+    print(f"\n  {C_BOLD}{_('step_postcheck')}{C_RESET}\n")
+    print(f"  ╔{'═' * w_pkg}╤{'═' * w_ver}╤══════╗")
+    print(f"  ║ {_('check_header_pkg'):<{w_pkg - 2}} │ {_('check_header_ver'):<{w_ver - 2}} │ {_('check_header_st'):<4} ║")
+    print(f"  ╠{'═' * w_pkg}╪{'═' * w_ver}╪══════╣")
+    for pkg_name, import_name in pkgs:
+        code = f"import {import_name}; v = getattr({import_name}, '__version__', '?'); print(v, end='')"
+        try:
+            kwargs = dict(capture_output=True, text=True, timeout=30)
+            if sys.platform == "win32":
+                kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+            r = subprocess.run([py, "-c", code], **kwargs)
+            ok = r.returncode == 0
+            ver = r.stdout.strip() if ok else "?"
+        except Exception:
+            ok = False
+            ver = "?"
+        status = f"{C_GREEN}✓{C_RESET}" if ok else f"{C_RED}✗{C_RESET}"
+        results.append((pkg_name, ver, ok))
+        print(f"  ║ {pkg_name:<{w_pkg - 2}} │ {ver:<{w_ver - 2}} │  {status}  ║")
+    print(f"  ╚{'═' * w_pkg}╧{'═' * w_ver}╧══════╝")
+    ok_count = sum(1 for _, _, o in results if o)
+    total = len(results)
+    color = C_GREEN if ok_count == total else C_RED
+    print(f"  {color}{ok_count}/{total} packages OK{C_RESET}\n")
+    return results
+
+
 _UNSET = object()
 
 
@@ -1036,6 +1132,7 @@ def main():
         rc3, _out, _err = run(venv_pip(dest) + ["install", "kokoro>=0.7.16"], cwd=str(dest), show=False)
         if rc1 != 0 or rc2 != 0 or rc3 != 0:
             print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
+            _verify_imports(dest)
             sys.exit(1)
         print(f"  {_('pip_running')}")
         print(f"  {C_DIM}{_('pip_wait')}{C_RESET}\n")
@@ -1044,9 +1141,11 @@ def main():
             print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
             if stderr:
                 print(stderr[:500])
+            _verify_imports(dest)
             sys.exit(1)
         else:
             print(f"\n  {C_GREEN}{_('pip_ok_full')}{C_RESET}")
+            _verify_imports(dest)
 
     # ── STEP 7: Generate settings.ini ────────────────────────────────────────
     step(8, _("step_settings"))
