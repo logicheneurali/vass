@@ -454,15 +454,15 @@ _T = {
         "zh": "升级venv中的pip...",
     },
     "pip_preinstall": {
-        "en": "Pre-installing numpy (avoids dependency conflicts)...",
-        "it": "Pre-installazione numpy (evita conflitti di dipendenze)...",
-        "de": "Vorabinstallation von numpy (vermeidet Abhangigkeitskonflikte)...",
-        "fr": "Pre-installation de numpy (evite les conflits de dependances)...",
-        "es": "Pre-instalando numpy (evita conflictos de dependencias)...",
-        "pt": "Pre-instalando numpy (evita conflitos de dependencias)...",
-        "ja": "numpyを事前インストール中（依存関係の競合を回避）...",
-        "ko": "numpy 사전 설치 중 (의존성 충돌 방지)...",
-        "zh": "预安装 numpy（避免依赖冲突）...",
+        "en": "Pre-installing numpy, kokoro (avoids dependency conflicts)...",
+        "it": "Pre-installazione numpy, kokoro (evita conflitti di dipendenze)...",
+        "de": "Vorabinstallation von numpy, kokoro (vermeidet Abhangigkeitskonflikte)...",
+        "fr": "Pre-installation de numpy, kokoro (evite les conflits de dependances)...",
+        "es": "Pre-instalando numpy, kokoro (evita conflictos de dependencias)...",
+        "pt": "Pre-instalando numpy, kokoro (evita conflitos de dependencias)...",
+        "ja": "numpy, kokoroを事前インストール中（依存関係の競合を回避）...",
+        "ko": "numpy, kokoro 사전 설치 중 (의존성 충돌 방지)...",
+        "zh": "预安装 numpy, kokoro（避免依赖冲突）...",
     },
     "pip_running": {
         "en": "Running: pip install -r requirements.txt (in venv)",
@@ -562,6 +562,17 @@ _T = {
         "ja": "状態",
         "ko": "상태",
         "zh": "状态",
+    },
+    "check_errors": {
+        "en": "Import errors:",
+        "it": "Errori di import:",
+        "de": "Import-Fehler:",
+        "fr": "Erreurs d'import:",
+        "es": "Errores de importacion:",
+        "pt": "Erros de importacao:",
+        "ja": "インポートエラー:",
+        "ko": "가져오기 오류:",
+        "zh": "导入错误:",
     },
     "req_not_found": {
         "en": "requirements.txt not found, skipping pip install.",
@@ -882,6 +893,7 @@ def _verify_imports(dest: Path):
     ]
     py = venv_python(dest)
     results = []
+    errors = []
     for pkg_name, import_name in pkgs:
         code = f"import {import_name}; v = getattr({import_name}, '__version__', '?'); print(v, end='')"
         try:
@@ -891,9 +903,12 @@ def _verify_imports(dest: Path):
             r = subprocess.run([py, "-c", code], **kwargs)
             ok = r.returncode == 0
             ver = r.stdout.strip() if ok else "?"
-        except Exception:
+            if not ok and r.stderr.strip():
+                errors.append((pkg_name, r.stderr.strip()[:200]))
+        except Exception as e:
             ok = False
             ver = "?"
+            errors.append((pkg_name, str(e)[:200]))
         results.append((pkg_name, ver, ok))
     w_pkg = max(len(r[0]) for r in results) + 2
     w_ver = max(10, max(len(r[1]) for r in results) + 2)
@@ -910,6 +925,10 @@ def _verify_imports(dest: Path):
         rhs = ' ' * (w_st - 2 - len(plain) - pad)
         print(f"  ║ {pkg_name:<{w_pkg - 2}} │ {ver:<{w_ver - 2}} │ {lhs}{symbol}{rhs} ║")
     print(f"  ╚{'═' * w_pkg}╧{'═' * w_ver}╧{'═' * w_st}╝")
+    if errors:
+        print(f"\n  {C_RED}{_('check_errors')}{C_RESET}")
+        for pkg_name, err in errors:
+            print(f"  {C_RED}{pkg_name}: {err}{C_RESET}")
     ok_count = sum(1 for _, _, o in results if o)
     total = len(results)
     color = C_GREEN if ok_count == total else C_RED
@@ -1134,8 +1153,8 @@ def main():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
         print(f"  {_('pip_preinstall')}")
-        pre_cmds = [("numpy", "numpy")]
-        extra_opts = [[]]
+        pre_cmds = [("numpy", "numpy"), ("kokoro", "kokoro==0.7.16")]
+        extra_opts = [[], ["--no-deps", "--ignore-requires-python"]]
         rcs = []
         for (pkg_label, pkg_spec), opts in zip(pre_cmds, extra_opts):
             rc, _out, _err = run(venv_pip(dest) + ["install", pkg_spec] + opts, cwd=str(dest), show=False)
@@ -1150,7 +1169,7 @@ def main():
             sys.exit(1)
         print(f"  {_('pip_running')}")
         print(f"  {C_DIM}{_('pip_wait')}{C_RESET}\n")
-        rc, _out, stderr = run(venv_pip(dest) + ["install", "-r", str(req_file), "--ignore-requires-python"], cwd=str(dest), show=True)
+        rc, _out, stderr = run(venv_pip(dest) + ["install", "-r", str(req_file)], cwd=str(dest), show=True)
         if rc != 0:
             print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
             if stderr:
