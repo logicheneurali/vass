@@ -453,6 +453,17 @@ _T = {
         "ko": "venv에서 pip 업그레이드 중...",
         "zh": "升级venv中的pip...",
     },
+    "pip_preinstall": {
+        "en": "Pre-installing numpy (avoids dependency conflicts)...",
+        "it": "Pre-installazione numpy (evita conflitti di dipendenze)...",
+        "de": "Vorabinstallation von numpy (vermeidet Abhangigkeitskonflikte)...",
+        "fr": "Pre-installation de numpy (evite les conflits de dependances)...",
+        "es": "Pre-instalando numpy (evita conflictos de dependencias)...",
+        "pt": "Pre-instalando numpy (evita conflitos de dependencias)...",
+        "ja": "numpyを事前インストール中（依存関係の競合を回避）...",
+        "ko": "numpy 사전 설치 중 (의존성 충돌 방지)...",
+        "zh": "预安装 numpy（避免依赖冲突）...",
+    },
     "pip_running": {
         "en": "Running: pip install -r requirements.txt (in venv)",
         "it": "Esecuzione: pip install -r requirements.txt (nel venv)",
@@ -1008,6 +1019,8 @@ def main():
     if not req_file.exists():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
+        print(f"  {_('pip_preinstall')}")
+        run(venv_pip(dest) + ["install", "numpy"], cwd=str(dest), show=False)
         print(f"  {_('pip_running')}")
         print(f"  {C_DIM}{_('pip_wait')}{C_RESET}\n")
         rc, _out, stderr = run(venv_pip(dest) + ["install", "-r", str(req_file)], cwd=str(dest), show=True)
