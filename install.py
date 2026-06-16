@@ -1135,7 +1135,7 @@ def main():
     else:
         print(f"  {_('pip_preinstall')}")
         pre_cmds = [("numpy", "numpy"), ("torch", "torch"), ("kokoro", "kokoro==0.7.16")]
-        extra_opts = [[], [], ["--ignore-requires-python"]]
+        extra_opts = [[], [], ["--no-deps", "--ignore-requires-python"]]
         rcs = []
         for (pkg_label, pkg_spec), opts in zip(pre_cmds, extra_opts):
             rc, _out, _err = run(venv_pip(dest) + ["install", pkg_spec] + opts, cwd=str(dest), show=False)
