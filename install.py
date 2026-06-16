@@ -497,6 +497,17 @@ _T = {
         "ko": "경고: pip에서 오류를 보고했습니다. 수동으로 확인하세요.",
         "zh": "警告: pip报告了错误。请手动检查。",
     },
+    "pip_fatal": {
+        "en": "FATAL: pip installation failed. Cannot continue.",
+        "it": "FATALE: installazione pip fallita. Impossibile continuare.",
+        "de": "FATAL: pip-Installation fehlgeschlagen. Kann nicht fortfahren.",
+        "fr": "FATAL: l'installation pip a echoue. Impossible de continuer.",
+        "es": "FATAL: instalacion pip fallida. No se puede continuar.",
+        "pt": "FATAL: instalacao pip falhou. Nao e possivel continuar.",
+        "ja": "致命的: pipのインストールに失敗しました。続行できません。",
+        "ko": "치명적: pip 설치에 실패했습니다. 계속할 수 없습니다.",
+        "zh": "致命: pip安装失败。无法继续。",
+    },
     "pip_ok_full": {
         "en": "Dependencies installed — OK",
         "it": "Dipendenze installate — OK",
@@ -1020,16 +1031,20 @@ def main():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
         print(f"  {_('pip_preinstall')}")
-        run(venv_pip(dest) + ["install", "numpy"], cwd=str(dest), show=False)
-        run(venv_pip(dest) + ["install", "torch"], cwd=str(dest), show=False)
-        run(venv_pip(dest) + ["install", "kokoro>=0.7.16"], cwd=str(dest), show=False)
+        rc1, _, _ = run(venv_pip(dest) + ["install", "numpy"], cwd=str(dest), show=False)
+        rc2, _, _ = run(venv_pip(dest) + ["install", "torch"], cwd=str(dest), show=False)
+        rc3, _, _ = run(venv_pip(dest) + ["install", "kokoro>=0.7.16"], cwd=str(dest), show=False)
+        if rc1 != 0 or rc2 != 0 or rc3 != 0:
+            print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
+            sys.exit(1)
         print(f"  {_('pip_running')}")
         print(f"  {C_DIM}{_('pip_wait')}{C_RESET}\n")
         rc, _out, stderr = run(venv_pip(dest) + ["install", "-r", str(req_file)], cwd=str(dest), show=True)
         if rc != 0:
-            print(f"\n  {C_YELLOW}{_('pip_warn')}{C_RESET}")
+            print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
             if stderr:
                 print(stderr[:500])
+            sys.exit(1)
         else:
             print(f"\n  {C_GREEN}{_('pip_ok_full')}{C_RESET}")
 
