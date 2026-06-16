@@ -454,15 +454,15 @@ _T = {
         "zh": "升级venv中的pip...",
     },
     "pip_preinstall": {
-        "en": "Pre-installing numpy, torch, kokoro (avoids dependency conflicts)...",
-        "it": "Pre-installazione numpy, torch, kokoro (evita conflitti di dipendenze)...",
-        "de": "Vorabinstallation von numpy, torch, kokoro (vermeidet Abhangigkeitskonflikte)...",
-        "fr": "Pre-installation de numpy, torch, kokoro (evite les conflits de dependances)...",
-        "es": "Pre-instalando numpy, torch, kokoro (evita conflictos de dependencias)...",
-        "pt": "Pre-instalando numpy, torch, kokoro (evita conflitos de dependencias)...",
-        "ja": "numpy, torch, kokoroを事前インストール中（依存関係の競合を回避）...",
-        "ko": "numpy, torch, kokoro 사전 설치 중 (의존성 충돌 방지)...",
-        "zh": "预安装 numpy, torch, kokoro（避免依赖冲突）...",
+        "en": "Pre-installing numpy (avoids dependency conflicts)...",
+        "it": "Pre-installazione numpy (evita conflitti di dipendenze)...",
+        "de": "Vorabinstallation von numpy (vermeidet Abhangigkeitskonflikte)...",
+        "fr": "Pre-installation de numpy (evite les conflits de dependances)...",
+        "es": "Pre-instalando numpy (evita conflictos de dependencias)...",
+        "pt": "Pre-instalando numpy (evita conflitos de dependencias)...",
+        "ja": "numpyを事前インストール中（依存関係の競合を回避）...",
+        "ko": "numpy 사전 설치 중 (의존성 충돌 방지)...",
+        "zh": "预安装 numpy（避免依赖冲突）...",
     },
     "pip_running": {
         "en": "Running: pip install -r requirements.txt (in venv)",
@@ -1134,8 +1134,8 @@ def main():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
         print(f"  {_('pip_preinstall')}")
-        pre_cmds = [("numpy", "numpy"), ("torch", "torch")]
-        extra_opts = [[], []]
+        pre_cmds = [("numpy", "numpy")]
+        extra_opts = [[]]
         rcs = []
         for (pkg_label, pkg_spec), opts in zip(pre_cmds, extra_opts):
             rc, _out, _err = run(venv_pip(dest) + ["install", pkg_spec] + opts, cwd=str(dest), show=False)
