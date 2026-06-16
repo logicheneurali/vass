@@ -1031,9 +1031,9 @@ def main():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
         print(f"  {_('pip_preinstall')}")
-        rc1, _, _ = run(venv_pip(dest) + ["install", "numpy"], cwd=str(dest), show=False)
-        rc2, _, _ = run(venv_pip(dest) + ["install", "torch"], cwd=str(dest), show=False)
-        rc3, _, _ = run(venv_pip(dest) + ["install", "kokoro>=0.7.16"], cwd=str(dest), show=False)
+        rc1, _out, _err = run(venv_pip(dest) + ["install", "numpy"], cwd=str(dest), show=False)
+        rc2, _out, _err = run(venv_pip(dest) + ["install", "torch"], cwd=str(dest), show=False)
+        rc3, _out, _err = run(venv_pip(dest) + ["install", "kokoro>=0.7.16"], cwd=str(dest), show=False)
         if rc1 != 0 or rc2 != 0 or rc3 != 0:
             print(f"\n  {C_RED}{_('pip_fatal')}{C_RESET}")
             sys.exit(1)
