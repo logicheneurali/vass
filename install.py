@@ -574,6 +574,17 @@ _T = {
         "ko": "가져오기 오류:",
         "zh": "导入错误:",
     },
+    "check_fatal": {
+        "en": "FATAL: {0} packages failed import verification.",
+        "it": "FATALE: {0} pacchetti non hanno superato la verifica.",
+        "de": "FATAL: {0} Pakete haben die Importprufung nicht bestanden.",
+        "fr": "FATAL: {0} paquets ont echoue a la verification d'import.",
+        "es": "FATAL: {0} paquetes fallaron la verificacion de importacion.",
+        "pt": "FATAL: {0} pacotes falharam a verificacao de importacao.",
+        "ja": "致命的: {0}個のパッケージがインポート検証に失敗しました。",
+        "ko": "치명적: {0}개의 패키지가 가져오기 확인에 실패했습니다.",
+        "zh": "致命: {0}个包未通过导入验证。",
+    },
     "req_not_found": {
         "en": "requirements.txt not found, skipping pip install.",
         "it": "requirements.txt non trovato, salto installazione pip.",
@@ -1178,7 +1189,12 @@ def main():
             sys.exit(1)
         else:
             print(f"\n  {C_GREEN}{_('pip_ok_full')}{C_RESET}")
-            _verify_imports(dest)
+            results = _verify_imports(dest)
+            if results:
+                failed = sum(1 for _, _, ok in results if not ok)
+                if failed > 0:
+                    print(f"  {C_RED}{_('check_fatal', failed)}{C_RESET}")
+                    sys.exit(1)
 
     # ── STEP 7: Generate settings.ini ────────────────────────────────────────
     step(8, _("step_settings"))
