@@ -973,7 +973,7 @@ def main():
     # ── STEP 4: Copy files ───────────────────────────────────────────────────
     step(5, _("step_copy"))
 
-    src = Path(__file__).resolve().parent.parent
+    src = Path(__file__).resolve().parent
     print(f"  {_('source', src)}")
     copy_tree_filtered(src, dest)
 
