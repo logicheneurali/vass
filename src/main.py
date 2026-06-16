@@ -260,6 +260,7 @@ class VassApp:
         except Exception:
             wr_variants = ["{wake}", "hey {wake}", "ciao {wake}"]
         wr_variants = [v.replace("{wake}", self.wake_word) for v in wr_variants]
+        print(f"[Startup] Wake word: {self.wake_word!r}, variants: {wr_variants}")
         self.voice_recognition = VoiceRecognition(
             wake_word=self.wake_word,
             sensitivity=self.wake_word_sensitivity,
@@ -527,9 +528,6 @@ class VassApp:
     def set_state(self, new_state, detail="", silent_gui=False):
         with self.state_lock:
             self.state = new_state
-            os.makedirs("log", exist_ok=True)
-            with open("log/debug.log", "a") as f:
-                f.write(f"set_state: {new_state}\n")
             if not silent_gui:
                 try:
                     self.gui.set_state(new_state, detail)
