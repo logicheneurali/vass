@@ -25,7 +25,8 @@ def _load_model(lang):
             _MODELS[lang] = spacy.load(model_name)
         except OSError:
             import subprocess, sys
-            subprocess.run([sys.executable, "-m", "spacy", "download", model_name], check=True)
+            subprocess.run([sys.executable, "-m", "spacy", "download", model_name], check=True,
+                           creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
             _MODELS[lang] = spacy.load(model_name)
         print(f"[LangCheck] Model {model_name} ready")
     return _MODELS[lang]

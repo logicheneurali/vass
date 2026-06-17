@@ -1153,7 +1153,7 @@ class VassGUI(QMainWindow):
                 idle = 0
                 try:
                     if self.app and hasattr(self.app, 'idle_tracker'):
-                        idle = self.app.idle_tracker.get_total_idle_seconds()
+                        idle = self.app.idle_tracker.get_input_idle_seconds()
                 except Exception:
                     pass
 

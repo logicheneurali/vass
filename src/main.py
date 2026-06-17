@@ -887,7 +887,8 @@ class VassApp:
         print(f"[MCP] Starting MCPGoal server from {script}")
         self.mcp_process = subprocess.Popen(
             [sys.executable, script],
-            cwd=mcp_dir
+            cwd=mcp_dir,
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         )
         time.sleep(2)
 

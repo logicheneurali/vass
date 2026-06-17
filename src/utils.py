@@ -15,7 +15,8 @@ SCRIPT_PREFIXES = ("vasscript:", "script:")
 def is_process_running(name):
     try:
         if sys.platform == "win32":
-            r = subprocess.run(["tasklist"], capture_output=True, text=True)
+            r = subprocess.run(["tasklist"], capture_output=True, text=True,
+                               creationflags=subprocess.CREATE_NO_WINDOW)
             return name.lower() in r.stdout.lower()
         else:
             r = subprocess.run(["pgrep", "-f", name], capture_output=True)
@@ -27,11 +28,13 @@ def is_process_running(name):
 def kill_port(port):
     try:
         if sys.platform == "win32":
-            r = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
+            r = subprocess.run(["netstat", "-ano"], capture_output=True, text=True,
+                               creationflags=subprocess.CREATE_NO_WINDOW)
             for line in r.stdout.splitlines():
                 if f":{port}" in line and "LISTENING" in line:
                     pid = line.strip().split()[-1]
-                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True,
+                                   creationflags=subprocess.CREATE_NO_WINDOW)
         elif sys.platform == "darwin":
             r = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
             for pid in r.stdout.strip().split():
@@ -44,16 +47,14 @@ def kill_port(port):
 
 def kill_process(proc):
     try:
-        if sys.platform == "win32":
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                           capture_output=True, timeout=5)
-        else:
-            proc.terminate()
-            try:
-                proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait()
+        proc.terminate()
+        proc.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+            proc.wait(timeout=2)
+        except Exception:
+            pass
     except Exception:
         pass
 

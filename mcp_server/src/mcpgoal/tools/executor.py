@@ -1,5 +1,7 @@
 import asyncio
 import shlex
+import subprocess
+import sys
 
 
 async def execute(command: str, allowed_commands: list[str] | None = None, timeout: float = 30.0) -> str:
@@ -22,6 +24,7 @@ async def execute(command: str, allowed_commands: list[str] | None = None, timeo
             *parts,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         output = ""
