@@ -106,9 +106,14 @@ MEMORY_SUMMARIZATION_PROMPT = (
 )
 
 MCP_PROMPT = (
-    "\n\nYou have access to MCP tools to interact with VASS. "
-    "Use the interact tool to execute VASScript code directly. "
-    "For example: interact(\"say('hello')\") will speak hello."
+    "\n\nYou have access to MCP tools:"
+    "\n- browse(url): read text content from any web page (httpx, fast)"
+    "\n- webfetch(url): read from JavaScript pages using a full browser (Playwright, slower)"
+    "\n- websearch(query): search DuckDuckGo for results in JSON format"
+    "\n- interact(code): run VASScript code (e.g. interact(\"say('hello')\") speaks via TTS)"
+    "\n- read_file(path): read files from user storage"
+    "\n- write_file(path, content): write files to user storage"
+    "\n- current_time(): get current date and time"
 )
 
 
@@ -1367,6 +1372,9 @@ class VassApp:
             vas_ref = _load_vascript_reference()
 
             mcp, tools = init_mcp(self.mcp_server_url, timeout=10)
+
+            if not self.allow_ai_scripts and tools:
+                tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
 
             memory_content = self._build_memory_content(mcp, tools)
 

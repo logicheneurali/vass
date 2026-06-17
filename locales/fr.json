@@ -167,7 +167,7 @@
       "noise_pause_duration": "Secondes consécutives de bruit élevé avant la pause",
       "context_length": "Longueur max contexte en jetons (0 = auto-détection)",
       "overflow_strategy": "Que faire si le texte dépasse le contexte: truncate (couper) ou summarize (résumer, nécessite un appel API supplémentaire)",
-      "allow_ai_scripts": "Si actif, l'IA peut proposer et executer du code VASScript de maniere autonome. Desactiver pour plus de securite.",
+      "allow_ai_scripts": "Si actif, l'IA peut proposer et executer du code VASScript de maniere autonome. Desactiver pour plus de securite. <font color='red'>Experimental</font>",
       "calendar_setup": "Démarrer config",
       "calendar_enabled": "Activer accès Google Agenda",
       "calendar_sync_enabled": "Importer automatiquement événements Google",

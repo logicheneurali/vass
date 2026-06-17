@@ -428,7 +428,7 @@ class VassGUI(QMainWindow):
         self.update_memory_signal.connect(self._on_update_memory)
         self.start_tts_signal.connect(self._on_start_tts)
         self.stop_tts_signal.connect(self._on_stop_tts)
-        self.schedule_signal.connect(lambda cb: cb())
+        self.schedule_signal.connect(lambda cb: cb(), Qt.ConnectionType.QueuedConnection)
         self.auth_requested_signal.connect(self._on_auth_requested)
         self.volume_signal.connect(self._on_volume)
 
@@ -768,7 +768,7 @@ class VassGUI(QMainWindow):
             pass
 
     def schedule(self, ms, callback):
-        if ms == 0:
+        if ms <= 0:
             self.schedule_signal.emit(callback)
         else:
             QTimer.singleShot(ms, lambda: self.schedule_signal.emit(callback))

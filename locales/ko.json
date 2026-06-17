@@ -167,7 +167,7 @@
       "noise_pause_duration": "일시정지 전 연속 높은 소음 시간 (초)",
       "context_length": "최대 컨텍스트 길이 (토큰, 0=자동 감지)",
       "overflow_strategy": "텍스트가 컨텍스트를 초과할 경우: truncate (자르기) 또는 summarize (요약, 추가 API 호출 필요)",
-      "allow_ai_scripts": "활성화하면 AI가 자율적으로 VASScript 코드를 제안하고 실행할 수 있습니다. 보안을 위해 비활성화하세요.",
+      "allow_ai_scripts": "활성화하면 AI가 자율적으로 VASScript 코드를 제안하고 실행할 수 있습니다. 보안을 위해 비활성화하세요. <font color='red'>실험적</font>",
       "calendar_setup": "설정 시작",
       "calendar_enabled": "Google 캘린더 액세스 활성화",
       "calendar_sync_enabled": "Google 이벤트 자동 가져오기",

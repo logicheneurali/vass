@@ -167,7 +167,7 @@
       "noise_pause_duration": "Aufeinanderfolgende Sekunden mit hohem Geräuschpegel vor der Pause",
       "context_length": "Max. Kontextlänge in Token (0 = Auto-Erkennung)",
       "overflow_strategy": "Was tun bei zu langem Text: truncate (abschneiden) oder summarize (zusammenfassen, erfordert extra API-Aufruf)",
-      "allow_ai_scripts": "Wenn aktiv, kann die KI eigenstandig VASScript-Code vorschlagen und ausfuhren. Fur mehr Sicherheit deaktivieren.",
+      "allow_ai_scripts": "Wenn aktiv, kann die KI eigenstandig VASScript-Code vorschlagen und ausfuhren. Fur mehr Sicherheit deaktivieren. <font color='red'>Experimentell</font>",
       "calendar_setup": "Setup starten",
       "calendar_enabled": "Google Kalender-Zugriff aktivieren",
       "calendar_sync_enabled": "Google-Ereignisse automatisch importieren",

@@ -167,7 +167,7 @@
       "noise_pause_duration": "一時停止前の連続した高ノイズ秒数",
       "context_length": "最大コンテキスト長（トークン、0=自動検出）",
       "overflow_strategy": "テキストがコンテキストを超えた場合: truncate (切り捨て) または summarize (要約、追加API呼び出しが必要)",
-      "allow_ai_scripts": "有効にすると、AIが自律的にVASScriptコードを提案・実行できます。セキュリティを高めるには無効にしてください。",
+      "allow_ai_scripts": "有効にすると、AIが自律的にVASScriptコードを提案・実行できます。セキュリティを高めるには無効にしてください。 <font color='red'>実験的</font>",
       "calendar_setup": "設定を開始",
       "calendar_enabled": "Googleカレンダーアクセスを有効化",
       "calendar_sync_enabled": "Googleイベントを自動インポート",

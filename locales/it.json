@@ -198,7 +198,7 @@
       "noise_pause_duration": "Secondi consecutivi di rumore alto prima di attivare la pausa",
       "context_length": "Lunghezza massima contesto in token (0 = auto-detect dal modello)",
       "overflow_strategy": "Cosa fare se il testo supera il contesto: truncate (taglia) o summarize (riassumi, richiede una chiamata API extra)",
-      "allow_ai_scripts": "Se attivo, l'AI puo proporre ed eseguire codice VASScript in autonomia. Disattiva per maggiore sicurezza.",
+      "allow_ai_scripts": "Se attivo, l'AI puo proporre ed eseguire codice VASScript in autonomia. Disattiva per maggiore sicurezza. <font color='red'>Sperimentale</font>",
       "calendar_setup": "Avvia configurazione",
       "calendar_enabled": "Abilita accesso Google Calendar",
       "calendar_sync_enabled": "Importa automaticamente eventi Google in VASS",

@@ -167,7 +167,7 @@
       "noise_pause_duration": "暂停前连续高噪音秒数",
       "context_length": "最大上下文长度（令牌，0=自动检测）",
       "overflow_strategy": "文本超出上下文时的处理: truncate (截断) 或 summarize (摘要，需要额外API调用)",
-      "allow_ai_scripts": "启用后，AI可以自主提议和执行VASScript代码。为提高安全性请禁用。",
+      "allow_ai_scripts": "启用后，AI可以自主提议和执行VASScript代码。为提高安全性请禁用。 <font color='red'>实验性</font>",
       "calendar_setup": "开始设置",
       "calendar_enabled": "启用 Google 日历访问",
       "calendar_sync_enabled": "自动导入 Google 事件",
