@@ -226,7 +226,9 @@ python scripts_editor.py
 
 All scripts go in the `scripts/` folder with a `.vass` extension.
 
-See the `VASCRIPT_REFERENCE.md` file for the complete language reference.
+**Authorization**: before executing a new or modified script, VASS shows a popup asking for permission. Scripts are verified via SHA-256 hash: if a script file is modified after being authorized, permissions are automatically revoked and the popup will appear again on the next execution. This ensures no script can run on your machine without your explicit consent.
+
+See the [VASCRIPT_REFERENCE.md](./Allowed_root/VASCRIPT_REFERENCE.md) file for the complete language reference.
 
 ### Events and reminders
 

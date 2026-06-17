@@ -221,7 +221,9 @@ python scripts_editor.py
 
 Alle Skripte gehören in den Ordner `scripts/` mit der Erweiterung `.vass`.
 
-Siehe die Datei `VASCRIPT_REFERENCE.md` für die vollständige Sprachreferenz.
+**Autorisierung**: vor der Ausführung eines neuen oder geänderten Skripts zeigt VASS ein Popup, das um Erlaubnis bittet. Skripte werden per SHA-256-Hash überprüft: Wird eine Skriptdatei nach der Autorisierung geändert, werden die Berechtigungen automatisch widerrufen und das Popup erscheint bei der nächsten Ausführung erneut. So kann kein Skript ohne Ihre ausdrückliche Zustimmung auf Ihrem Rechner ausgeführt werden.
+
+Siehe die Datei [VASCRIPT_REFERENCE.md](../Allowed_root/VASCRIPT_REFERENCE.md) für die vollständige Sprachreferenz.
 
 ### Ereignisse und Erinnerungen
 

@@ -456,6 +456,50 @@ Returns "True" or "False" depending on whether text contains substring.
 ### **`equals(a, b)`**
 Returns "True" or "False" depending on whether a equals b.
 
+### **`tonum(value)`**
+Converts a value to its numeric form. Returns integer if whole, float otherwise. Returns the original value if conversion fails.
+
+```
+$temp = get_weather("Rome")
+$current = tonum($temp.temperature)
+$threshold = 30
+ifgreater($current, $threshold, say("Fa caldo!"), say("Temperatura gradevole"))
+```
+
+### **`add(a, b)`**
+Returns the sum of two numeric values.
+
+```
+$result = add(5, 3)                     # → 8
+$total = add(tonum($x), tonum($y))
+$five_minutes_from_now = add($timestamp, 300000)
+```
+
+### **`sub(a, b)`**
+Returns the result of subtracting b from a.
+
+```
+$diff = sub(10, 4)                      # → 6
+$one_hour_before = sub(tonum($temp.sunset_timestamp), 3600000)
+$countdown = sub(100, $progress)
+```
+
+### **`mul(a, b)`**
+Returns the product of two numeric values.
+
+```
+$area = mul($width, $height)
+$double = mul($value, 2)
+```
+
+### **`div(a, b)`**
+Returns the result of dividing a by b. Returns 0 if b is 0.
+
+```
+$half = div($total, 2)
+$seconds = sub($timestamp, div($timestamp, 1000))  # milliseconds to seconds
+```
+
 ## Built-in Variables
 
 These variables are automatically available in every VASScript script.

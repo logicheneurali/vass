@@ -608,7 +608,15 @@ class VassGUI(QMainWindow):
             self._pulse_anim.start()
         else:
             self._pulse_anim.stop()
-            target = 0.5 if state == "paused" else 1.0
+            if state == "paused":
+                target = 0.5
+            else:
+                target = 1.0
+            try:
+                if self._is_fullscreen() and self.app and self.app.idle_tracker.get_input_idle_seconds() > 15:
+                    return
+            except Exception:
+                pass
             self._fade_opacity(target)
 
     def _fade_opacity(self, target):

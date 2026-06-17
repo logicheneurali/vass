@@ -413,6 +413,42 @@ class VASScript:
             except (ValueError, TypeError):
                 return val
 
+        if name == "add":
+            try:
+                a = float(evaluated[0]) if evaluated else 0
+                b = float(evaluated[1]) if len(evaluated) > 1 else 0
+                result = a + b
+                return str(int(result)) if result == int(result) else str(result)
+            except (ValueError, TypeError):
+                return "0"
+
+        if name == "sub":
+            try:
+                a = float(evaluated[0]) if evaluated else 0
+                b = float(evaluated[1]) if len(evaluated) > 1 else 0
+                result = a - b
+                return str(int(result)) if result == int(result) else str(result)
+            except (ValueError, TypeError):
+                return "0"
+
+        if name == "mul":
+            try:
+                a = float(evaluated[0]) if evaluated else 0
+                b = float(evaluated[1]) if len(evaluated) > 1 else 1
+                result = a * b
+                return str(int(result)) if result == int(result) else str(result)
+            except (ValueError, TypeError):
+                return "0"
+
+        if name == "div":
+            try:
+                a = float(evaluated[0]) if evaluated else 0
+                b = float(evaluated[1]) if len(evaluated) > 1 else 1
+                result = a / b if b != 0 else 0
+                return str(int(result)) if result == int(result) else str(result)
+            except (ValueError, TypeError):
+                return "0"
+
         if name == "contains":
             text = evaluated[0] if evaluated else ""
             substr = evaluated[1] if len(evaluated) > 1 else ""

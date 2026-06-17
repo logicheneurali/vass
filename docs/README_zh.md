@@ -220,7 +220,9 @@ python scripts_editor.py
 
 所有脚本都放在 `scripts/` 文件夹中，扩展名为 `.vass`。
 
-请参阅 `VASCRIPT_REFERENCE.md` 文件以获取完整的语言参考。
+**授权**：在执行新的或修改过的脚本之前，VASS 会显示一个弹窗请求许可。脚本通过 SHA-256 哈希验证：如果脚本文件在授权后被修改，权限将自动撤销，弹窗将在下次执行时再次出现。这确保任何脚本都无法在未经您明确同意的情况下在您的计算机上运行。
+
+请参阅 [VASCRIPT_REFERENCE.md](../Allowed_root/VASCRIPT_REFERENCE.md) 文件以获取完整的语言参考。
 
 ### 事件和提醒
 

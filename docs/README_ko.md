@@ -221,7 +221,9 @@ python scripts_editor.py
 
 모든 스크립트는 `.vass` 확장자로 `scripts/` 폴더에 저장됩니다.
 
-전체 언어 참조는 `VASCRIPT_REFERENCE.md` 파일을 참조하세요.
+**권한 부여**: 새 스크립트나 수정된 스크립트를 실행하기 전에 VASS가 권한을 요청하는 팝업을 표시합니다. 스크립트는 SHA-256 해시로 검증되며, 권한 부여 후 스크립트 파일이 수정되면 권한이 자동으로 취소되고 다음 실행 시 팝업이 다시 나타납니다. 이를 통해 명시적 동의 없이는 어떤 스크립트도 컴퓨터에서 실행될 수 없습니다.
+
+전체 언어 참조는 [VASCRIPT_REFERENCE.md](../Allowed_root/VASCRIPT_REFERENCE.md) 파일을 참조하세요.
 
 ### 이벤트 및 알림
 
