@@ -880,16 +880,9 @@ class VassApp:
         self.audio_handler.stop_stream()
 
     def _start_mcp_server(self):
-        mcp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mcp_server")
-        script = os.path.join(mcp_dir, "run_server.py")
-        kill_port(9988)
-        time.sleep(1)
-        print(f"[MCP] Starting MCPGoal server from {script}")
-        self.mcp_process = subprocess.Popen(
-            [sys.executable, script],
-            cwd=mcp_dir,
-            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-        )
+        from mcp_server import McpServerThread
+        self._mcp_thread = McpServerThread()
+        self._mcp_thread.start()
         time.sleep(2)
 
     def _health_check_loop(self):
@@ -998,9 +991,6 @@ class VassApp:
             sys.stdout = getattr(self, '_debug_original_stdout', sys.__stdout__)
             self._debug_file.close()
         import subprocess as _sp
-        if self.mcp_process:
-            kill_process(self.mcp_process)
-            self.mcp_process = None
         if self.llama_process:
             kill_process(self.llama_process)
             self.llama_process = None

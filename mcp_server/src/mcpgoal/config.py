@@ -12,9 +12,9 @@ class ToolACL(BaseModel):
 
 class ServerConfig(BaseModel):
     tools: Dict[str, ToolACL]
-    log_dir: str = "LOG"
+    log_dir: str = str(Path(__file__).resolve().parent.parent.parent.parent / "mcp_server" / "LOG")
     allowed_commands: List[str] = Field(default_factory=lambda: ["ping", "ipconfig", "whoami", "echo"])
-    allowed_root: str = "../Allowed_root"
+    allowed_root: str = str(Path(__file__).resolve().parent.parent.parent.parent / "Allowed_root")
 
 
 def load_config(path: Optional[Path] = None) -> ServerConfig:

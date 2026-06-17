@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 import uvicorn
 
 from mcpgoal.config import load_config
@@ -72,8 +73,21 @@ def main() -> None:
 
     wrapped = _cors_middleware(_client_ip_middleware(http_app))
 
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    fh = RotatingFileHandler("LOG/mcp_server.log", maxBytes=2_000_000, backupCount=2,
+                             encoding="utf-8")
+    fh.setFormatter(logging.Formatter(
+        "[MCP] %(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    ))
+    root_logger.addHandler(fh)
+    sh = logging.StreamHandler()
+    sh.setFormatter(logging.Formatter("[MCP] %(levelname)s %(message)s"))
+    root_logger.addHandler(sh)
+
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "mcp", "mcp.server"):
-        logging.getLogger(name).setLevel(logging.WARNING)
+        logging.getLogger(name).setLevel(logging.DEBUG)
 
     log_config = uvicorn.config.LOGGING_CONFIG
     log_config["formatters"]["default"]["fmt"] = "[MCP] %(levelname)s %(message)s"
@@ -81,7 +95,7 @@ def main() -> None:
     log_config["loggers"]["uvicorn.access"]["handlers"] = []
 
     print("[MCP] Starting on http://127.0.0.1:9988")
-    uvicorn.run(wrapped, host="127.0.0.1", port=9988, log_level="warning", access_log=False, log_config=log_config)
+    uvicorn.run(wrapped, host="127.0.0.1", port=9988, log_level="debug", access_log=False, log_config=log_config)
 
 
 if __name__ == "__main__":

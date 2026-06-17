@@ -24,7 +24,7 @@ class RequestLogger:
         safe_name = ip.replace(":", "_").replace(".", "_").replace("/", "_")
         log_path = Path(log_dir) / f"{safe_name}_requests.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        _rotate_if_needed(str(log_path), 1_000_000)
+        _rotate_if_needed(str(log_path), 2_000_000)
         self._file = open(str(log_path), "a", encoding="utf-8")
 
     def log(self, tool: str, params: str, status: str, result: str = "") -> None:

@@ -4,8 +4,18 @@ import psutil
 
 def _get_gpu():
     try:
+        import sys as _sys
+        import subprocess as _sp
+        _orig = _sp.Popen
+        def _patched(*a, **kw):
+            if _sys.platform == "win32" and "creationflags" not in kw:
+                kw["creationflags"] = _sp.CREATE_NO_WINDOW
+            return _orig(*a, **kw)
+        _sp.Popen = _patched
         import GPUtil
+        _sp.Popen = _orig
         gpus = GPUtil.getGPUs()
+        _sp.Popen = _orig
         return gpus[0] if gpus else None
     except Exception:
         return None
