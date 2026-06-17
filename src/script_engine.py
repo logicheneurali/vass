@@ -359,8 +359,12 @@ class VASScript:
                 usr_txt = messages[-1].get("content", "") if messages else prompt
                 print(f"[Debug] [VASScript] User ({len(usr_txt)} chars):\n{usr_txt}")
 
-            msg = call_with_retry(lambda: self.app.openai_client.chat.completions.create(**kwargs), log_prefix="[VASScript]").choices[0].message
-            msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]")
+            self.app._ai_lock.acquire()
+            try:
+                msg = call_with_retry(lambda: self.app.openai_client.chat.completions.create(**kwargs), log_prefix="[VASScript]").choices[0].message
+                msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]")
+            finally:
+                self.app._ai_lock.release()
 
             resp = msg.content or ""
             if getattr(self.app, 'debug_enabled', False):

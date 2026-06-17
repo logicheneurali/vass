@@ -999,7 +999,7 @@ def copy_tree_filtered(src: Path, dst: Path):
         "Allowed_root/memory",
         "Allowed_root/memory.json",
         "Allowed_root/events.json",
-        "Allowed_root/schedule.json",
+        "Allowed_root/schedules.json",
         "Allowed_root/last_response.txt",
         "mcp_server/LOG",
         "config/commands.ini",

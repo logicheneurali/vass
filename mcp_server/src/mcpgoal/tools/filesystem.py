@@ -1,6 +1,6 @@
 from pathlib import Path
 
-_PROTECTED_FILES = {"events.json", "schedule.json", "memory.json", "memory_tags.json"}
+_PROTECTED_FILES = {"events.json", "schedules.json", "memory.json", "memory_tags.json"}
 
 
 def _resolve_safe(path: str, allowed_root: str) -> Path:

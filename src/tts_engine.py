@@ -61,6 +61,9 @@ class TtsEngine:
 
     def _speak_worker(self):
         while self._speaker_running:
+            if self._get_state() in ("waiting", "waiting_resources"):
+                time.sleep(0.1)
+                continue
             with self._speak_lock:
                 if not self._speak_queue:
                     item = None
@@ -131,6 +134,8 @@ class TtsEngine:
         def _cb(outdata, frames, _time, _status):
             if self._sd_abort.is_set():
                 raise sd.CallbackAbort()
+            if self._tts_data is None:
+                raise sd.CallbackStop()
             n = min(len(self._tts_data) - self._sd_pos, frames)
             outdata[:n, 0] = self._tts_data[self._sd_pos:self._sd_pos + n]
             self._sd_pos += n
@@ -320,8 +325,6 @@ class TtsEngine:
             return
         self.tts_playing = False
         prev = self._state_before_tts
-        if prev == "waiting":
-            prev = "listening"
         self._set_state(prev)
         self._tts_done.set()
         self.gui.stop_tts_playback()

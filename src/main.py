@@ -70,6 +70,8 @@ class _TeeOutput:
     def flush(self):
         for f in self._files:
             f.flush()
+    def isatty(self):
+        return False
 
 
 def _rotate_debug_log(path, max_bytes):
@@ -176,6 +178,9 @@ class ScriptQueue:
 
     def _worker(self):
         while True:
+            if self.app.state in ("waiting", "waiting_resources"):
+                time.sleep(0.1)
+                continue
             with self._lock:
                 if not self._queue:
                     item = None
@@ -195,6 +200,8 @@ class ScriptQueue:
 class VassApp:
     def __init__(self, gui, settings_file="config/settings.ini"):
         self.gui = gui
+        self.state = "loading"
+        self._ai_lock = threading.Lock()
         self.settings_file = settings_file
         self.settings = self._load_settings()
         inp = int(self.settings.get("input_device", -1))
@@ -285,7 +292,6 @@ class VassApp:
         self.running = False
         self._trim_lock = threading.Lock()
         self.script_queue = ScriptQueue(self)
-        self.state = "loading"
         self.state_lock = threading.RLock()
         from timer_manager import TimerManager
         self.timer_manager = TimerManager(self)
@@ -840,10 +846,6 @@ class VassApp:
                                 self._running_noise_floor = 0.99 * self._running_noise_floor + 0.01 * nf
                             nf = self._running_noise_floor
                             self._nf_print_counter += 1
-                        if self._nf_print_counter >= 250:
-                            self._nf_print_counter = 0
-                            if nf > self.noise_pause_threshold and self.debug_enabled:
-                                print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
                             if self.noise_pause and nf > self.noise_pause_threshold:
                                 self._noise_high_frames += 1
                                 frames_per_sec = 50
@@ -856,6 +858,10 @@ class VassApp:
                                     self.set_state("paused")
                             else:
                                 self._noise_high_frames = max(0, self._noise_high_frames - 1)
+                            if self._nf_print_counter >= 250:
+                                self._nf_print_counter = 0
+                                if nf > self.noise_pause_threshold and self.debug_enabled:
+                                    print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
 
                     self.audio_handler.process_recording(frame)
                     
@@ -1364,6 +1370,7 @@ class VassApp:
                 return
             self.set_state("waiting")
 
+        self._ai_lock.acquire()
         try:
             now = time.strftime("%Y-%m-%d %H:%M:%S")
             base = self.system_message or ""
@@ -1520,7 +1527,9 @@ class VassApp:
                     f.write(clean_text)
             except Exception:
                 pass
-            self.tts.speak(clean_text)
+            self.tts.speak_nowait(clean_text)
+            self.tts._tts_done.wait()
+            self.set_state("listening")
         except Exception as e:
             body = getattr(e, "body", None)
             if isinstance(body, dict):
@@ -1534,6 +1543,8 @@ class VassApp:
             print(f"Error calling AI Agent: {e}")
             threading.Thread(target=self.tts.speak, args=(err_msg,), daemon=True).start()
             self.set_state("listening")
+        finally:
+            self._ai_lock.release()
 
     def inject_context(self, text):
         self.context_notes.append(text.strip())

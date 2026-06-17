@@ -780,16 +780,43 @@ class VassGUI(QMainWindow):
         self.player.load_data(data, samplerate)
         self.stacked.setCurrentWidget(self.player)
         self._tts_polling = True
+        self._tts_total_samples = total_samples
+        self._tts_on_complete = on_complete
+        self._tts_last_pos = -1
+        self._tts_stall_count = 0
         self._poll_tts()
 
     def _poll_tts(self):
         if not self._tts_polling:
             return
+        pos = 0
         try:
             pos = self.app.get_tts_position() if self.app else 0
             self.player.set_pos(pos)
         except Exception:
             pass
+        done = False
+        if pos >= getattr(self, '_tts_total_samples', 0) and pos > 0:
+            done = True
+        elif pos == self._tts_last_pos and pos > 0:
+            self._tts_stall_count += 1
+            if self._tts_stall_count > 40:
+                done = True
+        else:
+            self._tts_stall_count = 0
+        self._tts_last_pos = pos
+        if done:
+            self._tts_polling = False
+            try:
+                if self.app and self.app.tts:
+                    self.app.tts._sd_abort.set()
+            except Exception:
+                pass
+            cb = getattr(self, '_tts_on_complete', None)
+            self._tts_on_complete = None
+            if cb:
+                cb()
+            return
         QTimer.singleShot(80, self._poll_tts)
 
     def stop_tts_playback(self):

@@ -222,12 +222,12 @@ def create_server(config: ServerConfig) -> FastMCP:
 
     @mcp.tool()
     async def read_file(path: str) -> str:
-        """Read ANY file from Allowed_root. Use for memory.json, events.json, schedule.json, VASCRIPT_REFERENCE.md. Provide just the filename."""
+        """Read ANY file from Allowed_root. Use for memory.json, events.json, schedules.json, VASCRIPT_REFERENCE.md. Provide just the filename."""
         return await _tool("read_file", f"path={path}", filesystem.read_file(path, config.allowed_root), config)
 
     @mcp.tool()
     async def write_file(path: str, content: str) -> str:
-        """Write content to a file in Allowed_root. Cannot overwrite events.json, schedule.json, or memory.json — use dedicated tools for those."""
+        """Write content to a file in Allowed_root. Cannot overwrite events.json, schedules.json, or memory.json — use dedicated tools for those."""
         return await _tool("write_file", f"path={path}", filesystem.write_file(path, content, config.allowed_root), config)
 
     @mcp.tool()
