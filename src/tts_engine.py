@@ -319,11 +319,11 @@ class TtsEngine:
         if not self.tts_playing:
             return
         self.tts_playing = False
-        self._tts_done.set()
         prev = self._state_before_tts
         if prev == "waiting":
             prev = "listening"
         self._set_state(prev)
+        self._tts_done.set()
         self.gui.stop_tts_playback()
         self._tts_data = None
         self._tts_sr = None
