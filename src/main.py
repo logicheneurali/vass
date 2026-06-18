@@ -727,10 +727,10 @@ class VassApp:
             _rotate_debug_log("log/debug.log", max_bytes)
             self._debug_file = open("log/debug.log", "a", encoding="utf-8")
             self._debug_original_stdout = sys.stdout
+            files = [self._debug_file]
             if sys.stdout and sys.stdout.isatty():
-                sys.stdout = _TeeOutput(sys.__stdout__, self._debug_file)
-            else:
-                sys.stdout = self._debug_file
+                files.insert(0, sys.__stdout__)
+            sys.stdout = _TeeOutput(*files)
 
         print(f"VASS v{__version__} - Voice assistant software")
         self.voice_recognition.load_models()
@@ -1416,6 +1416,7 @@ class VassApp:
             if found:
                 print(f"[Blacklist] Bloccato: parole {found} in '{prompt}'")
                 threading.Thread(target=self.tts.speak, args=(t("ai.blacklisted", self.language),), daemon=True).start()
+                self.set_state("listening")
                 return
 
         if is_local_url(self.ai_url):
@@ -1607,8 +1608,8 @@ class VassApp:
             else:
                 err_msg = str(e)
             print(f"Error calling AI Agent: {e}")
-            threading.Thread(target=self.tts.speak, args=(err_msg,), daemon=True).start()
             self.set_state("listening")
+            threading.Thread(target=self.tts.speak, args=(err_msg,), daemon=True).start()
         finally:
             self._ai_lock.release()
 
