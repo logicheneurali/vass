@@ -25,19 +25,22 @@ def _levenshtein(a, b):
 
 class CommandExecutor:
     def __init__(self, commands_file="config/commands.ini", similarity_threshold=0.6, language="en",
-                 word_learning_enabled=False):
+                 word_learning_enabled=False, app=None):
         self.commands_file = commands_file
         self.similarity_threshold = similarity_threshold
         self.language = language
         self.word_learning_enabled = word_learning_enabled
+        self.app = app
         self.commands = {}
         self.scopes = {}
+        self._delay_originals = {}
         self._word_weights = {}
         self._weights_path = None
         self.load_commands()
         self._load_word_weights()
 
     def load_commands(self):
+        self._delay_originals.clear()
         if not os.path.exists(self.commands_file):
             print(f"Commands file {self.commands_file} not found.")
         else:
@@ -84,11 +87,36 @@ class CommandExecutor:
             if variants==True:
                 self._add_delayed_variants(cmd_keyword,value)
 
-    def _add_delayed_variants(self,key,value):
-        suffixes= "fra,tra,in"
-        newkey= f"{key} {suffixes} {{duration}}"
-        self._add_command(newkey,value,False,"delayed_command")
-        return        
+    _DELAY_PREPS = {
+        "it": ["fra", "tra", "in"],
+        "en": ["in", "after", "within"],
+        "de": ["in", "nach", "innerhalb"],
+        "es": ["en", "dentro", "dentro de"],
+        "fr": ["dans", "apres", "d'ici"],
+        "pt": ["em", "daqui a", "depois de"],
+    }
+
+    _DELAY_SUFFIX = {
+        "ja": "後に",
+        "ko": "후에",
+        "zh": "后",
+    }
+
+    def _add_delayed_variants(self, key, value):
+        lang = self.language
+        suffix = self._DELAY_SUFFIX.get(lang)
+        if suffix:
+            delayed_kw = f"{{duration}}{suffix} {key}"
+            self.commands[delayed_kw] = value
+            self.scopes[delayed_kw] = "delayed_command"
+            self._delay_originals[delayed_kw] = key
+            return
+        preps = self._DELAY_PREPS.get(lang, self._DELAY_PREPS["en"])
+        for prep in preps:
+            delayed_kw = f"{key} {prep} {{duration}}"
+            self.commands[delayed_kw] = value
+            self.scopes[delayed_kw] = "delayed_command"
+            self._delay_originals[delayed_kw] = key
 
     def reload_commands(self):
         self.commands.clear()
@@ -255,25 +283,38 @@ class CommandExecutor:
                 m = re.match(pattern, transcribed_lower)
                 if m:
                     extracted = m.groups()
-                    if ratio > best_ratio:
+                    curr_scope = self.scopes.get(keyword, "command")
+                    if ratio > best_ratio or (ratio == best_ratio and curr_scope == "delayed_command" and self.scopes.get(best_keyword, "command") != "delayed_command"):
                         best_ratio = ratio
                         best_keyword = keyword
                         best_vars = dict(zip(var_names, extracted))
                 else:
                     ratio *= 0.6
-                    if ratio > best_ratio:
+                    curr_scope = self.scopes.get(keyword, "command")
+                    if ratio > best_ratio or (ratio == best_ratio and curr_scope == "delayed_command" and self.scopes.get(best_keyword, "command") != "delayed_command"):
                         best_ratio = ratio
                         best_keyword = keyword
                         best_vars = self._extract_vars_fuzzy(kw_lower, transcribed_lower, var_names)
             else:
                 ratio = difflib.SequenceMatcher(None, transcribed_lower, kw_lower).ratio()
-                if ratio > best_ratio:
+                curr_scope = self.scopes.get(keyword, "command")
+                if ratio > best_ratio or (ratio == best_ratio and curr_scope == "delayed_command" and self.scopes.get(best_keyword, "command") != "delayed_command"):
                     best_ratio = ratio
                     best_keyword = keyword
                     best_vars = None
 
         if best_keyword and best_ratio >= self.similarity_threshold:
             cmd = self.commands[best_keyword]
+            scope = self.scopes.get(best_keyword, "command")
+            if scope == "delayed_command":
+                duration_text = best_vars.get("duration", "") if best_vars else ""
+                original_key = self._delay_originals.get(best_keyword, "")
+                if not duration_text or not original_key:
+                    return None, None
+                for k, v in best_vars.items():
+                    if k != "duration":
+                        original_key = original_key.replace(f"{{{k}}}", v)
+                return ("__delayed__", {"duration": duration_text, "original_key": original_key})
             _, var_names = self._parse_variables(best_keyword.lower().strip())
             if var_names and not best_vars:
                 return None, None

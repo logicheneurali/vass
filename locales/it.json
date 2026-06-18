@@ -22,9 +22,9 @@
       "help": "Help",
       "help_usage": "Utilizzo",
       "help_commands": "Comandi",
-  "help_vasscript": "VASScript",
-    "memory_editor": "Memoria Permanente"
-  },
+      "help_vasscript": "VASScript",
+      "memory_editor": "Memoria Permanente"
+    },
     "dialog": {
       "exit_title": "Uscita",
       "exit_message": "Uscire dall'applicazione?"
@@ -484,5 +484,9 @@
     "add_tag": "Aggiungi Tag",
     "delete_tag": "Elimina Tag",
     "no_tags": "Nessun tag configurato."
+  },
+  "delayed": {
+    "scheduled": "Ok, eseguiro' '{cmd}' come richiesto",
+    "parse_error": "Non ho capito la durata, riprova"
   }
 }

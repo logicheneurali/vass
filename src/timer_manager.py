@@ -27,7 +27,7 @@ class TimerManager:
         self.app = app
         self._timers = {}
 
-    def start(self, duration_str: str) -> str:
+    def start(self, duration_str: str, command_text: str = None) -> str:
         print(f"[Timer] Request: duration_str='{duration_str}'")
         from i18n import t
         lang = getattr(self.app, "language", "en")
@@ -42,8 +42,9 @@ class TimerManager:
             "seconds": seconds,
             "remaining": seconds,
             "started": _time.time(),
+            "command_text": command_text,
         }
-        threading.Thread(target=self._run, args=(tid, seconds), daemon=True).start()
+        threading.Thread(target=self._run, args=(tid, seconds, command_text), daemon=True).start()
         print(f"[Timer] Created {tid}: duration={duration_str} ({seconds}s)")
         return t("timer.started", lang)
 
@@ -71,12 +72,16 @@ class TimerManager:
             return t("timer.cancelled", lang).replace("{id}", tid)
         return t("timer.not_found", lang).replace("{id}", tid)
 
-    def _run(self, tid, seconds):
+    def _run(self, tid, seconds, command_text=None):
         _time.sleep(seconds)
         if tid not in self._timers:
             return
         info = self._timers.pop(tid, None)
         if not info:
+            return
+        if command_text:
+            if hasattr(self.app, '_process_delayed_command'):
+                self.app._process_delayed_command(command_text)
             return
         from i18n import t
         lang = getattr(self.app, "language", "en")

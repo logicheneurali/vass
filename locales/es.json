@@ -484,5 +484,9 @@
     "add_tag": "Añadir Tag",
     "delete_tag": "Eliminar Tag",
     "no_tags": "Sin tags configurados."
+  },
+  "delayed": {
+    "scheduled": "Ok, ejecutare '{cmd}' como pediste",
+    "parse_error": "No entendi la duracion, intentalo de nuevo"
   }
 }

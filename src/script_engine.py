@@ -363,6 +363,9 @@ class VASScript:
             try:
                 msg = call_with_retry(lambda: self.app.openai_client.chat.completions.create(**kwargs), log_prefix="[VASScript]").choices[0].message
                 msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]")
+            except Exception as e:
+                print(f"[VASScript] AI error: {e}")
+                return ""
             finally:
                 self.app._ai_lock.release()
 
@@ -370,6 +373,29 @@ class VASScript:
             if getattr(self.app, 'debug_enabled', False):
                 print(f"[Debug] --- [VASScript] AI Response ({len(resp)} chars) ---\n{resp}")
 
+            return resp
+
+        if name == "ai_raw":
+            prompt = evaluated[0] if evaluated else ""
+            messages = [{"role": "user", "content": prompt}]
+            kwargs = dict(
+                model=self.app.ai_model,
+                messages=messages,
+                temperature=0.3,
+                extra_body={"disable_thinking": True},
+            )
+            self.app._ai_lock.acquire()
+            try:
+                msg = call_with_retry(
+                    lambda: self.app.openai_client.chat.completions.create(**kwargs),
+                    retries=2, delays=(1, 2), log_prefix="[VASScript]"
+                ).choices[0].message
+            except Exception as e:
+                print(f"[VASScript] AI raw error: {e}")
+                return ""
+            finally:
+                self.app._ai_lock.release()
+            resp = msg.content or ""
             return resp
 
         if name == "say":

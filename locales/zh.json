@@ -485,5 +485,9 @@
     "add_tag": "添加标签",
     "delete_tag": "删除标签",
     "no_tags": "未配置标签。"
+  },
+  "delayed": {
+    "scheduled": "好的，我将执行'{cmd}'",
+    "parse_error": "我没有理解持续时间，请重试"
   }
 }

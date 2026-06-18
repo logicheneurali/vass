@@ -16,6 +16,15 @@ say($result)
 ```
 
 
+### **`ai_raw(prompt)`**
+Sends a prompt to the AI without tools or memory. Returns the response text. Faster and more deterministic than `ai()` — ideal for conversions, calculations, and short translations.
+
+```
+$n = ai_raw("Convert '10 minuti' to seconds")
+$n = ai_raw("Translate 'hello' to Italian")
+```
+
+
 ### **`say(text, speed?)`**
 Reads text aloud via TTS (text-to-speech). Optional speed parameter (1.0 = normal, 1.5 = faster, 0.5 = slower). Requires authorization.
 

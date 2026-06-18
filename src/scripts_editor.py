@@ -61,6 +61,7 @@ SCRIPT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 
 TEMPLATES = {
     "ai": 'ai("prompt")',
+    "ai_raw": 'ai_raw("prompt")',
     "say": 'say("testo")',
     "ai → say": '$risultato = ai("prompt")\nsay($risultato)',
     "ifcontains": 'ifcontains($variabile, "testo", say("vero"), say("falso"))',

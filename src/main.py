@@ -283,7 +283,7 @@ class VassApp:
         )
         self.voice_recognition.input_volume = self.settings.get("input_volume", 1.0)
         self.voice_recognition.debug_enabled = self.debug_enabled
-        self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language, word_learning_enabled=self.word_learning_enabled)
+        self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language, word_learning_enabled=self.word_learning_enabled, app=self)
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
         if self.context_length <= 0:
             threading.Thread(target=self._detect_context_length, daemon=True).start()
@@ -1179,6 +1179,12 @@ class VassApp:
             self.set_state("listening")
             return
         matched_command, matched_vars = self.command_executor.find_matching_command(transcribed_text)
+        if matched_command == "__delayed__":
+            duration_text = matched_vars.get("duration", "") if matched_vars else ""
+            original_key = matched_vars.get("original_key", "") if matched_vars else ""
+            threading.Thread(target=self._execute_delayed_command,
+                             args=(duration_text, original_key, transcribed_text), daemon=True).start()
+            return
         if matched_command and is_script_command(matched_command):
             print(f"Executing script command: {matched_command}")
             script_name = strip_script_prefix(matched_command)
@@ -1192,6 +1198,66 @@ class VassApp:
             print("No matching command found. Sending to AI Agent.")
             self.command_executor.track_command_outcome(transcribed_text, True)
             threading.Thread(target=self._handle_ai_fallback, args=(transcribed_text,), daemon=True).start()
+
+    def _execute_delayed_command(self, duration_text, original_key, transcribed_text):
+        from i18n import t
+        lang = getattr(self, "language", "en")
+        seconds = self._parse_delay_duration(duration_text)
+        if seconds is None:
+            self.tts.enqueue(t("delayed.parse_error", lang))
+            self.set_state("listening")
+            return
+        duration_str = f"{seconds}s"
+        mins = seconds // 60
+        if mins >= 1:
+            duration_str = f"{mins}m"
+        if mins >= 60:
+            h = mins // 60
+            remaining_m = mins % 60
+            duration_str = f"{h}h" + (f"{remaining_m}m" if remaining_m else "")
+        self.timer_manager.start(duration_str, command_text=original_key)
+        print(f"[Delayed] Scheduled '{original_key}' in {seconds}s")
+        self.tts.enqueue(t("delayed.scheduled", lang).replace("{cmd}", original_key))
+        self.set_state("listening")
+
+    def _parse_delay_duration(self, text):
+        try:
+            from timer_manager import parse_duration
+            secs = parse_duration(text)
+            if secs > 10:
+                return secs
+        except Exception:
+            pass
+        try:
+            lang = getattr(self, "language", "en")
+            prompt = (
+                f"Convert this relative time to seconds: '{text}'. "
+                f"Reply ONLY the number, no other text. "
+                f"Examples: '10 minuti' -> 600, '1 ora' -> 3600, "
+                f"'un ora' -> 3600, '30 secondi' -> 30, '2 ore' -> 7200."
+            )
+            kwargs = dict(
+                model=self.ai_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=50,
+            )
+            msg = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs)).choices[0].message
+            result = msg.content.strip()
+            secs = int(re.search(r'\d+', result).group())
+            print(f"[Delayed] AI parsed '{text}' -> {secs}s")
+            return secs
+        except Exception as e:
+            print(f"[Delayed] Duration parse failed: {e}")
+            return None
+
+    def _process_delayed_command(self, text):
+        from utils import is_script_command, strip_script_prefix
+        cmd, vars = self.command_executor.find_matching_command(text)
+        if cmd and is_script_command(cmd):
+            self._run_script(strip_script_prefix(cmd), params=vars, transcribed_text=text)
+        elif cmd:
+            self.command_executor.execute_command(cmd)
 
     def _run_script(self, name_or_code=None, result_callback=None, code=None, params=None, transcribed_text=None, silent=False):
         self.script_queue.enqueue(name_or_code, code, params, result_callback, "direct", transcribed_text, silent=silent)
