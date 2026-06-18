@@ -31,6 +31,7 @@ class CommandExecutor:
         self.language = language
         self.word_learning_enabled = word_learning_enabled
         self.commands = {}
+        self.scopes = {}
         self._word_weights = {}
         self._weights_path = None
         self.load_commands()
@@ -58,7 +59,7 @@ class CommandExecutor:
         else:
             print(f"Commands loaded: {len(self.commands)} total")
 
-    def _add_command(self, key, value):
+    def _add_command(self, key, value,variants=True,scope="command"):
         keyword = key.lower().strip()
         var_suffix = ""
         m = re.search(r'(\{\w+\}.*)$', keyword)
@@ -79,6 +80,15 @@ class CommandExecutor:
             if var_suffix:
                 cmd_keyword += " " + var_suffix
             self.commands[cmd_keyword] = value
+            self.scopes[cmd_keyword] = scope
+            if variants==True:
+                self._add_delayed_variants(cmd_keyword,value)
+
+    def _add_delayed_variants(self,key,value):
+        suffixes= "fra,tra,in"
+        newkey= f"{key} {suffixes} {{duration}}"
+        self._add_command(newkey,value,False,"delayed_command")
+        return        
 
     def reload_commands(self):
         self.commands.clear()
@@ -324,14 +334,20 @@ class CommandExecutor:
 
     def execute_command(self, command):
         import base64
+        import sys
         try:
-            encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
-            subprocess.run(
-                [
-                    "powershell", "-NoProfile", "-WindowStyle", "Hidden", "-EncodedCommand", encoded
-                ],
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
+            if sys.platform == "win32":
+                encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
+                subprocess.run(
+                    ["powershell", "-NoProfile", "-WindowStyle", "Hidden",
+                     "-EncodedCommand", encoded],
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+            else:
+                subprocess.run(
+                    command, shell=True,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
             print(f"Command started: {command}")
             return True
         except Exception as e:
