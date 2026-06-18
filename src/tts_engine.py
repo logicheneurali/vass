@@ -61,7 +61,7 @@ class TtsEngine:
 
     def _speak_worker(self):
         while self._speaker_running:
-            if self._get_state() in ("waiting", "waiting_resources", "recording"):
+            if self._get_state() in ("waiting", "waiting_resources", "recording", "playing"):
                 time.sleep(0.1)
                 continue
             with self._speak_lock:

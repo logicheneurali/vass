@@ -216,6 +216,8 @@ class VassApp:
         self.system_message = self.settings["system_message"]
         self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
         self.context_length = self.settings.get("context_length", 0)
+        self._tokenizer = None
+        self._summary_cache = {}
         self.debug_enabled = self.settings.get("debug_enabled", False)
         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
         self.gui_x = self.settings["gui_x"]
@@ -822,7 +824,7 @@ class VassApp:
                             with open("crash.log", "a") as f:
                                 f.write(f"detect_wake_word error: {ex}\n")
                             wake = False
-                        if wake:
+                        if wake and self.state == "listening":
                             self._noise_high_frames = 0
                             self._nf_print_counter = 0
                             self._running_noise_floor = None
@@ -1006,15 +1008,37 @@ class VassApp:
             kill_process(self.llama_process)
             self.llama_process = None
 
-    def _estimate_tokens(self, text):
+    def _get_tokenizer(self):
+        if self._tokenizer is not None:
+            return self._tokenizer
+        try:
+            import tiktoken
+            self._tokenizer = tiktoken.get_encoding("cl100k_base")
+        except Exception:
+            try:
+                self._tokenizer = tiktoken.encoding_for_model(self.ai_model)
+            except Exception:
+                self._tokenizer = None
+        return self._tokenizer
+
+    def _count_tokens(self, text):
+        tok = self._get_tokenizer()
+        if tok:
+            try:
+                return len(tok.encode(text))
+            except Exception:
+                pass
         return len(text) // 2
 
+    def _estimate_tokens(self, text):
+        return self._count_tokens(text)
+
     def _estimate_system_overhead(self):
-        overhead = len(self.system_message or "") + 50
-        overhead += len(self._build_memory_content())
+        overhead = self._count_tokens(self.system_message or "") + 50
+        overhead += self._count_tokens(self._build_memory_content())
         if self.allow_ai_scripts:
-            overhead += len(MCP_PROMPT)
-            overhead += len(_load_vascript_reference())
+            overhead += self._count_tokens(MCP_PROMPT)
+            overhead += self._count_tokens(_load_vascript_reference())
         return overhead
 
     def _process_chat_text(self, text):
@@ -1464,7 +1488,7 @@ class VassApp:
                 model=self.ai_model,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, len(m["content"]) // 2) for m in messages) - (2500 if tools else 0) - 256, 4096)),
+                max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - (2500 if tools else 0) - 256, 4096)),
                 extra_body={"disable_thinking": True}
             )
 
@@ -1472,21 +1496,21 @@ class VassApp:
                 kwargs["tools"] = tools
 
             ctx_available = (self.context_length or 4096)
-            prompt_tokens_est = sum(max(1, len(m["content"]) // 2) for m in messages)
+            prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
             if tools:
                 prompt_tokens_est += 2500
             if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
                 if tools and tools_block in messages[0]["content"]:
                     messages[0]["content"] = messages[0]["content"][:messages[0]["content"].rfind(tools_block)].rstrip()
                     kwargs.pop("tools", None)
-                    prompt_tokens_est = sum(max(1, len(m["content"]) // 2) for m in messages)
+                    prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
                     kwargs["max_tokens"] = max(200, min(ctx_available - prompt_tokens_est - 128, 4096))
                     print(f"[AI] Dropped MCP tools to fit context ({prompt_tokens_est} prompt est, {kwargs['max_tokens']} max_tok)")
                 if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
                     excess = (prompt_tokens_est + kwargs["max_tokens"] - ctx_available) * 2 + 200
                     trim_at = max(500, len(messages[0]["content"]) - excess)
                     messages[0]["content"] = messages[0]["content"][:trim_at]
-                    kwargs["max_tokens"] = max(200, ctx_available - len(messages[0]["content"]) // 2 - len(messages[1]["content"]) // 2 - 128)
+                    kwargs["max_tokens"] = max(200, ctx_available - self._count_tokens(messages[0]["content"]) - self._count_tokens(messages[1]["content"]) - 128)
                     print(f"[AI] Trimmed system prompt by {excess} chars to fit context")
 
             print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools) if tools else 0}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}, max_tokens={kwargs.get('max_tokens', 'N/A')}")
@@ -1512,13 +1536,13 @@ class VassApp:
                             kwargs.pop("tools", None)
                             messages[0]["content"] = messages[0]["content"][:messages[0]["content"].rfind(tools_block)].rstrip() if tools_block in messages[0]["content"] else messages[0]["content"]
                             kwargs["messages"] = messages
-                            kwargs["max_tokens"] = max(200, (self.context_length or 4096) - sum(max(1, len(m["content"]) // 2) for m in messages) - 128)
+                            kwargs["max_tokens"] = max(200, (self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - 128)
                             print(f"[AI] Context overflow - retrying without tools (attempt {4 - overflow_retries}/3)")
                         else:
                             excess = len(messages[0]["content"]) // 4
                             messages[0]["content"] = messages[0]["content"][:-excess] if excess > 0 else messages[0]["content"][:2000]
                             kwargs["messages"] = messages
-                            kwargs["max_tokens"] = max(200, (self.context_length or 4096) - sum(max(1, len(m["content"]) // 2) for m in messages) - 128)
+                            kwargs["max_tokens"] = max(200, (self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - 128)
                             print(f"[AI] Context overflow - trimming system content (attempt {4 - overflow_retries}/3)")
                     else:
                         raise e
@@ -1664,6 +1688,14 @@ class VassApp:
                             if os.path.exists(sf_path):
                                 with open(sf_path, encoding="utf-8") as sf:
                                     summary_text = json.load(sf).get("info", "")
+                            if summary_text and summary_text != "No Info":
+                                cached = self._summary_cache.get(summary_id)
+                                if cached:
+                                    summary_text = cached
+                                elif self._count_tokens(summary_text) > 500:
+                                    summary_text = self._compress_summary(summary_text, summary_id, mem_data)
+                                    if summary_text:
+                                        self._summary_cache[summary_id] = summary_text
                         parts.append(f"summary : {summary_text}")
                     for vid in mem_data.get("history", []):
                         hf_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory", f"{vid}.json")
@@ -1682,6 +1714,34 @@ class VassApp:
                     pass
                 break
         return ""
+
+    def _compress_summary(self, summary_text, summary_id, mem_data):
+        import json as _json
+        try:
+            prompt = (
+                "Condense this summary to under 500 tokens. "
+                "Keep ALL key facts, names, dates, preferences. "
+                "Output ONLY the condensed text, no JSON, no commentary.\n\n"
+                f"{summary_text}"
+            )
+            resp = call_with_retry(lambda: self.openai_client.chat.completions.create(
+                model=self.ai_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=500,
+                extra_body={"disable_thinking": True}
+            ), log_prefix="[Summary]")
+            compressed = (resp.choices[0].message.content or "").strip()
+            if compressed:
+                print(f"[Summary] Compressed {len(summary_text)} -> {len(compressed)} chars")
+                mem_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory")
+                sf_path = os.path.join(mem_dir, f"{summary_id}.json")
+                with open(sf_path, "w", encoding="utf-8") as sf:
+                    _json.dump({"info": compressed}, sf, ensure_ascii=False, indent=2)
+                return compressed
+        except Exception as e:
+            print(f"[Summary] Compression failed: {e}")
+        return summary_text
 
     def _detect_context_length(self):
         try:
