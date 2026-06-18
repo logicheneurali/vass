@@ -178,7 +178,7 @@ class ScriptQueue:
 
     def _worker(self):
         while True:
-            if self.app.state in ("waiting", "waiting_resources"):
+            if self.app.state in ("waiting", "waiting_resources", "playing", "recording"):
                 time.sleep(0.1)
                 continue
             with self._lock:
@@ -580,6 +580,8 @@ class VassApp:
                 pass
             elif current == "waiting_resources":
                 self.set_state("listening")
+        if self.gui.player.isVisible():
+            self.stop_playback()
 
     def stop_playback(self):
         try:

@@ -76,8 +76,10 @@ class TtsEngine:
                 try:
                     self._tts_done.clear()
                     self._speak_kokoro(text, speed)
-                    if not self._tts_done.wait(timeout=60):
-                        print("[TTS] WARNING: _tts_done timeout after 60s, forcing")
+                    duration = len(getattr(self, '_tts_data', [])) / max(getattr(self, '_tts_sr', 24000) or 24000, 1)
+                    timeout = max(60, duration * 1.5 + 5)
+                    if not self._tts_done.wait(timeout=timeout):
+                        print(f"[TTS] WARNING: _tts_done timeout after {timeout:.0f}s, forcing")
                         self._tts_done.set()
                     if on_done:
                         try:
@@ -116,6 +118,7 @@ class TtsEngine:
         self._state_before_tts = self._get_state()
         self.tts_playing = True
         self._set_state("playing")
+        print(f"[TTS] Playback started (prev_state={self._state_before_tts})")
 
     def _play_wav(self, wav_path, speed=1.0):
         self._tts_done.clear()
@@ -202,6 +205,16 @@ class TtsEngine:
                 self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
             self._tts_wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             wav_path = self._tts_wav_path
+            words = text.split()
+            since_punct = 0
+            for i, w in enumerate(words):
+                since_punct += 1
+                if any(p in w for p in ('.', '!', '?')):
+                    since_punct = 0
+                elif since_punct >= 30:
+                    words[i] += "\n"
+                    since_punct = 0
+            text = " ".join(words)
             generator = self._kokoro_pipeline(text, voice=self._kokoro_voice, speed=speed,
                                                split_pattern=r'(?<=[.!?])\s+|\n+')
             all_audio = []
@@ -325,6 +338,7 @@ class TtsEngine:
         self.tts_playing = False
         prev = self._state_before_tts
         self._set_state(prev)
+        print(f"[TTS] Playback ended, restored state to {prev}")
         self._tts_done.set()
         self.gui.stop_tts_playback()
         self._tts_data = None
