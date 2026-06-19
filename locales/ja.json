@@ -126,7 +126,8 @@
       "google_home_device_id": "デバイスID",
       "word_learning_enabled": "適応学習（実験的）",
       "debug_enabled": "デバッグ有効",
-      "debug_log_max_kb": "最大ログKB"
+      "debug_log_max_kb": "最大ログKB",
+      "compress_context": "コンテキスト圧縮（実験的）"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -181,7 +182,8 @@
       "google_home_device_id": "Actions ConsoleのデバイスインスタンスID",
       "word_learning_enabled": "成功したコマンドを生成する単語を学習し、認識を優先します。データはword_weights.jsonに保存されます。",
       "debug_enabled": "log/debug.logへのファイルログとOCRデバッグ画像を有効にする",
-      "debug_log_max_kb": "デバッグログファイルの最大サイズKB（デフォルト1024）"
+      "debug_log_max_kb": "デバッグログファイルの最大サイズKB（デフォルト1024）",
+      "compress_context": "AIに送信されるテキストから冠詞、前置詞、接続詞を削除し、トークン数を削減します。"
     },
     "section_labels": {
       "gui": "ウィンドウ",

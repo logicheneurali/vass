@@ -126,7 +126,8 @@
       "google_home_device_id": "ID del dispositivo",
       "word_learning_enabled": "Aprendizaje adaptativo (EXPERIMENTAL)",
       "debug_enabled": "Debug activo",
-      "debug_log_max_kb": "Max KB log"
+      "debug_log_max_kb": "Max KB log",
+      "compress_context": "Compresion de contexto (EXPERIMENTAL)"
     },
     "field_descriptions": {
       "x": "Posición X en pantalla",
@@ -181,7 +182,8 @@
       "google_home_device_id": "ID de instancia del dispositivo desde Actions Console",
       "word_learning_enabled": "Aprende qué palabras producen comandos exitosos y favorece su reconocimiento. Datos guardados en word_weights.json.",
       "debug_enabled": "Activa el registro en log/debug.log e imágenes de debug OCR",
-      "debug_log_max_kb": "Tamaño máximo del archivo debug en KB (por defecto 1024)"
+      "debug_log_max_kb": "Tamaño máximo del archivo debug en KB (por defecto 1024)",
+      "compress_context": "Elimina articulos, preposiciones y conjunciones del texto enviado a la IA para reducir el numero de tokens."
     },
     "section_labels": {
       "gui": "Ventana",

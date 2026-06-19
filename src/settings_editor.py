@@ -59,7 +59,7 @@ QSlider::sub-page:horizontal {{
 }}
 """
 
-BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled"}
+BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context"}
 HIDDEN_KEYS = {"lastmode"}
 
 COMBO_OPTIONS = {
@@ -77,6 +77,7 @@ SLIDER_CONFIG = {
 
 _SECTION_DEFAULTS = {
     "audio": {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "output_volume": "1.0"},
+    "ai": {"compress_context": "false"},
     "google": {
         "calendar_enabled": "false", "calendar_sync_enabled": "false",
         "calendar_sync_minutes": "30", "calendar_sync_days": "7",

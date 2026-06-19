@@ -108,15 +108,70 @@ MEMORY_SUMMARIZATION_PROMPT = (
 )
 
 MCP_PROMPT = (
-    "\n\nYou have access to MCP tools:"
-    "\n- browse(url): read text content from any web page (httpx, fast)"
-    "\n- webfetch(url): read from JavaScript pages using a full browser (Playwright, slower)"
-    "\n- websearch(query): search DuckDuckGo for results in JSON format"
-    "\n- interact(code): run VASScript code (e.g. interact(\"say('hello')\") speaks via TTS)"
-    "\n- read_file(path): read files from user storage"
-    "\n- write_file(path, content): write files to user storage"
-    "\n- current_time(): get current date and time"
+    "\n\nYou have MCP tools. Use them automatically for these tasks:"
+    "\n- When the user asks to visit, open, download, or read a web page or URL, call browse(url) or webfetch(url)"
+    "\n- When the user asks to search the web, call websearch(query)"
+    "\n- browse(url): reads text from any web page (fast)"
+    "\n- webfetch(url): reads JavaScript pages using a full browser (slower)"
+    "\n- websearch(query): searches DuckDuckGo, returns JSON"
+    "\n- read_file(path): reads files from user storage"
+    "\n- write_file(path, content): writes files to user storage"
+    "\n- current_time(): gets current date and time"
+    "\n\nIMPORTANT: You CAN access the internet. When asked to get web content, "
+    "call the tool immediately. Never reply that you cannot access websites."
 )
+
+VASSCRIPT_TOOLS_PROMPT = (
+    "\n- interact(code): run VASScript code (e.g. interact(\"say('hello')\") speaks via TTS)"
+)
+
+
+_STOPWORDS = {
+    "it": {"il","lo","la","i","gli","le","un","uno","una","l","dell","dell'",
+           "di","a","da","in","con","su","per","tra","fra","del","dei","degli","della","delle",
+           "e","ma","o","che","se","né","ed","non","si","ci","vi","ne",
+           "è","sono","era","erano","ho","ha","hanno","sta","stanno","può","possono",
+           "solo","anche","ancora","più","meno","molto","pochi","sua","loro","nostro",
+           "questi","questa","questo","quelle","quelli","quella","quello"},
+    "en": {"the","a","an","of","in","on","at","to","for","with","by","from","as","is","was",
+           "are","were","be","been","being","have","has","had","do","does","did","will","would",
+           "can","could","should","may","might","shall","it","its","and","but","or","not","no",
+           "so","if","than","then","that","this","these","those","just","only","also","very",
+           "some","any","each","every","all","both","few","more","most","other","such"},
+    "de": {"der","die","das","ein","eine","einer","eines","einem","einen","den","dem","des",
+           "in","auf","zu","von","mit","bei","für","aus","durch","gegen","ohne","um","bis",
+           "ist","sind","war","waren","hat","haben","wird","werden","kann","können",
+           "und","oder","aber","nicht","nur","auch","noch","schon","sehr","wie","so","als",
+           "dass","wenn","weil","diese","dieser","dieses","jene","jener","jenes"},
+    "es": {"el","la","los","las","un","una","unos","unas","de","del","en","con","por","para",
+           "es","son","era","eran","ha","han","está","están","puede","pueden","y","o","pero",
+           "no","si","que","se","lo","le","su","sus","este","esta","estos","estas","ese","esa",
+           "solo","más","muy","poco","mucho","cada","todo","alguno","ninguno","otro"},
+    "fr": {"le","la","les","l","un","une","des","de","du","à","au","aux","en","dans","sur",
+           "par","pour","avec","sans","sous","est","sont","était","étaient","a","ont","peut",
+           "peuvent","et","ou","mais","ne","pas","se","que","qui","ce","cette","ces","son","sa",
+           "ses","leur","leurs","tout","tous","très","plus","moins","chaque","autre"},
+    "pt": {"o","a","os","as","um","uma","uns","umas","de","do","da","dos","das","em","no","na",
+           "nos","nas","com","por","para","é","são","era","eram","tem","têm","pode","podem",
+           "e","ou","mas","não","se","que","este","esta","estes","estas","esse","essa","seu",
+           "sua","seus","suas","todo","todos","muito","mais","menos","cada","outro","algum"},
+    "ja": {"は","が","を","に","で","の","へ","と","から","まで","より","です","ます","した",
+           "して","する","いる","ある","ない","こと","もの","ため","よう","そう","これ","それ",
+           "あれ","この","その","あの","ここ","そこ","あそこ"},
+    "ko": {"은","는","이","가","을","를","에","의","에서","으로","로","과","와","입니다","한다",
+           "하는","하고","있는","있다","없다","것","수","그","이","저","이런","그런","저런","여기",
+           "거기","저기","에서","까지","부터"},
+    "zh": {"的","了","是","在","和","也","就","都","这","那","个","种","之","以","及","与",
+           "或","但","不","很","更","最","还","要","会","能","可以","对","向","从","被","把",
+           "上","下","中","里","而","已","其","此","该","什么","怎么","哪","哪里"},
+}
+
+
+def _compress_heuristic(text, lang="en"):
+    stopwords = _STOPWORDS.get(lang, _STOPWORDS["en"])
+    words = text.split()
+    return ' '.join(w for w in words
+        if w.lower().strip("',.!?;:()[]\"") not in stopwords)
 
 
 SAVETAGS_PROMPT = (
@@ -220,6 +275,7 @@ class VassApp:
         self._summary_cache = {}
         self.debug_enabled = self.settings.get("debug_enabled", False)
         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
+        self.compress_context = self.settings.get("compress_context", "false").lower() == "true"
         self.gui_x = self.settings["gui_x"]
         self.gui_y = self.settings["gui_y"]
         self.gui_width = self.settings["gui_width"]
@@ -372,6 +428,7 @@ class VassApp:
             result["allow_ai_scripts"] = config.get("ai", "allow_ai_scripts", fallback="false").lower() == "true"
             result["context_length"] = config.getint("ai", "context_length", fallback=0)
             result["overflow_strategy"] = config.get("ai", "overflow_strategy", fallback="truncate")
+            result["compress_context"] = config.get("ai", "compress_context", fallback="false")
             
             result["gui_x"] = config.getint("gui", "x", fallback=1541)
             result["gui_y"] = config.getint("gui", "y", fallback=52)
@@ -506,6 +563,7 @@ class VassApp:
                 "memory_tokens": "2000",
                 "allow_ai_scripts": "false",
                 "context_length": "0",
+                "compress_context": "false",
                 "overflow_strategy": "truncate"
             }
             config["resources"] = {"cpu_max": "75", "ram_max": "99", "gpu_max": "75", "vram_max": "99", "resource_timeout": "10"}
@@ -631,7 +689,10 @@ class VassApp:
                         self.system_message = self.settings.get("system_message", "")
                         self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
                         self.context_length = self.settings.get("context_length", 0)
+                        if self.context_length <= 0:
+                            threading.Thread(target=self._detect_context_length, daemon=True).start()
                         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
+                        self.compress_context = self.settings.get("compress_context", "false").lower() == "true"
                         self.debug_enabled = self.settings.get("debug_enabled", False)
                         self.voice_recognition.debug_enabled = self.debug_enabled
                         if self.ai_url != old_url:
@@ -1478,7 +1539,7 @@ class VassApp:
 
             memory_content = self._build_memory_content(mcp, tools)
 
-            tools_block = MCP_PROMPT + vas_ref if self.allow_ai_scripts else ""
+            tools_block = (MCP_PROMPT + VASSCRIPT_TOOLS_PROMPT + vas_ref) if self.allow_ai_scripts else MCP_PROMPT
             notes_block = "\n".join(self.context_notes)
             if notes_block:
                 notes_block = f"Context notes (low priority, can be ignored if context is full):\n{notes_block}\n\n"
@@ -1486,6 +1547,10 @@ class VassApp:
                 {"role": "system", "content": notes_block + memory_content + system_content + tools_block},
                 {"role": "user", "content": prompt}
             ]
+            if self.compress_context:
+                lang = self.language or "en"
+                messages[0]["content"] = _compress_heuristic(messages[0]["content"], lang)
+                messages[1]["content"] = _compress_heuristic(messages[1]["content"], lang)
             kwargs = dict(
                 model=self.ai_model,
                 messages=messages,
@@ -1498,6 +1563,12 @@ class VassApp:
                 kwargs["tools"] = tools
 
             ctx_available = (self.context_length or 4096)
+            if self.context_length <= 0:
+                for _ in range(50):
+                    if self.context_length > 0:
+                        break
+                    time.sleep(0.1)
+                ctx_available = (self.context_length or 4096)
             prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
             if tools:
                 prompt_tokens_est += 2500

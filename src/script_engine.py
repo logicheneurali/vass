@@ -847,7 +847,6 @@ class VASScript:
             self.vars["date"] = now.strftime("%Y-%m-%d")
             self.vars["time"] = now.strftime("%H:%M")
             self.vars["timestamp"] = str(ts)
-            import json
             return json.dumps(result)
 
         if name == "prettyevents":
@@ -1306,99 +1305,270 @@ class VASScript:
         dt = time.mktime(time.struct_time((today.year, today.month, today.day, h, minute, 0, 0, 0, -1)))
         return am_pm_str, h24, str(int(dt))
 
-    def _do_weather(self, location=""):
-        import urllib.request, urllib.parse, json
-        cache_key = location.strip().lower() or "__auto__"
+    _geonames_loaded = False
+    _geonames_index = {}
+
+    @classmethod
+    def _download_geonames(cls):
+        import urllib.request, zipfile, tempfile, os, shutil
+        url = "https://download.geonames.org/export/dump/cities500.zip"
+        dest = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "config", "cities500.txt")
+        try:
+            print("[Geonames] Downloading cities500.zip (~3 MB)...")
+            with tempfile.TemporaryDirectory() as tmp:
+                zip_path = os.path.join(tmp, "cities500.zip")
+                urllib.request.urlretrieve(url, zip_path)
+                with zipfile.ZipFile(zip_path, "r") as zf:
+                    zf.extract("cities500.txt", tmp)
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.move(os.path.join(tmp, "cities500.txt"), dest)
+            print("[Geonames] cities500.txt ready")
+            return True
+        except Exception as e:
+            print(f"[Geonames] Download failed: {e}")
+            return False
+
+    @classmethod
+    def _load_geonames(cls):
+        if cls._geonames_loaded:
+            return
+        import os
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "cities500.txt")
+        if not os.path.exists(path):
+            if not cls._download_geonames() or not os.path.exists(path):
+                cls._geonames_loaded = True
+                return
+        try:
+            with open(path, encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    parts = line.strip().split("\t")
+                    if len(parts) >= 6:
+                        name = parts[1].lower()
+                        lat = float(parts[4])
+                        lon = float(parts[5])
+                        country = parts[8] if len(parts) > 8 else ""
+                        cls._geonames_index[name] = (lat, lon, country)
+            cls._geonames_loaded = True
+            print(f"[Geonames] Loaded {len(cls._geonames_index)} cities")
+        except Exception:
+            cls._geonames_loaded = True
+
+    @classmethod
+    def _resolve_coordinates(cls, location):
+        cls._load_geonames()
+        if not cls._geonames_index:
+            return None
+        key = location.strip().lower()
+        if key in cls._geonames_index:
+            lat, lon, country = cls._geonames_index[key]
+            return (lat, lon, country)
+        import difflib
+        best, best_r = None, 0
+        for name in cls._geonames_index:
+            r = difflib.SequenceMatcher(None, key, name).ratio()
+            if r > best_r:
+                best_r = r
+                best = name
+        if best and best_r >= 0.85:
+            lat, lon, country = cls._geonames_index[best]
+            return (lat, lon, country)
+        return None
+
+    def _get_cached_weather(self, cache_key):
         now = time.time()
         if cache_key in VASScript._weather_cache:
             ts, cached = VASScript._weather_cache[cache_key]
             if now - ts < VASScript._weather_cache_ttl:
-                self.vars["temperature"] = str(cached["temperature"])
-                self.vars["feels_like"] = str(cached["feels_like"])
-                self.vars["temperature_unit_system"] = cached.get("temperature_unit_system", "Celsius")
-                self.vars["humidity"] = str(cached["humidity"])
-                self.vars["weather_description"] = cached.get("description", "")
-                self.vars["wind_speed"] = str(cached["wind_speed"])
-                self.vars["wind_direction"] = cached.get("wind_direction", "")
-                self.vars["weather_city"] = cached.get("city", "")
-                self.vars["sunrise"] = cached.get("sunrise", "")
-                self.vars["sunrise_24h"] = cached.get("sunrise_24h", "")
-                self.vars["sunrise_timestamp"] = cached.get("sunrise_timestamp", "")
-                self.vars["sunset"] = cached.get("sunset", "")
-                self.vars["sunset_24h"] = cached.get("sunset_24h", "")
-                self.vars["sunset_timestamp"] = cached.get("sunset_timestamp", "")
-                self.vars["observation_time"] = cached.get("observation_time", "")
-                self.vars["observation_time_24h"] = cached.get("observation_time_24h", "")
-                self.vars["observation_time_timestamp"] = cached.get("observation_time_timestamp", "")
+                self._set_weather_vars(cached)
                 return json.dumps(cached, ensure_ascii=False)
+        return None
+
+    def _set_weather_vars(self, result):
+        self.vars["temperature"] = str(result["temperature"])
+        self.vars["feels_like"] = str(result["feels_like"])
+        self.vars["temperature_unit_system"] = result.get("temperature_unit_system", "Celsius")
+        self.vars["humidity"] = str(result["humidity"])
+        self.vars["weather_description"] = result.get("description", "")
+        self.vars["wind_speed"] = str(result["wind_speed"])
+        self.vars["wind_direction"] = result.get("wind_direction", "")
+        self.vars["weather_city"] = result.get("city", "")
+        self.vars["sunrise"] = result.get("sunrise", "")
+        self.vars["sunrise_24h"] = result.get("sunrise_24h", "")
+        self.vars["sunrise_timestamp"] = result.get("sunrise_timestamp", "")
+        self.vars["sunset"] = result.get("sunset", "")
+        self.vars["sunset_24h"] = result.get("sunset_24h", "")
+        self.vars["sunset_timestamp"] = result.get("sunset_timestamp", "")
+        self.vars["observation_time"] = result.get("observation_time", "")
+        self.vars["observation_time_24h"] = result.get("observation_time_24h", "")
+        self.vars["observation_time_timestamp"] = result.get("observation_time_timestamp", "")
+
+    def _cache_and_return_weather(self, cache_key, result):
+        VASScript._weather_cache[cache_key] = (time.time(), result)
+        self._set_weather_vars(result)
+        return json.dumps(result, ensure_ascii=False)
+
+    @staticmethod
+    def _wmo_description(code):
+        codes = {
+            0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+            45: "Fog", 48: "Rime fog",
+            51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
+            56: "Light freezing drizzle", 57: "Dense freezing drizzle",
+            61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
+            66: "Light freezing rain", 67: "Heavy freezing rain",
+            71: "Slight snow", 73: "Moderate snow", 75: "Heavy snow",
+            77: "Snow grains",
+            80: "Slight rain showers", 81: "Moderate rain showers", 82: "Violent rain showers",
+            85: "Slight snow showers", 86: "Heavy snow showers",
+            95: "Thunderstorm", 96: "Thunderstorm with slight hail", 99: "Thunderstorm with heavy hail",
+        }
+        return codes.get(int(code), f"Unknown ({code})")
+
+    @staticmethod
+    def _degrees_compass(deg):
+        dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+        return dirs[round(float(deg) / 22.5) % 16]
+
+    def _weather_wttr(self, location):
+        import urllib.request, urllib.parse, json
+        encoded = urllib.parse.quote(location.strip()) if location.strip() else ""
+        base = f"https://wttr.in/{encoded}" if encoded else "https://wttr.in/"
+        url = f"{base}?format=j1"
+        r = urllib.request.urlopen(url, timeout=10)
+        data = json.loads(r.read().decode())
+        nearest = (data.get("nearest_area") or [{}])[0]
+        city = (nearest.get("areaName") or [{}])[0].get("value", "")
+        region = (nearest.get("region") or [{}])[0].get("value", "")
+        country = (nearest.get("country") or [{}])[0].get("value", "")
+        cc = (data.get("current_condition") or [{}])[0]
+        temp_c = float(cc.get("temp_C", 0))
+        feels_c = float(cc.get("FeelsLikeC", 0))
+        humidity = int(cc.get("humidity", 0))
+        desc = (cc.get("weatherDesc") or [{}])[0].get("value", "")
+        wind_speed = float(cc.get("windspeedKmph", 0))
+        wind_dir = cc.get("winddir16Point", "")
+        obs_time = cc.get("observation_time", "")
+        astro = (data.get("weather") or [{}])[0].get("astronomy", [{}])[0] or {}
+        sr_raw = astro.get("sunrise", "")
+        ss_raw = astro.get("sunset", "")
+        sr, sr_24h, sr_ts = VASScript._parse_time_variants(sr_raw)
+        ss, ss_24h, ss_ts = VASScript._parse_time_variants(ss_raw)
+        ot, ot_24h, ot_ts = VASScript._parse_time_variants(obs_time)
+        return {
+            "city": city, "region": region, "country": country,
+            "temperature": temp_c, "feels_like": feels_c, "humidity": humidity,
+            "description": desc, "wind_speed": wind_speed, "wind_direction": wind_dir,
+            "observation_time": ot, "observation_time_24h": ot_24h, "observation_time_timestamp": ot_ts,
+            "temperature_unit_system": "Celsius",
+            "sunrise": sr, "sunrise_24h": sr_24h, "sunrise_timestamp": sr_ts,
+            "sunset": ss, "sunset_24h": ss_24h, "sunset_timestamp": ss_ts,
+        }
+
+    def _weather_openmeteo(self, lat, lon):
+        import urllib.request, json
+        url = (f"https://api.open-meteo.com/v1/forecast"
+               f"?latitude={lat}&longitude={lon}"
+               f"&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m"
+               f"&daily=sunrise,sunset&timezone=auto&forecast_days=1")
+        r = urllib.request.urlopen(url, timeout=10)
+        data = json.loads(r.read().decode())
+        cur = data.get("current", {})
+        daily = data.get("daily", {})
+        sunrise = (daily.get("sunrise") or [""])[0]
+        sunset = (daily.get("sunset") or [""])[0]
+        desc = self._wmo_description(cur.get("weather_code", 0))
+        wind_dir = self._degrees_compass(cur.get("wind_direction_10m", 0))
+        import re as _re
+        sr_raw = _re.sub(r"T", " ", sunrise) if sunrise else ""
+        ss_raw = _re.sub(r"T", " ", sunset) if sunset else ""
+        sr, sr_24h, sr_ts = VASScript._parse_time_variants(sr_raw)
+        ss, ss_24h, ss_ts = VASScript._parse_time_variants(ss_raw)
+        obs_ts = int(time.time())
+        ot = time.strftime("%I:%M %p", time.localtime(obs_ts))
+        ot_24h = time.strftime("%H:%M", time.localtime(obs_ts))
+        return {
+            "city": "", "region": "", "country": "",
+            "temperature": cur.get("temperature_2m", 0),
+            "feels_like": cur.get("apparent_temperature", 0),
+            "humidity": cur.get("relative_humidity_2m", 0),
+            "description": desc,
+            "wind_speed": cur.get("wind_speed_10m", 0),
+            "wind_direction": wind_dir,
+            "observation_time": ot, "observation_time_24h": ot_24h, "observation_time_timestamp": str(obs_ts),
+            "temperature_unit_system": "Celsius",
+            "sunrise": sr, "sunrise_24h": sr_24h, "sunrise_timestamp": sr_ts,
+            "sunset": ss, "sunset_24h": ss_24h, "sunset_timestamp": ss_ts,
+        }
+
+    def _weather_metno(self, lat, lon):
+        import urllib.request, json
+        url = f"https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={lat}&lon={lon}"
+        req = urllib.request.Request(url, headers={"User-Agent": "VASS/0.5 github.com/logicheneurali/vass"})
+        r = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(r.read().decode())
+        ts = data.get("properties", {}).get("timeseries", [])
+        if not ts:
+            raise RuntimeError("No timeseries data")
+        inst = ts[0].get("data", {}).get("instant", {}).get("details", {})
+        temp_c = inst.get("air_temperature", 0)
+        humidity = inst.get("relative_humidity", 0)
+        wind_speed = inst.get("wind_speed", 0) * 3.6
+        wind_dir_deg = inst.get("wind_from_direction", 0)
+        wind_dir = self._degrees_compass(wind_dir_deg)
+        desc = "N/A"
+        sym = ts[0].get("data", {}).get("next_1_hours", {}).get("summary", {}).get("symbol_code", "")
+        if sym:
+            desc = sym.replace("_", " ").title()
+        sun_ts = ts[0].get("data", {}).get("next_6_hours", {}).get("details", {})
+        sr_raw = sun_ts.get("sunrise", "")
+        ss_raw = sun_ts.get("sunset", "")
+        import re as _re
+        sr_raw = _re.sub(r"T", " ", sr_raw) if sr_raw else ""
+        ss_raw = _re.sub(r"T", " ", ss_raw) if ss_raw else ""
+        sr, sr_24h, sr_ts = VASScript._parse_time_variants(sr_raw)
+        ss, ss_24h, ss_ts = VASScript._parse_time_variants(ss_raw)
+        obs_ts = int(time.time())
+        ot = time.strftime("%I:%M %p", time.localtime(obs_ts))
+        ot_24h = time.strftime("%H:%M", time.localtime(obs_ts))
+        return {
+            "city": "", "region": "", "country": "",
+            "temperature": temp_c, "feels_like": temp_c, "humidity": humidity,
+            "description": desc, "wind_speed": wind_speed, "wind_direction": wind_dir,
+            "observation_time": ot, "observation_time_24h": ot_24h, "observation_time_timestamp": str(obs_ts),
+            "temperature_unit_system": "Celsius",
+            "sunrise": sr, "sunrise_24h": sr_24h, "sunrise_timestamp": sr_ts,
+            "sunset": ss, "sunset_24h": ss_24h, "sunset_timestamp": ss_ts,
+        }
+
+    def _do_weather(self, location=""):
+        import urllib.request, urllib.parse, json
+        cache_key = location.strip().lower() or "__auto__"
+        cached = self._get_cached_weather(cache_key)
+        if cached is not None:
+            return cached
         try:
-            encoded = urllib.parse.quote(location.strip()) if location.strip() else ""
-            base = f"https://wttr.in/{encoded}" if encoded else "https://wttr.in/"
-            url = f"{base}?format=j1"
-            r = urllib.request.urlopen(url, timeout=10)
-            data = json.loads(r.read().decode())
-            nearest = (data.get("nearest_area") or [{}])[0]
-            city = (nearest.get("areaName") or [{}])[0].get("value", "")
-            region = (nearest.get("region") or [{}])[0].get("value", "")
-            country = (nearest.get("country") or [{}])[0].get("value", "")
-            cc = (data.get("current_condition") or [{}])[0]
-            temp_c = float(cc.get("temp_C", 0))
-            feels_c = float(cc.get("FeelsLikeC", 0))
-            humidity = int(cc.get("humidity", 0))
-            desc = (cc.get("weatherDesc") or [{}])[0].get("value", "")
-            wind_speed = float(cc.get("windspeedKmph", 0))
-            wind_dir = cc.get("winddir16Point", "")
-            obs_time = cc.get("observation_time", "")
-            astro = (data.get("weather") or [{}])[0].get("astronomy", [{}])[0] or {}
-            sr_raw = astro.get("sunrise", "")
-            ss_raw = astro.get("sunset", "")
-            sr, sr_24h, sr_ts = VASScript._parse_time_variants(sr_raw)
-            ss, ss_24h, ss_ts = VASScript._parse_time_variants(ss_raw)
-            ot_raw = obs_time
-            ot, ot_24h, ot_ts = VASScript._parse_time_variants(ot_raw)
-            result = {
-                "city": city,
-                "region": region,
-                "country": country,
-                "temperature": temp_c,
-                "feels_like": feels_c,
-                "humidity": humidity,
-                "description": desc,
-                "wind_speed": wind_speed,
-                "wind_direction": wind_dir,
-                "observation_time": ot,
-                "observation_time_24h": ot_24h,
-                "observation_time_timestamp": ot_ts,
-                "temperature_unit_system": "Celsius",
-                "sunrise": sr,
-                "sunrise_24h": sr_24h,
-                "sunrise_timestamp": sr_ts,
-                "sunset": ss,
-                "sunset_24h": ss_24h,
-                "sunset_timestamp": ss_ts,
-            }
-            result_json = json.dumps(result, ensure_ascii=False)
-            VASScript._weather_cache[cache_key] = (now, result)
-            self.vars["temperature"] = str(temp_c)
-            self.vars["feels_like"] = str(feels_c)
-            self.vars["temperature_unit_system"] = "Celsius"
-            self.vars["humidity"] = str(humidity)
-            self.vars["weather_description"] = desc
-            self.vars["wind_speed"] = str(wind_speed)
-            self.vars["wind_direction"] = wind_dir
-            self.vars["weather_city"] = city
-            self.vars["sunrise"] = sr
-            self.vars["sunrise_24h"] = sr_24h
-            self.vars["sunrise_timestamp"] = sr_ts
-            self.vars["sunset"] = ss
-            self.vars["sunset_24h"] = ss_24h
-            self.vars["sunset_timestamp"] = ss_ts
-            self.vars["observation_time"] = ot
-            self.vars["observation_time_24h"] = ot_24h
-            self.vars["observation_time_timestamp"] = ot_ts
-            return result_json
+            result = self._weather_wttr(location)
+            return self._cache_and_return_weather(cache_key, result)
         except Exception as e:
-            return f'{{"error": "{str(e)}"}}'
+            print(f"[Weather] wttr.in failed: {e}")
+        coords = self._resolve_coordinates(location) if location.strip() else None
+        if coords:
+            lat, lon, _ = coords
+            try:
+                result = self._weather_openmeteo(lat, lon)
+                return self._cache_and_return_weather(cache_key, result)
+            except Exception as e:
+                print(f"[Weather] Open-Meteo failed: {e}")
+            try:
+                result = self._weather_metno(lat, lon)
+                return self._cache_and_return_weather(cache_key, result)
+            except Exception as e:
+                print(f"[Weather] met.no failed: {e}")
+        elif not location.strip():
+            return '{"error": "wttr.in auto-location failed, no geonames fallback available"}'
+        return '{"error": "all weather sources failed"}'
 
     def _execute_line(self, line):
         tokens = self._tokenize(line)

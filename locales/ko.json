@@ -126,7 +126,8 @@
       "google_home_device_id": "기기 ID",
       "word_learning_enabled": "적응형 학습 (실험적)",
       "debug_enabled": "디버그 활성화",
-      "debug_log_max_kb": "최대 로그 KB"
+      "debug_log_max_kb": "최대 로그 KB",
+      "compress_context": "컨텍스트 압축 (실험적)"
     },
     "field_descriptions": {
       "x": "화면 X 위치",
@@ -181,7 +182,8 @@
       "google_home_device_id": "Actions Console의 기기 인스턴스 ID",
       "word_learning_enabled": "성공적인 명령을 생성하는 단어를 학습하고 인식을 우선시합니다. 데이터는 word_weights.json에 저장됩니다.",
       "debug_enabled": "log/debug.log 파일 로깅 및 OCR 디버그 이미지 활성화",
-      "debug_log_max_kb": "디버그 로그 파일 최대 크기 KB (기본값 1024)"
+      "debug_log_max_kb": "디버그 로그 파일 최대 크기 KB (기본값 1024)",
+      "compress_context": "AI에 전송되는 텍스트에서 관사, 전치사, 접속사를 제거하여 토큰 수를 줄입니다."
     },
     "section_labels": {
       "gui": "창",

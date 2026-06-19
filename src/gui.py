@@ -301,6 +301,8 @@ class VassGUI(QMainWindow):
         self.replay_btn.setFixedWidth(16)
         self.replay_btn.setVisible(False)
         self.replay_btn.clicked.connect(self._on_replay)
+        self.replay_btn._right_click_cb = self.open_history
+        self.replay_btn.mousePressEvent = self._replay_btn_press
         row.addWidget(self.replay_btn)
 
         # Menu button with popup
@@ -692,6 +694,12 @@ class VassGUI(QMainWindow):
         self._bell_menu.addSeparator()
         mark_act = self._bell_menu.addAction(self._t("gui.mark_read"))
         mark_act.triggered.connect(lambda: self.app.notification_manager.mark_all_read())
+
+    def _replay_btn_press(self, event):
+        if event.button() == Qt.MouseButton.RightButton:
+            self.open_history()
+        else:
+            QPushButton.mousePressEvent(self.replay_btn, event)
 
     def _on_replay(self):
         import threading

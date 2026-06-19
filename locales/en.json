@@ -126,7 +126,8 @@
       "google_home_device_id": "Device ID",
       "word_learning_enabled": "Adaptive learning (EXPERIMENTAL)",
       "debug_enabled": "Debug enabled",
-      "debug_log_max_kb": "Max log KB"
+      "debug_log_max_kb": "Max log KB",
+      "compress_context": "Context compression (EXPERIMENTAL)"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -181,7 +182,8 @@
       "google_home_device_id": "Device instance ID from Actions Console",
       "word_learning_enabled": "Learns which words produce successful commands and favors their recognition. Data saved to word_weights.json.",
       "debug_enabled": "Enable file logging to log/debug.log and OCR debug images",
-      "debug_log_max_kb": "Maximum debug log file size in KB (default 1024)"
+      "debug_log_max_kb": "Maximum debug log file size in KB (default 1024)",
+      "compress_context": "Removes articles, prepositions and conjunctions from text sent to the AI to reduce token count."
     },
     "section_labels": {
       "gui": "Window",

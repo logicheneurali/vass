@@ -91,3 +91,5 @@ tts/*.onnx.json
 # OS
 Thumbs.db
 .DS_Store
+
+config/cities500.txt
