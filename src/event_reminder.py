@@ -511,6 +511,9 @@ class EventReminder:
         sched_key = int(self._next_schedule_ts)
         if sched_key in self._alerted_schedules:
             return
+        if self.app.state in ("playing", "recording"):
+            print("[Schedules] Skipped: app state is playing/recording, will retry next cycle")
+            return
         self._alerted_schedules.add(sched_key)
         for sc in list(self._next_schedules):
             self._execute_schedule(sc)

@@ -206,7 +206,8 @@
       "cancel": "キャンセル",
       "start_llama": "開始",
       "llama_on": "有効",
-      "llama_off": "無効"
+      "llama_off": "無効",
+      "restart_llama": "再起動"
     },
     "dialog": {
       "error": "エラー",

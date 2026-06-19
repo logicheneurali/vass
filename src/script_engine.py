@@ -362,7 +362,7 @@ class VASScript:
             self.app._ai_lock.acquire()
             try:
                 msg = call_with_retry(lambda: self.app.openai_client.chat.completions.create(**kwargs), log_prefix="[VASScript]").choices[0].message
-                msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]")
+                msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]", gui=self.app.gui)
             except Exception as e:
                 print(f"[VASScript] AI error: {e}")
                 return ""

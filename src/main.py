@@ -1489,8 +1489,12 @@ class VassApp:
                     result_callback({"status": "error", "script": script_name, "detail": script_error, "message": "Script failed: " + script_error})
             finally:
                 queue._active_engine = None
-                if len(self.script_queue._queue) == 0:
-                    self.set_state("listening", silent_gui=silent)
+                with self.script_queue._lock:
+                    if len(self.script_queue._queue) == 0:
+                        if self.tts.tts_playing:
+                            self.set_state("playing", silent_gui=silent)
+                        else:
+                            self.set_state("listening", silent_gui=silent)
 
             if script_error and not result_callback:
                 threading.Thread(target=self.tts.speak, args=(f"Errore script: {script_error}",), daemon=True).start()
@@ -1628,7 +1632,7 @@ class VassApp:
                 (tc.function.name == "interact" and
                  any(kw in tc.function.arguments.lower() for kw in ("addevent", "listevents", "removeevent")))
                 for tc in (msg.tool_calls or []))
-            msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.openai_client, self.ai_model)
+            msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui)
 
             ai_response = msg.content or ""
             ai_response = strip_think_tags(ai_response)

@@ -206,7 +206,8 @@
       "cancel": "Abbrechen",
       "start_llama": "Starten",
       "llama_on": "Aktiv",
-      "llama_off": "Aus"
+      "llama_off": "Aus",
+      "restart_llama": "Neustart"
     },
     "dialog": {
       "error": "Fehler",

@@ -237,7 +237,8 @@
       "cancel": "Annulla",
       "start_llama": "Avvia",
       "llama_on": "Attivo",
-      "llama_off": "Spento"
+      "llama_off": "Spento",
+      "restart_llama": "Riavvia"
     },
     "dialog": {
       "error": "Errore",

@@ -105,6 +105,7 @@ class SettingsEditor(QMainWindow):
         self._original_api_key = self._load_original_api_key()
         self._google_disabled = False
         self.build_ui()
+        self._update_llama_start_btn()
 
     def _get_supported_languages(self):
         supported = []
@@ -286,6 +287,7 @@ class SettingsEditor(QMainWindow):
                         start_btn = QPushButton(t("settings_editor.buttons.start_llama", self.lang))
                         start_btn.setFixedWidth(80)
                         start_btn.clicked.connect(self._start_llama_server)
+                        self._llama_start_btn = start_btn
                         cw_layout.addWidget(start_btn)
                         cw_layout.addStretch()
                         group_layout.addWidget(cw, row, 1)
@@ -587,6 +589,15 @@ class SettingsEditor(QMainWindow):
         self.close()
 
 
+    def _update_llama_start_btn(self):
+        if not hasattr(self, '_llama_start_btn'):
+            return
+        from utils import is_process_running
+        if is_process_running("llama-server"):
+            self._llama_start_btn.setText(t("settings_editor.buttons.restart_llama", self.lang))
+        else:
+            self._llama_start_btn.setText(t("settings_editor.buttons.start_llama", self.lang))
+
     def _update_llama_btn(self, btn):
         if btn.isChecked():
             btn.setText("🟢 " + t("settings_editor.buttons.llama_on", self.lang))
@@ -601,24 +612,43 @@ class SettingsEditor(QMainWindow):
         subprocess.Popen(["python", path, "--lang", self.lang])
 
     def _start_llama_server(self):
-        from utils import start_llama_server
-        path = self.config.get("llamacpp", "llama_server_path", fallback="").strip()
+        from utils import start_llama_server, is_process_running
+        import subprocess, sys, time as _time
+        path = self._get_entry_text(("llamacpp", "llama_server_path"))
         if not path:
             QMessageBox.warning(self, "llama.cpp",
                 self._t("settings_editor.errors.llama_no_path"))
             return
-        cwd = self.config.get("llamacpp", "llama_server_working_directory", fallback="").strip()
-        args = self.config.get("llamacpp", "llama_server_arguments", fallback="").strip()
-        proc, status = start_llama_server(path, cwd, args)
+        cwd = self._get_entry_text(("llamacpp", "llama_server_working_directory"))
+        args = self._get_entry_text(("llamacpp", "llama_server_arguments"))
+        if is_process_running("llama-server"):
+            print("[llama.cpp] Killing existing server...")
+            if sys.platform == "win32":
+                subprocess.run(["taskkill", "/F", "/IM", "llama-server.exe"],
+                               capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                subprocess.run(["pkill", "-f", "llama-server"], capture_output=True)
+            _time.sleep(1)
+        proc, status = start_llama_server(path, cwd, args, skip_if_running=False)
+        self._update_llama_start_btn()
         if status == "started":
             QMessageBox.information(self, "llama.cpp",
                 self._t("settings_editor.errors.llama_started"))
-        elif status == "already running":
-            QMessageBox.information(self, "llama.cpp",
-                self._t("settings_editor.errors.llama_already_running"))
         else:
             QMessageBox.warning(self, "llama.cpp",
                 self._t("settings_editor.errors.llama_not_found").format(path=path))
+
+    def _get_entry_text(self, key):
+        entry = self.entries.get(key)
+        if entry is None:
+            return self.config.get(key[0], key[1], fallback="").strip()
+        if isinstance(entry, QLineEdit):
+            return entry.text().strip()
+        if isinstance(entry, QWidget):
+            child = entry.findChild(QLineEdit)
+            if child:
+                return child.text().strip()
+        return self.config.get(key[0], key[1], fallback="").strip()
 
 
 if __name__ == "__main__":

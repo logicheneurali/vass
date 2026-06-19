@@ -204,7 +204,7 @@ def call_with_retry(fn, retries=4, delays=(1, 2, 4, 8), log_prefix="[AI]"):
             time.sleep(delay)
 
 
-def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=0.7, log_prefix="[AI]"):
+def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=0.7, log_prefix="[AI]", gui=None):
     if not (msg.tool_calls and mcp and tools):
         return msg
 
@@ -214,6 +214,8 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             tool_name = tc.function.name
             tool_args = tc.function.arguments
             print(f"[MCP] Call: {tool_name}({tool_args})")
+            if gui:
+                gui.show_tool_indicator(tool_name)
             messages.append({
                 "role": "assistant",
                 "content": None,
@@ -254,8 +256,10 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
         ), log_prefix=log_prefix)
         msg = resp.choices[0].message
         if not msg.tool_calls:
-            return msg
+            break
 
+    if gui:
+        gui.hide_tool_indicator()
     return msg
 
 

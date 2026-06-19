@@ -203,6 +203,7 @@ class VassGUI(QMainWindow):
     auth_requested_signal = Signal(str, str)
     volume_signal = Signal(float)
     chat_text_signal = Signal(str)
+    tool_indicator_signal = Signal(str, str)
 
     COLORS = {
         "listening": "#2ecc71",
@@ -287,6 +288,12 @@ class VassGUI(QMainWindow):
             lambda: self._bell_menu.exec(self._bell_btn.mapToGlobal(self._bell_btn.rect().bottomLeft()))
         )
         row.addWidget(self._bell_btn)
+
+        self._tool_indicator = QLabel()
+        self._tool_indicator.setFixedSize(10, 10)
+        self._tool_indicator.setVisible(False)
+        self._tool_indicator.setToolTip("")
+        row.addWidget(self._tool_indicator)
 
         row.addSpacerItem(self._left_spacer)
         row.addWidget(self.stacked)
@@ -433,6 +440,7 @@ class VassGUI(QMainWindow):
         self.schedule_signal.connect(lambda cb: cb(), Qt.ConnectionType.QueuedConnection)
         self.auth_requested_signal.connect(self._on_auth_requested)
         self.volume_signal.connect(self._on_volume)
+        self.tool_indicator_signal.connect(self._on_tool_indicator)
 
         self._auto_fade_enabled = True
         import threading as _th
@@ -1236,6 +1244,32 @@ class VassGUI(QMainWindow):
             except Exception:
                 pass
         super().wheelEvent(event)
+
+    _TOOL_COLORS = {
+        "browse": ("#3498db", "Browser (httpx)"),
+        "webfetch": ("#2980b9", "Browser (Playwright)"),
+        "websearch": ("#9b59b6", "Ricerca web"),
+        "read_file": ("#f1c40f", "Lettura file"),
+        "write_file": ("#e67e22", "Scrittura file"),
+        "interact": ("#e74c3c", "Esecuzione script"),
+        "script": ("#c0392b", "Esecuzione script"),
+    }
+
+    def show_tool_indicator(self, tool_name):
+        color, tip = self._TOOL_COLORS.get(tool_name, ("#95a5a6", tool_name))
+        self.tool_indicator_signal.emit(color, tip)
+
+    def hide_tool_indicator(self):
+        self.tool_indicator_signal.emit("", "")
+
+    def _on_tool_indicator(self, color, tooltip):
+        if not color:
+            self._tool_indicator.setVisible(False)
+            return
+        self._tool_indicator.setStyleSheet(
+            f"background-color: {color}; border-radius: 5px;")
+        self._tool_indicator.setToolTip(tooltip)
+        self._tool_indicator.setVisible(True)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:

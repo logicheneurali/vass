@@ -206,7 +206,8 @@
       "cancel": "Cancelar",
       "start_llama": "Iniciar",
       "llama_on": "Ativo",
-      "llama_off": "Desligado"
+      "llama_off": "Desligado",
+      "restart_llama": "Reiniciar"
     },
     "dialog": {
       "error": "Erro",
