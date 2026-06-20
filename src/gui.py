@@ -14,7 +14,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineProfile
 from PySide6.QtCore import QUrl
 
-from theme import BG, FG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, SECTION_FG, FRAME_BORDER, BASE_STYLESHEET
+from theme import BG, FG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, SECTION_FG, FRAME_BORDER, BASE_STYLESHEET, ENTRY_BG
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(BASE, "src")
@@ -884,7 +884,10 @@ class VassGUI(QMainWindow):
         browser = QTextBrowser()
         browser.setOpenExternalLinks(False)
         browser.setOpenLinks(False)
-        browser.setStyleSheet(f"background-color: #252525; color: {FG}; border: 1px solid {FRAME_BORDER}; border-radius: 4px; padding: 8px; font-size: 12px;")
+        browser.setStyleSheet(f"background-color: #252525; color: {FG}; border: 1px solid {FRAME_BORDER}; border-radius: 4px; padding: 8px; font-size: 12px;"
+                               "QScrollBar:vertical { background: #252525; width: 10px; }"
+                               f"QScrollBar::handle:vertical {{ background: {ENTRY_BG}; border-radius: 4px; min-height: 20px; }}"
+                               "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }")
 
         def _build_html():
             filtered = notifs
