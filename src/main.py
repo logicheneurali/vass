@@ -774,6 +774,9 @@ class VassApp:
         return overhead
 
     def _process_chat_text(self, text):
+        if self.state in ("recording",):
+            print(f"[Chat] Ignored: state={self.state}")
+            return
         ctx_len = self.context_length or 4096
         overhead = self._estimate_system_overhead()
         avail_chars = max(ctx_len - overhead, ctx_len // 4)
