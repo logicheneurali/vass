@@ -96,10 +96,10 @@ class RssReader:
             now = datetime.now(timezone.utc).isoformat()
             with self._lock:
                 cache_entry = self._cache.get(fid, {"items": [], "last_poll": None})
-                existing_links = {it.get("link") for it in cache_entry.get("items", [])}
+                existing_guids = {it.get("guid") for it in cache_entry.get("items", [])}
                 cache_entry["last_poll"] = now
                 for item in items:
-                    if item.get("link") not in existing_links:
+                    if item.get("guid") not in existing_guids:
                         cache_entry.setdefault("items", []).append(item)
                 if len(cache_entry.get("items", [])) > 20:
                     cache_entry["items"] = cache_entry["items"][-20:]
@@ -181,10 +181,10 @@ class RssReader:
                     now_iso = now.isoformat()
                     with self._lock:
                         cache_entry = self._cache.get(fid2, {"items": [], "last_poll": None})
-                        existing_links = {it.get("link") for it in cache_entry.get("items", [])}
+                        existing_guids = {it.get("guid") for it in cache_entry.get("items", [])}
                         cache_entry["last_poll"] = now_iso
                         for item in items:
-                            if item.get("link") not in existing_links:
+                            if item.get("guid") not in existing_guids:
                                 cache_entry.setdefault("items", []).append(item)
                                 new_items.append(item)
                         if len(cache_entry.get("items", [])) > 20:
