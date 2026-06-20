@@ -152,6 +152,7 @@ class RssReader:
 
     def _poll_loop(self):
         while not self._stop_event.is_set():
+            self._load_feeds()
             active = self.get_feeds()
             now = datetime.now(timezone.utc)
             min_sleep = 60
