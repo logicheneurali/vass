@@ -14,7 +14,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineProfile
 from PySide6.QtCore import QUrl
 
-from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG
+from theme import BG, FG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, SECTION_FG, FRAME_BORDER
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(BASE, "src")
@@ -407,16 +407,7 @@ class VassGUI(QMainWindow):
         )
         self._bell_btn.setFixedWidth(20)
         self._bell_btn.setToolTip(self._t("gui.notifications"))
-        self._bell_menu = QMenu()
-        self._bell_menu.setStyleSheet(
-            "QMenu { background-color: #2d2d2d; color: #e0e0e0; "
-            "border: 1px solid #3c3c3c; padding: 4px; max-height: 400px; }"
-            "QMenu::item { padding: 6px 20px; }"
-            "QMenu::item:selected { background-color: #3d3d3d; }"
-        )
-        self._bell_btn.clicked.connect(
-            lambda: self._bell_menu.exec(self._bell_btn.mapToGlobal(self._bell_btn.rect().bottomLeft()))
-        )
+        self._bell_btn.clicked.connect(self._show_bell_dialog)
         row.addWidget(self._bell_btn)
 
         self._tool_indicator = QLabel()
@@ -805,33 +796,84 @@ class VassGUI(QMainWindow):
                 "border: none; font-size: 10px; padding: 2px 4px; }"
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )
-        self._populate_bell_menu()
 
-    def _populate_bell_menu(self):
-        self._bell_menu.clear()
+    def _show_bell_dialog(self):
         if not self.app:
             return
         notifs = self.app.notification_manager.list_all()
+        if self.app.rss_reader:
+            for n in notifs:
+                data = n.get("data")
+                if isinstance(data, dict) and data.get("type") == "rss":
+                    guid = data.get("guid", "")
+                    if guid:
+                        self.app.rss_reader.mark_seen(guid)
+        dlg = QDialog(self)
+        dlg.setWindowTitle(self._t("gui.notifications"))
+        dlg.resize(400, 450)
+        dlg.setStyleSheet(f"QDialog {{ background-color: {BG}; }}")
+
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(8, 8, 8, 8)
+
+        title_bar = QHBoxLayout()
+        title_lbl = QLabel(f"Notifiche ({len(notifs)})")
+        title_lbl.setStyleSheet(f"color: {SECTION_FG}; font-weight: bold; font-size: 13px;")
+        title_bar.addWidget(title_lbl)
+        title_bar.addStretch()
+        close_btn = QPushButton("x")
+        close_btn.setFixedWidth(30)
+        close_btn.setStyleSheet(f"background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG}; border: none; border-radius: 3px;")
+        close_btn.clicked.connect(dlg.close)
+        title_bar.addWidget(close_btn)
+        layout.addLayout(title_bar)
+
+        browser = QTextBrowser()
+        browser.setOpenExternalLinks(False)
+        browser.setStyleSheet(f"background-color: {BG}; color: {FG}; border: 1px solid {FRAME_BORDER}; border-radius: 3px; padding: 6px; font-size: 12px;")
+        html_parts = []
         if not notifs:
-            self._bell_menu.addAction(self._t("gui.no_notifications"))
-            return
-        for n in notifs:
-            color = self.app.notification_manager.color_for(n["priority"])
-            bullet = f'<span style="color:{color};">●</span>' if not n["read"] else "  "
-            ts = n.get("ts", "")
-            txt = n.get("text", "")
-            html = f'{bullet} <span style="color:#aaaaaa;">[{ts}]</span> {txt}'
-            lbl = QLabel(html)
-            lbl.setStyleSheet("color: #e0e0e0; padding: 4px 16px; font-size: 12px;")
-            lbl.setWordWrap(True)
-            lbl.setMinimumWidth(280)
-            lbl.setMaximumWidth(450)
-            act = QWidgetAction(self._bell_menu)
-            act.setDefaultWidget(lbl)
-            self._bell_menu.addAction(act)
-        self._bell_menu.addSeparator()
-        mark_act = self._bell_menu.addAction(self._t("gui.mark_read"))
-        mark_act.triggered.connect(lambda: self.app.notification_manager.mark_all_read())
+            html_parts.append(f'<p style="color:{LABEL_FG};">{self._t("gui.no_notifications")}</p>')
+        else:
+            for n in notifs:
+                color = self.app.notification_manager.color_for(n["priority"])
+                ts = n.get("ts", "")
+                txt = n.get("text", "")
+                data = n.get("data")
+                if isinstance(data, dict) and data.get("type") == "rss":
+                    link = data.get("link", "")
+                    escaped_link = link.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+                    html_parts.append(
+                        f'<p><span style="color:{color};">●</span> '
+                        f'<span style="color:{LABEL_FG};">[{ts}]</span> '
+                        f'{txt}<br>'
+                        f'<a href="{escaped_link}" style="color:{BTN_BG};">Leggi articolo completo</a></p>'
+                    )
+                else:
+                    html_parts.append(
+                        f'<p><span style="color:{color};">●</span> '
+                        f'<span style="color:{LABEL_FG};">[{ts}]</span> '
+                        f'{txt}</p>'
+                    )
+                html_parts.append(f'<hr style="border: none; border-top: 1px solid {FRAME_BORDER};">')
+        browser.setHtml("<html><body>" + "".join(html_parts) + "</body></html>")
+
+        def on_link_clicked(qurl):
+            url = qurl.toString()
+            viewer = HTMLViewer(url)
+            viewer.show()
+        browser.anchorClicked.connect(on_link_clicked)
+
+        layout.addWidget(browser)
+
+        mark_btn = QPushButton(self._t("gui.mark_read"))
+        mark_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 6px;")
+        mark_btn.clicked.connect(lambda: self.app.notification_manager.mark_all_read())
+        mark_btn.clicked.connect(dlg.close)
+        layout.addWidget(mark_btn)
+
+        dlg.exec()
+        self._update_bell()
 
     def _replay_btn_press(self, event):
         if event.button() == Qt.MouseButton.RightButton:
