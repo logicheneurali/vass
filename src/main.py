@@ -216,7 +216,12 @@ class VassApp:
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "trascrizione"
         self.memory_mode = "full"
         self._input_mode = False
-        self._ensure_memory_file()
+        from memory_manager import MemoryManager
+        self.memory = MemoryManager(
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root"),
+            self.openai_client, self.system_message, self.language,
+            self.memory_tokens, self.overflow_strategy, lock=self._ai_lock
+        )
         self._start_rss()
 
     def _start_rss(self):
@@ -242,20 +247,12 @@ class VassApp:
                 data={"type": "rss", "link": link, "guid": guid, "title": title, "source": source}
             )
 
-    @staticmethod
-    def _ensure_memory_file():
-        dir_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root")
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-            print(f"[Memory] Created directory {dir_path}")
-        mem_dir = os.path.join(dir_path, "memory")
-        if not os.path.exists(mem_dir):
-            os.makedirs(mem_dir)
-        path = os.path.join(dir_path, "memory.json")
-        if not os.path.exists(path):
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump({"history": []}, f, indent=2)
-            print(f"[Memory] Created empty {path}")
+
+    def _get_tokenizer(self):
+        return self.memory._get_tokenizer()
+
+    def _count_tokens(self, text):
+        return self.memory.count_tokens(text)
 
     def set_mode(self, mode):
         self.mode = mode
