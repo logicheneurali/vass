@@ -10,42 +10,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QKeySequence, QShortcut
 from i18n import t
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
-                   SECTION_FG, DESCRIPTION_FG)
+                   SECTION_FG, DESCRIPTION_FG, FRAME_BORDER, BASE_STYLESHEET)
 
-BASE_STYLESHEET = f"""
-QMainWindow, QWidget {{ background-color: {BG}; color: {FG}; }}
-QGroupBox {{
-    font-weight: bold; color: {SECTION_FG};
-    border: 1px solid #3c3c3c; border-radius: 4px;
-    margin-top: 10px; padding-top: 14px;
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin;
-    subcontrol-position: top left;
-    padding: 0 6px;
-}}
-QLabel {{ color: {LABEL_FG}; font-size: 12px; }}
-QLineEdit {{
-    background-color: {ENTRY_BG}; color: {ENTRY_FG};
-    border: 1px solid #3c3c3c; border-radius: 3px;
-    padding: 5px 6px; font-size: 12px;
-}}
-QLineEdit:focus {{ border-color: {BTN_BG}; }}
-QPushButton {{
-    background-color: {BTN_BG}; color: {BTN_FG};
-    border: none; border-radius: 3px; padding: 6px 18px;
-    font-weight: bold; font-size: 12px;
-}}
-QPushButton:hover {{ background-color: #0a5c5e; }}
-QPushButton:pressed {{ background-color: #085052; }}
+STYLESHEET = BASE_STYLESHEET + f"""
 QScrollArea {{ border: none; }}
-QScrollBar:vertical {{
-    background: {BG}; width: 10px;
-}}
-QScrollBar::handle:vertical {{
-    background: #2d2d2d; border-radius: 4px; min-height: 20px;
-}}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
 QSlider::groove:horizontal {{
     background: #3c3c3c; height: 6px; border-radius: 3px;
 }}
@@ -58,6 +26,7 @@ QSlider::sub-page:horizontal {{
     background: {BTN_BG}; border-radius: 3px;
 }}
 """
+
 
 BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context"}
 HIDDEN_KEYS = {"lastmode"}
@@ -181,7 +150,7 @@ class SettingsEditor(QMainWindow):
         self.setWindowTitle(t("settings_editor.title", self.lang))
         self.resize(800, 700)
         self.setMinimumSize(650, 400)
-        self.setStyleSheet(BASE_STYLESHEET)
+        self.setStyleSheet(STYLESHEET)
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -258,7 +227,10 @@ class SettingsEditor(QMainWindow):
                     continue
 
                 field_label = t(f"settings_editor.field_labels.{key}", self.lang)
+                import re as _re
+                field_label = _re.sub(r' \((SPERIMENTALE|EXPERIMENTAL|EXPÉRIMENTAL|EXPERIMENTELL|実験的|실험적|实验性)\)$', r'\n(\1)', field_label)
                 lbl = QLabel(field_label)
+                lbl.setWordWrap(True)
                 group_layout.addWidget(lbl, row, 0, Qt.AlignTop)
 
                 if key == "language":

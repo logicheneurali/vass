@@ -9,62 +9,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QKeySequence, QShortcut
 from i18n import t
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
-                   SECTION_FG, DESCRIPTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG)
+                   SECTION_FG, DESCRIPTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
 
-BASE_STYLESHEET = f"""
-QMainWindow, QWidget {{ background-color: {BG}; color: {FG}; font-size: 12px; }}
-QGroupBox {{
-    font-weight: bold; color: {SECTION_FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 4px;
-    margin-top: 10px; padding-top: 14px;
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin;
-    subcontrol-position: top left;
-    padding: 0 6px;
-}}
-QLabel {{ color: {LABEL_FG}; }}
-QLineEdit {{
-    background-color: {ENTRY_BG}; color: {ENTRY_FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 3px;
-    padding: 5px 6px;
-}}
-QLineEdit:focus {{ border-color: {BTN_BG}; }}
-QPushButton {{
-    border: none; border-radius: 3px; padding: 6px 18px;
-    font-weight: bold;
-}}
-QPushButton:hover {{ background-color: #0a5c5e; }}
-QPushButton:pressed {{ background-color: #085052; }}
-QListWidget {{
-    background-color: #252525; color: {FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 3px;
-    outline: none;
-}}
-QListWidget::item:selected {{
-    background-color: {BTN_BG}; color: {FG};
-}}
-QComboBox {{
-    background-color: {ENTRY_BG}; color: {ENTRY_FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 3px;
-    padding: 5px 6px;
-}}
-QComboBox::drop-down {{
-    border: none; width: 20px;
-}}
-QComboBox::down-arrow {{
-    image: none;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 6px solid #888888;
-    margin-right: 6px;
-}}
+STYLESHEET = BASE_STYLESHEET + f"""
 QComboBox:hover {{ border-color: {BTN_BG}; }}
-QComboBox QAbstractItemView {{
-    background-color: {ENTRY_BG}; color: {ENTRY_FG};
-    selection-background-color: {BTN_BG};
-    border: 1px solid {FRAME_BORDER};
-}}
 """
 
 
@@ -100,7 +48,7 @@ class CommandsEditor(QMainWindow):
         self.setWindowTitle(self._t("commands_editor.title"))
         self.resize(750, 500)
         self.setMinimumSize(700, 450)
-        self.setStyleSheet(BASE_STYLESHEET)
+        self.setStyleSheet(STYLESHEET)
 
         central = QWidget()
         self.setCentralWidget(central)

@@ -11,51 +11,9 @@ from PySide6.QtWidgets import (
     QLineEdit, QMessageBox, QComboBox,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
-                   SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG)
+                   SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
 
-BASE_STYLESHEET = f"""
-QMainWindow, QWidget {{ background-color: {BG}; color: {FG}; font-size: 12px; }}
-QGroupBox {{
-    font-weight: bold; color: {SECTION_FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 4px;
-    margin-top: 10px; padding-top: 14px;
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin;
-    subcontrol-position: top left;
-    padding: 0 6px;
-}}
-QLabel {{ color: {LABEL_FG}; }}
-QLineEdit {{
-    background-color: {ENTRY_BG}; color: {ENTRY_FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 3px;
-    padding: 5px 6px; font-size: 12px;
-}}
-QPushButton {{
-    background-color: {BTN_BG}; color: {BTN_FG};
-    border: none; border-radius: 3px; padding: 6px 12px;
-    font-weight: bold;
-}}
-QPushButton:hover {{ background-color: #0a5c5e; }}
-QPushButton:pressed {{ background-color: #085052; }}
-QListWidget {{
-    background-color: #252525; color: {FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 3px;
-    outline: none;
-}}
-QListWidget::item:selected {{
-    background-color: {BTN_BG}; color: {FG};
-}}
-QComboBox {{
-    background-color: {ENTRY_BG}; color: {ENTRY_FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 3px;
-    padding: 4px 6px;
-}}
-QComboBox QAbstractItemView {{
-    background-color: #252525; color: {FG};
-    selection-background-color: {BTN_BG};
-}}
-"""
+STYLESHEET = BASE_STYLESHEET
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOWED = os.path.join(BASE, "Allowed_root")
@@ -115,7 +73,7 @@ class SourcesEditor(QMainWindow):
         self.setWindowTitle("VASS - Fonti Online")
         self.resize(700, 480)
         self.setMinimumSize(550, 360)
-        self.setStyleSheet(BASE_STYLESHEET)
+        self.setStyleSheet(STYLESHEET)
 
         central = QWidget()
         self.setCentralWidget(central)

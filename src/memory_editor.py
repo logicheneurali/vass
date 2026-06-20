@@ -12,10 +12,9 @@ ALLOWED = os.path.join(BASE, "Allowed_root")
 TAGS_PATH = os.path.join(ALLOWED, "memory_tags.json")
 MEM_DIR = os.path.join(ALLOWED, "memory")
 
-BG = "#1e1e1e"
-FG = "#e0e0e0"
-ACCENT = "#0d7377"
-BTN_BG = "#3d3d3d"
+from theme import BG, FG, BTN_BG, BASE_STYLESHEET
+ACCENT = BTN_BG
+TAG_BG = "#3d3d3d"
 
 
 def _t(path, lang="en"):
@@ -91,7 +90,7 @@ class MemoryEditor(QMainWindow):
     def _build_ui(self):
         self.setWindowTitle(self._tl("memory_editor.title"))
         self.resize(800, 600)
-        self.setStyleSheet(f"QWidget {{ background-color: {BG}; color: {FG}; font-size: 13px; }}")
+        self.setStyleSheet(BASE_STYLESHEET)
         self.setMinimumSize(600, 400)
 
         central = QWidget()
@@ -165,7 +164,7 @@ class MemoryEditor(QMainWindow):
                 weight = self._tag_weights.get(tag, "?")
                 known = tag in self._tag_weights
                 if known:
-                    lines.append(f'<a href="vass:rmtag:{i}:{tag}" style="display:inline-block; background:{BTN_BG}; border-radius:3px; padding:3px 8px; margin:2px; font-size:11px;">'
+                    lines.append(f'<a href="vass:rmtag:{i}:{tag}" style="display:inline-block; background:{TAG_BG}; border-radius:3px; padding:3px 8px; margin:2px; font-size:11px;">'
                                  f'{tag} ({weight}) &times;</a>')
                 else:
                     lines.append(f'<span style="display:inline-block; background:#444; color:#888; border-radius:3px; padding:3px 8px; margin:2px; font-size:11px;">'
