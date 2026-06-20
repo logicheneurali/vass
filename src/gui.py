@@ -349,7 +349,6 @@ class VassGUI(QMainWindow):
         self._current_detail = ""
         self._current_mode = "chat"
         self._html_viewers = []
-        self._selected_types = set()
 
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
@@ -793,188 +792,21 @@ class VassGUI(QMainWindow):
 
     def _show_bell_dialog(self):
         try:
-            self._show_bell_dialog_inner()
+            if not self.app:
+                return
+            notifs = self.app.notification_manager.list_all()
+            from notification_dialog import NotificationDialog
+            dlg = NotificationDialog(
+                self, notifs, self.app.notification_manager,
+                rss_reader=self.app.rss_reader,
+                t_fn=self._t,
+            )
+            dlg.exec()
+            self._update_bell()
         except Exception as e:
             print(f"[Bell] Error: {e}")
             import traceback
             traceback.print_exc()
-
-    def _show_bell_dialog_inner(self):
-        if not self.app:
-            return
-        notifs = self.app.notification_manager.list_all()
-        all_notifs = notifs
-        notifs = [n for n in notifs if not n.get("read")]
-        if self.app.rss_reader:
-            rss_guids = []
-            for n in all_notifs:
-                data = n.get("data")
-                if isinstance(data, dict) and data.get("type") == "rss":
-                    guid = data.get("guid", "")
-                    if guid:
-                        rss_guids.append(guid)
-            if rss_guids:
-                self.app.rss_reader.mark_guids_seen(rss_guids)
-        self._selected_types.clear()
-        self._show_bell_dialog_impl(notifs, all_notifs)
-
-    def _show_bell_dialog_impl(self, notifs, all_notifs):
-        TYPE_ICONS = {
-            "rss": "\U0001f4f0", "timer": "\u23f0", "event": "\U0001f4c5",
-            "schedule": "\U0001f4cb", "mail": "\U0001f4e7", "auth": "\U0001f511",
-            "script": "\U0001f4dc",
-        }
-        TYPE_COLORS = {
-            "rss": BTN_BG, "timer": "#e74c3c", "event": "#f1c40f",
-            "schedule": "#f39c12", "mail": "#3498db", "auth": "#e74c3c",
-            "script": "#9b59b6",
-        }
-
-        type_counts = {}
-        unread_by_type = {}
-        for n in all_notifs:
-            data = n.get("data") or {}
-            t = data.get("type", "other")
-            if t not in type_counts:
-                type_counts[t] = 0
-                unread_by_type[t] = 0
-            type_counts[t] += 1
-            if not n.get("read", False):
-                unread_by_type[t] += 1
-
-        dlg = QDialog(self)
-        dlg.setWindowTitle(self._t("gui.notifications"))
-        dlg.resize(440, 480)
-        dlg.setMinimumSize(360, 320)
-        dlg.setStyleSheet(BASE_STYLESHEET)
-
-        layout = QVBoxLayout(dlg)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
-
-        header = QHBoxLayout()
-        title_lbl = QLabel(self._t("gui.notifications"))
-        title_lbl.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {SECTION_FG};")
-        header.addWidget(title_lbl)
-        shown_types = {t: c for t, c in unread_by_type.items() if c > 0}
-        if not shown_types:
-            shown_types = type_counts
-        type_btns = {}
-        for t, count in shown_types.items():
-            if count <= 0:
-                continue
-            icon = TYPE_ICONS.get(t, "")
-            color = TYPE_COLORS.get(t, "#888888")
-            btn = QPushButton(f"{icon} {count}")
-            btn.setFlat(True)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setStyleSheet(
-                f"QPushButton {{ background-color: {color}; color: {BTN_FG}; "
-                f"border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: bold; }}"
-            )
-            typ = t
-            def make_toggle(typ):
-                return lambda: self._on_type_toggle(typ, dlg, notifs, all_notifs)
-            btn.clicked.connect(make_toggle(typ))
-            type_btns[t] = btn
-            header.addWidget(btn)
-        header.addStretch()
-        layout.addLayout(header)
-
-        browser = QTextBrowser()
-        browser.setOpenExternalLinks(False)
-        browser.setOpenLinks(False)
-        browser.setStyleSheet(f"background-color: #252525; color: {FG}; border: 1px solid {FRAME_BORDER}; border-radius: 4px; padding: 8px; font-size: 12px;"
-                               "QScrollBar:vertical { background: #252525; width: 10px; }"
-                               f"QScrollBar::handle:vertical {{ background: {ENTRY_BG}; border-radius: 4px; min-height: 20px; }}"
-                               "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }")
-
-        def _build_html():
-            filtered = notifs
-            if self._selected_types:
-                filtered = [n for n in notifs if (n.get("data") or {}).get("type", "other") in self._selected_types]
-            for t, btn in type_btns.items():
-                color = TYPE_COLORS.get(t, "#888888")
-                if not self._selected_types:
-                    btn.setStyleSheet(
-                        f"QPushButton {{ background-color: {color}; color: {BTN_FG}; "
-                        f"border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: bold; }}"
-                    )
-                elif t in self._selected_types:
-                    btn.setStyleSheet(
-                        f"QPushButton {{ background-color: {color}; color: {BTN_FG}; "
-                        f"border: 2px solid #ffffff; border-radius: 8px; padding: 2px 8px; "
-                        f"font-size: 11px; font-weight: bold; }}"
-                    )
-                else:
-                    btn.setStyleSheet(
-                        f"QPushButton {{ background-color: {color}; color: {BTN_FG}; "
-                        f"border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: bold; opacity: 0.35; }}"
-                    )
-            html_parts = ['<html><body style="background-color:#252525; color:#e0e0e0; margin:0;">']
-            if not filtered:
-                html_parts.append(f'<p style="color:{LABEL_FG}; text-align:center; padding:20px;">{self._t("gui.no_notifications")}</p>')
-            else:
-                for i, n in enumerate(filtered):
-                    data = n.get("data") or {}
-                    ntype = data.get("type", "other")
-                    icon = TYPE_ICONS.get(ntype, "\u25cf")
-                    icon_color = TYPE_COLORS.get(ntype, self.app.notification_manager.color_for(n["priority"]))
-                    ts = n.get("ts", "")
-                    txt = n.get("text", "")
-                    escaped_txt = txt.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
-                    if ntype == "rss":
-                        link = data.get("link", "")
-                        escaped_link = link.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
-                        html_parts.append(
-                            f'<div style="padding:6px 0;">'
-                            f'<span style="color:{icon_color};">{icon}</span> '
-                            f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
-                            f'<span style="color:{FG};">{escaped_txt}</span><br>'
-                            f'<a href="{escaped_link}" style="color:{BTN_BG}; font-size:11px; text-decoration:none;">'
-                            f'{self._t("rss.read_article")}</a></div>'
-                        )
-                    else:
-                        html_parts.append(
-                            f'<div style="padding:6px 0;">'
-                            f'<span style="color:{icon_color};">{icon}</span> '
-                            f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
-                            f'<span style="color:{FG};">{escaped_txt}</span></div>'
-                        )
-                    if i < len(filtered) - 1:
-                        html_parts.append(f'<hr style="border: none; border-top: 1px solid {FRAME_BORDER}; margin: 4px 0;">')
-            html_parts.append('</body></html>')
-            browser.setHtml("".join(html_parts))
-
-        def on_link_clicked(qurl):
-            url = qurl.toString()
-            dlg.accept()
-            import webbrowser
-            webbrowser.open(url)
-        browser.anchorClicked.connect(on_link_clicked)
-
-        _build_html()
-        layout.addWidget(browser, 1)
-
-        btn_row = QHBoxLayout()
-        mark_btn = QPushButton(self._t("gui.mark_read"))
-        mark_btn.clicked.connect(lambda: self.app.notification_manager.mark_all_read())
-        mark_btn.clicked.connect(dlg.close)
-        btn_row.addWidget(mark_btn)
-        btn_row.addStretch()
-        close_btn2 = QPushButton(self._t("gui.close"))
-        close_btn2.setStyleSheet(f"background-color: transparent; color: {LABEL_FG}; border: 1px solid {FRAME_BORDER}; border-radius: 3px; padding: 5px 16px;")
-        close_btn2.clicked.connect(dlg.close)
-        btn_row.addWidget(close_btn2)
-        layout.addLayout(btn_row)
-
-        dlg.exec()
-        self._update_bell()
-
-    def _on_type_toggle(self, typ, dlg, notifs, all_notifs):
-        self._selected_types.symmetric_difference_update({typ})
-        self._show_bell_dialog_impl(notifs, all_notifs)
-        dlg.close()
 
     def _replay_btn_press(self, event):
         if event.button() == Qt.MouseButton.RightButton:
