@@ -819,14 +819,6 @@ class VassGUI(QMainWindow):
         count_lbl.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: bold;")
         header.addWidget(count_lbl)
         header.addStretch()
-        close_btn = QPushButton("\u2715")
-        close_btn.setFixedSize(28, 28)
-        close_btn.setStyleSheet(
-            f"QPushButton {{ background-color: transparent; color: {LABEL_FG}; border: none; font-size: 16px; }}"
-            f"QPushButton:hover {{ color: {FG}; }}"
-        )
-        close_btn.clicked.connect(dlg.close)
-        header.addWidget(close_btn)
         layout.addLayout(header)
 
         browser = QTextBrowser()
