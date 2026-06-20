@@ -356,6 +356,7 @@ class VassGUI(QMainWindow):
         self._current_state = "listening"
         self._current_detail = ""
         self._current_mode = "chat"
+        self._html_viewers = []
 
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
@@ -862,6 +863,8 @@ class VassGUI(QMainWindow):
             url = qurl.toString()
             viewer = HTMLViewer(url)
             viewer.show()
+            self._html_viewers = [v for v in self._html_viewers if v.isVisible()]
+            self._html_viewers.append(viewer)
         browser.anchorClicked.connect(on_link_clicked)
 
         layout.addWidget(browser)
