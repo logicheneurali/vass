@@ -116,6 +116,7 @@ class RssReader:
                 for item in items:
                     if item.get("guid") not in existing_guids:
                         cache_entry.setdefault("items", []).append(item)
+                        existing_guids.add(item.get("guid"))
                 if len(cache_entry.get("items", [])) > 20:
                     cache_entry["items"] = cache_entry["items"][-20:]
                 self._cache[fid] = cache_entry
@@ -212,6 +213,7 @@ class RssReader:
                             if item.get("guid") not in existing_guids:
                                 cache_entry.setdefault("items", []).append(item)
                                 new_items.append(item)
+                                existing_guids.add(item.get("guid"))
                         if len(cache_entry.get("items", [])) > 20:
                             cache_entry["items"] = cache_entry["items"][-20:]
                         self._cache[fid2] = cache_entry
