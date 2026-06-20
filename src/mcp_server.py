@@ -7,9 +7,10 @@ from pathlib import Path
 
 
 class McpServerThread(threading.Thread):
-    def __init__(self, mcp_port=9988):
+    def __init__(self, mcp_port=9988, allow_scripts=False):
         super().__init__(daemon=True, name="mcp-server")
         self._port = mcp_port
+        self._allow_scripts = allow_scripts
 
     def run(self):
         _mcp_src = str(Path(__file__).resolve().parent.parent / "mcp_server" / "src")
@@ -25,6 +26,7 @@ class McpServerThread(threading.Thread):
             return
         try:
             config = load_config()
+            config.allow_scripts = self._allow_scripts
             mcp = create_server(config)
             http_app = mcp.streamable_http_app()
             wrapped = _cors_middleware(_client_ip_middleware(http_app))

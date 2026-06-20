@@ -268,6 +268,8 @@ def create_server(config: ServerConfig) -> FastMCP:
     @mcp.tool()
     async def script(script_name: str) -> str:
         """Execute a VASScript file from the scripts folder (without .vass extension). Call with '?' to list available scripts."""
+        if not config.allow_scripts:
+            return "error: script execution is disabled (set allow_ai_scripts=true in settings.ini)"
         return await _tool("script", f"script={script_name}", _vasscript(script_name), config)
 
     async def _interact_handler(code: str) -> str:
@@ -275,6 +277,15 @@ def create_server(config: ServerConfig) -> FastMCP:
     _interact_handler.__doc__ = _interact_doc
     _interact_handler.__name__ = "interact"
     interact = mcp.tool()(_interact_handler)
+
+    # Add server-side gate for interact (must be after registration)
+    _orig_interact = interact
+    async def _gated_interact(code: str) -> str:
+        if not config.allow_scripts:
+            return "error: script execution is disabled (set allow_ai_scripts=true in settings.ini)"
+        return await _orig_interact(code)
+    _gated_interact.__doc__ = _interact_doc
+    interact = mcp.tool()(_gated_interact)
 
     @mcp.tool()
     async def readinfo(id: str) -> str:

@@ -624,7 +624,7 @@ class VassApp:
 
     def _start_mcp_server(self):
         from mcp_server import McpServerThread
-        self._mcp_thread = McpServerThread()
+        self._mcp_thread = McpServerThread(allow_scripts=self.allow_ai_scripts)
         self._mcp_thread.start()
         time.sleep(2)
 

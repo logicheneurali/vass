@@ -385,8 +385,9 @@ class CommandExecutor:
                     creationflags=subprocess.CREATE_NO_WINDOW
                 )
             else:
+                import shlex
                 subprocess.run(
-                    command, shell=True,
+                    shlex.split(command), shell=False,
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
             print(f"Command started: {command}")
