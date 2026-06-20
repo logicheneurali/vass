@@ -494,7 +494,7 @@ class EventReminder:
         if not msg:
             self._calculate_next_alert()
             return
-        while self.app.state in ("recording", "playing", "waiting_resources"):
+        while self.app.state in ("recording", "playing", "waiting_resources", "running_script"):
             time.sleep(2)
             if not self._running:
                 return
@@ -511,8 +511,8 @@ class EventReminder:
         sched_key = int(self._next_schedule_ts)
         if sched_key in self._alerted_schedules:
             return
-        if self.app.state in ("playing", "recording"):
-            print("[Schedules] Skipped: app state is playing/recording, will retry next cycle")
+        if self.app.state in ("playing", "recording", "waiting", "waiting_resources", "running_script"):
+            print(f"[Schedules] Skipped: app state is {self.app.state}, will retry next cycle")
             return
         self._alerted_schedules.add(sched_key)
         for sc in list(self._next_schedules):

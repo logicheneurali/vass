@@ -491,12 +491,15 @@ class VassApp:
                 frame = self.audio_handler.get_frame()
                 if frame is None:
                     self._silent_frames += 1
-                    if self._silent_frames > 300 and not self._auto_paused_at and self.state == "listening":
-                        print("[Audio] Stream appears dead, restarting...")
-                        self.audio_handler.stop_stream()
-                        time.sleep(0.1)
-                        self.audio_handler.start_stream()
-                        self._silent_frames = 0
+                    if self._silent_frames > 300 and not self._auto_paused_at:
+                        with self.state_lock:
+                            cs = self.state
+                        if cs == "listening":
+                            print("[Audio] Stream appears dead, restarting...")
+                            self.audio_handler.stop_stream()
+                            time.sleep(0.1)
+                            self.audio_handler.start_stream()
+                            self._silent_frames = 0
                 else:
                     self._silent_frames = 0
                 if self._auto_paused_at is not None:
@@ -532,12 +535,18 @@ class VassApp:
                             self._auto_paused_at = time.time()
                 if frame is not None:
                     with self.state_lock:
-                        if self.state == "recording":
+                        current_state = self.state
+                        if current_state == "recording":
                             rms = float(np.sqrt(np.mean(frame**2)))
                             self.gui.volume_signal.emit(rms)
-                        if self.state in ["paused", "playing", "waiting", "waiting_resources", "running_script"]:
-                            continue
-                        
+                        if current_state in ["paused", "playing", "waiting", "waiting_resources", "running_script"]:
+                            pass
+                        else:
+                            pass
+
+                    if current_state in ["paused", "playing", "waiting", "waiting_resources", "running_script"]:
+                        continue
+                    
                     if not self.audio_handler.is_recording:
                         try:
                             wake = self.voice_recognition.detect_wake_word(frame)
@@ -545,7 +554,7 @@ class VassApp:
                             with open("crash.log", "a") as f:
                                 f.write(f"detect_wake_word error: {ex}\n")
                             wake = False
-                        if wake and self.state == "listening":
+                        if wake and current_state == "listening":
                             self._noise_high_frames = 0
                             self._nf_print_counter = 0
                             self._running_noise_floor = None
@@ -561,7 +570,7 @@ class VassApp:
                             self.set_state("recording")
                             continue
 
-                        if not wake and self.state == "listening":
+                        if not wake and current_state == "listening":
                             nf = float(np.sqrt(np.mean(frame**2)))
                             if self._running_noise_floor is None:
                                 self._running_noise_floor = nf
@@ -765,7 +774,9 @@ class VassApp:
         return overhead
 
     def _process_chat_text(self, text):
-        ctx_len = self.context_length or 4096
+        if self.state not in ("listening", "paused"):
+            print(f"[Chat] Ignored: state={self.state}")
+            return
         overhead = self._estimate_system_overhead()
         avail_chars = max(ctx_len - overhead, ctx_len // 4)
         if len(text) > avail_chars:
@@ -851,6 +862,9 @@ class VassApp:
             print("No audio recorded.")
 
     def _listen_once(self, timeout=15):
+        if self.state not in ("listening", "paused"):
+            print(f"[ListenOnce] Blocked: state={self.state}")
+            return ""
         import sounddevice as sd
         import numpy as np
         import webrtcvad
@@ -911,6 +925,9 @@ class VassApp:
             self._input_mode = False
 
     def _process_command(self):
+        if self.state in ("recording", "playing"):
+            print(f"[ProcessCommand] Blocked: state={self.state}")
+            return
         try:
             with open("lastcommands.txt", "r", encoding="utf-8") as f:
                 transcribed_text = f.read().strip()
@@ -1399,7 +1416,7 @@ class VassApp:
             msg = t("notifications.auto_model_selected", self.language).replace("{model}", selected)
             if hasattr(self, 'notification_manager'):
                 self.notification_manager.add(msg, priority=6, data={"type": "auth"})
-            if hasattr(self, 'tts') and self.tts:
+            if hasattr(self, 'tts') and self.tts and self.state not in ("recording", "playing"):
                 self.tts.enqueue(msg)
         except Exception as e:
             print(f"[Settings] Auto model selection failed: {e}")

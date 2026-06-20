@@ -79,7 +79,11 @@ class TimerManager:
         info = self._timers.pop(tid, None)
         if not info:
             return
+        state = getattr(self.app, "state", "listening")
         if command_text:
+            if state in ("recording", "waiting", "waiting_resources", "playing"):
+                print(f"[Timer] Delayed command deferred: state={state}")
+                return
             if hasattr(self.app, '_process_delayed_command'):
                 self.app._process_delayed_command(command_text)
             return
@@ -88,6 +92,9 @@ class TimerManager:
         msg = t("timer.expired", lang).replace("{duration}", self._clean_duration(info["duration"]))
         if hasattr(self.app, 'notification_manager'):
             self.app.notification_manager.add(msg, priority=8, data={"type": "timer"})
+        if state in ("recording", "playing"):
+            print(f"[Timer] Alert/tts deferred: state={state}")
+            return
         self._play_alert(2)
         self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2))
 
