@@ -78,6 +78,8 @@ mcp_server/LOG/
 
 # VASS - dev files
 CHANGELOG.md
+tmp/
+docs/superpowers/
 plan.md
 todo.txt
 todo_AI.txt
