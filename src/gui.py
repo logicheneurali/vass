@@ -301,19 +301,17 @@ class HTMLViewer(QMainWindow):
             return
         css = """
         (function(){
+            var bg = window.getComputedStyle(document.body).backgroundColor;
+            var match = bg.match(/\\d+/g);
+            if (match && match.length >= 3) {
+                var r = parseInt(match[0]), g = parseInt(match[1]), b = parseInt(match[2]);
+                var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                if (lum < 0.4) return;
+            }
             var style = document.createElement('style');
-            style.textContent = `
-                body { background-color: #1e1e1e !important; color: #e0e0e0 !important; }
-                * { font-family: 'Segoe UI', sans-serif !important; }
-                img { max-width: 700px !important; }
-                a { color: #4ec9b0 !important; }
-                #cookie-consent, #cookie-banner, .cookie-notice,
-                .gdpr-banner, .consent-banner, [class*="cookie"],
-                [id*="cookie"], .sidebar, .advertisement, .ads { display: none !important; }
-                article, main, .content, .article, .post, .entry {
-                    max-width: 700px !important; margin: 0 auto !important;
-                }
-            `;
+            style.textContent =
+                'html { filter: invert(1) hue-rotate(180deg) !important; }' +
+                'img, video, canvas, svg, [style*="background-image"] { filter: invert(1) hue-rotate(180deg) !important; }';
             document.head.appendChild(style);
             var meta = document.createElement('meta');
             meta.name = 'color-scheme';
@@ -862,6 +860,7 @@ class VassGUI(QMainWindow):
 
         def on_link_clicked(qurl):
             url = qurl.toString()
+            dlg.close()
             viewer = HTMLViewer(url)
             viewer.show()
             self._html_viewers = [v for v in self._html_viewers if v.isVisible()]
