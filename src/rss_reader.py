@@ -4,7 +4,7 @@ import threading
 import time
 import feedparser
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 class RssReader:
@@ -112,13 +112,30 @@ class RssReader:
             with self._lock:
                 cache_entry = self._cache.get(fid, {"items": [], "last_poll": None})
                 existing_guids = {it.get("guid") for it in cache_entry.get("items", [])}
-                cache_entry["last_poll"] = now
+                old_last_poll = cache_entry.get("last_poll")
+                cutoff = None
+                if old_last_poll:
+                    try:
+                        cutoff = datetime.fromisoformat(old_last_poll) - timedelta(hours=24)
+                    except Exception:
+                        pass
                 for item in items:
+                    pub = item.get("pubDate")
+                    if not pub:
+                        continue
+                    if cutoff:
+                        try:
+                            item_date = datetime.fromisoformat(pub)
+                            if item_date < cutoff:
+                                continue
+                        except Exception:
+                            pass
                     if item.get("guid") not in existing_guids:
                         cache_entry.setdefault("items", []).append(item)
                         existing_guids.add(item.get("guid"))
                 if len(cache_entry.get("items", [])) > 20:
                     cache_entry["items"] = cache_entry["items"][-20:]
+                cache_entry["last_poll"] = now
                 self._cache[fid] = cache_entry
             all_items.extend(items)
         self._save_cache()
@@ -208,14 +225,28 @@ class RssReader:
                     with self._lock:
                         cache_entry = self._cache.get(fid2, {"items": [], "last_poll": None})
                         existing_guids = {it.get("guid") for it in cache_entry.get("items", [])}
-                        cache_entry["last_poll"] = now_iso
+                        cutoff = None
+                        if last_poll:
+                            cutoff = last_poll - timedelta(hours=24)
                         for item in items:
+                            pub = item.get("pubDate")
+                            if not pub:
+                                continue
+                            if cutoff:
+                                try:
+                                    import calendar
+                                    item_date = datetime.fromisoformat(pub)
+                                    if item_date < cutoff:
+                                        continue
+                                except Exception:
+                                    pass
                             if item.get("guid") not in existing_guids:
                                 cache_entry.setdefault("items", []).append(item)
                                 new_items.append(item)
                                 existing_guids.add(item.get("guid"))
                         if len(cache_entry.get("items", [])) > 20:
                             cache_entry["items"] = cache_entry["items"][-20:]
+                        cache_entry["last_poll"] = now_iso
                         self._cache[fid2] = cache_entry
                     self._save_cache()
                     if new_items and self._on_new_items and last_poll is not None:
