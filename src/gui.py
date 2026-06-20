@@ -862,10 +862,8 @@ class VassGUI(QMainWindow):
         def on_link_clicked(qurl):
             url = qurl.toString()
             dlg.accept()
-            viewer = HTMLViewer(url)
-            viewer.show()
-            self._html_viewers = [v for v in self._html_viewers if v.isVisible()]
-            self._html_viewers.append(viewer)
+            import webbrowser
+            webbrowser.open(url)
         browser.anchorClicked.connect(on_link_clicked)
 
         layout.addWidget(browser, 1)
