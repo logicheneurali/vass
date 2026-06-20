@@ -776,9 +776,16 @@ class VassGUI(QMainWindow):
             return
         count = self.app.notification_manager.unread_count()
         if count > 0:
+            max_priority = 0
+            for n in self.app.notification_manager.list_all():
+                if not n.get("read", False):
+                    p = n.get("priority", 0)
+                    if p > max_priority:
+                        max_priority = p
+            color = self.app.notification_manager.color_for(max_priority)
             self._bell_btn.setText(str(count))
             self._bell_btn.setStyleSheet(
-                "QPushButton { background: transparent; color: #e74c3c; "
+                f"QPushButton {{ background: transparent; color: {color}; "
                 "border: none; font-size: 10px; padding: 2px 4px; font-weight: bold; }"
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )
