@@ -81,7 +81,14 @@ class RssReader:
                 except Exception:
                     pass
             raw_guid = entry.get("id") or entry.get("link", "")
-            guid = raw_guid.split("#")[0] if "#" in raw_guid and raw_guid.startswith("http") else raw_guid
+            if "#" in raw_guid and raw_guid.startswith("http"):
+                raw_guid = raw_guid.split("#")[0]
+            if raw_guid.startswith("http"):
+                from urllib.parse import urlparse, urlunparse
+                parsed = urlparse(raw_guid)
+                guid = urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
+            else:
+                guid = raw_guid
             items.append({
                 "guid": guid,
                 "title": entry.get("title", ""),
