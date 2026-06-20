@@ -77,6 +77,7 @@ log/
 mcp_server/LOG/
 
 # VASS - dev files
+CHANGELOG.md
 plan.md
 todo.txt
 todo_AI.txt

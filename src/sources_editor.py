@@ -4,11 +4,11 @@ import sys
 import uuid
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QKeySequence, QShortcut, QIntValidator
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QGroupBox,
-    QLineEdit, QMessageBox, QComboBox,
+    QLineEdit, QMessageBox, QComboBox, QTabWidget, QCheckBox,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
@@ -25,6 +25,9 @@ LANG_NAMES = {
     "it": "Italiano", "en": "English", "de": "Deutsch", "fr": "Francais",
     "es": "Espanol", "pt": "Portugues", "ja": "日本語", "ko": "한국어", "zh": "中文",
 }
+
+RSS_FILE = os.path.join(ALLOWED, "rss_feeds.json")
+INTERVAL_UNITS = ["minuti", "ore", "giorni"]
 
 
 def _load(path):
@@ -47,8 +50,10 @@ class SourcesEditor(QMainWindow):
         self.lang = language
         self._current_category = CATEGORIES[0]
         self._current_sources = []
+        self._rss_feeds = []
         self._build_ui()
         self._load_category()
+        self._load_rss_feeds()
 
     def _t(self, path):
         from i18n import t
@@ -71,13 +76,32 @@ class SourcesEditor(QMainWindow):
 
     def _build_ui(self):
         self.setWindowTitle("VASS - Fonti Online")
-        self.resize(700, 480)
-        self.setMinimumSize(550, 360)
+        self.resize(700, 580)
+        self.setMinimumSize(600, 440)
         self.setStyleSheet(STYLESHEET)
 
         central = QWidget()
         self.setCentralWidget(central)
-        layout = QHBoxLayout(central)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(6, 6, 6, 6)
+
+        self.tabs = QTabWidget()
+        root.addWidget(self.tabs)
+
+        self._build_online_tab()
+        self._build_rss_tab()
+
+        self.tabs.currentChanged.connect(self._on_tab_changed)
+
+        QShortcut(QKeySequence("Ctrl+S"), self, self._save_file)
+
+    def _on_tab_changed(self, index):
+        if index == 1:
+            self._refresh_rss_list()
+
+    def _build_online_tab(self):
+        online = QWidget()
+        layout = QHBoxLayout(online)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
 
@@ -138,13 +162,89 @@ class SourcesEditor(QMainWindow):
 
         btn_save = QPushButton("Salva")
         btn_save.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
-        btn_save.clicked.connect(self._save_file)
+        btn_save.clicked.connect(self._save_online)
         btn_row.addWidget(btn_save)
         right_layout.addLayout(btn_row)
 
         layout.addWidget(right_group, 2)
 
-        QShortcut(QKeySequence("Ctrl+S"), self, self._save_file)
+        self.tabs.addTab(online, "Fonti Online")
+
+    def _build_rss_tab(self):
+        rss = QWidget()
+        layout = QVBoxLayout(rss)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
+
+        group = QGroupBox("Feed RSS")
+        group_layout = QVBoxLayout(group)
+
+        self.rss_list = QListWidget()
+        self.rss_list.currentRowChanged.connect(self._on_rss_select)
+        group_layout.addWidget(self.rss_list)
+
+        row1 = QHBoxLayout()
+        row1.addWidget(QLabel("Nome:"))
+        self.rss_name_edit = QLineEdit()
+        row1.addWidget(self.rss_name_edit)
+        row1.addWidget(QLabel("URL Feed:"))
+        self.rss_url_edit = QLineEdit()
+        row1.addWidget(self.rss_url_edit)
+        group_layout.addLayout(row1)
+
+        row2 = QHBoxLayout()
+        self.rss_active_cb = QCheckBox("Attivo")
+        self.rss_active_cb.setStyleSheet(f"color: {LABEL_FG};")
+        row2.addWidget(self.rss_active_cb)
+
+        row2.addWidget(QLabel("Controlla ogni:"))
+        self.rss_interval_edit = QLineEdit()
+        self.rss_interval_edit.setMaximumWidth(50)
+        self.rss_interval_edit.setValidator(QIntValidator(1, 9999))
+        row2.addWidget(self.rss_interval_edit)
+
+        self.rss_unit_combo = QComboBox()
+        self.rss_unit_combo.addItems(INTERVAL_UNITS)
+        row2.addWidget(self.rss_unit_combo)
+
+        row2.addSpacing(10)
+        row2.addWidget(QLabel("Lingua:"))
+        self.rss_lang_combo = QComboBox()
+        for lc in LANGS:
+            self.rss_lang_combo.addItem(LANG_NAMES.get(lc, lc), lc)
+        idx = self.rss_lang_combo.findData(self.lang)
+        if idx >= 0:
+            self.rss_lang_combo.setCurrentIndex(idx)
+        row2.addWidget(self.rss_lang_combo)
+        row2.addStretch()
+        group_layout.addLayout(row2)
+
+        btn_row = QHBoxLayout()
+        btn_add = QPushButton("Aggiungi")
+        btn_add.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
+        btn_add.clicked.connect(self._add_rss_feed)
+        btn_row.addWidget(btn_add)
+
+        btn_upd = QPushButton("Aggiorna")
+        btn_upd.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
+        btn_upd.clicked.connect(self._update_rss_feed)
+        btn_row.addWidget(btn_upd)
+
+        btn_del = QPushButton("Elimina")
+        btn_del.setStyleSheet(f"background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG};")
+        btn_del.clicked.connect(self._delete_rss_feed)
+        btn_row.addWidget(btn_del)
+
+        btn_row.addStretch()
+
+        btn_save = QPushButton("Salva")
+        btn_save.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
+        btn_save.clicked.connect(self._save_rss_file)
+        btn_row.addWidget(btn_save)
+        group_layout.addLayout(btn_row)
+
+        layout.addWidget(group)
+        self.tabs.addTab(rss, "Feed RSS")
 
     def _on_cat_change(self, cat):
         if cat:
@@ -194,9 +294,128 @@ class SourcesEditor(QMainWindow):
         del self._current_sources[row]
         self._refresh_list()
 
-    def _save_file(self):
+    def _save_online(self):
         _save(self._file_path(), self._current_sources)
         QMessageBox.information(self, "OK", "File salvato.")
+
+    def _save_file(self):
+        if self.tabs.currentIndex() == 0:
+            self._save_online()
+        else:
+            self._save_rss_file()
+
+    def _load_rss_feeds(self):
+        try:
+            with open(RSS_FILE, encoding="utf-8") as f:
+                self._rss_feeds = json.load(f).get("feeds", [])
+        except Exception:
+            self._rss_feeds = []
+        self._refresh_rss_list()
+
+    def _save_rss_feeds(self):
+        with open(RSS_FILE, "w", encoding="utf-8") as f:
+            json.dump({"feeds": self._rss_feeds}, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+
+    def _refresh_rss_list(self):
+        self.rss_list.clear()
+        for feed in self._rss_feeds:
+            status = "\u2713" if feed.get("active", True) else "\u2717"
+            unit = feed.get("interval_unit", "min")
+            interval = feed.get("interval", 0)
+            name = feed.get("name", "")
+            self.rss_list.addItem(f"{status} {name} [{interval}{unit[:1]}]")
+        if self.rss_list.count() > 0:
+            self.rss_list.setCurrentRow(0)
+
+    def _on_rss_select(self, row):
+        if 0 <= row < len(self._rss_feeds):
+            feed = self._rss_feeds[row]
+            self.rss_name_edit.setText(feed.get("name", ""))
+            self.rss_url_edit.setText(feed.get("url", ""))
+            self.rss_active_cb.setChecked(feed.get("active", True))
+            self.rss_interval_edit.setText(str(feed.get("interval", "")))
+            unit = feed.get("interval_unit", "minuti")
+            idx = self.rss_unit_combo.findText(unit)
+            if idx >= 0:
+                self.rss_unit_combo.setCurrentIndex(idx)
+            lang = feed.get("lang", self.lang)
+            idx_l = self.rss_lang_combo.findData(lang)
+            if idx_l >= 0:
+                self.rss_lang_combo.setCurrentIndex(idx_l)
+
+    def _add_rss_feed(self):
+        name = self.rss_name_edit.text().strip()
+        url = self.rss_url_edit.text().strip()
+        interval_str = self.rss_interval_edit.text().strip()
+        if not name or not url:
+            QMessageBox.warning(self, "Errore", "Nome e URL sono obbligatori.")
+            return
+        try:
+            interval = int(interval_str)
+            if interval <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            QMessageBox.warning(self, "Errore", "L'intervallo deve essere un numero intero maggiore di zero.")
+            return
+        unit = self.rss_unit_combo.currentText()
+        active = self.rss_active_cb.isChecked()
+        lang = self.rss_lang_combo.currentData()
+        self._rss_feeds.append({
+            "id": uuid.uuid4().hex[:8],
+            "name": name,
+            "url": url,
+            "active": active,
+            "interval": interval,
+            "interval_unit": unit,
+            "lang": lang,
+        })
+        self._refresh_rss_list()
+        self.rss_list.setCurrentRow(len(self._rss_feeds) - 1)
+
+    def _update_rss_feed(self):
+        row = self.rss_list.currentRow()
+        if row < 0:
+            return
+        name = self.rss_name_edit.text().strip()
+        url = self.rss_url_edit.text().strip()
+        interval_str = self.rss_interval_edit.text().strip()
+        if not name or not url:
+            QMessageBox.warning(self, "Errore", "Nome e URL sono obbligatori.")
+            return
+        try:
+            interval = int(interval_str)
+            if interval <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            QMessageBox.warning(self, "Errore", "L'intervallo deve essere un numero intero maggiore di zero.")
+            return
+        unit = self.rss_unit_combo.currentText()
+        active = self.rss_active_cb.isChecked()
+        lang = self.rss_lang_combo.currentData()
+        existing = self._rss_feeds[row]
+        self._rss_feeds[row] = {
+            "id": existing.get("id", uuid.uuid4().hex[:8]),
+            "name": name,
+            "url": url,
+            "active": active,
+            "interval": interval,
+            "interval_unit": unit,
+            "lang": lang,
+        }
+        self._refresh_rss_list()
+        self.rss_list.setCurrentRow(row)
+
+    def _delete_rss_feed(self):
+        row = self.rss_list.currentRow()
+        if row < 0:
+            return
+        del self._rss_feeds[row]
+        self._refresh_rss_list()
+
+    def _save_rss_file(self):
+        self._save_rss_feeds()
+        QMessageBox.information(self, "OK", "File RSS salvato.")
 
 
 def main():
