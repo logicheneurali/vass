@@ -25,6 +25,13 @@ class RssReader:
                 self._feeds = json.load(f).get("feeds", [])
         except Exception:
             self._feeds = []
+            try:
+                os.makedirs(os.path.dirname(self._feeds_path), exist_ok=True)
+                with open(self._feeds_path, "w", encoding="utf-8") as f:
+                    json.dump({"feeds": []}, f, ensure_ascii=False, indent=2)
+                    f.write("\n")
+            except Exception:
+                pass
 
     def _load_cache(self):
         try:
@@ -191,7 +198,7 @@ class RssReader:
                             cache_entry["items"] = cache_entry["items"][-20:]
                         self._cache[fid2] = cache_entry
                     self._save_cache()
-                    if new_items and self._on_new_items:
+                    if new_items and self._on_new_items and last_poll is not None:
                         try:
                             self._on_new_items(new_items)
                         except Exception as e:

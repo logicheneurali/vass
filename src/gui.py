@@ -272,8 +272,8 @@ class HTMLViewer(QMainWindow):
 
         self._web = QWebEngineView()
         profile = self._web.page().profile()
-        interceptor = _RssRequestInterceptor()
-        profile.setUrlRequestInterceptor(interceptor)
+        self._interceptor = _RssRequestInterceptor()
+        profile.setUrlRequestInterceptor(self._interceptor)
         self._web.loadFinished.connect(self._on_load_finished)
         layout.addWidget(self._web)
 
@@ -818,7 +818,7 @@ class VassGUI(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
 
         title_bar = QHBoxLayout()
-        title_lbl = QLabel(f"Notifiche ({len(notifs)})")
+        title_lbl = QLabel(self._t("gui.notifications") + f" ({len(notifs)})")
         title_lbl.setStyleSheet(f"color: {SECTION_FG}; font-weight: bold; font-size: 13px;")
         title_bar.addWidget(title_lbl)
         title_bar.addStretch()
@@ -840,6 +840,7 @@ class VassGUI(QMainWindow):
                 color = self.app.notification_manager.color_for(n["priority"])
                 ts = n.get("ts", "")
                 txt = n.get("text", "")
+                escaped_txt = txt.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
                 data = n.get("data")
                 if isinstance(data, dict) and data.get("type") == "rss":
                     link = data.get("link", "")
@@ -847,14 +848,14 @@ class VassGUI(QMainWindow):
                     html_parts.append(
                         f'<p><span style="color:{color};">●</span> '
                         f'<span style="color:{LABEL_FG};">[{ts}]</span> '
-                        f'{txt}<br>'
-                        f'<a href="{escaped_link}" style="color:{BTN_BG};">Leggi articolo completo</a></p>'
+                        f'{escaped_txt}<br>'
+                        f'<a href="{escaped_link}" style="color:{BTN_BG};">{self._t("rss.read_article")}</a></p>'
                     )
                 else:
                     html_parts.append(
                         f'<p><span style="color:{color};">●</span> '
                         f'<span style="color:{LABEL_FG};">[{ts}]</span> '
-                        f'{txt}</p>'
+                        f'{escaped_txt}</p>'
                     )
                 html_parts.append(f'<hr style="border: none; border-top: 1px solid {FRAME_BORDER};">')
         browser.setHtml("<html><body>" + "".join(html_parts) + "</body></html>")
