@@ -11,11 +11,11 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOWED = os.path.join(BASE, "Allowed_root")
 TAGS_CONFIG = os.path.join(ALLOWED, "tags_config.json")
 
-BG = "#1e1e1e"
-FG = "#e0e0e0"
-ACCENT = "#0d7377"
-BTN_BG = "#3d3d3d"
-DEL_BG = "#8b0000"
+from theme import BG, FG, BTN_BG, BTN_DEL_BG, ENTRY_BG, BASE_STYLESHEET
+
+ACCENT = BTN_BG
+TAG_BG = "#3d3d3d"
+DEL_BG = BTN_DEL_BG
 CARD_BG = "#252525"
 
 
@@ -71,8 +71,7 @@ class TagManager(QDialog):
         self.setWindowTitle(self._tl("tag_manager.title"))
         self.resize(550, 580)
         self.setMinimumSize(450, 400)
-        self.setStyleSheet(f"QWidget {{ background-color: {BG}; color: {FG}; font-size: 13px; }}"
-                           f"QPushButton {{ background-color: {BTN_BG}; border: none; border-radius: 3px; padding: 6px 12px; }}"
+        self.setStyleSheet(BASE_STYLESHEET +
                            f"QPushButton:hover {{ background-color: {ACCENT}; }}")
 
         layout = QVBoxLayout(self)
@@ -192,7 +191,7 @@ class TagManager(QDialog):
         dlg.setStyleSheet(f"QWidget {{ background-color: {BG}; color: {FG}; font-size: 13px; }}"
                           f"QLineEdit {{ background-color: #2d2d2d; border:1px solid #555; border-radius:3px; padding:6px; color:{FG}; }}"
                           f"QSpinBox {{ background-color: #2d2d2d; border:1px solid #555; border-radius:3px; padding:4px; color:{FG}; }}"
-                          f"QPushButton {{ background-color: {BTN_BG}; border:none; border-radius:3px; padding:6px 12px; }}"
+                           f"QPushButton {{ background-color: {TAG_BG}; border:none; border-radius:3px; padding:6px 12px; }}"
                           f"QPushButton:hover {{ background-color: {ACCENT}; }}")
 
         layout = QVBoxLayout(dlg)

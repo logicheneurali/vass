@@ -10,50 +10,11 @@ from PySide6.QtWidgets import (
     QDialog, QCheckBox,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
-                   SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG)
+                   SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
 
-BASE_STYLESHEET = f"""
-QMainWindow, QWidget {{ background-color: {BG}; color: {FG}; font-size: 12px; }}
-QGroupBox {{
-    font-weight: bold; color: {SECTION_FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 4px;
-    margin-top: 10px; padding-top: 14px;
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin;
-    subcontrol-position: top left;
-    padding: 0 6px;
-}}
-QLabel {{ color: {LABEL_FG}; }}
+STYLESHEET = BASE_STYLESHEET + f"""
 QPlainTextEdit {{
-    background-color: {ENTRY_BG}; color: {ENTRY_FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 3px;
-    padding: 6px;
     font-family: Consolas, monospace; font-size: 13px;
-}}
-QPushButton {{
-    border: none; border-radius: 3px; padding: 6px 18px;
-    font-weight: bold;
-}}
-QPushButton:hover {{ background-color: #0a5c5e; }}
-QPushButton:pressed {{ background-color: #085052; }}
-QListWidget {{
-    background-color: #252525; color: {FG};
-    border: 1px solid {FRAME_BORDER}; border-radius: 3px;
-    outline: none;
-}}
-QListWidget::item:selected {{
-    background-color: {BTN_BG}; color: {FG};
-}}
-QMenu {{
-    background-color: #2d2d2d; color: {FG};
-    border: 1px solid #3c3c3c; padding: 4px;
-}}
-QMenu::item {{
-    padding: 6px 20px;
-}}
-QMenu::item:selected {{
-    background-color: {BTN_BG};
 }}
 """
 

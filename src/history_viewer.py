@@ -12,19 +12,13 @@ from PySide6.QtWidgets import (
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+from theme import BG, FG, BASE_STYLESHEET
+
 USER_COLOR = "#2ecc71"
 AI_COLOR = "#3498db"
-BG = "#1e1e1e"
-FG = "#e0e0e0"
 TIME_COLOR = "#888888"
 
-STYLESHEET = f"""
-QMainWindow, QWidget {{ background-color: {BG}; color: {FG}; }}
-QTextBrowser {{ background-color: {BG}; border: none; }}
-QScrollBar:vertical {{ background: {BG}; width: 10px; }}
-QScrollBar::handle:vertical {{ background: #2d2d2d; border-radius: 4px; min-height: 20px; }}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
-"""
+STYLESHEET = BASE_STYLESHEET
 
 
 def _escape_html(text):
