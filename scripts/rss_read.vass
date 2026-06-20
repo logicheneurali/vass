@@ -1,0 +1,10 @@
+# rss_read.vass - read and summarize RSS feeds
+say($_exec_message)
+$param1 = "{$param1}"
+$items = ""
+ifempty($param1,
+    $items = rss_fetch(),
+    $items = rss_fetch($param1)
+)
+$summary = ai("Ecco alcuni articoli RSS. Riassumi i piu importanti in italiano in poche frasi: " + $items)
+say($summary)
