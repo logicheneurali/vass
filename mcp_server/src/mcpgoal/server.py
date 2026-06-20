@@ -273,6 +273,7 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def _interact_handler(code: str) -> str:
         return await _tool("interact", f"len={len(code)}", _exec_code(code), config)
     _interact_handler.__doc__ = _interact_doc
+    _interact_handler.__name__ = "interact"
     interact = mcp.tool()(_interact_handler)
 
     @mcp.tool()
