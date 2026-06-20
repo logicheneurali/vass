@@ -441,13 +441,13 @@ class EventReminder:
             if not silent:
                 self.app.tts.enqueue(msg)
             if hasattr(self.app, 'notification_manager'):
-                self.app.notification_manager.add(msg, priority=9 if r.returncode != 0 else 7)
+                self.app.notification_manager.add(msg, priority=9 if r.returncode != 0 else 7, data={"type": "schedule"})
         except Exception:
             if not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
                 self.app.tts.enqueue(failed_msg)
             if hasattr(self.app, 'notification_manager'):
-                self.app.notification_manager.add(failed_msg, priority=9)
+                self.app.notification_manager.add(failed_msg, priority=9, data={"type": "schedule"})
 
     # ── Main loop ─────────────────────────────────────────────────────────────
 
@@ -500,7 +500,7 @@ class EventReminder:
                 return
         self.app.tts.enqueue(msg)
         if hasattr(self.app, 'notification_manager'):
-            self.app.notification_manager.add(msg, priority=7)
+            self.app.notification_manager.add(msg, priority=7, data={"type": "event"})
         print(f"[Events] Fired: {msg}")
         self._mark_notified()
         self._calculate_next_alert()

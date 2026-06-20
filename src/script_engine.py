@@ -719,7 +719,7 @@ class VASScript:
         if name == "notify":
             text = evaluated[0] if evaluated else ""
             priority = int(evaluated[1]) if len(evaluated) > 1 and evaluated[1].strip().isdigit() else 1
-            return self.app.notification_manager.add(text, priority)
+            return self.app.notification_manager.add(text, priority, data={"type": "script"})
 
         if name == "inject":
             text = evaluated[0] if evaluated else ""

@@ -801,6 +801,33 @@ class VassGUI(QMainWindow):
                     guid = data.get("guid", "")
                     if guid:
                         self.app.rss_reader.mark_seen(guid)
+        TYPE_ICONS = {
+            "rss": "\U0001f4f0", "timer": "\u23f0", "event": "\U0001f4c5",
+            "schedule": "\U0001f4cb", "mail": "\U0001f4e7", "auth": "\U0001f511",
+            "script": "\U0001f4dc",
+        }
+        TYPE_LABELS = {
+            "rss": "RSS", "timer": "Timer", "event": "Eventi", "schedule": "Schedule",
+            "mail": "Mail", "auth": "Auth", "script": "Script",
+        }
+        TYPE_COLORS = {
+            "rss": BTN_BG, "timer": "#e74c3c", "event": "#f1c40f",
+            "schedule": "#f39c12", "mail": "#3498db", "auth": "#e74c3c",
+            "script": "#9b59b6",
+        }
+
+        type_counts = {}
+        unread_by_type = {}
+        for n in notifs:
+            data = n.get("data") or {}
+            t = data.get("type", "other")
+            if t not in type_counts:
+                type_counts[t] = 0
+                unread_by_type[t] = 0
+            type_counts[t] += 1
+            if not n.get("read", False):
+                unread_by_type[t] += 1
+
         dlg = QDialog(self)
         dlg.setWindowTitle(self._t("gui.notifications"))
         dlg.resize(440, 480)
@@ -815,9 +842,22 @@ class VassGUI(QMainWindow):
         title_lbl = QLabel(self._t("gui.notifications"))
         title_lbl.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {SECTION_FG};")
         header.addWidget(title_lbl)
-        count_lbl = QLabel(str(len(notifs)))
-        count_lbl.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: bold;")
-        header.addWidget(count_lbl)
+        shown_types = {t: c for t, c in unread_by_type.items() if c > 0}
+        if not shown_types:
+            shown_types = type_counts
+        for t, count in shown_types.items():
+            if count <= 0:
+                continue
+            icon = TYPE_ICONS.get(t, "")
+            badge = QLabel(f"{icon} {count}")
+            badge.setStyleSheet(
+                f"background-color: {TYPE_COLORS.get(t, '#888888')};"
+                f"color: {BTN_FG}; border-radius: 8px; padding: 2px 8px;"
+                f"font-size: 11px; font-weight: bold;"
+            )
+            label = TYPE_LABELS.get(t, t)
+            badge.setToolTip(f"{label}: {count}")
+            header.addWidget(badge)
         header.addStretch()
         layout.addLayout(header)
 
@@ -831,17 +871,19 @@ class VassGUI(QMainWindow):
             html_parts.append(f'<p style="color:{LABEL_FG}; text-align:center; padding:20px;">{self._t("gui.no_notifications")}</p>')
         else:
             for i, n in enumerate(notifs):
-                color = self.app.notification_manager.color_for(n["priority"])
+                data = n.get("data") or {}
+                ntype = data.get("type", "other")
+                icon = TYPE_ICONS.get(ntype, "\u25cf")
+                icon_color = TYPE_COLORS.get(ntype, self.app.notification_manager.color_for(n["priority"]))
                 ts = n.get("ts", "")
                 txt = n.get("text", "")
                 escaped_txt = txt.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
-                data = n.get("data")
-                if isinstance(data, dict) and data.get("type") == "rss":
+                if ntype == "rss":
                     link = data.get("link", "")
                     escaped_link = link.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
                     html_parts.append(
                         f'<div style="padding:6px 0;">'
-                        f'<span style="color:{color};">\u25cf</span> '
+                        f'<span style="color:{icon_color};">{icon}</span> '
                         f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
                         f'<span style="color:{FG};">{escaped_txt}</span><br>'
                         f'<a href="{escaped_link}" style="color:{BTN_BG}; font-size:11px; text-decoration:none;">'
@@ -850,7 +892,7 @@ class VassGUI(QMainWindow):
                 else:
                     html_parts.append(
                         f'<div style="padding:6px 0;">'
-                        f'<span style="color:{color};">\u25cf</span> '
+                        f'<span style="color:{icon_color};">{icon}</span> '
                         f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
                         f'<span style="color:{FG};">{escaped_txt}</span></div>'
                     )

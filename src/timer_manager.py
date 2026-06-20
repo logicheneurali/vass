@@ -87,7 +87,7 @@ class TimerManager:
         lang = getattr(self.app, "language", "en")
         msg = t("timer.expired", lang).replace("{duration}", self._clean_duration(info["duration"]))
         if hasattr(self.app, 'notification_manager'):
-            self.app.notification_manager.add(msg, priority=8)
+            self.app.notification_manager.add(msg, priority=8, data={"type": "timer"})
         self._play_alert(2)
         self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2))
 

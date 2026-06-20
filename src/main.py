@@ -1070,7 +1070,7 @@ class VassApp:
             self.tts.enqueue(text)
             notif = t("notifications.new_email", self.language).replace("{from}", from_parts).replace("{subject}", subj)
             priority = 7 if em.get("important") else 5
-            self.notification_manager.add(notif, priority=priority)
+            self.notification_manager.add(notif, priority=priority, data={"type": "mail"})
 
     def _start_llamacpp(self):
         proc, status = start_llama_server(
@@ -1919,7 +1919,7 @@ class VassApp:
             from i18n import t
             msg = t("notifications.auto_model_selected", self.language).replace("{model}", selected)
             if hasattr(self, 'notification_manager'):
-                self.notification_manager.add(msg, priority=6)
+                self.notification_manager.add(msg, priority=6, data={"type": "auth"})
             if hasattr(self, 'tts') and self.tts:
                 self.tts.enqueue(msg)
         except Exception as e:
