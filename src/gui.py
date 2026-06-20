@@ -816,9 +816,9 @@ class VassGUI(QMainWindow):
             if rss_guids:
                 self.app.rss_reader.mark_guids_seen(rss_guids)
         self._selected_types.clear()
-        self._show_bell_dialog_impl(notifs)
+        self._show_bell_dialog_impl(notifs, all_notifs)
 
-    def _show_bell_dialog_impl(self, notifs):
+    def _show_bell_dialog_impl(self, notifs, all_notifs):
         TYPE_ICONS = {
             "rss": "\U0001f4f0", "timer": "\u23f0", "event": "\U0001f4c5",
             "schedule": "\U0001f4cb", "mail": "\U0001f4e7", "auth": "\U0001f511",
@@ -874,7 +874,7 @@ class VassGUI(QMainWindow):
             )
             typ = t
             def make_toggle(typ):
-                return lambda: self._on_type_toggle(typ, dlg, notifs)
+                return lambda: self._on_type_toggle(typ, dlg, notifs, all_notifs)
             btn.clicked.connect(make_toggle(typ))
             type_btns[t] = btn
             header.addWidget(btn)
@@ -968,9 +968,9 @@ class VassGUI(QMainWindow):
         dlg.exec()
         self._update_bell()
 
-    def _on_type_toggle(self, typ, dlg, notifs):
+    def _on_type_toggle(self, typ, dlg, notifs, all_notifs):
         self._selected_types.symmetric_difference_update({typ})
-        self._show_bell_dialog_impl(notifs)
+        self._show_bell_dialog_impl(notifs, all_notifs)
         dlg.close()
 
     def _replay_btn_press(self, event):
