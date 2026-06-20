@@ -214,9 +214,7 @@ class _RssRequestInterceptor(QWebEngineUrlRequestInterceptor):
             try:
                 dom1 = urllib.parse.urlparse(url).hostname
                 dom2 = urllib.parse.urlparse(first_party).hostname
-                if dom1 and dom2 and dom1.endswith(dom2.split(".")[-2:] if dom2.count(".") >= 1 else ""):
-                    return
-                if dom2 and dom1 and dom2.endswith(dom1.split(".")[-2:] if dom1.count(".") >= 1 else ""):
+                if dom1 and dom2 and (dom1 == dom2 or dom1.endswith("." + dom2) or dom2.endswith("." + dom1)):
                     return
             except Exception:
                 pass
