@@ -301,22 +301,16 @@ class HTMLViewer(QMainWindow):
             return
         css = """
         (function(){
-            var bg = window.getComputedStyle(document.body).backgroundColor;
-            var match = bg.match(/\\d+/g);
-            if (match && match.length >= 3) {
-                var r = parseInt(match[0]), g = parseInt(match[1]), b = parseInt(match[2]);
-                var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                if (lum < 0.4) return;
-            }
-            var style = document.createElement('style');
-            style.textContent =
-                'html { filter: invert(1) hue-rotate(180deg) !important; }' +
-                'img, video, canvas, svg, [style*="background-image"] { filter: invert(1) hue-rotate(180deg) !important; }';
-            document.head.appendChild(style);
             var meta = document.createElement('meta');
             meta.name = 'color-scheme';
             meta.content = 'dark';
             document.head.appendChild(meta);
+            var style = document.createElement('style');
+            style.textContent =
+                'body { background-color: #1e1e1e !important; color: #e0e0e0 !important; }' +
+                'a { color: #4ec9b0 !important; }' +
+                'img { max-width: 100% !important; }';
+            document.head.appendChild(style);
         })();
         """
         self._web.page().runJavaScript(css)
@@ -809,32 +803,42 @@ class VassGUI(QMainWindow):
                         self.app.rss_reader.mark_seen(guid)
         dlg = QDialog(self)
         dlg.setWindowTitle(self._t("gui.notifications"))
-        dlg.resize(400, 450)
-        dlg.setStyleSheet(f"QDialog {{ background-color: {BG}; }}")
+        dlg.resize(440, 480)
+        dlg.setMinimumSize(360, 320)
+        dlg.setStyleSheet(BASE_STYLESHEET)
 
         layout = QVBoxLayout(dlg)
-        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
 
-        title_bar = QHBoxLayout()
-        title_lbl = QLabel(self._t("gui.notifications") + f" ({len(notifs)})")
-        title_lbl.setStyleSheet(f"color: {SECTION_FG}; font-weight: bold; font-size: 13px;")
-        title_bar.addWidget(title_lbl)
-        title_bar.addStretch()
-        close_btn = QPushButton("x")
-        close_btn.setFixedWidth(30)
-        close_btn.setStyleSheet(f"background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG}; border: none; border-radius: 3px;")
+        header = QHBoxLayout()
+        title_lbl = QLabel(self._t("gui.notifications"))
+        title_lbl.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {SECTION_FG};")
+        header.addWidget(title_lbl)
+        count_lbl = QLabel(str(len(notifs)))
+        count_lbl.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: bold;")
+        header.addWidget(count_lbl)
+        header.addStretch()
+        close_btn = QPushButton("\u2715")
+        close_btn.setFixedSize(28, 28)
+        close_btn.setStyleSheet(
+            f"QPushButton {{ background-color: transparent; color: {LABEL_FG}; border: none; font-size: 16px; }}"
+            f"QPushButton:hover {{ color: {FG}; }}"
+        )
         close_btn.clicked.connect(dlg.close)
-        title_bar.addWidget(close_btn)
-        layout.addLayout(title_bar)
+        header.addWidget(close_btn)
+        layout.addLayout(header)
 
         browser = QTextBrowser()
         browser.setOpenExternalLinks(False)
-        browser.setStyleSheet(f"background-color: {BG}; color: {FG}; border: 1px solid {FRAME_BORDER}; border-radius: 3px; padding: 6px; font-size: 12px;")
-        html_parts = []
+        browser.setOpenLinks(False)
+        browser.setStyleSheet(f"background-color: #252525; color: {FG}; border: 1px solid {FRAME_BORDER}; border-radius: 4px; padding: 8px; font-size: 12px;")
+
+        html_parts = ['<html><body style="background-color:#252525; color:#e0e0e0; margin:0;">']
         if not notifs:
-            html_parts.append(f'<p style="color:{LABEL_FG};">{self._t("gui.no_notifications")}</p>')
+            html_parts.append(f'<p style="color:{LABEL_FG}; text-align:center; padding:20px;">{self._t("gui.no_notifications")}</p>')
         else:
-            for n in notifs:
+            for i, n in enumerate(notifs):
                 color = self.app.notification_manager.color_for(n["priority"])
                 ts = n.get("ts", "")
                 txt = n.get("text", "")
@@ -844,36 +848,47 @@ class VassGUI(QMainWindow):
                     link = data.get("link", "")
                     escaped_link = link.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
                     html_parts.append(
-                        f'<p><span style="color:{color};">●</span> '
-                        f'<span style="color:{LABEL_FG};">[{ts}]</span> '
-                        f'{escaped_txt}<br>'
-                        f'<a href="{escaped_link}" style="color:{BTN_BG};">{self._t("rss.read_article")}</a></p>'
+                        f'<div style="padding:6px 0;">'
+                        f'<span style="color:{color};">\u25cf</span> '
+                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
+                        f'<span style="color:{FG};">{escaped_txt}</span><br>'
+                        f'<a href="{escaped_link}" style="color:{BTN_BG}; font-size:11px; text-decoration:none;">'
+                        f'{self._t("rss.read_article")}</a></div>'
                     )
                 else:
                     html_parts.append(
-                        f'<p><span style="color:{color};">●</span> '
-                        f'<span style="color:{LABEL_FG};">[{ts}]</span> '
-                        f'{escaped_txt}</p>'
+                        f'<div style="padding:6px 0;">'
+                        f'<span style="color:{color};">\u25cf</span> '
+                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
+                        f'<span style="color:{FG};">{escaped_txt}</span></div>'
                     )
-                html_parts.append(f'<hr style="border: none; border-top: 1px solid {FRAME_BORDER};">')
-        browser.setHtml("<html><body>" + "".join(html_parts) + "</body></html>")
+                if i < len(notifs) - 1:
+                    html_parts.append(f'<hr style="border: none; border-top: 1px solid {FRAME_BORDER}; margin: 4px 0;">')
+        html_parts.append('</body></html>')
+        browser.setHtml("".join(html_parts))
 
         def on_link_clicked(qurl):
             url = qurl.toString()
-            dlg.close()
+            dlg.accept()
             viewer = HTMLViewer(url)
             viewer.show()
             self._html_viewers = [v for v in self._html_viewers if v.isVisible()]
             self._html_viewers.append(viewer)
         browser.anchorClicked.connect(on_link_clicked)
 
-        layout.addWidget(browser)
+        layout.addWidget(browser, 1)
 
+        btn_row = QHBoxLayout()
         mark_btn = QPushButton(self._t("gui.mark_read"))
-        mark_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 6px;")
         mark_btn.clicked.connect(lambda: self.app.notification_manager.mark_all_read())
         mark_btn.clicked.connect(dlg.close)
-        layout.addWidget(mark_btn)
+        btn_row.addWidget(mark_btn)
+        btn_row.addStretch()
+        close_btn2 = QPushButton(self._t("gui.close"))
+        close_btn2.setStyleSheet(f"background-color: transparent; color: {LABEL_FG}; border: 1px solid {FRAME_BORDER}; border-radius: 3px; padding: 5px 16px;")
+        close_btn2.clicked.connect(dlg.close)
+        btn_row.addWidget(close_btn2)
+        layout.addLayout(btn_row)
 
         dlg.exec()
         self._update_bell()
