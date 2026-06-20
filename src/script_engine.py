@@ -8,7 +8,7 @@ import time
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "rss_fetch"}
 
 
 def _is_int_str(s):
@@ -930,6 +930,22 @@ class VASScript:
                     return f.read()
             except Exception as e:
                 return f"error: {e}"
+
+        if name == "rss_fetch":
+            feed_name = evaluated[0] if evaluated else ""
+            if not self.app.rss_reader:
+                return "error: RSS reader not initialized"
+            feed_id = None
+            if feed_name:
+                feeds = self.app.rss_reader.get_feeds()
+                for f in feeds:
+                    if f.get("name", "").lower() == feed_name.lower():
+                        feed_id = f.get("id")
+                        break
+                if not feed_id:
+                    return f"error: feed '{feed_name}' not found"
+            items = self.app.rss_reader.fetch_now(feed_id)
+            return json.dumps(items, ensure_ascii=False)
 
         raise ValueError(f"unknown function: {name}()")
 
