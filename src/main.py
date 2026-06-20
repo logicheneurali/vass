@@ -355,12 +355,38 @@ class VassApp:
         self.timer_manager = TimerManager(self)
         from notification_manager import NotificationManager
         self.notification_manager = NotificationManager()
+        from rss_reader import RssReader
+        self.rss_reader = None
         self.context_notes = []
         self.conversation_history = []
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "trascrizione"
         self.memory_mode = "full"
         self._input_mode = False
         self._ensure_memory_file()
+        self._start_rss()
+
+    def _start_rss(self):
+        try:
+            feeds_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "rss_feeds.json")
+            cache_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "rss_cache.json")
+            from rss_reader import RssReader
+            self.rss_reader = RssReader(feeds_path, cache_path, on_new_items=self._on_rss_items)
+            self.rss_reader.start_polling()
+            print("[RSS] Polling started")
+        except Exception as e:
+            print(f"[RSS] Failed to start: {e}")
+
+    def _on_rss_items(self, items):
+        for item in items:
+            source = item.get("source", "RSS")
+            title = item.get("title", "")
+            link = item.get("link", "")
+            guid = item.get("guid", "")
+            msg = f"{source}: {title}"
+            self.notification_manager.add(
+                msg, priority=5,
+                data={"type": "rss", "link": link, "guid": guid, "title": title, "source": source}
+            )
 
     @staticmethod
     def _ensure_memory_file():
@@ -1058,6 +1084,8 @@ class VassApp:
             print(f"[llama.cpp] {status}")
 
     def stop(self):
+        if self.rss_reader:
+            self.rss_reader.stop_polling()
         self.running = False
         try:
             _faulthandler_file.close()

@@ -13,13 +13,14 @@ class NotificationManager:
         self.gui = gui
         self._notifications = []
 
-    def add(self, text, priority=1):
+    def add(self, text, priority=1, data=None):
         n = {
             "id": uuid4().hex[:6],
             "text": text,
             "priority": max(1, min(10, int(priority or 1))),
             "ts": _time.strftime("%H:%M:%S"),
             "read": False,
+            "data": data if isinstance(data, dict) else {},
         }
         self._notifications.append(n)
         if self.gui and hasattr(self.gui, '_update_bell'):
