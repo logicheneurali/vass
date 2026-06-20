@@ -64,6 +64,8 @@ test_wake_results.txt
 Allowed_root/memory/
 Allowed_root/news.json
 Allowed_root/.history_view.json
+Allowed_root/rss_cache.json
+Allowed_root/rss_feeds.json
 
 # VASS - user config (use config/settings.example.ini as template)
 config/settings.ini
@@ -80,6 +82,7 @@ mcp_server/LOG/
 CHANGELOG.md
 tmp/
 docs/superpowers/
+.superpowers/
 plan.md
 todo.txt
 todo_AI.txt
