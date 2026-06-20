@@ -125,6 +125,18 @@ class MemoryEditor(QMainWindow):
         self._scroll_y = self.browser.page().scrollPosition().y()
 
         entries = self._data.get("entries", [])
+        dirty = False
+        clean_entries = []
+        for entry in entries:
+            content, _role = _load_entry_content(entry.get("id", "?"))
+            if content == "(not available)":
+                dirty = True
+                continue
+            clean_entries.append(entry)
+        if dirty:
+            self._data["entries"] = clean_entries
+            _save_tags_data(self._data)
+            entries = clean_entries
         if not entries:
             self.browser.setHtml(f'<div style="color:#888; text-align:center; padding:40px;">'
                                  f'{self._escape_html(self._tl("memory_editor.no_entries"))}</div>',
