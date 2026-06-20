@@ -68,6 +68,7 @@
     "chat_placeholder": "Scrivi qui e premi Invio...",
     "notifications": "Notifiche",
     "mark_read": "Segna tutte come lette",
+    "close": "Chiudi",
     "no_notifications": "Nessuna notifica"
   },
   "scripts_editor": {

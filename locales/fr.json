@@ -68,6 +68,7 @@
     "chat_placeholder": "Écrivez ici et appuyez sur Entrée...",
     "notifications": "Notifications",
     "mark_read": "Marquer tout comme lu",
+    "close": "Fermer",
     "no_notifications": "Aucune notification"
   },
   "settings_editor": {

@@ -68,6 +68,7 @@
     "chat_placeholder": "在此输入并按回车...",
     "notifications": "通知",
     "mark_read": "全部标记为已读",
+    "close": "关闭",
     "no_notifications": "无通知"
   },
   "settings_editor": {

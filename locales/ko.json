@@ -68,6 +68,7 @@
     "chat_placeholder": "여기에 입력하고 Enter...",
     "notifications": "알림",
     "mark_read": "모두 읽음으로 표시",
+    "close": "닫기",
     "no_notifications": "알림 없음"
   },
   "settings_editor": {

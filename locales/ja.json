@@ -68,6 +68,7 @@
     "chat_placeholder": "ここに入力してEnterを押す...",
     "notifications": "通知",
     "mark_read": "すべて既読にする",
+    "close": "閉じる",
     "no_notifications": "通知なし"
   },
   "settings_editor": {

@@ -68,6 +68,7 @@
     "chat_placeholder": "Escribe aquí y pulsa Enter...",
     "notifications": "Notificaciones",
     "mark_read": "Marcar todo como leído",
+    "close": "Cerrar",
     "no_notifications": "Sin notificaciones"
   },
   "settings_editor": {
