@@ -27,7 +27,7 @@ LANG_NAMES = {
 }
 
 RSS_FILE = os.path.join(ALLOWED, "rss_feeds.json")
-INTERVAL_UNITS = ["min", "hours", "days"]
+INTERVAL_UNITS = {"min": "minuti", "hours": "ore", "days": "giorni"}
 
 
 def _load(path):
@@ -204,7 +204,8 @@ class SourcesEditor(QMainWindow):
         row2.addWidget(self.rss_interval_edit)
 
         self.rss_unit_combo = QComboBox()
-        self.rss_unit_combo.addItems(INTERVAL_UNITS)
+        for key, label in INTERVAL_UNITS.items():
+            self.rss_unit_combo.addItem(label, key)
         row2.addWidget(self.rss_unit_combo)
 
         row2.addSpacing(10)
@@ -336,7 +337,7 @@ class SourcesEditor(QMainWindow):
             self.rss_active_cb.setChecked(feed.get("active", True))
             self.rss_interval_edit.setText(str(feed.get("interval", "")))
             unit = feed.get("interval_unit", "min")
-            idx = self.rss_unit_combo.findText(unit)
+            idx = self.rss_unit_combo.findData(unit)
             if idx >= 0:
                 self.rss_unit_combo.setCurrentIndex(idx)
             lang = feed.get("lang", self.lang)
@@ -358,7 +359,7 @@ class SourcesEditor(QMainWindow):
         except (ValueError, TypeError):
             QMessageBox.warning(self, "Errore", "L'intervallo deve essere un numero intero maggiore di zero.")
             return
-        unit = self.rss_unit_combo.currentText()
+        unit = self.rss_unit_combo.currentData()
         active = self.rss_active_cb.isChecked()
         lang = self.rss_lang_combo.currentData()
         self._rss_feeds.append({
@@ -390,7 +391,7 @@ class SourcesEditor(QMainWindow):
         except (ValueError, TypeError):
             QMessageBox.warning(self, "Errore", "L'intervallo deve essere un numero intero maggiore di zero.")
             return
-        unit = self.rss_unit_combo.currentText()
+        unit = self.rss_unit_combo.currentData()
         active = self.rss_active_cb.isChecked()
         lang = self.rss_lang_combo.currentData()
         existing = self._rss_feeds[row]
