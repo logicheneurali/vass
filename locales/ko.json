@@ -492,5 +492,12 @@
   "delayed": {
     "scheduled": "알겠습니다, '{cmd}'을(를) 실행합니다",
     "parse_error": "시간을 이해하지 못했습니다, 다시 시도해 주세요"
+  },
+  "rss": {
+    "notifications_title": "알림",
+    "read_article": "기사 읽기",
+    "viewer_title": "HTML Viewer",
+    "open_in_browser": "브라우저에서 열기",
+    "new_articles_count": "{count}개의 새 기사"
   }
 }

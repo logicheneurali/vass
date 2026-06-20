@@ -492,5 +492,12 @@
   "delayed": {
     "scheduled": "好的，我将执行'{cmd}'",
     "parse_error": "我没有理解持续时间，请重试"
+  },
+  "rss": {
+    "notifications_title": "通知",
+    "read_article": "阅读全文",
+    "viewer_title": "HTML Viewer",
+    "open_in_browser": "在浏览器中打开",
+    "new_articles_count": "{count} 篇新文章"
   }
 }

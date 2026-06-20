@@ -491,5 +491,12 @@
   "delayed": {
     "scheduled": "Ok, ich fuehre '{cmd}' wie gewuenscht aus",
     "parse_error": "Ich habe die Dauer nicht verstanden, versuche es erneut"
+  },
+  "rss": {
+    "notifications_title": "Benachrichtigungen",
+    "read_article": "Artikel lesen",
+    "viewer_title": "HTML Viewer",
+    "open_in_browser": "Im Browser öffnen",
+    "new_articles_count": "{count} neue Artikel"
   }
 }
