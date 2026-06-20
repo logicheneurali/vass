@@ -82,4 +82,9 @@ QTextBrowser {{
     background-color: {ENTRY_BG}; color: {ENTRY_FG};
     border: 1px solid {FRAME_BORDER}; border-radius: 3px;
 }}
+QToolTip {{
+    background-color: {ENTRY_BG}; color: {ENTRY_FG};
+    border: 1px solid {FRAME_BORDER}; padding: 4px 8px;
+    font-size: 12px;
+}}
 """
