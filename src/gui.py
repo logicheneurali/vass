@@ -7,8 +7,14 @@ from PySide6.QtGui import QPainter, QColor, QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
-    QLineEdit, QSpacerItem, QSizePolicy, QWidgetAction,
+    QLineEdit, QSpacerItem, QSizePolicy, QWidgetAction, QDialog,
+    QTextBrowser,
 )
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineProfile
+from PySide6.QtCore import QUrl
+
+from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(BASE, "src")
@@ -192,6 +198,132 @@ class _ChatLineEdit(QLineEdit):
                 self.setCursorPosition(len(self.text()))
             return
         super().keyPressEvent(event)
+
+
+class _RssRequestInterceptor(QWebEngineUrlRequestInterceptor):
+    def interceptRequest(self, info):
+        url = info.requestUrl().toString()
+        first_party = info.firstPartyUrl().toString()
+        if info.resourceType() == 0 and not first_party:
+            return
+        restype = info.resourceType()
+        if restype in (0, 1):
+            return
+        if first_party:
+            import urllib.parse
+            try:
+                dom1 = urllib.parse.urlparse(url).hostname
+                dom2 = urllib.parse.urlparse(first_party).hostname
+                if dom1 and dom2 and dom1.endswith(dom2.split(".")[-2:] if dom2.count(".") >= 1 else ""):
+                    return
+                if dom2 and dom1 and dom2.endswith(dom1.split(".")[-2:] if dom1.count(".") >= 1 else ""):
+                    return
+            except Exception:
+                pass
+        info.block(True)
+
+
+class HTMLViewer(QMainWindow):
+    def __init__(self, url="", parent=None):
+        super().__init__(parent)
+        self._url = url
+        self.setWindowTitle("HTML Viewer")
+        self.resize(800, 600)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.Window)
+        self.setStyleSheet(f"QMainWindow {{ background-color: {BG}; }}")
+
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        top_bar = QHBoxLayout()
+        top_bar.setContentsMargins(8, 4, 8, 4)
+        self._back_btn = QPushButton("<-")
+        self._back_btn.setFixedWidth(36)
+        self._back_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 4px 8px;")
+        self._back_btn.clicked.connect(self._go_back)
+        top_bar.addWidget(self._back_btn)
+
+        self._fwd_btn = QPushButton("->")
+        self._fwd_btn.setFixedWidth(36)
+        self._fwd_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 4px 8px;")
+        self._fwd_btn.clicked.connect(self._go_forward)
+        top_bar.addWidget(self._fwd_btn)
+
+        self._title_lbl = QLabel("")
+        self._title_lbl.setStyleSheet(f"color: {LABEL_FG}; margin-left: 6px;")
+        top_bar.addWidget(self._title_lbl, 1)
+
+        open_btn = QPushButton("Apri nel browser")
+        open_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 4px 10px;")
+        open_btn.clicked.connect(self._open_external)
+        top_bar.addWidget(open_btn)
+
+        close_btn = QPushButton("x")
+        close_btn.setFixedWidth(30)
+        close_btn.setStyleSheet(f"background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG}; border: none; border-radius: 3px; padding: 4px 8px;")
+        close_btn.clicked.connect(self.close)
+        top_bar.addWidget(close_btn)
+
+        top_widget = QWidget()
+        top_widget.setLayout(top_bar)
+        top_widget.setStyleSheet(f"background-color: #252525;")
+        layout.addWidget(top_widget)
+
+        self._web = QWebEngineView()
+        profile = self._web.page().profile()
+        interceptor = _RssRequestInterceptor()
+        profile.setUrlRequestInterceptor(interceptor)
+        self._web.loadFinished.connect(self._on_load_finished)
+        layout.addWidget(self._web)
+
+        if url:
+            self._web.load(QUrl(url))
+
+    def load(self, url):
+        self._url = url
+        self._web.load(QUrl(url))
+
+    def _go_back(self):
+        self._web.back()
+
+    def _go_forward(self):
+        self._web.forward()
+
+    def _open_external(self):
+        import webbrowser
+        current = self._web.url().toString()
+        if current:
+            webbrowser.open(current)
+
+    def _on_load_finished(self, ok):
+        if not ok:
+            return
+        css = """
+        (function(){
+            var style = document.createElement('style');
+            style.textContent = `
+                body { background-color: #1e1e1e !important; color: #e0e0e0 !important; }
+                * { font-family: 'Segoe UI', sans-serif !important; }
+                img { max-width: 700px !important; }
+                a { color: #4ec9b0 !important; }
+                #cookie-consent, #cookie-banner, .cookie-notice,
+                .gdpr-banner, .consent-banner, [class*="cookie"],
+                [id*="cookie"], .sidebar, .advertisement, .ads { display: none !important; }
+                article, main, .content, .article, .post, .entry {
+                    max-width: 700px !important; margin: 0 auto !important;
+                }
+            `;
+            document.head.appendChild(style);
+            var meta = document.createElement('meta');
+            meta.name = 'color-scheme';
+            meta.content = 'dark';
+            document.head.appendChild(meta);
+        })();
+        """
+        self._web.page().runJavaScript(css)
 
 
 class VassGUI(QMainWindow):
