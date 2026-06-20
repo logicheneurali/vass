@@ -27,7 +27,7 @@ LANG_NAMES = {
 }
 
 RSS_FILE = os.path.join(ALLOWED, "rss_feeds.json")
-INTERVAL_UNITS = ["minuti", "ore", "giorni"]
+INTERVAL_UNITS = ["min", "hours", "days"]
 
 
 def _load(path):
@@ -335,7 +335,7 @@ class SourcesEditor(QMainWindow):
             self.rss_url_edit.setText(feed.get("url", ""))
             self.rss_active_cb.setChecked(feed.get("active", True))
             self.rss_interval_edit.setText(str(feed.get("interval", "")))
-            unit = feed.get("interval_unit", "minuti")
+            unit = feed.get("interval_unit", "min")
             idx = self.rss_unit_combo.findText(unit)
             if idx >= 0:
                 self.rss_unit_combo.setCurrentIndex(idx)

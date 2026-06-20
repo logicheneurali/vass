@@ -198,10 +198,10 @@ class RssReader:
                     interval_val = int(interval_str)
                 except (ValueError, TypeError):
                     interval_val = 60
-                unit = feed.get("interval_unit", "minuti")
-                if unit in ("ore", "hours"):
+                unit = feed.get("interval_unit", "min")
+                if unit == "hours":
                     interval_sec = interval_val * 3600
-                elif unit in ("giorni", "days"):
+                elif unit == "days":
                     interval_sec = interval_val * 86400
                 else:
                     interval_sec = interval_val * 60
