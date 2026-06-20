@@ -795,6 +795,8 @@ class VassGUI(QMainWindow):
         if not self.app:
             return
         notifs = self.app.notification_manager.list_all()
+        all_notifs = notifs
+        notifs = [n for n in notifs if not n.get("read")]
         if self.app.rss_reader:
             for n in notifs:
                 data = n.get("data")
@@ -819,7 +821,7 @@ class VassGUI(QMainWindow):
 
         type_counts = {}
         unread_by_type = {}
-        for n in notifs:
+        for n in all_notifs:
             data = n.get("data") or {}
             t = data.get("type", "other")
             if t not in type_counts:

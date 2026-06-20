@@ -80,7 +80,8 @@ class RssReader:
                     pub_date = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
                 except Exception:
                     pass
-            guid = entry.get("id") or entry.get("link", "")
+            raw_guid = entry.get("id") or entry.get("link", "")
+            guid = raw_guid.split("#")[0] if "#" in raw_guid and raw_guid.startswith("http") else raw_guid
             items.append({
                 "guid": guid,
                 "title": entry.get("title", ""),
