@@ -792,18 +792,29 @@ class VassGUI(QMainWindow):
             )
 
     def _show_bell_dialog(self):
+        try:
+            self._show_bell_dialog_inner()
+        except Exception as e:
+            print(f"[Bell] Error: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _show_bell_dialog_inner(self):
         if not self.app:
             return
         notifs = self.app.notification_manager.list_all()
         all_notifs = notifs
         notifs = [n for n in notifs if not n.get("read")]
         if self.app.rss_reader:
-            for n in notifs:
+            rss_guids = []
+            for n in all_notifs:
                 data = n.get("data")
                 if isinstance(data, dict) and data.get("type") == "rss":
                     guid = data.get("guid", "")
                     if guid:
-                        self.app.rss_reader.mark_seen(guid)
+                        rss_guids.append(guid)
+            if rss_guids:
+                self.app.rss_reader.mark_guids_seen(rss_guids)
         self._selected_types.clear()
         self._show_bell_dialog_impl(notifs)
 

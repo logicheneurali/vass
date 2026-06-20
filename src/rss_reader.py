@@ -143,6 +143,15 @@ class RssReader:
                         item["seen"] = True
         self._save_cache()
 
+    def mark_guids_seen(self, guids):
+        guids_set = set(guids)
+        with self._lock:
+            for fid, entry in self._cache.items():
+                for item in entry.get("items", []):
+                    if item.get("guid") in guids_set:
+                        item["seen"] = True
+        self._save_cache()
+
     def start_polling(self):
         self._stop_event.clear()
         t = threading.Thread(target=self._poll_loop, daemon=True)
