@@ -1598,9 +1598,10 @@ class VASScript:
                 raise ValueError(f"unexpected token after expression: '{tokens[consumed]}'")
             value = self._evaluate(expr)
             self.vars[var_name] = value
+            return value
         else:
             expr, consumed = self._parse_expr(tokens, 0)
             if consumed < len(tokens):
                 raise ValueError(f"unexpected token after expression: '{tokens[consumed]}'")
             if expr:
-                self._evaluate(expr)
+                return self._evaluate(expr)
