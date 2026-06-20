@@ -398,7 +398,7 @@ class VassGUI(QMainWindow):
             "border: none; font-size: 10px; padding: 2px 4px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
-        self._bell_btn.setFixedWidth(20)
+        self._bell_btn.setFixedWidth(40)
         self._bell_btn.setToolTip(self._t("gui.notifications"))
         self._bell_btn.clicked.connect(self._show_bell_dialog)
         row.addWidget(self._bell_btn)
