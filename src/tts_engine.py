@@ -229,14 +229,13 @@ class TtsEngine:
                 raise RuntimeError("Kokoro generated no audio")
         except Exception as e:
             print(f"[TTS] Kokoro ({self.language}) failed: {e}")
-            self._set_state(self._state_before_tts)
             # Chain: Kokoro(lang) -> Windows default -> Kokoro(en) -> Windows(en)
             if not self._speak_windows_default(text):
                 print(f"[TTS] Windows default TTS failed. Trying Kokoro English...")
                 if not self._speak_kokoro_internal(text, speed, "a", "af_heart"):
                     print(f"[TTS] Kokoro English failed. Trying Windows English...")
                     self._speak_windows_tts(text, "en")
-            self._tts_done.set()
+            self._on_tts_done()
             return
         self._play_wav(wav_path, speed)
 
