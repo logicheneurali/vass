@@ -68,6 +68,7 @@ class ScriptRunner:
     def __init__(self, app):
         self._app = app
         self.queue = ScriptQueue(app, self._execute_script_impl)
+        self._scripts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 
     def enqueue(self, name_or_code=None, code=None, params=None,
                 result_callback=None, source="", transcribed_text=None,
@@ -83,8 +84,8 @@ class ScriptRunner:
 
     def watch_queue(self):
         app = self._app
-        queue_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "exec_queue.json")
-        result_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "exec_result.json")
+        queue_path = os.path.join(self._scripts_dir, "exec_queue.json")
+        result_path = os.path.join(self._scripts_dir, "exec_result.json")
         while app.running:
             time.sleep(1)
             try:
@@ -117,7 +118,7 @@ class ScriptRunner:
                               queue, transcribed_text=None, silent=False):
         app = self._app
         import json as _json
-        script_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
+        script_dir = self._scripts_dir
         if code is not None:
             script_name = "inline"
             is_file = False
