@@ -344,6 +344,14 @@ class VASScript:
             if tools and not self.app.allow_ai_scripts:
                 tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
 
+            import tool_groups
+            explicit_groups = [str(evaluated[i]).strip() for i in range(2, len(evaluated)) if evaluated[i]]
+            if explicit_groups:
+                tools = tool_groups.resolve_tool_names(explicit_groups, tools)
+            elif tools:
+                groups = tool_groups.select_tool_groups(prompt, self.app.language)
+                tools = tool_groups.resolve_tool_names(groups, tools)
+
             kwargs = dict(
                 model=self.app.ai_model,
                 messages=messages,
