@@ -392,6 +392,14 @@ class VassGUI(QMainWindow):
         self._left_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self._right_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
+        # ── Left-side widgets ──────────────────────────────────────────
+        # To add a new left-side component:
+        #   1. Create the widget above
+        #   2. Add it to the row layout: row.addWidget(widget)
+        #   3. Append it to self._left_side for automatic balancing
+        self._left_side = []
+        self._right_side = []
+
         self._bell_btn = QPushButton("0")
         self._bell_btn.setStyleSheet(
             "QPushButton { background: transparent; color: #3f3f3f; "
@@ -402,12 +410,14 @@ class VassGUI(QMainWindow):
         self._bell_btn.setToolTip(self._t("gui.notifications"))
         self._bell_btn.clicked.connect(self._show_bell_dialog)
         row.addWidget(self._bell_btn)
+        self._left_side.append(self._bell_btn)
 
         self._tool_indicator = QLabel()
         self._tool_indicator.setFixedSize(10, 10)
         self._tool_indicator.setVisible(False)
         self._tool_indicator.setToolTip("")
         row.addWidget(self._tool_indicator)
+        self._left_side.append(self._tool_indicator)
 
         row.addSpacerItem(self._left_spacer)
         row.addWidget(self.stacked)
@@ -425,15 +435,17 @@ class VassGUI(QMainWindow):
         self.replay_btn._right_click_cb = self.open_history
         self.replay_btn.mousePressEvent = self._replay_btn_press
         row.addWidget(self.replay_btn)
+        self._right_side.append(self.replay_btn)
 
         # Menu button with popup
-        menu_btn = QPushButton("\u2630")
-        menu_btn.setStyleSheet(
+        # Right-side widget — automatically balanced by _rebalance_spacers()
+        self._menu_btn = QPushButton("\u2630")
+        self._menu_btn.setStyleSheet(
             "QPushButton { background: transparent; color: #888888; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
-        menu_btn.setFixedWidth(16)
+        self._menu_btn.setFixedWidth(16)
         self._menu = QMenu()
         self._menu.setStyleSheet(
             "QMenu { background-color: #2d2d2d; color: #e0e0e0; "
@@ -473,11 +485,12 @@ class VassGUI(QMainWindow):
         self._mem_none.triggered.connect(lambda: self._switch_memory_mode("none"))
         self._menu.addSeparator()
         self._menu.addAction(self._t("gui.menu.exit"), self._exit_app)
-        menu_btn.clicked.connect(
-            lambda: self._menu.exec(menu_btn.mapToGlobal(
-                menu_btn.rect().bottomLeft()))
+        self._menu_btn.clicked.connect(
+            lambda: self._menu.exec(self._menu_btn.mapToGlobal(
+                self._menu_btn.rect().bottomLeft()))
         )
-        row.addWidget(menu_btn)
+        row.addWidget(self._menu_btn)
+        self._right_side.append(self._menu_btn)
 
         self._chat_btn = QPushButton("\u2726")
         self._chat_btn.setStyleSheet(
@@ -492,6 +505,7 @@ class VassGUI(QMainWindow):
         self._chat_btn.setToolTip(self._t("gui.chat_tooltip"))
         self._chat_btn.clicked.connect(self._toggle_chat_input)
         row.addWidget(self._chat_btn)
+        self._right_side.append(self._chat_btn)
 
         self._chat_input = _ChatLineEdit()
         self._chat_input.setMaxLength(128000)
@@ -847,19 +861,37 @@ class VassGUI(QMainWindow):
         self._rebalance_spacers()
 
     def _rebalance_spacers(self):
-        left_extra = self._bell_btn.width()
-        if self._tool_indicator.isVisible():
-            left_extra += self._tool_indicator.width()
-        right_w = 0
-        if self.replay_btn.isVisible():
-            right_w += 16
-        right_w += 16  # menu btn
-        if self._chat_btn.isVisible():
-            right_w += 16
+        """Keep the stacked widget (button / waveform) horizontally centred.
+
+        Calculates the total visible width of widgets placed to the left
+        and right of the centred area, then pads the shorter side with a
+        spacer so the centre widget stays balanced.
+
+        To make a new widget participate in balancing, append it to
+        self._left_side or self._right_side.  No other changes needed.
+        """
+        # ── measure visible widths ─────────────────────────────────────
+        left_w = sum(w.width() for w in self._left_side if w.isVisible())
+        right_w = sum(w.width() for w in self._right_side if w.isVisible())
+
+        # _chat_input has dynamic width (not fixed), handle separately
         if self._chat_input.isVisible():
-            right_w += max(self._chat_input.width(), self._chat_input.sizeHint().width())
-        self._left_spacer.changeSize(max(0, right_w - left_extra), 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-        self._right_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            right_w += max(self._chat_input.width(),
+                           self._chat_input.sizeHint().width())
+
+        # ── apply the difference to the shorter side ───────────────────
+        diff = abs(left_w - right_w)
+        if left_w > right_w:
+            self._right_spacer.changeSize(diff, 0,
+                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            self._left_spacer.changeSize(0, 0,
+                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        else:
+            self._left_spacer.changeSize(diff, 0,
+                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            self._right_spacer.changeSize(0, 0,
+                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
         self.centralWidget().layout().invalidate()
 
     def _toggle_chat_input(self):
@@ -868,9 +900,7 @@ class VassGUI(QMainWindow):
             self._chat_original_x = self.x()
             self.resize(self._chat_original_width * 2, self.height())
             self._clamp_to_screen()
-            self._left_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-            self._right_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-            self.centralWidget().layout().invalidate()
+            self._rebalance_spacers()
             self._chat_input.setVisible(True)
             self._chat_input.setFocus()
         else:
