@@ -190,6 +190,8 @@ class TtsEngine:
                 pass
 
     def _speak_kokoro(self, text, speed=1.0):
+        if not text or not text.strip():
+            return
         self._save_state_and_set_playing()
         try:
             import torch
