@@ -100,9 +100,13 @@ def select_tool_groups(prompt, lang="it"):
     return groups or {"web"}
 
 
-def resolve_tool_names(group_names, all_tools):
+def resolve_tool_names(group_names, all_tools, debug=False):
     """Convert group names to filtered OpenAI tool list."""
     names = set()
     for g in group_names:
         names.update(TOOL_GROUPS.get(g, []))
-    return [t for t in all_tools if t["function"]["name"] in names]
+    tools = [t for t in all_tools if t["function"]["name"] in names]
+    if debug:
+        tool_names = [t["function"]["name"] for t in tools] if tools else []
+        print(f"[Debug] Tool groups: {sorted(group_names) or 'none'} -> {len(tool_names)} tools: {', '.join(tool_names) or 'none'}")
+    return tools

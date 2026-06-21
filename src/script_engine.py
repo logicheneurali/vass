@@ -347,17 +347,12 @@ class VASScript:
             import tool_groups
             explicit_groups = [str(evaluated[i]).strip() for i in range(2, len(evaluated)) if evaluated[i]]
             if explicit_groups:
-                tools = tool_groups.resolve_tool_names(explicit_groups, tools)
-                groups = set(explicit_groups)
+                tools = tool_groups.resolve_tool_names(explicit_groups, tools,
+                                                        getattr(self.app, 'debug_enabled', False))
             elif tools:
                 groups = tool_groups.select_tool_groups(prompt, self.app.language)
-                tools = tool_groups.resolve_tool_names(groups, tools)
-            else:
-                groups = set()
-
-            if getattr(self.app, 'debug_enabled', False):
-                tool_names = [t["function"]["name"] for t in tools] if tools else []
-                print(f"[Debug] [VASScript] Tool groups: {sorted(groups) or 'none'} -> {len(tool_names)} tools: {', '.join(tool_names) or 'none'}")
+                tools = tool_groups.resolve_tool_names(groups, tools,
+                                                        getattr(self.app, 'debug_enabled', False))
 
             kwargs = dict(
                 model=self.app.ai_model,

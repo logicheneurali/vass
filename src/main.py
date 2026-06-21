@@ -1068,11 +1068,8 @@ class VassApp:
 
             import tool_groups
             groups = tool_groups.select_tool_groups(prompt, self.language)
-            tools = tool_groups.resolve_tool_names(groups, tools)
-
-            if getattr(self, 'debug_enabled', False):
-                tool_names = [t["function"]["name"] for t in tools] if tools else []
-                print(f"[Debug] [AI] Tool groups: {sorted(groups)} -> {len(tool_names)} tools: {', '.join(tool_names) or 'none'}")
+            tools = tool_groups.resolve_tool_names(groups, tools,
+                                                    getattr(self, 'debug_enabled', False))
 
             memory_content = self._build_memory_content(mcp, tools)
 
