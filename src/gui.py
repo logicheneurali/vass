@@ -398,7 +398,7 @@ class VassGUI(QMainWindow):
             "border: none; font-size: 10px; padding: 2px 4px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
-        self._bell_btn.setFixedWidth(40)
+        self._bell_btn.setFixedWidth(35)
         self._bell_btn.setToolTip(self._t("gui.notifications"))
         self._bell_btn.clicked.connect(self._show_bell_dialog)
         row.addWidget(self._bell_btn)
@@ -847,6 +847,9 @@ class VassGUI(QMainWindow):
         self._rebalance_spacers()
 
     def _rebalance_spacers(self):
+        left_extra = self._bell_btn.width()
+        if self._tool_indicator.isVisible():
+            left_extra += self._tool_indicator.width()
         right_w = 0
         if self.replay_btn.isVisible():
             right_w += 16
@@ -855,7 +858,7 @@ class VassGUI(QMainWindow):
             right_w += 16
         if self._chat_input.isVisible():
             right_w += max(self._chat_input.width(), self._chat_input.sizeHint().width())
-        self._left_spacer.changeSize(max(0, right_w - 20), 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self._left_spacer.changeSize(max(0, right_w - left_extra), 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self._right_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self.centralWidget().layout().invalidate()
 
