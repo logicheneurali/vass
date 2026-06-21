@@ -1418,7 +1418,7 @@ class VassGUI(QMainWindow):
             self._tool_indicator.setVisible(False)
             return
         self._tool_indicator.setStyleSheet(
-            f"background-color: {color}; border-radius: 5px;")
+            f"QLabel {{ background-color: {color}; border-radius: 5px; }}")
         self._tool_indicator.setToolTip(tooltip)
         self._tool_indicator.setVisible(True)
 
