@@ -356,10 +356,6 @@ class VassGUI(QMainWindow):
         self.setAttribute(Qt.WA_TranslucentBackground, False)
         self.setGeometry(x, y, width, height)
         self.setStyleSheet("QMainWindow { background-color: #101010; }")
-        existing = QApplication.instance().styleSheet() or ""
-        QApplication.instance().setStyleSheet(
-            existing + "QToolTip { background-color: #1e1e1e; color: #e0e0e0; border: 1px solid #3c3c3c; padding: 4px 8px; font-size: 12px; }"
-        )
 
         ico_path = os.path.join(BASE, "vass.ico")
         if os.path.exists(ico_path):
