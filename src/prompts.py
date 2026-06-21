@@ -68,16 +68,33 @@ _STOPWORDS = {
 }
 
 
+# Words that must NEVER be removed, even if they appear in _STOPWORDS,
+# because they carry semantic negation that would invert meaning.
+_NEGATION_WORDS = {
+    "it": {"non", "né", "neanche", "nemmeno", "senza"},
+    "en": {"not", "no", "neither", "nor", "without", "never"},
+    "de": {"nicht", "kein", "keine", "keiner", "weder", "noch", "ohne"},
+    "fr": {"ne", "pas", "ni", "sans", "jamais", "aucun"},
+    "es": {"no", "ni", "sin", "nunca", "jamás", "ningún"},
+    "pt": {"não", "nem", "sem", "nunca", "jamais", "nenhum"},
+    "ja": {"ない", "ません", "ず", "ぬ"},
+    "ko": {"안", "못", "않", "없다"},
+    "zh": {"不", "没", "无", "别", "非"},
+}
+
+
 def _compress_heuristic(text, lang="en"):
     stopwords = _STOPWORDS.get(lang, _STOPWORDS["en"])
+    negations = _NEGATION_WORDS.get(lang, set())
     words = text.split()
     return ' '.join(w for w in words
-        if w.lower().strip("',.!?;:()[]\"") not in stopwords)
+        if w.lower().strip("',.!?;:()[]\"") not in stopwords
+        or w.lower().strip("',.!?;:()[]\"") in negations)
 
 
 SAVETAGS_PROMPT = (
     "IMPORTANT: After every response, you MUST call savetags() to classify "
-    "the user's message with tags from this list ONLY: "
+    "the user's message with tags from this list ONLY, select only the two most relevant accordingly to the message: "
     "personal_data, health, finance, family, pets, contacts, "
     "preferences, personal_interests, purchases, orders, bills, invoices, "
     "work, education, favorite_music, food, home, "
