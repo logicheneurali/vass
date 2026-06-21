@@ -1070,6 +1070,10 @@ class VassApp:
             groups = tool_groups.select_tool_groups(prompt, self.language)
             tools = tool_groups.resolve_tool_names(groups, tools)
 
+            if getattr(self, 'debug_enabled', False):
+                tool_names = [t["function"]["name"] for t in tools] if tools else []
+                print(f"[Debug] [AI] Tool groups: {sorted(groups)} -> {len(tool_names)} tools: {', '.join(tool_names) or 'none'}")
+
             memory_content = self._build_memory_content(mcp, tools)
 
             tools_block = (MCP_PROMPT + VASSCRIPT_TOOLS_PROMPT + vas_ref) if self.allow_ai_scripts else MCP_PROMPT
