@@ -341,6 +341,9 @@ class VASScript:
 
             mcp, tools = init_mcp(self.app.mcp_server_url, timeout=120, log_prefix="[VASScript]")
 
+            if tools and not self.app.allow_ai_scripts:
+                tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
+
             kwargs = dict(
                 model=self.app.ai_model,
                 messages=messages,
@@ -365,7 +368,7 @@ class VASScript:
                 msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]", gui=self.app.gui)
             except Exception as e:
                 print(f"[VASScript] AI error: {e}")
-                return ""
+                return f"error: {e}"
             finally:
                 self.app._ai_lock.release()
 
@@ -392,7 +395,7 @@ class VASScript:
                 ).choices[0].message
             except Exception as e:
                 print(f"[VASScript] AI raw error: {e}")
-                return ""
+                return f"error: {e}"
             finally:
                 self.app._ai_lock.release()
             resp = msg.content or ""
@@ -400,6 +403,8 @@ class VASScript:
 
         if name == "say":
             text = evaluated[0] if evaluated else ""
+            if not text.strip():
+                return ""
             speed = float(_tof(evaluated[1])) if len(evaluated) > 1 else 1.0
             self._do_say(text, speed)
             return ""
