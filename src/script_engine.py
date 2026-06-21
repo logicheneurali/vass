@@ -1314,8 +1314,9 @@ class VASScript:
         return "ok"
 
     def _do_say(self, text, speed=1.0):
-        self.app.tts.speak_nowait(text, speed)
-        self.app.tts._tts_done.wait()
+        done = threading.Event()
+        self.app.tts.enqueue(text, speed, on_done=done.set)
+        done.wait()
 
     @staticmethod
     def _parse_time_variants(am_pm_str):

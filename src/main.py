@@ -816,7 +816,9 @@ class VassApp:
         if len(summary) > max_final:
             summary = summary[:max_final] + "\n\n[riassunto troncato]"
 
-        self.tts.speak("Testo riassunto. Eseguo la richiesta.")
+        done = threading.Event()
+        self.tts.enqueue("Testo riassunto. Eseguo la richiesta.", on_done=done.set)
+        done.wait()
         with open("lastcommands.txt", "w", encoding="utf-8") as f:
             f.write(summary)
         print(f"[Chat] Summarized {len(text)} chars -> {len(summary)} chars")
@@ -1031,7 +1033,7 @@ class VassApp:
             found = [w for w in self.blacklist if w in lowered]
             if found:
                 print(f"[Blacklist] Bloccato: parole {found} in '{prompt}'")
-                threading.Thread(target=self.tts.speak, args=(t("ai.blacklisted", self.language),), daemon=True).start()
+                self.tts.enqueue(t("ai.blacklisted", self.language))
                 self.set_state("listening")
                 return
 
@@ -1225,8 +1227,9 @@ class VassApp:
                     f.write(clean_text)
             except Exception:
                 pass
-            self.tts.speak_nowait(clean_text)
-            self.tts._tts_done.wait()
+            done = threading.Event()
+            self.tts.enqueue(clean_text, on_done=done.set)
+            done.wait()
             self.set_state("listening")
         except Exception as e:
             body = getattr(e, "body", None)
@@ -1240,7 +1243,7 @@ class VassApp:
                 err_msg = str(e)
             print(f"Error calling AI Agent: {e}")
             self.set_state("listening")
-            threading.Thread(target=self.tts.speak, args=(err_msg,), daemon=True).start()
+            self.tts.enqueue(err_msg)
         finally:
             self._ai_lock.release()
 

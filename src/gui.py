@@ -843,7 +843,7 @@ class VassGUI(QMainWindow):
                 with open(path, encoding="utf-8") as f:
                     text = f.read()
                 if text.strip() and self.app:
-                    threading.Thread(target=self.app.tts.speak, args=(text,), daemon=True).start()
+                    self.app.tts.enqueue(text)
             except Exception:
                 pass
 

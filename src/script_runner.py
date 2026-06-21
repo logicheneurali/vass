@@ -226,8 +226,8 @@ class ScriptRunner:
             if result_callback:
                 result_callback({"status": "not_found", "script": name_or_code, "detail": err_msg, "message": err_msg})
             else:
-                threading.Thread(target=app.tts.speak, args=(err_msg,), daemon=True).start()
-            return
+                app.tts.enqueue(err_msg)
+                return
 
         if code_text:
             from script_engine import VASScript
@@ -264,4 +264,4 @@ class ScriptRunner:
                             app.set_state("listening", silent_gui=silent)
 
             if script_error and not result_callback:
-                threading.Thread(target=app.tts.speak, args=(f"Errore script: {script_error}",), daemon=True).start()
+                app.tts.enqueue(f"Errore script: {script_error}")
