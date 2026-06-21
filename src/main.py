@@ -202,8 +202,7 @@ class VassApp:
         self.running = False
         self._trim_lock = threading.Lock()
         from script_runner import ScriptRunner
-        scripts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
-        self.script_runner = ScriptRunner(self, scripts_dir=scripts_dir)
+        self.script_runner = ScriptRunner(self)
         self.script_queue = self.script_runner.queue
         self.state_lock = threading.RLock()
         from timer_manager import TimerManager
