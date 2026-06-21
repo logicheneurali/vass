@@ -500,5 +500,99 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "在浏览器中打开",
     "new_articles_count": "{count} 篇新文章"
+  },
+  "tool_names": {
+    "browse": {
+      "name": "浏览",
+      "desc": "读取网页"
+    },
+    "webfetch": {
+      "name": "获取",
+      "desc": "动态网站浏览器"
+    },
+    "websearch": {
+      "name": "搜索",
+      "desc": "DuckDuckGo 搜索"
+    },
+    "read_file": {
+      "name": "读文件",
+      "desc": "读取文件"
+    },
+    "write_file": {
+      "name": "写文件",
+      "desc": "写入文件"
+    },
+    "interact": {
+      "name": "交互",
+      "desc": "执行VASScript代码"
+    },
+    "script": {
+      "name": "脚本",
+      "desc": "运行.vass脚本"
+    },
+    "addevent": {
+      "name": "添加事件",
+      "desc": "添加日历事件"
+    },
+    "delevent": {
+      "name": "删除事件",
+      "desc": "删除日历事件"
+    },
+    "listevents": {
+      "name": "列出事件",
+      "desc": "列出即将发生的事件"
+    },
+    "calendar_add": {
+      "name": "GCal: 添加",
+      "desc": "Google日历"
+    },
+    "calendar_list": {
+      "name": "GCal: 列表",
+      "desc": "Google日历"
+    },
+    "calendar_search": {
+      "name": "GCal: 搜索",
+      "desc": "Google日历"
+    },
+    "clipboardget": {
+      "name": "剪贴板: 读",
+      "desc": "读取剪贴板"
+    },
+    "clipboardset": {
+      "name": "剪贴板: 写",
+      "desc": "写入剪贴板"
+    },
+    "current_time": {
+      "name": "当前时间",
+      "desc": "当前日期和时间"
+    },
+    "to_timestamp": {
+      "name": "转换日期",
+      "desc": "日期转时间戳"
+    },
+    "calculate": {
+      "name": "计算",
+      "desc": "数学计算"
+    },
+    "langcheck": {
+      "name": "语言检查",
+      "desc": "语言验证"
+    },
+    "readinfo": {
+      "name": "记忆: 读",
+      "desc": "读取记忆"
+    },
+    "writeinfo": {
+      "name": "记忆: 写",
+      "desc": "写入记忆"
+    },
+    "savetags": {
+      "name": "保存标签",
+      "desc": "用标签分类"
+    },
+    "getidle": {
+      "name": "空闲时间",
+      "desc": "系统空闲时间"
+    }
   }
 }

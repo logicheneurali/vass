@@ -687,5 +687,99 @@
       "contesto",
       "tema"
     ]
+  },
+  "tool_names": {
+    "browse": {
+      "name": "Sfoglia",
+      "desc": "Legge pagine web velocemente"
+    },
+    "webfetch": {
+      "name": "Fetch",
+      "desc": "Browser per siti dinamici"
+    },
+    "websearch": {
+      "name": "Ricerca",
+      "desc": "Cerca su DuckDuckGo"
+    },
+    "read_file": {
+      "name": "Leggi file",
+      "desc": "Legge file dallo storage"
+    },
+    "write_file": {
+      "name": "Scrivi file",
+      "desc": "Scrive file nello storage"
+    },
+    "interact": {
+      "name": "Interact",
+      "desc": "Esegue codice VASScript"
+    },
+    "script": {
+      "name": "Script",
+      "desc": "Esegue script .vass"
+    },
+    "addevent": {
+      "name": "Aggiungi evento",
+      "desc": "Aggiunge evento al calendario"
+    },
+    "delevent": {
+      "name": "Rimuovi evento",
+      "desc": "Rimuove evento dal calendario"
+    },
+    "listevents": {
+      "name": "Elenca eventi",
+      "desc": "Elenca eventi futuri"
+    },
+    "calendar_add": {
+      "name": "GCal: aggiungi",
+      "desc": "Google Calendar: aggiungi"
+    },
+    "calendar_list": {
+      "name": "GCal: elenca",
+      "desc": "Google Calendar: elenca"
+    },
+    "calendar_search": {
+      "name": "GCal: cerca",
+      "desc": "Google Calendar: cerca"
+    },
+    "clipboardget": {
+      "name": "Clipboard: leggi",
+      "desc": "Legge il testo dagli appunti"
+    },
+    "clipboardset": {
+      "name": "Clipboard: scrivi",
+      "desc": "Scrive testo negli appunti"
+    },
+    "current_time": {
+      "name": "Ora corrente",
+      "desc": "Data e ora attuali"
+    },
+    "to_timestamp": {
+      "name": "Converti data",
+      "desc": "Converte data in timestamp"
+    },
+    "calculate": {
+      "name": "Calcola",
+      "desc": "Calcolo matematico"
+    },
+    "langcheck": {
+      "name": "Verifica lingua",
+      "desc": "Controllo linguistico"
+    },
+    "readinfo": {
+      "name": "Memoria: leggi",
+      "desc": "Legge dalla memoria permanente"
+    },
+    "writeinfo": {
+      "name": "Memoria: scrivi",
+      "desc": "Scrive nella memoria permanente"
+    },
+    "savetags": {
+      "name": "Salva tag",
+      "desc": "Classifica con tag"
+    },
+    "getidle": {
+      "name": "Tempo inattivo",
+      "desc": "Tempo di inattivita sistema"
+    }
   }
 }

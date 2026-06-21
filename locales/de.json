@@ -499,5 +499,99 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "Im Browser öffnen",
     "new_articles_count": "{count} neue Artikel"
+  },
+  "tool_names": {
+    "browse": {
+      "name": "Durchsuchen",
+      "desc": "Liest Webseiten schnell"
+    },
+    "webfetch": {
+      "name": "Abrufen",
+      "desc": "Browser fur dynamische Seiten"
+    },
+    "websearch": {
+      "name": "Suche",
+      "desc": "DuckDuckGo Suche"
+    },
+    "read_file": {
+      "name": "Datei lesen",
+      "desc": "Liest Dateien"
+    },
+    "write_file": {
+      "name": "Datei schreiben",
+      "desc": "Schreibt Dateien"
+    },
+    "interact": {
+      "name": "Interact",
+      "desc": "Fuhrt VASScript aus"
+    },
+    "script": {
+      "name": "Skript",
+      "desc": "Fuhrt .vass Skripte aus"
+    },
+    "addevent": {
+      "name": "Ereignis",
+      "desc": "Fugt Ereignis hinzu"
+    },
+    "delevent": {
+      "name": "Ereignis loschen",
+      "desc": "Entfernt Ereignis"
+    },
+    "listevents": {
+      "name": "Ereignisse",
+      "desc": "Listet Ereignisse"
+    },
+    "calendar_add": {
+      "name": "GCal: hinzufugen",
+      "desc": "Google Kalender"
+    },
+    "calendar_list": {
+      "name": "GCal: auflisten",
+      "desc": "Google Kalender"
+    },
+    "calendar_search": {
+      "name": "GCal: suche",
+      "desc": "Google Kalender"
+    },
+    "clipboardget": {
+      "name": "Zwischenablage",
+      "desc": "Liest Text"
+    },
+    "clipboardset": {
+      "name": "Zwischenablage",
+      "desc": "Schreibt Text"
+    },
+    "current_time": {
+      "name": "Aktuelle Zeit",
+      "desc": "Datum und Uhrzeit"
+    },
+    "to_timestamp": {
+      "name": "Datum konvertieren",
+      "desc": "Datum zu Zeitstempel"
+    },
+    "calculate": {
+      "name": "Berechnen",
+      "desc": "Mathe Berechnung"
+    },
+    "langcheck": {
+      "name": "Sprachprufung",
+      "desc": "Sprachliche Prufung"
+    },
+    "readinfo": {
+      "name": "Speicher: lesen",
+      "desc": "Liest aus Speicher"
+    },
+    "writeinfo": {
+      "name": "Speicher: schreiben",
+      "desc": "Schreibt in Speicher"
+    },
+    "savetags": {
+      "name": "Tags speichern",
+      "desc": "Mit Tags klassifizieren"
+    },
+    "getidle": {
+      "name": "Leerlaufzeit",
+      "desc": "System Leerlaufzeit"
+    }
   }
 }

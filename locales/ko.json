@@ -500,5 +500,99 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "브라우저에서 열기",
     "new_articles_count": "{count}개의 새 기사"
+  },
+  "tool_names": {
+    "browse": {
+      "name": "탐색",
+      "desc": "웹 페이지 읽기"
+    },
+    "webfetch": {
+      "name": "가져오기",
+      "desc": "동적 사이트 브라우저"
+    },
+    "websearch": {
+      "name": "검색",
+      "desc": "DuckDuckGo 검색"
+    },
+    "read_file": {
+      "name": "파일 읽기",
+      "desc": "파일을 읽음"
+    },
+    "write_file": {
+      "name": "파일 쓰기",
+      "desc": "파일을 씀"
+    },
+    "interact": {
+      "name": "상호작용",
+      "desc": "VASScript 실행"
+    },
+    "script": {
+      "name": "스크립트",
+      "desc": ".vass 실행"
+    },
+    "addevent": {
+      "name": "이벤트 추가",
+      "desc": "이벤트 추가"
+    },
+    "delevent": {
+      "name": "이벤트 삭제",
+      "desc": "이벤트 삭제"
+    },
+    "listevents": {
+      "name": "이벤트 목록",
+      "desc": "예정된 이벤트"
+    },
+    "calendar_add": {
+      "name": "GCal: 추가",
+      "desc": "Google 캘린더"
+    },
+    "calendar_list": {
+      "name": "GCal: 목록",
+      "desc": "Google 캘린더"
+    },
+    "calendar_search": {
+      "name": "GCal: 검색",
+      "desc": "Google 캘린더"
+    },
+    "clipboardget": {
+      "name": "클립보드 읽기",
+      "desc": "클립보드 읽음"
+    },
+    "clipboardset": {
+      "name": "클립보드 쓰기",
+      "desc": "클립보드 씀"
+    },
+    "current_time": {
+      "name": "현재 시간",
+      "desc": "현재 날짜와 시간"
+    },
+    "to_timestamp": {
+      "name": "날짜 변환",
+      "desc": "날짜→타임스탬프"
+    },
+    "calculate": {
+      "name": "계산",
+      "desc": "수학 계산"
+    },
+    "langcheck": {
+      "name": "언어 검사",
+      "desc": "언어 검증"
+    },
+    "readinfo": {
+      "name": "메모리 읽기",
+      "desc": "메모리에서 읽음"
+    },
+    "writeinfo": {
+      "name": "메모리 쓰기",
+      "desc": "메모리에 씀"
+    },
+    "savetags": {
+      "name": "태그 저장",
+      "desc": "태그로 분류"
+    },
+    "getidle": {
+      "name": "유휴 시간",
+      "desc": "시스템 유휴 시간"
+    }
   }
 }

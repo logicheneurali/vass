@@ -499,5 +499,99 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "Open in browser",
     "new_articles_count": "{count} new articles"
+  },
+  "tool_names": {
+    "browse": {
+      "name": "Browse",
+      "desc": "Reads web pages quickly"
+    },
+    "webfetch": {
+      "name": "Fetch",
+      "desc": "Browser for dynamic sites"
+    },
+    "websearch": {
+      "name": "Search",
+      "desc": "Search DuckDuckGo"
+    },
+    "read_file": {
+      "name": "Read file",
+      "desc": "Reads files from storage"
+    },
+    "write_file": {
+      "name": "Write file",
+      "desc": "Writes files to storage"
+    },
+    "interact": {
+      "name": "Interact",
+      "desc": "Runs VASScript code"
+    },
+    "script": {
+      "name": "Script",
+      "desc": "Runs .vass scripts"
+    },
+    "addevent": {
+      "name": "Add event",
+      "desc": "Adds event to calendar"
+    },
+    "delevent": {
+      "name": "Delete event",
+      "desc": "Removes event"
+    },
+    "listevents": {
+      "name": "List events",
+      "desc": "Lists upcoming events"
+    },
+    "calendar_add": {
+      "name": "GCal: add",
+      "desc": "Google Calendar: add"
+    },
+    "calendar_list": {
+      "name": "GCal: list",
+      "desc": "Google Calendar: list"
+    },
+    "calendar_search": {
+      "name": "GCal: search",
+      "desc": "Google Calendar: search"
+    },
+    "clipboardget": {
+      "name": "Clipboard: read",
+      "desc": "Reads clipboard text"
+    },
+    "clipboardset": {
+      "name": "Clipboard: write",
+      "desc": "Writes to clipboard"
+    },
+    "current_time": {
+      "name": "Current time",
+      "desc": "Current date and time"
+    },
+    "to_timestamp": {
+      "name": "Convert date",
+      "desc": "Converts date to timestamp"
+    },
+    "calculate": {
+      "name": "Calculate",
+      "desc": "Math calculation"
+    },
+    "langcheck": {
+      "name": "Language check",
+      "desc": "Linguistic validation"
+    },
+    "readinfo": {
+      "name": "Memory: read",
+      "desc": "Reads from memory"
+    },
+    "writeinfo": {
+      "name": "Memory: write",
+      "desc": "Writes to memory"
+    },
+    "savetags": {
+      "name": "Save tags",
+      "desc": "Classify with tags"
+    },
+    "getidle": {
+      "name": "Idle time",
+      "desc": "System idle time"
+    }
   }
 }

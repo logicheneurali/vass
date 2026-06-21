@@ -499,5 +499,99 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "Abrir no navegador",
     "new_articles_count": "{count} novos artigos"
+  },
+  "tool_names": {
+    "browse": {
+      "name": "Navegar",
+      "desc": "Le paginas web rapidamente"
+    },
+    "webfetch": {
+      "name": "Buscar",
+      "desc": "Navegador para sites dinamicos"
+    },
+    "websearch": {
+      "name": "Pesquisar",
+      "desc": "Pesquisa DuckDuckGo"
+    },
+    "read_file": {
+      "name": "Ler arquivo",
+      "desc": "Le arquivos"
+    },
+    "write_file": {
+      "name": "Escrever arquivo",
+      "desc": "Escreve arquivos"
+    },
+    "interact": {
+      "name": "Interagir",
+      "desc": "Executa codigo VASScript"
+    },
+    "script": {
+      "name": "Script",
+      "desc": "Executa scripts .vass"
+    },
+    "addevent": {
+      "name": "Adicionar evento",
+      "desc": "Adiciona evento"
+    },
+    "delevent": {
+      "name": "Remover evento",
+      "desc": "Remove evento"
+    },
+    "listevents": {
+      "name": "Listar eventos",
+      "desc": "Lista eventos"
+    },
+    "calendar_add": {
+      "name": "GCal: adicionar",
+      "desc": "Google Calendar"
+    },
+    "calendar_list": {
+      "name": "GCal: listar",
+      "desc": "Google Calendar"
+    },
+    "calendar_search": {
+      "name": "GCal: pesquisar",
+      "desc": "Google Calendar"
+    },
+    "clipboardget": {
+      "name": "Clipboard: ler",
+      "desc": "Le texto"
+    },
+    "clipboardset": {
+      "name": "Clipboard: escrever",
+      "desc": "Escreve texto"
+    },
+    "current_time": {
+      "name": "Hora atual",
+      "desc": "Data e hora"
+    },
+    "to_timestamp": {
+      "name": "Converter data",
+      "desc": "Data para timestamp"
+    },
+    "calculate": {
+      "name": "Calcular",
+      "desc": "Calculo matematico"
+    },
+    "langcheck": {
+      "name": "Verificar idioma",
+      "desc": "Validacao linguistica"
+    },
+    "readinfo": {
+      "name": "Memoria: ler",
+      "desc": "Le da memoria"
+    },
+    "writeinfo": {
+      "name": "Memoria: escrever",
+      "desc": "Escreve na memoria"
+    },
+    "savetags": {
+      "name": "Salvar tags",
+      "desc": "Classificar com tags"
+    },
+    "getidle": {
+      "name": "Tempo ocioso",
+      "desc": "Tempo ocioso sistema"
+    }
   }
 }

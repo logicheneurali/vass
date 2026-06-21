@@ -1391,17 +1391,23 @@ class VassGUI(QMainWindow):
         super().wheelEvent(event)
 
     _TOOL_COLORS = {
-        "browse": ("#3498db", "Browser (httpx)"),
-        "webfetch": ("#2980b9", "Browser (Playwright)"),
-        "websearch": ("#9b59b6", "Ricerca web"),
-        "read_file": ("#f1c40f", "Lettura file"),
-        "write_file": ("#e67e22", "Scrittura file"),
-        "interact": ("#e74c3c", "Esecuzione script"),
-        "script": ("#c0392b", "Esecuzione script"),
+        "browse": "#3498db", "webfetch": "#2980b9", "websearch": "#9b59b6",
+        "read_file": "#f1c40f", "write_file": "#e67e22",
+        "interact": "#e74c3c", "script": "#c0392b",
+        "calendar_add": "#27ae60", "calendar_list": "#27ae60", "calendar_search": "#27ae60",
+        "addevent": "#e67e22", "delevent": "#e67e22", "listevents": "#e67e22",
+        "clipboardget": "#1abc9c", "clipboardset": "#1abc9c",
+        "current_time": "#2ecc71", "to_timestamp": "#2ecc71",
+        "calculate": "#e91e63", "langcheck": "#673ab7",
+        "readinfo": "#f1c40f", "writeinfo": "#f1c40f", "savetags": "#ff5722",
+        "getidle": "#95a5a6",
     }
 
     def show_tool_indicator(self, tool_name):
-        color, tip = self._TOOL_COLORS.get(tool_name, ("#95a5a6", tool_name))
+        color = self._TOOL_COLORS.get(tool_name, "#95a5a6")
+        from tool_groups import load_tool_name
+        name, desc = load_tool_name(tool_name, self.language)
+        tip = f'<font color="{color}"><b>{name}</b></font><br><font color="#aaaaaa">{desc}</font>'
         self.tool_indicator_signal.emit(color, tip)
 
     def hide_tool_indicator(self):

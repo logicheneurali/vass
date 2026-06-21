@@ -110,3 +110,20 @@ def resolve_tool_names(group_names, all_tools, debug=False):
         tool_names = [t["function"]["name"] for t in tools] if tools else []
         print(f"[Debug] Tool groups: {sorted(group_names) or 'none'} -> {len(tool_names)} tools: {', '.join(tool_names) or 'none'}")
     return tools
+
+
+def load_tool_name(tool_name, lang="it"):
+    """Return (display_name, description) for a tool, localized."""
+    data = load_keywords(lang)
+    # load_keywords returns the tool_groups dict; locale has a separate tool_names section
+    # Re-read the locale file for tool_names specifically
+    path = os.path.join(BASE, "locales", f"{lang}.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = json.load(f)
+        info = raw.get("tool_names", {}).get(tool_name)
+        if info:
+            return info.get("name", tool_name), info.get("desc", "")
+    except Exception:
+        pass
+    return tool_name, ""

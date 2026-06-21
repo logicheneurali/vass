@@ -499,5 +499,99 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "Abrir en el navegador",
     "new_articles_count": "{count} nuevos artículos"
+  },
+  "tool_names": {
+    "browse": {
+      "name": "Navegar",
+      "desc": "Lee paginas web"
+    },
+    "webfetch": {
+      "name": "Obtener",
+      "desc": "Navegador para sitios dinamicos"
+    },
+    "websearch": {
+      "name": "Buscar",
+      "desc": "Busca en DuckDuckGo"
+    },
+    "read_file": {
+      "name": "Leer archivo",
+      "desc": "Lee archivos"
+    },
+    "write_file": {
+      "name": "Escribir archivo",
+      "desc": "Escribe archivos"
+    },
+    "interact": {
+      "name": "Interactuar",
+      "desc": "Ejecuta codigo VASScript"
+    },
+    "script": {
+      "name": "Script",
+      "desc": "Ejecuta scripts .vass"
+    },
+    "addevent": {
+      "name": "Agregar evento",
+      "desc": "Agrega evento"
+    },
+    "delevent": {
+      "name": "Eliminar evento",
+      "desc": "Elimina evento"
+    },
+    "listevents": {
+      "name": "Listar eventos",
+      "desc": "Lista eventos"
+    },
+    "calendar_add": {
+      "name": "GCal: agregar",
+      "desc": "Google Calendar"
+    },
+    "calendar_list": {
+      "name": "GCal: listar",
+      "desc": "Google Calendar"
+    },
+    "calendar_search": {
+      "name": "GCal: buscar",
+      "desc": "Google Calendar"
+    },
+    "clipboardget": {
+      "name": "Portapapeles",
+      "desc": "Lee texto"
+    },
+    "clipboardset": {
+      "name": "Portapapeles",
+      "desc": "Escribe texto"
+    },
+    "current_time": {
+      "name": "Hora actual",
+      "desc": "Fecha y hora"
+    },
+    "to_timestamp": {
+      "name": "Convertir fecha",
+      "desc": "Fecha a timestamp"
+    },
+    "calculate": {
+      "name": "Calcular",
+      "desc": "Calculo matematico"
+    },
+    "langcheck": {
+      "name": "Verificar idioma",
+      "desc": "Validacion linguistica"
+    },
+    "readinfo": {
+      "name": "Memoria: leer",
+      "desc": "Lee de memoria"
+    },
+    "writeinfo": {
+      "name": "Memoria: escribir",
+      "desc": "Escribe en memoria"
+    },
+    "savetags": {
+      "name": "Guardar tags",
+      "desc": "Clasificar con tags"
+    },
+    "getidle": {
+      "name": "Tiempo inactivo",
+      "desc": "Tiempo inactivo sistema"
+    }
   }
 }

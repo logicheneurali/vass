@@ -500,5 +500,99 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "ブラウザで開く",
     "new_articles_count": "{count}件の新しい記事"
+  },
+  "tool_names": {
+    "browse": {
+      "name": "閲覧",
+      "desc": "ウェブページを読む"
+    },
+    "webfetch": {
+      "name": "取得",
+      "desc": "動的サイト用ブラウザ"
+    },
+    "websearch": {
+      "name": "検索",
+      "desc": "DuckDuckGo検索"
+    },
+    "read_file": {
+      "name": "ファイル読取",
+      "desc": "ファイルを読む"
+    },
+    "write_file": {
+      "name": "ファイル書込",
+      "desc": "ファイルを書く"
+    },
+    "interact": {
+      "name": "対話",
+      "desc": "VASScript実行"
+    },
+    "script": {
+      "name": "スクリプト",
+      "desc": ".vass実行"
+    },
+    "addevent": {
+      "name": "イベント追加",
+      "desc": "イベントを追加"
+    },
+    "delevent": {
+      "name": "イベント削除",
+      "desc": "イベントを削除"
+    },
+    "listevents": {
+      "name": "イベント一覧",
+      "desc": "今後のイベント"
+    },
+    "calendar_add": {
+      "name": "GCal: 追加",
+      "desc": "Googleカレンダー"
+    },
+    "calendar_list": {
+      "name": "GCal: 一覧",
+      "desc": "Googleカレンダー"
+    },
+    "calendar_search": {
+      "name": "GCal: 検索",
+      "desc": "Googleカレンダー"
+    },
+    "clipboardget": {
+      "name": "クリップボード読取",
+      "desc": "クリップボード読む"
+    },
+    "clipboardset": {
+      "name": "クリップボード書込",
+      "desc": "クリップボード書く"
+    },
+    "current_time": {
+      "name": "現在時刻",
+      "desc": "現在の日時"
+    },
+    "to_timestamp": {
+      "name": "日付変換",
+      "desc": "日付→タイムスタンプ"
+    },
+    "calculate": {
+      "name": "計算",
+      "desc": "数学計算"
+    },
+    "langcheck": {
+      "name": "言語チェック",
+      "desc": "言語検証"
+    },
+    "readinfo": {
+      "name": "メモリ読取",
+      "desc": "メモリから読む"
+    },
+    "writeinfo": {
+      "name": "メモリ書込",
+      "desc": "メモリに書く"
+    },
+    "savetags": {
+      "name": "タグ保存",
+      "desc": "タグで分類"
+    },
+    "getidle": {
+      "name": "アイドル時間",
+      "desc": "システムアイドル時間"
+    }
   }
 }
