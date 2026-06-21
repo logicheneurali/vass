@@ -82,14 +82,30 @@ _NEGATION_WORDS = {
     "zh": {"不", "没", "无", "别", "非"},
 }
 
+# Words that must NEVER be removed, even if they appear in _STOPWORDS,
+# because they are math operators or quantifiers essential to meaning.
+_MATH_WORDS = {
+    "it": {"più", "meno", "molto", "pochi", "per", "diviso", "volte"},
+    "en": {"more", "most", "few", "less", "over", "by", "times"},
+    "de": {"sehr", "mehr", "mal", "durch"},
+    "fr": {"plus", "moins", "très", "peu", "beaucoup", "chaque", "tout",
+            "par", "fois", "tous", "plusieurs"},
+    "es": {"más", "menos", "muy", "poco", "mucho", "cada", "todo",
+            "por", "veces"},
+    "pt": {"mais", "menos", "muito", "cada", "todo", "todos", "por", "vezes"},
+    "ja": {},
+    "ko": {},
+    "zh": {},
+}
+
 
 def _compress_heuristic(text, lang="en"):
     stopwords = _STOPWORDS.get(lang, _STOPWORDS["en"])
-    negations = _NEGATION_WORDS.get(lang, set())
+    protected = _NEGATION_WORDS.get(lang, set()) | _MATH_WORDS.get(lang, set())
     words = text.split()
     return ' '.join(w for w in words
         if w.lower().strip("',.!?;:()[]\"") not in stopwords
-        or w.lower().strip("',.!?;:()[]\"") in negations)
+        or w.lower().strip("',.!?;:()[]\"") in protected)
 
 
 SAVETAGS_PROMPT = (
