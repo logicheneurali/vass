@@ -502,11 +502,18 @@ class VASScript:
 
         if name == "run":
             cmd = evaluated[0] if evaluated else ""
+            deny_list = [
+                "remove-item", "rm ", "del ", "format-", "clear-", "stop-",
+                "restart-computer", "shutdown", "stop-computer"
+            ]
+            cmd_lower = cmd.lower()
+            for bad in deny_list:
+                if bad in cmd_lower:
+                    return f"error: command blocked by security policy (contains '{bad}')"
+            print(f"[Security] run() executing: {cmd[:200]}")
             try:
-                import base64
-                encoded = base64.b64encode(cmd.encode("utf-16-le")).decode("ascii")
                 result = subprocess.run(
-                    ["powershell", "-NoProfile", "-EncodedCommand", encoded],
+                    ["powershell", "-NoProfile", "-Command", cmd],
                     capture_output=True, text=True, encoding="utf-8", errors="replace",
                     creationflags=subprocess.CREATE_NO_WINDOW,
                     timeout=30

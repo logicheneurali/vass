@@ -374,14 +374,13 @@ class CommandExecutor:
         return dict(zip(var_names, var_values))
 
     def execute_command(self, command):
-        import base64
         import sys
         try:
+            print(f"[Security] execute_command() executing: {command[:200]}")
             if sys.platform == "win32":
-                encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
                 subprocess.run(
                     ["powershell", "-NoProfile", "-WindowStyle", "Hidden",
-                     "-EncodedCommand", encoded],
+                     "-Command", command],
                     creationflags=subprocess.CREATE_NO_WINDOW
                 )
             else:

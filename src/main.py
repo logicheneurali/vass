@@ -201,6 +201,7 @@ class VassApp:
             threading.Thread(target=self._auto_select_model, daemon=True).start()
         self.running = False
         self._trim_lock = threading.Lock()
+        self._state_vars_lock = threading.Lock()
         from script_runner import ScriptRunner
         self.script_runner = ScriptRunner(self)
         self.script_queue = self.script_runner.queue
@@ -312,9 +313,10 @@ class VassApp:
                 self.set_state("paused")
                 self.audio_handler.stop_stream()
             elif current == "paused":
-                self._noise_high_frames = 0
-                self._auto_paused_at = None
-                self._running_noise_floor = None
+                with self._state_vars_lock:
+                    self._noise_high_frames = 0
+                    self._auto_paused_at = None
+                    self._running_noise_floor = None
                 self.audio_handler.start_stream()
                 self.set_state("listening")
             elif current == "playing":
@@ -399,11 +401,14 @@ class VassApp:
                         self.noise_pause = self.settings.get("noise_pause", False)
                         self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
                         self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
-                        if not self.noise_pause and self._auto_paused_at is not None:
+                        with self._state_vars_lock:
+                            auto_paused = self._auto_paused_at
+                        if not self.noise_pause and auto_paused is not None:
                             self.audio_handler.start_stream()
-                            self._noise_high_frames = 0
-                            self._auto_paused_at = None
-                            self._running_noise_floor = None
+                            with self._state_vars_lock:
+                                self._noise_high_frames = 0
+                                self._auto_paused_at = None
+                                self._running_noise_floor = None
                             self.set_state("listening")
                             print("[Noise] Auto-pause disabled via settings, resuming")
                         self.gui_x = self.settings["gui_x"]
@@ -489,19 +494,20 @@ class VassApp:
                     time.sleep(0.05)
                     continue
                 frame = self.audio_handler.get_frame()
-                if frame is None:
-                    self._silent_frames += 1
-                    if self._silent_frames > 300 and not self._auto_paused_at:
-                        with self.state_lock:
-                            cs = self.state
-                        if cs == "listening":
-                            print("[Audio] Stream appears dead, restarting...")
-                            self.audio_handler.stop_stream()
-                            time.sleep(0.1)
-                            self.audio_handler.start_stream()
-                            self._silent_frames = 0
-                else:
-                    self._silent_frames = 0
+                with self._state_vars_lock:
+                    if frame is None:
+                        self._silent_frames += 1
+                        if self._silent_frames > 300 and not self._auto_paused_at:
+                            with self.state_lock:
+                                cs = self.state
+                            if cs == "listening":
+                                print("[Audio] Stream appears dead, restarting...")
+                                self.audio_handler.stop_stream()
+                                time.sleep(0.1)
+                                self.audio_handler.start_stream()
+                                self._silent_frames = 0
+                    else:
+                        self._silent_frames = 0
                 if self._auto_paused_at is not None:
                     elapsed = time.time() - self._auto_paused_at
                     if elapsed >= self.noise_pause_duration:
@@ -520,19 +526,22 @@ class VassApp:
                             print(f"[Noise] Current noise floor: {current_nf:.6f} (threshold: {self.noise_pause_threshold})")
                             if current_nf < self.noise_pause_threshold:
                                 print(f"[Noise] Auto-resuming: noise floor dropped below threshold")
-                                self._noise_high_frames = 0
-                                self._auto_paused_at = None
-                                self._running_noise_floor = None
+                                with self._state_vars_lock:
+                                    self._noise_high_frames = 0
+                                    self._auto_paused_at = None
+                                    self._running_noise_floor = None
                                 self.set_state("listening")
                                 continue
                             else:
                                 print(f"[Noise] Still noisy, staying paused for another {self.noise_pause_duration}s")
                                 self.audio_handler.stop_stream()
-                                self._auto_paused_at = time.time()
+                                with self._state_vars_lock:
+                                    self._auto_paused_at = time.time()
                         else:
                             print(f"[Noise] Check: no audio samples captured, staying paused")
                             self.audio_handler.stop_stream()
-                            self._auto_paused_at = time.time()
+                            with self._state_vars_lock:
+                                self._auto_paused_at = time.time()
                 if frame is not None:
                     with self.state_lock:
                         current_state = self.state
@@ -555,9 +564,10 @@ class VassApp:
                                 f.write(f"detect_wake_word error: {ex}\n")
                             wake = False
                         if wake and current_state == "listening":
-                            self._noise_high_frames = 0
-                            self._nf_print_counter = 0
-                            self._running_noise_floor = None
+                            with self._state_vars_lock:
+                                self._noise_high_frames = 0
+                                self._nf_print_counter = 0
+                                self._running_noise_floor = None
                             print("Wake word detected! Switching to recording mode...")
                             try:
                                 beep(self.settings.get("volume", 0.95))
@@ -571,29 +581,30 @@ class VassApp:
                             continue
 
                         if not wake and current_state == "listening":
-                            nf = float(np.sqrt(np.mean(frame**2)))
-                            if self._running_noise_floor is None:
-                                self._running_noise_floor = nf
-                            else:
-                                self._running_noise_floor = 0.99 * self._running_noise_floor + 0.01 * nf
-                            nf = self._running_noise_floor
-                            self._nf_print_counter += 1
-                            if self.noise_pause and nf > self.noise_pause_threshold:
-                                self._noise_high_frames += 1
-                                frames_per_sec = 50
-                                max_frames = self.noise_pause_duration * frames_per_sec
-                                if self._noise_high_frames >= max_frames:
-                                    print(f"[Noise] Auto-pausing: noise floor {nf:.4f} > {self.noise_pause_threshold} for {self.noise_pause_duration}s")
-                                    self.audio_handler.stop_stream()
-                                    self._auto_paused_at = time.time()
-                                    self._noise_high_frames = 0
-                                    self.set_state("paused")
-                            else:
-                                self._noise_high_frames = max(0, self._noise_high_frames - 1)
-                            if self._nf_print_counter >= 250:
-                                self._nf_print_counter = 0
-                                if nf > self.noise_pause_threshold and self.debug_enabled:
-                                    print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
+                            with self._state_vars_lock:
+                                nf = float(np.sqrt(np.mean(frame**2)))
+                                if self._running_noise_floor is None:
+                                    self._running_noise_floor = nf
+                                else:
+                                    self._running_noise_floor = 0.99 * self._running_noise_floor + 0.01 * nf
+                                nf = self._running_noise_floor
+                                self._nf_print_counter += 1
+                                if self.noise_pause and nf > self.noise_pause_threshold:
+                                    self._noise_high_frames += 1
+                                    frames_per_sec = 50
+                                    max_frames = self.noise_pause_duration * frames_per_sec
+                                    if self._noise_high_frames >= max_frames:
+                                        print(f"[Noise] Auto-pausing: noise floor {nf:.4f} > {self.noise_pause_threshold} for {self.noise_pause_duration}s")
+                                        self.audio_handler.stop_stream()
+                                        self._auto_paused_at = time.time()
+                                        self._noise_high_frames = 0
+                                        self.set_state("paused")
+                                else:
+                                    self._noise_high_frames = max(0, self._noise_high_frames - 1)
+                                if self._nf_print_counter >= 250:
+                                    self._nf_print_counter = 0
+                                    if nf > self.noise_pause_threshold and self.debug_enabled:
+                                        print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
 
                     self.audio_handler.process_recording(frame)
                     
@@ -1185,13 +1196,14 @@ class VassApp:
             mem_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory")
             os.makedirs(mem_dir, exist_ok=True)
             try:
-                if self._memory_cache is None:
-                    try:
-                        with open(mem_path, encoding="utf-8") as f:
-                            self._memory_cache = json.load(f)
-                    except Exception:
-                        self._memory_cache = {}
-                existing = self._memory_cache
+                with self._state_vars_lock:
+                    if self._memory_cache is None:
+                        try:
+                            with open(mem_path, encoding="utf-8") as f:
+                                self._memory_cache = json.load(f)
+                        except Exception:
+                            self._memory_cache = {}
+                    existing = self._memory_cache
                 saved_ids = []
                 for entry in self.conversation_history[-2:]:
                     vid = str(int(time.time() * 1000))
@@ -1205,7 +1217,8 @@ class VassApp:
                 mem = {"history": merged_ids}
                 if "summary_id" in existing:
                     mem["summary_id"] = existing["summary_id"]
-                self._memory_cache = mem
+                with self._state_vars_lock:
+                    self._memory_cache = mem
                 with open(mem_path, "w", encoding="utf-8") as f:
                     json.dump(mem, f, ensure_ascii=False, indent=2)
                 # Light cleanup: move unreferenced files to archive every N saves

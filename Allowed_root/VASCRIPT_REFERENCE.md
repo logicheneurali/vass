@@ -36,6 +36,15 @@ say($variable, 0.8)       # slower
 ```
 
 
+### **`say_async(text)`**
+Enqueues text-to-speech without blocking. Unlike `say()`, returns immediately — TTS continues in the background. Requires authorization.
+
+```
+say_async("Elaborazione in corso...")
+run("long_task.exe")
+```
+
+
 ### **`run(command)`**
 Executes a PowerShell command. Returns stdout and stderr as text. Requires authorization.
 
@@ -447,6 +456,15 @@ Numeric comparison: returns if_true branch if a <= b, otherwise if_false.
 iflessequal($tentativi, 3, say("Ancora possibile"), say("Game over"))
 ```
 
+
+### **`ifequals(a, b, if_true, if_false?)`**
+String comparison: returns if_true branch if a == b, otherwise if_false.
+
+```
+ifequals($status, "ok", say("Successo"), say("Fallito"))
+ifequals($last, "acceso", exit(), say("Stato cambiato"))
+```
+
 ## Utility Functions
 
 
@@ -507,6 +525,31 @@ Returns the result of dividing a by b. Returns 0 if b is 0.
 ```
 $half = div($total, 2)
 $seconds = sub($timestamp, div($timestamp, 1000))  # milliseconds to seconds
+```
+
+### **`print(text)`**
+Prints text to the VASS console/log. Useful for debugging scripts. No authorization required.
+
+```
+print("Debug: variabile X vale " . $x)
+```
+
+
+### **`readfile(path)`**
+Reads a file from the Allowed_root directory. Path traversal is blocked for security. Returns the file content as text.
+
+```
+$content = readfile("events.json")
+$data = readfile("memory/config.txt")
+```
+
+
+### **`rss_fetch(feed_name?)`**
+Fetches RSS feed items. If feed_name is omitted, fetches all feeds. Returns JSON array of items.
+
+```
+$items = rss_fetch()
+$tech = rss_fetch("Tech News")
 ```
 
 ## Built-in Variables

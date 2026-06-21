@@ -336,6 +336,7 @@ def create_server(config: ServerConfig) -> FastMCP:
 
         @mcp.tool()
         async def getidle() -> str:
+            """Get system idle time in seconds since last user activity."""
             return await _tool("getidle", "", _getidle_impl(), config)
 
     def _gcal_enabled(cfg):
