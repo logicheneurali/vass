@@ -114,12 +114,13 @@ def _compress_heuristic(text, lang="en"):
 
 SAVETAGS_PROMPT = (
     "IMPORTANT: After every response, you MUST call savetags() to classify "
-    "the user's message with tags from this list ONLY, select only the two most relevant accordingly to the message: "
+    "the user's message with tags from this list ONLY: "
     "personal_data, health, finance, family, pets, contacts, "
     "preferences, personal_interests, purchases, orders, bills, invoices, "
     "work, education, favorite_music, food, home, "
     "personal_means_of_transport, deliveries, travel, tech, events, sales, generic. "
     "Pass them as comma-separated string: savetags('food,health')\n\n"
+    "CRITICAL : select ONLY the two most relevant accordingly to the message"
 )
 
 

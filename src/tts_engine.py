@@ -48,6 +48,7 @@ class TtsEngine:
         self._wav_to_clean = ""
         self._tts_paused = False
         self._tts_pause_pos = 0
+        self._gen_seq = 0
 
         self._audio_queue = deque()
         self._audio_lock = threading.Lock()
@@ -78,8 +79,17 @@ class TtsEngine:
             if text is None:
                 time.sleep(0.1)
                 continue
+            gen = self._gen_seq
             print(f"[TTS] Generating audio: {text[:60]}")
             result = self._generate_kokoro_audio(text, speed)
+            if gen != self._gen_seq:
+                print(f"[TTS] Discarded stale generation (gen {gen} != {self._gen_seq})")
+                if on_done:
+                    try:
+                        on_done()
+                    except Exception as e:
+                        print(f"[TTS] stale gen on_done error: {e}")
+                continue
             if result is None:
                 if on_done:
                     with self._audio_lock:
@@ -417,6 +427,7 @@ class TtsEngine:
 
     def stop(self):
         self._tts_paused = True
+        self._gen_seq += 1
         with self._speak_lock:
             self._speak_queue.clear()
         with self._audio_lock:

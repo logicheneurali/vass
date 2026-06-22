@@ -128,7 +128,8 @@
       "word_learning_enabled": "Apprentissage adaptatif (EXPÉRIMENTAL)",
       "debug_enabled": "Debug actif",
       "debug_log_max_kb": "Max KB log",
-      "compress_context": "Compression du contexte (EXPERIMENTAL)"
+      "compress_context": "Compression du contexte (EXPERIMENTAL)",
+      "auto_context_selection": "Sélection automatique du contexte"
     },
     "field_descriptions": {
       "x": "Position X à l'écran",
@@ -184,7 +185,8 @@
       "word_learning_enabled": "Apprend quels mots produisent des commandes réussies et favorise leur reconnaissance. Données sauvegardées dans word_weights.json.",
       "debug_enabled": "Active la journalisation dans log/debug.log et les images de debug OCR",
       "debug_log_max_kb": "Taille max du fichier debug en KB (défaut 1024)",
-      "compress_context": "Supprime les articles, prepositions et conjonctions du texte envoye a l'IA pour reduire le nombre de tokens."
+      "compress_context": "Supprime les articles, prepositions et conjonctions du texte envoye a l'IA pour reduire le nombre de tokens.",
+      "auto_context_selection": "Ignore l'injection de mémoire lorsque la requête n'a pas besoin de contexte (ex. calculs, heure, traductions)."
     },
     "section_labels": {
       "gui": "Fenêtre",
@@ -724,6 +726,10 @@
     "listevents": {
       "name": "Lister",
       "desc": "Liste les evenements"
+    },
+    "nextevent": {
+      "name": "Prochain événement",
+      "desc": "Renvoie uniquement le prochain événement"
     },
     "calendar_add": {
       "name": "GCal: ajouter",

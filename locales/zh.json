@@ -128,7 +128,8 @@
       "word_learning_enabled": "自适应学习（实验性）",
       "debug_enabled": "调试启用",
       "debug_log_max_kb": "最大日志KB",
-      "compress_context": "上下文压缩（实验性）"
+      "compress_context": "上下文压缩（实验性）",
+      "auto_context_selection": "自动上下文选择"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
@@ -184,7 +185,8 @@
       "word_learning_enabled": "学习哪些词语能产生成功命令，并优先识别它们。数据保存在word_weights.json中。",
       "debug_enabled": "启用到log/debug.log的文件日志和OCR调试图像",
       "debug_log_max_kb": "调试日志文件最大大小KB（默认1024）",
-      "compress_context": "从发送给AI的文本中移除冠词、介词和连词以减少token数量。"
+      "compress_context": "从发送给AI的文本中移除冠词、介词和连词以减少token数量。",
+      "auto_context_selection": "当请求不需要上下文时（如计算、时间、翻译），跳过内存注入。"
     },
     "section_labels": {
       "gui": "窗口",
@@ -725,6 +727,10 @@
     "listevents": {
       "name": "列出事件",
       "desc": "列出即将发生的事件"
+    },
+    "nextevent": {
+      "name": "下一个事件",
+      "desc": "仅返回下一个事件"
     },
     "calendar_add": {
       "name": "GCal: 添加",

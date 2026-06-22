@@ -1430,7 +1430,7 @@ class VassGUI(QMainWindow):
         "read_file": "#f1c40f", "write_file": "#e67e22",
         "interact": "#e74c3c", "script": "#c0392b",
         "calendar_add": "#27ae60", "calendar_list": "#27ae60", "calendar_search": "#27ae60",
-        "addevent": "#e67e22", "delevent": "#e67e22", "listevents": "#e67e22",
+        "addevent": "#e67e22", "delevent": "#e67e22", "listevents": "#e67e22", "nextevent": "#e67e22",
         "clipboardget": "#1abc9c", "clipboardset": "#1abc9c",
         "current_time": "#2ecc71", "to_timestamp": "#2ecc71",
         "calculate": "#e91e63", "langcheck": "#673ab7",

@@ -202,7 +202,15 @@ async def _list_events(from_date, allowed_root):
             upcoming.append(ev)
 
     upcoming.sort(key=lambda ev: f"{ev.get('date')} {ev.get('time')}")
-    return json.dumps(upcoming, ensure_ascii=False, indent=2)
+    clean = []
+    for ev in upcoming:
+        clean.append({
+            "date": ev.get("date", ""),
+            "time": ev.get("time", ""),
+            "duration": str(ev.get("duration", "0")),
+            "description": ev.get("description", ""),
+        })
+    return json.dumps(clean, ensure_ascii=False, indent=2)
 
 
 def create_server(config: ServerConfig) -> FastMCP:
@@ -264,6 +272,17 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def listevents(from_date: str = "") -> str:
         """List upcoming events from a date onward (YYYY-MM-DD). If no date given, lists from today. Returns JSON array sorted by date/time."""
         return await _tool("listevents", f"from={from_date or 'today'}", _list_events(from_date, config.allowed_root), config)
+
+    @mcp.tool()
+    async def nextevent(from_date: str = "") -> str:
+        """Get only the NEXT upcoming event (single result, earliest date/time). Always use this tool when the user asks for the next event, upcoming event, or what's coming up. Returns just one event, no list. If no events found, says 'No upcoming events found.'"""
+        import json
+        result = await _list_events(from_date, config.allowed_root)
+        evts = json.loads(result)
+        if not evts:
+            return "No upcoming events found."
+        e = evts[0]
+        return f"NEXT: {e['description']} on {e['date']} at {e['time']} ({e['duration']} min)"
 
     @mcp.tool()
     async def script(script_name: str) -> str:

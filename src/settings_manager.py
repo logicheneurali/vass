@@ -26,6 +26,7 @@ def load_settings(settings_file):
         result["ai_model"] = config.get("ai", "model", fallback="")
         result["system_message"] = config.get("ai", "system_message", fallback="")
         result["allow_ai_scripts"] = config.get("ai", "allow_ai_scripts", fallback="false").lower() == "true"
+        result["auto_context_selection"] = config.get("ai", "auto_context_selection", fallback="false").lower() == "true"
         result["context_length"] = config.getint("ai", "context_length", fallback=0)
         result["overflow_strategy"] = config.get("ai", "overflow_strategy", fallback="truncate")
         result["compress_context"] = config.get("ai", "compress_context", fallback="false")
@@ -95,6 +96,7 @@ def load_settings(settings_file):
         result["ai_model"] = ""
         result["system_message"] = "You are a helpful and concise voice assistant."
         result["allow_ai_scripts"] = False
+        result["auto_context_selection"] = False
         result["context_length"] = 0
         result["overflow_strategy"] = "truncate"
         result["gui_x"] = 1541
@@ -162,6 +164,7 @@ def load_settings(settings_file):
             "blacklist": "",
             "memory_tokens": "2000",
             "allow_ai_scripts": "false",
+            "auto_context_selection": "false",
             "context_length": "0",
             "compress_context": "false",
             "overflow_strategy": "truncate"

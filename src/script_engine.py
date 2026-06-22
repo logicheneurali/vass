@@ -322,6 +322,12 @@ class VASScript:
             prompt = evaluated[0] if evaluated else ""
             use_memory = len(evaluated) > 1 and evaluated[1].strip().lower() in ("true", "1", "yes", "memory")
 
+            if not use_memory and getattr(self.app, 'auto_context_selection', False):
+                import tool_groups
+                use_memory = tool_groups.needs_memory(prompt, self.app.language)
+                if getattr(self.app, 'debug_enabled', False):
+                    print(f"[DEBUG] needs_memory({prompt[:80]}) = {use_memory}  (lang={self.app.language})")
+
             system_content = ""
             if use_memory:
                 now = time.strftime("%Y-%m-%d %H:%M:%S")

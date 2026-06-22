@@ -9,6 +9,9 @@ Shared by VASScript ai() and main AI fallback — zero redundancy.
 import os
 import json
 
+# Groups whose requests are always self-contained (no memory needed)
+STANDALONE_GROUPS = {"compute", "time", "lang"}
+
 # ── Group definitions ─────────────────────────────────────────────
 # Map of group name → list of MCP tool names belonging to that group.
 # interact, script, execute are excluded — they require allow_ai_scripts.
@@ -16,7 +19,7 @@ TOOL_GROUPS = {
     "web":       ["browse", "webfetch", "websearch"],
     "calendar":  ["calendar_add", "calendar_list", "calendar_search"],
     "files":     ["read_file", "write_file", "readinfo", "writeinfo"],
-    "events":    ["addevent", "delevent", "listevents"],
+    "events":    ["addevent", "delevent", "listevents", "nextevent"],
     "clipboard": ["clipboardget", "clipboardset"],
     "time":      ["current_time", "to_timestamp"],
     "compute":   ["calculate"],
@@ -68,10 +71,60 @@ def _default_keywords():
                        "riposo", "stop", "bloccato", "assente", "sessione",
                        "utente", "lavoro", "schermo", "computer", "stato"},
         "tags":      {"tag", "etichetta", "categoria", "classifica",
-                       "memoria", "argomento", "tipo", "gruppo", "genere",
-                       "chiave", "catalogare", "organizzare", "ricordare",
-                       "contesto", "tema"},
+                        "memoria", "argomento", "tipo", "gruppo", "genere",
+                        "chiave", "catalogare", "organizzare", "ricordare",
+                        "contesto", "tema"},
     }
+
+
+# ── Memory classification ────────────────────────────────────────
+# Keywords for anaphora/context detection per language.
+# These are NOT tool groups — they only live here, not in locale JSONs.
+_ANAPHORA_KEYWORDS = {
+    "it": {"lui","lei","loro","ne","stesso","stessa","stessi","stesse",
+           "tale","tali","suddetto","menzionato","continuare","prosegui",
+           "riprendi","ripeti","precedente","scorso","altra","altro"},
+    "en": {"he","him","she","her","they","them","continue","proceed",
+           "repeat","resume","previous","earlier","above","aforementioned",
+           "mentioned","another"},
+    "de": {"er","ihn","ihm","sie","ihr","fortsetzen","weiter","wiederholen",
+           "vorherige","vorher","erwähnt","besagt","obig","letzte","gestrig"},
+    "fr": {"il","lui","elle","ils","elles","continuer","répéter","poursuivre",
+           "reprendre","précédent","mentionné","susdit","autre","hier"},
+    "es": {"él","ella","ellos","ellas","continuar","repetir","proseguir",
+           "retomar","anterior","mencionado","dicho","ayer","otro","otra"},
+    "pt": {"ele","ela","eles","elas","continuar","repetir","prosseguir",
+           "retomar","anterior","mencionado","dito","ontem","outro","outra"},
+    "ja": {"彼","彼女","続ける","繰り返す","最初から","もう一度","前の","昨日",
+           "前述","上記"},
+    "ko": {"그","그녀","계속하다","반복하다","다시","이전","어제","앞서",
+           "위","앞의"},
+    "zh": {"他","她","继续","重复","再来","之前的","昨天","上述","前面"},
+}
+
+
+def needs_memory(prompt, lang="it"):
+    """Return True if the prompt likely needs conversation history.
+
+    Returns False only when the prompt is certifiably standalone
+    (matches compute/time/lang tool keywords), meaning it's safe to
+    skip memory injection.  Defaults to True (conservative).
+    """
+    keywords = load_keywords(lang)
+    prompt_lower = prompt.lower()
+
+    # 1. Standalone group match → NO memory needed
+    for group in STANDALONE_GROUPS:
+        if any(w in prompt_lower for w in keywords.get(group, [])):
+            return False
+
+    # 2. Anaphora/context keywords → SI memory needed
+    ctx = _ANAPHORA_KEYWORDS.get(lang, _ANAPHORA_KEYWORDS["en"])
+    if any(w in prompt_lower for w in ctx):
+        return True
+
+    # 3. Default: conservative
+    return True
 
 
 def load_keywords(lang):

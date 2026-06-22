@@ -128,7 +128,8 @@
       "word_learning_enabled": "Adaptives Lernen (EXPERIMENTELL)",
       "debug_enabled": "Debug aktiv",
       "debug_log_max_kb": "Max Log KB",
-      "compress_context": "Kontextkomprimierung (EXPERIMENTELL)"
+      "compress_context": "Kontextkomprimierung (EXPERIMENTELL)",
+      "auto_context_selection": "Automatische Kontextauswahl"
     },
     "field_descriptions": {
       "x": "Bildschirm X-Position",
@@ -184,7 +185,8 @@
       "word_learning_enabled": "Lernt, welche Wörter erfolgreiche Befehle erzeugen und bevorzugt deren Erkennung. Daten werden in word_weights.json gespeichert.",
       "debug_enabled": "Aktiviert Datei-Logging in log/debug.log und OCR-Debug-Bilder",
       "debug_log_max_kb": "Maximale Debug-Log-Dateigröße in KB (Standard 1024)",
-      "compress_context": "Entfernt Artikel, Prapositionen und Konjunktionen aus dem an die KI gesendeten Text, um die Token-Anzahl zu reduzieren."
+      "compress_context": "Entfernt Artikel, Prapositionen und Konjunktionen aus dem an die KI gesendeten Text, um die Token-Anzahl zu reduzieren.",
+      "auto_context_selection": "Überspringt die Speicherinjektion, wenn die Anfrage keinen Kontext benötigt (z.B. Berechnungen, Uhrzeit, Übersetzungen)."
     },
     "section_labels": {
       "gui": "Fenster",
@@ -723,6 +725,10 @@
     "listevents": {
       "name": "Ereignisse",
       "desc": "Listet Ereignisse"
+    },
+    "nextevent": {
+      "name": "Nächstes Ereignis",
+      "desc": "Gibt nur das nächste Ereignis zurück"
     },
     "calendar_add": {
       "name": "GCal: hinzufugen",

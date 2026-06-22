@@ -15,6 +15,7 @@ env/
 .vscode/
 .idea/
 *.geany
+vass.code-workspace
 
 # VASS - backups
 bk/

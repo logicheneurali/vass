@@ -128,6 +128,7 @@ class VassApp:
         self.debug_enabled = self.settings.get("debug_enabled", False)
         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
         self.compress_context = self.settings.get("compress_context", "false").lower() == "true"
+        self.auto_context_selection = self.settings.get("auto_context_selection", False)
         self.waveform_enabled = False
         self.gui_x = self.settings["gui_x"]
         self.gui_y = self.settings["gui_y"]
@@ -384,6 +385,7 @@ class VassApp:
                             threading.Thread(target=self._detect_context_length, daemon=True).start()
                         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
                         self.compress_context = self.settings.get("compress_context", "false").lower() == "true"
+                        self.auto_context_selection = self.settings.get("auto_context_selection", False)
                         self.debug_enabled = self.settings.get("debug_enabled", False)
                         self.voice_recognition.debug_enabled = self.debug_enabled
                         if self.ai_url != old_url:
@@ -1085,7 +1087,14 @@ class VassApp:
             tools = tool_groups.resolve_tool_names(groups, tools,
                                                     getattr(self, 'debug_enabled', False))
 
-            memory_content = self._build_memory_content(mcp, tools)
+            if self.auto_context_selection and not tool_groups.needs_memory(prompt, self.language):
+                memory_content = ""
+                if self.debug_enabled:
+                    print(f"[DEBUG] needs_memory({prompt[:80]}) = False  (skip memory)")
+            else:
+                memory_content = self._build_memory_content(mcp, tools)
+                if self.debug_enabled:
+                    print(f"[DEBUG] needs_memory({prompt[:80]}) = True  (include memory)")
 
             tools_block = (MCP_PROMPT + VASSCRIPT_TOOLS_PROMPT + vas_ref) if self.allow_ai_scripts else MCP_PROMPT
             notes_block = "\n".join(self.context_notes)
@@ -1198,7 +1207,7 @@ class VassApp:
                         prev_cps = CPS
                         prev_mtw = MIN_TTS_WORDS
                         CPS = ( prev_cps + ( len(full_content) / elapsed ) ) / 2
-                        MIN_TTS_WORDS = max(5, min(100, int(CPS * MIN_SECS_LENGTH * 1.5 )))
+                        MIN_TTS_WORDS = max(5, min(100, int(CPS * MIN_SECS_LENGTH * 2 )))
                         if prev_cps != CPS or prev_mtw != MIN_TTS_WORDS:
                             print(f"[Stream] CPS={CPS:.1f} ({prev_cps:.1f}) -> MIN_TTS_WORDS={MIN_TTS_WORDS} ({prev_mtw}), tot_chars={len(full_content)}, elapsed={elapsed:.1f}s")
 
@@ -1368,51 +1377,49 @@ class VassApp:
     def _build_memory_content(self, mcp=None, tools=None):
         if self.memory_mode == "none":
             return ""
-        if mcp is None or tools is None:
-            from utils import init_mcp
-            mcp, tools = init_mcp(self.mcp_server_url, timeout=10)
-        if not mcp or not tools:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        mem_path = os.path.join(root, "Allowed_root", "memory.json")
+        if not os.path.exists(mem_path):
             return ""
-        for t_def in tools:
-            if t_def["function"]["name"] == "read_file":
+        try:
+            with open(mem_path, encoding="utf-8") as f:
+                mem_data = json.load(f)
+        except Exception:
+            return ""
+        parts = []
+        if self.memory_mode == "full":
+            summary_text = "No Info"
+            summary_id = mem_data.get("summary_id", "")
+            if summary_id:
+                sf_path = os.path.join(root, "Allowed_root", "memory", f"{summary_id}.json")
+                if os.path.exists(sf_path):
+                    try:
+                        with open(sf_path, encoding="utf-8") as sf:
+                            summary_text = json.load(sf).get("info", "")
+                    except Exception:
+                        pass
+                if summary_text and summary_text != "No Info":
+                    cached = self._summary_cache.get(summary_id)
+                    if cached:
+                        summary_text = cached
+                    elif self._count_tokens(summary_text) > 500:
+                        summary_text = self._compress_summary(summary_text, summary_id, mem_data)
+                        if summary_text:
+                            self._summary_cache[summary_id] = summary_text
+            parts.append(f"summary : {summary_text}")
+        for vid in mem_data.get("history", []):
+            hf_path = os.path.join(root, "Allowed_root", "memory", f"{vid}.json")
+            if os.path.exists(hf_path):
                 try:
-                    result = mcp.call_tool("read_file", {"path": "memory.json"})
-                    text = result.get("content", [{}])[0].get("text", "")
-                    mem_data = json.loads(text) if text else {}
-                    parts = []
-                    if self.memory_mode == "full":
-                        summary_text = "No Info"
-                        summary_id = mem_data.get("summary_id", "")
-                        if summary_id:
-                            sf_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory", f"{summary_id}.json")
-                            if os.path.exists(sf_path):
-                                with open(sf_path, encoding="utf-8") as sf:
-                                    summary_text = json.load(sf).get("info", "")
-                            if summary_text and summary_text != "No Info":
-                                cached = self._summary_cache.get(summary_id)
-                                if cached:
-                                    summary_text = cached
-                                elif self._count_tokens(summary_text) > 500:
-                                    summary_text = self._compress_summary(summary_text, summary_id, mem_data)
-                                    if summary_text:
-                                        self._summary_cache[summary_id] = summary_text
-                        parts.append(f"summary : {summary_text}")
-                    for vid in mem_data.get("history", []):
-                        hf_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory", f"{vid}.json")
-                        if os.path.exists(hf_path):
-                            try:
-                                with open(hf_path, encoding="utf-8") as hf:
-                                    entry = json.load(hf).get("info", "")
-                                entry_data = json.loads(entry)
-                                role = "user" if entry_data.get("role") == "user" else "assistant"
-                                parts.append(f"{role}: {entry_data['content']}")
-                            except Exception:
-                                pass
-                    if parts:
-                        return "\n\nPrevious conversations:\n" + "\n".join(parts)
+                    with open(hf_path, encoding="utf-8") as hf:
+                        entry = json.load(hf).get("info", "")
+                    entry_data = json.loads(entry)
+                    role = "user" if entry_data.get("role") == "user" else "assistant"
+                    parts.append(f"{role}: {entry_data['content']}")
                 except Exception:
                     pass
-                break
+        if parts:
+            return "\n\nPrevious conversations:\n" + "\n".join(parts)
         return ""
 
     def _compress_summary(self, summary_text, summary_id, mem_data):

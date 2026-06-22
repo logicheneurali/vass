@@ -159,7 +159,8 @@
       "word_learning_enabled": "Apprendimento adattivo (SPERIMENTALE)",
       "debug_enabled": "Debug attivo",
       "debug_log_max_kb": "Max KB log",
-      "compress_context": "Compressione contesto (SPERIMENTALE)"
+      "compress_context": "Compressione contesto (SPERIMENTALE)",
+      "auto_context_selection": "Selezione automatica contesto"
     },
     "field_descriptions": {
       "x": "Posizione X sullo schermo",
@@ -215,7 +216,8 @@
       "word_learning_enabled": "Impara quali parole producono comandi riusciti e favorisce il loro riconoscimento. I dati vengono salvati in word_weights.json.",
       "debug_enabled": "Attiva il logging su file log/debug.log e le immagini di debug OCR",
       "debug_log_max_kb": "Dimensione massima del file di debug in KB (default 1024)",
-      "compress_context": "Rimuove articoli, preposizioni e congiunzioni dal testo inviato all'AI per ridurre il numero di token."
+      "compress_context": "Rimuove articoli, preposizioni e congiunzioni dal testo inviato all'AI per ridurre il numero di token.",
+      "auto_context_selection": "Salta l'iniezione della memoria quando la richiesta non necessita del contesto (es. calcoli, ora, traduzioni)."
     },
     "section_labels": {
       "gui": "Finestra",
@@ -728,6 +730,10 @@
     "listevents": {
       "name": "Elenca eventi",
       "desc": "Elenca eventi futuri"
+    },
+    "nextevent": {
+      "name": "Prossimo evento",
+      "desc": "Restituisce solo il prossimo evento"
     },
     "calendar_add": {
       "name": "GCal: aggiungi",
