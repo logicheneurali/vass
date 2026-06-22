@@ -37,6 +37,7 @@ def load_settings(settings_file):
         result["gui_height"] = config.getint("gui", "height", fallback=32)
         result["gui_font_family"] = config.get("gui", "font_family", fallback="Segoe UI")
         result["gui_font_size"] = config.getint("gui", "font_size", fallback=12)
+        result["paused_opacity"] = config.getfloat("gui", "paused_opacity", fallback=0.5)
         result["command_similarity"] = config.getfloat("commands", "similarity", fallback=0.6)
         result["word_learning_enabled"] = config.get("commands", "word_learning_enabled", fallback="false").lower() == "true"
         result["volume"] = config.getfloat("tts", "volume", fallback=0.95)
@@ -105,6 +106,7 @@ def load_settings(settings_file):
         result["gui_height"] = 32
         result["gui_font_family"] = "Segoe UI"
         result["gui_font_size"] = 12
+        result["paused_opacity"] = 0.5
         result["command_similarity"] = 0.6
         result["word_learning_enabled"] = False
         result["volume"] = 0.95
@@ -144,7 +146,8 @@ def load_settings(settings_file):
         config["locale"] = {"language": lang}
         config["gui"] = {
             "x": "1541", "y": "52", "width": "220", "height": "32",
-            "font_family": "Segoe UI", "font_size": "12", "lastmode": "c"
+            "font_family": "Segoe UI", "font_size": "12", "lastmode": "c",
+            "paused_opacity": "0.5"
         }
         config["wakeword"] = {"sensitivity": "0.005", "wakeword": "vass"}
         config["commands"] = {"similarity": "0.6", "word_learning_enabled": "false"}

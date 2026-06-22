@@ -751,7 +751,7 @@ class VassGUI(QMainWindow):
         else:
             self._pulse_anim.stop()
             if state == "paused":
-                target = 0.5
+                target = self.app.settings.get("paused_opacity", 0.5) if self.app else 0.5
             else:
                 target = 1.0
             try:

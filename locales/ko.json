@@ -129,13 +129,15 @@
       "debug_enabled": "디버그 활성화",
       "debug_log_max_kb": "최대 로그 KB",
       "compress_context": "컨텍스트 압축 (실험적)",
-      "auto_context_selection": "컨텍스트 자동 선택"
+      "auto_context_selection": "컨텍스트 자동 선택",
+      "paused_opacity": "일시정지 불투명도"
     },
     "field_descriptions": {
       "x": "화면 X 위치",
       "y": "화면 Y 위치",
       "width": "너비 (픽셀, 200-400)",
       "height": "높이 (픽셀, 32-64)",
+      "paused_opacity": "0.10-1.00, 일시정지 시 창 불투명도",
       "font_family": "글꼴 이름 (예: Segoe UI)",
       "font_size": "텍스트 크기 (픽셀)",
       "wakeword": "웨이크워드 (예: vass, computer)",

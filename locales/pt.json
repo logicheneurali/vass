@@ -129,13 +129,15 @@
       "debug_enabled": "Debug ativo",
       "debug_log_max_kb": "Max KB log",
       "compress_context": "Compressao de contexto (EXPERIMENTAL)",
-      "auto_context_selection": "Seleção automática de contexto"
+      "auto_context_selection": "Seleção automática de contexto",
+      "paused_opacity": "Opacidade pausa"
     },
     "field_descriptions": {
       "x": "Posição X na tela",
       "y": "Posição Y na tela",
       "width": "Largura em pixels (200-400)",
       "height": "Altura em pixels (32-64)",
+      "paused_opacity": "0.10-1.00, opacidade da janela ao pausar",
       "font_family": "Nome da fonte (ex. Segoe UI)",
       "font_size": "Tamanho do texto em pixels",
       "wakeword": "Palavra de ativação (ex. vass, computador)",

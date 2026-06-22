@@ -129,13 +129,15 @@
       "debug_enabled": "调试启用",
       "debug_log_max_kb": "最大日志KB",
       "compress_context": "上下文压缩（实验性）",
-      "auto_context_selection": "自动上下文选择"
+      "auto_context_selection": "自动上下文选择",
+      "paused_opacity": "暂停不透明度"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
       "y": "屏幕 Y 位置",
       "width": "宽度（像素，200-400）",
       "height": "高度（像素，32-64）",
+      "paused_opacity": "0.10-1.00, 暂停时窗口不透明度",
       "font_family": "字体名称（如 Segoe UI）",
       "font_size": "文字大小（像素）",
       "wakeword": "唤醒词（如 vass, computer）",

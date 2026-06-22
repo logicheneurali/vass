@@ -129,13 +129,15 @@
       "debug_enabled": "Debug aktiv",
       "debug_log_max_kb": "Max Log KB",
       "compress_context": "Kontextkomprimierung (EXPERIMENTELL)",
-      "auto_context_selection": "Automatische Kontextauswahl"
+      "auto_context_selection": "Automatische Kontextauswahl",
+      "paused_opacity": "Pause-Deckkraft"
     },
     "field_descriptions": {
       "x": "Bildschirm X-Position",
       "y": "Bildschirm Y-Position",
       "width": "Breite in Pixel (200-400)",
       "height": "Höhe in Pixel (32-64)",
+      "paused_opacity": "0.10-1.00, Fenster-Deckkraft bei Pause",
       "font_family": "Schriftart (z.B. Segoe UI)",
       "font_size": "Textgröße in Pixel",
       "language": "Sprache der Benutzeroberfläche und Sprachbefehle",

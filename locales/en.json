@@ -129,13 +129,15 @@
       "debug_enabled": "Debug enabled",
       "debug_log_max_kb": "Max log KB",
       "compress_context": "Context compression (EXPERIMENTAL)",
-      "auto_context_selection": "Auto context selection"
+      "auto_context_selection": "Auto context selection",
+      "paused_opacity": "Pause opacity"
     },
     "field_descriptions": {
       "x": "Screen X position",
       "y": "Screen Y position",
       "width": "Width in pixels (200-400)",
       "height": "Height in pixels (32-64)",
+      "paused_opacity": "0.10-1.00, window opacity when paused",
       "font_family": "Font name (e.g. Segoe UI)",
       "font_size": "Text size in pixels",
       "language": "Interface and voice command language",

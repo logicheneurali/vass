@@ -40,11 +40,13 @@ SLIDER_CONFIG = {
     "similarity":  {"min": 0, "max": 100, "scale": 0.01, "default": 60},
     "input_volume":  {"min": 1, "max": 100, "scale": 0.01, "default": 100},
     "output_volume": {"min": 1, "max": 100, "scale": 0.01, "default": 100},
+    "paused_opacity": {"min": 10, "max": 100, "scale": 0.01, "default": 50},
 }
 
 
 
 _SECTION_DEFAULTS = {
+    "gui": {"paused_opacity": "0.5"},
     "audio": {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "output_volume": "1.0"},
     "ai": {"compress_context": "false", "auto_context_selection": "false"},
     "google": {
