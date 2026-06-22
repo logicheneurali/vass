@@ -39,60 +39,95 @@ class TtsEngine:
         self._tts_wav_path = ""
         self._tts_done = threading.Event()
         self._state_before_tts = "listening"
+        self._stream_gen = 0
 
         self._speak_queue = deque()
         self._speak_lock = threading.Lock()
         self._speaker_running = True
         self._sd_abort = threading.Event()
         self._wav_to_clean = ""
-        threading.Thread(target=self._speak_worker, daemon=True).start()
+        self._tts_paused = False
+        self._tts_pause_pos = 0
+
+        self._audio_queue = deque()
+        self._audio_lock = threading.Lock()
+        self._audio_ready = threading.Event()
+
+        threading.Thread(target=self._gen_worker, daemon=True).start()
+        threading.Thread(target=self._play_worker, daemon=True).start()
         self._cleanup_orphan_wavs()
 
-    def speak(self, text, speed=1.0):
+    def speak(self, text, speed=0.9):
         self._speak_kokoro(text, speed)
 
-    def speak_nowait(self, text, speed=1.0):
+    def speak_nowait(self, text, speed=0.9):
         self._speak_kokoro(text, speed)
 
-    def enqueue(self, text, speed=1.0, on_done=None):
+    def enqueue(self, text, speed=0.9, on_done=None):
         with self._speak_lock:
             self._speak_queue.append((text, speed, on_done))
         print(f"[TTS] Enqueued: {text[:60]}")
 
-    def _speak_worker(self):
+    def _gen_worker(self):
         while self._speaker_running:
+            with self._speak_lock:
+                if self._speak_queue:
+                    text, speed, on_done = self._speak_queue.popleft()
+                else:
+                    text = None
+            if text is None:
+                time.sleep(0.1)
+                continue
+            print(f"[TTS] Generating audio: {text[:60]}")
+            result = self._generate_kokoro_audio(text, speed)
+            if result is None:
+                if on_done:
+                    with self._audio_lock:
+                        self._audio_queue.append((None, None, on_done))
+                    self._audio_ready.set()
+                continue
+            audio_data, sr = result
+            with self._audio_lock:
+                self._audio_queue.append((audio_data, sr, on_done))
+            self._audio_ready.set()
+
+    def _play_worker(self):
+        while self._speaker_running:
+            if self._tts_paused:
+                time.sleep(0.1)
+                continue
             if self._get_state() in ("recording", "playing"):
                 time.sleep(0.1)
                 continue
-            with self._speak_lock:
-                if not self._speak_queue:
-                    item = None
+            with self._audio_lock:
+                if self._audio_queue:
+                    audio_data, sr, on_done = self._audio_queue.popleft()
                 else:
-                    item = self._speak_queue.popleft()
-            if item:
-                text, speed, on_done = item
-                print(f"[TTS] Worker speaking: {text[:60]}")
-                self.tts_busy.acquire()
+                    audio_data = None
+                    on_done = None
+            if audio_data is None:
+                if on_done:
+                    try:
+                        on_done()
+                    except Exception as e:
+                        print(f"[TTS] on_done callback error: {e}")
+                else:
+                    self._audio_ready.wait(timeout=0.5)
+                    self._audio_ready.clear()
+                continue
+            print(f"[TTS] Playing audio")
+            duration = len(audio_data) / max(sr or 24000, 1)
+            timeout = max(60, duration * 1.5 + 5)
+            self._save_state_and_set_playing()
+            self._play_audio_data(audio_data, sr)
+            if not self._tts_done.wait(timeout=timeout):
+                print(f"[TTS] WARNING: Player timeout after {timeout:.0f}s, forcing")
+                self._tts_done.set()
+            if on_done:
                 try:
-                    self._tts_done.clear()
-                    self._speak_kokoro(text, speed)
-                    duration = len(getattr(self, '_tts_data', [])) / max(getattr(self, '_tts_sr', 24000) or 24000, 1)
-                    timeout = max(60, duration * 1.5 + 5)
-                    if not self._tts_done.wait(timeout=timeout):
-                        print(f"[TTS] WARNING: _tts_done timeout after {timeout:.0f}s, forcing")
-                        self._tts_done.set()
-                    if on_done:
-                        try:
-                            on_done()
-                        except Exception as e:
-                            print(f"[TTS] on_done callback error: {e}")
+                    on_done()
                 except Exception as e:
-                    print(f"[TTS] Worker error: {e}")
-                    self._tts_done.set()
-                finally:
-                    self.tts_busy.release()
-            else:
-                time.sleep(0.1)
+                    print(f"[TTS] on_done callback error: {e}")
 
     def _init_kokoro(self):
         lang_code, voice = _KOKORO_LANGS.get(self.language, ("a", "af_heart"))
@@ -123,6 +158,11 @@ class TtsEngine:
     def _play_wav(self, wav_path, speed=1.0):
         self._tts_done.clear()
         self._sd_abort.clear()
+        if hasattr(self, '_sd_stream') and self._sd_stream is not None:
+            try:
+                self._sd_stream.stop()
+            except Exception:
+                pass
         self._wav_to_clean = wav_path
         import sounddevice as sd
         import soundfile as sf
@@ -133,6 +173,8 @@ class TtsEngine:
             self._tts_data = self._tts_data * (self.tts_volume / peak)
         self._tts_play_start = time.time()
         self._sd_pos = 0
+        self._stream_gen += 1
+        gen = self._stream_gen
 
         def _cb(outdata, frames, _time, _status):
             if self._sd_abort.is_set():
@@ -146,10 +188,15 @@ class TtsEngine:
                 outdata[n:, 0] = 0
                 raise sd.CallbackStop()
 
+        def _on_finished():
+            self._cleanup_wav()
+            if gen == self._stream_gen:
+                self._on_tts_done()
+
         try:
             self._sd_stream = sd.OutputStream(
                 samplerate=self._tts_sr, device=self.output_device,
-                channels=1, callback=_cb, finished_callback=self._on_stream_finished)
+                channels=1, callback=_cb, finished_callback=_on_finished)
             self._sd_stream.start()
         except Exception as e:
             print(f"[TTS] OutputStream error: {e}")
@@ -162,13 +209,63 @@ class TtsEngine:
             data=self._tts_data,
             samplerate=self._tts_sr,
             total_samples=len(self._tts_data),
-            on_complete=self._on_tts_done
+            on_complete=None
         )
 
-    def _on_stream_finished(self):
-        self._cleanup_wav()
+    def _play_audio_data(self, audio_data, sample_rate):
+        self._tts_done.clear()
+        self._sd_abort.clear()
+        if hasattr(self, '_sd_stream') and self._sd_stream is not None:
+            try:
+                self._sd_stream.stop()
+            except Exception:
+                pass
+        self._tts_data = audio_data
+        self._tts_sr = sample_rate
+        peak = np.max(np.abs(self._tts_data))
+        if peak > 0:
+            self._tts_data = self._tts_data * (self.tts_volume / peak)
+        self._tts_play_start = time.time()
+        self._sd_pos = 0
+        self._stream_gen += 1
+        gen = self._stream_gen
+
+        import sounddevice as sd
+
+        def _cb(outdata, frames, _time, _status):
+            if self._sd_abort.is_set():
+                raise sd.CallbackAbort()
+            if self._tts_data is None:
+                raise sd.CallbackStop()
+            n = min(len(self._tts_data) - self._sd_pos, frames)
+            outdata[:n, 0] = self._tts_data[self._sd_pos:self._sd_pos + n]
+            self._sd_pos += n
+            if n < frames:
+                outdata[n:, 0] = 0
+                raise sd.CallbackStop()
+
+        def _on_finished():
+            if gen == self._stream_gen:
+                self._on_tts_done()
+
+        try:
+            self._sd_stream = sd.OutputStream(
+                samplerate=sample_rate, device=self.output_device,
+                channels=1, callback=_cb, finished_callback=_on_finished)
+            self._sd_stream.start()
+        except Exception as e:
+            print(f"[TTS] OutputStream error: {e}")
+            self._tts_done.set()
+            return
+
         if self.gui:
-            self.gui.schedule(0, self._on_tts_done)
+            self.gui.volume_top_bar.set_volume(self.tts_volume)
+        self.gui.start_tts_playback(
+            data=self._tts_data,
+            samplerate=sample_rate,
+            total_samples=len(self._tts_data),
+            on_complete=None
+        )
 
     def _cleanup_wav(self):
         path = getattr(self, '_wav_to_clean', '')
@@ -189,24 +286,19 @@ class TtsEngine:
             except OSError:
                 pass
 
-    def _speak_kokoro(self, text, speed=1.0):
+    def _generate_kokoro_audio(self, text, speed=1.0):
         if not text or not text.strip():
-            return
-        self._save_state_and_set_playing()
+            return None
         try:
             import torch
-            import soundfile as sf
-            import uuid
             if self._kokoro_code is None:
                 self._init_kokoro()
             if self._kokoro_code is None:
-                raise ImportError("Kokoro not available for this language")
+                return None
             if self._kokoro_pipeline is None or self._kokoro_pipeline.lang_code != self._kokoro_code:
                 from kokoro import KPipeline
                 print(f"[TTS] Loading Kokoro pipeline (lang={self._kokoro_code}, voice={self._kokoro_voice})...")
                 self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
-            self._tts_wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
-            wav_path = self._tts_wav_path
             words = text.split()
             since_punct = 0
             for i, w in enumerate(words):
@@ -224,22 +316,34 @@ class TtsEngine:
                 all_audio.append(audio)
             if all_audio:
                 audio = torch.cat(all_audio).numpy()
-                sf.write(wav_path, audio, 24000)
                 dur = len(audio) / 24000
-                print(f"[TTS] Kokoro WAV: {len(all_audio)} chunks, {dur:.1f}s")
-            else:
-                raise RuntimeError("Kokoro generated no audio")
+                print(f"[TTS] Kokoro generated: {len(all_audio)} chunks, {dur:.1f}s")
+                return audio, 24000
+            print(f"[TTS] Kokoro generated no audio")
+            return None
         except Exception as e:
-            print(f"[TTS] Kokoro ({self.language}) failed: {e}")
-            # Chain: Kokoro(lang) -> Windows default -> Kokoro(en) -> Windows(en)
+            print(f"[TTS] Kokoro generation failed: {e}")
+            return None
+
+    def _speak_kokoro(self, text, speed=1.0):
+        self._save_state_and_set_playing()
+        result = self._generate_kokoro_audio(text, speed)
+        if result is not None:
+            audio_data, sr = result
+            import uuid
+            wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
+            import soundfile as sf
+            sf.write(wav_path, audio_data, sr)
+            self._tts_wav_path = wav_path
+            self._play_wav(wav_path, speed)
+        else:
+            print(f"[TTS] Kokoro ({self.language}) failed, trying fallbacks...")
             if not self._speak_windows_default(text):
                 print(f"[TTS] Windows default TTS failed. Trying Kokoro English...")
                 if not self._speak_kokoro_internal(text, speed, "a", "af_heart"):
                     print(f"[TTS] Kokoro English failed. Trying Windows English...")
                     self._speak_windows_tts(text, "en")
             self._on_tts_done()
-            return
-        self._play_wav(wav_path, speed)
 
     def _speak_kokoro_internal(self, text, speed, lang_code, voice):
         import torch
@@ -312,9 +416,18 @@ class TtsEngine:
             return False
 
     def stop(self):
-        self._speaker_running = False
+        self._tts_paused = True
         with self._speak_lock:
             self._speak_queue.clear()
+        with self._audio_lock:
+            while self._audio_queue:
+                _, _, on_done = self._audio_queue.popleft()
+                if on_done:
+                    try:
+                        on_done()
+                    except Exception as e:
+                        print(f"[TTS] stop() callback error: {e}")
+        self._audio_ready.set()
         self._sd_abort.set()
         if hasattr(self, '_sd_stream') and getattr(self, '_sd_stream', None):
             try:
@@ -324,9 +437,34 @@ class TtsEngine:
         self._cleanup_wav()
         self._on_tts_done()
 
+    def pause(self):
+        if self._tts_paused:
+            return
+        self._tts_pause_pos = getattr(self, '_sd_pos', 0)
+        if hasattr(self, '_sd_stream') and self._sd_stream is not None:
+            try:
+                self._sd_stream.stop()
+            except Exception:
+                pass
+        self._tts_paused = True
+        print(f"[TTS] Paused at sample {self._tts_pause_pos}")
+
+    def unpause(self):
+        if not self._tts_paused:
+            return
+        self._tts_paused = False
+        if hasattr(self, '_sd_stream') and self._sd_stream is not None:
+            try:
+                self._sd_stream.start()
+            except Exception:
+                pass
+        print("[TTS] Unpaused")
+
     def get_position(self):
         if not self._tts_play_start or not self.tts_playing:
             return 0
+        if self._tts_paused:
+            return self._tts_pause_pos
         elapsed = time.time() - self._tts_play_start
         return max(0, int(elapsed * self._tts_sr))
 

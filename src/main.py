@@ -128,6 +128,7 @@ class VassApp:
         self.debug_enabled = self.settings.get("debug_enabled", False)
         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
         self.compress_context = self.settings.get("compress_context", "false").lower() == "true"
+        self.waveform_enabled = False
         self.gui_x = self.settings["gui_x"]
         self.gui_y = self.settings["gui_y"]
         self.gui_width = self.settings["gui_width"]
@@ -1142,42 +1143,118 @@ class VassApp:
                 print(f"[Debug] System ({sys_len} chars):\n{sys_txt[:1000]}{'...[truncated]' if sys_len > 1000 else ''}")
                 print(f"[Debug] User ({len(messages[1]['content'])} chars):\n{messages[1]['content']}")
 
-            overflow_retries = 3
-            msg = None
-            while overflow_retries > 0:
-                try:
-                    msg = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs)).choices[0].message
-                    break
-                except Exception as e:
-                    err_str = str(e)
-                    if "exceed_context" in err_str.lower() or "10240" in err_str or "10266" in err_str:
-                        overflow_retries -= 1
-                        if "tools" in kwargs and tools:
-                            kwargs.pop("tools", None)
-                            messages[0]["content"] = messages[0]["content"][:messages[0]["content"].rfind(tools_block)].rstrip() if tools_block in messages[0]["content"] else messages[0]["content"]
-                            kwargs["messages"] = messages
-                            kwargs["max_tokens"] = max(200, (self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - 128)
-                            print(f"[AI] Context overflow - retrying without tools (attempt {4 - overflow_retries}/3)")
-                        else:
-                            excess = len(messages[0]["content"]) // 4
-                            messages[0]["content"] = messages[0]["content"][:-excess] if excess > 0 else messages[0]["content"][:2000]
-                            kwargs["messages"] = messages
-                            kwargs["max_tokens"] = max(200, (self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - 128)
-                            print(f"[AI] Context overflow - trimming system content (attempt {4 - overflow_retries}/3)")
-                    else:
-                        raise e
-            if not msg:
-                raise RuntimeError("Failed to get AI response after retrying context overflow")
-            if msg.tool_calls:
-                for tc in msg.tool_calls:
-                    print(f"[AI] Tool call: {tc.function.name}({tc.function.arguments[:200]})")
-            script_called = any(tc.function.name == "script" or
-                (tc.function.name == "interact" and
-                 any(kw in tc.function.arguments.lower() for kw in ("addevent", "listevents", "removeevent")))
-                for tc in (msg.tool_calls or []))
-            msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui)
+            # ── Streaming API call ──────────────────────────────────────────
+            kwargs["stream"] = True
+            kwargs["stream_options"] = {"include_usage": True}
+            stream = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs))
 
-            ai_response = msg.content or ""
+            content_buffer = ""
+            full_content = ""
+            tool_calls_acc = {}
+            finish_reason = None
+            MIN_TTS_WORDS = 8
+            CPS = 0.0
+            MIN_SECS_LENGTH = 5.0
+            _stream_start = time.time()
+            # total_enqueued = 0
+            
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                finish_reason = chunk.choices[0].finish_reason
+            
+                if delta.content:
+                    content_buffer += delta.content
+                    full_content += delta.content
+                    import re
+                    buf_words = len(re.sub(r'\s+', ' ', content_buffer.strip()).split())
+                    if buf_words >= MIN_TTS_WORDS:
+                        n = 0
+                        while True:
+                            idx = -1
+                            for p in ('.', '!', '?'):
+                                pos = content_buffer.find(p)
+                                if pos != -1 and (idx == -1 or pos < idx):
+                                    idx = pos
+                            if idx == -1:
+                                break
+                            sentence = content_buffer[:idx + 1].strip()
+                            content_buffer = content_buffer[idx + 1:]
+                            if sentence:
+                                self.tts.enqueue(sentence)
+                                n += 1
+                        if n > 0:
+                            # if total_enqueued == 0:
+                            #     self.tts.pause()    
+                            # total_enqueued += n                            
+                            # if total_enqueued + n >= 3:
+                            #     self.tts.unpause()
+                            #     total_enqueued = 0                            
+                            print(f"[Stream] Enqueued {n} sentences , {buf_words} buf words >= {MIN_TTS_WORDS} min)")
+
+                    elapsed = time.time() - _stream_start
+                    if elapsed > MIN_SECS_LENGTH:
+                        prev_cps = CPS
+                        prev_mtw = MIN_TTS_WORDS
+                        CPS = ( prev_cps + ( len(full_content) / elapsed ) ) / 2
+                        MIN_TTS_WORDS = max(5, min(100, int(CPS * MIN_SECS_LENGTH * 1.5 )))
+                        if prev_cps != CPS or prev_mtw != MIN_TTS_WORDS:
+                            print(f"[Stream] CPS={CPS:.1f} ({prev_cps:.1f}) -> MIN_TTS_WORDS={MIN_TTS_WORDS} ({prev_mtw}), tot_chars={len(full_content)}, elapsed={elapsed:.1f}s")
+
+                if delta.tool_calls:
+                    for tc_delta in delta.tool_calls:
+                        idx = tc_delta.index
+                        if idx not in tool_calls_acc:
+                            tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
+                        acc = tool_calls_acc[idx]
+                        if tc_delta.id:
+                            acc["id"] += tc_delta.id
+                        if tc_delta.function:
+                            if tc_delta.function.name:
+                                acc["name"] += tc_delta.function.name
+                            if tc_delta.function.arguments:
+                                acc["arguments"] += tc_delta.function.arguments
+
+                if finish_reason:
+                    break
+
+            self.tts.unpause()
+            remaining = content_buffer.strip()
+            if remaining:
+                self.tts.enqueue(remaining)
+                print(f"[Stream] Remaining enqueued: {len(remaining.split())} words, {len(remaining)} chars")
+            elapsed = time.time() - _stream_start
+            print(f"[Stream] Done: {len(full_content)} chars in {elapsed:.1f}s (CPS={CPS:.1f}), tool_calls={bool(tool_calls_acc)}, finish={finish_reason}")
+
+            # ── Handle tool calls ──────────────────────────────────────────
+            script_called = False
+            ai_response = full_content
+            response_from_tool_calls = False
+            if tool_calls_acc and finish_reason == "tool_calls":
+                tool_calls_list = []
+                for idx in sorted(tool_calls_acc.keys()):
+                    tc = tool_calls_acc[idx]
+                    tc_obj = type("", (), {
+                        "id": tc["id"],
+                        "function": type("", (), {"name": tc["name"], "arguments": tc["arguments"]})(),
+                        "type": "function"
+                    })()
+                    tool_calls_list.append(tc_obj)
+                    print(f"[AI] Tool call: {tc['name']}({tc['arguments'][:200]})")
+
+                script_called = any(
+                    tc_obj.function.name == "script" or
+                    (tc_obj.function.name == "interact" and
+                     any(kw in tc_obj.function.arguments.lower() for kw in ("addevent", "listevents", "removeevent")))
+                    for tc_obj in tool_calls_list
+                )
+
+                pseudo_msg = type("", (), {"tool_calls": tool_calls_list, "content": None})()
+                msg = execute_mcp_tool_calls(messages, pseudo_msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui)
+                ai_response = msg.content or ""
+                response_from_tool_calls = True
+
             ai_response = strip_think_tags(ai_response)
 
             print(f"AI Agent Response: {ai_response}")
@@ -1228,9 +1305,7 @@ class VassApp:
                 print(f"[Memory] Save error: {e}")
 
             threading.Thread(target=self._classify_message, args=(prompt,), daemon=True).start()
-
             threading.Thread(target=self._trim_memory_if_needed, daemon=True).start()
-
             self.gui.update_memory_bar()
 
             clean_text = strip_markdown(ai_response)
@@ -1241,7 +1316,9 @@ class VassApp:
             except Exception:
                 pass
             done = threading.Event()
-            self.tts.enqueue(clean_text, on_done=done.set)
+            if response_from_tool_calls and clean_text:
+                self.tts.enqueue(clean_text)
+            self.tts.enqueue("", on_done=done.set)
             done.wait()
             self.set_state("listening")
         except Exception as e:

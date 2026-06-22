@@ -10,16 +10,22 @@ VASS is a voice assistant for Windows, macOS, and Linux. It responds to voice co
 - Voice recognition via Whisper (faster-whisper) with adaptive noise floor
 - Natural speech synthesis via Kokoro TTS with 4-step fallback chain
 - Local or remote AI (llama.cpp, OpenAI, any compatible server)
-- VASScript scripting for desktop automation with 25+ built-in functions
+- VASScript scripting for desktop automation with 30+ built-in functions
 - Event and schedule management with editor GUI
 - Multilingual countdown timer (voice-activated, 5 simultaneous)
-- MCP server with 21 tools for AI orchestration
+- MCP server with 23 tools for AI orchestration
 - Permanent memory with automatic classification and summarization
 - Conversation history viewer with per-message actions
 - 9 language support
 - Context overflow protection (truncate or AI summarization)
 - Audio device selection (input/output)
 - Multi-turn tool calling for complex AI tasks
+- 3-source weather system with 200K city geolocation database
+- Time-shifted voice commands ("shutdown in 5 minutes")
+- Real-time MCP tool activity indicator in GUI
+- Heuristic context compression with multilingual stopword support
+- Token-accurate context counting
+- Script execution sandbox with deny-list and audit logging
 
 
 ---

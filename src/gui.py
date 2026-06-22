@@ -2,8 +2,8 @@ import os
 import subprocess
 import sys
 
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
-from PySide6.QtGui import QPainter, QColor, QFont, QIcon
+from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal
+from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
@@ -389,6 +389,9 @@ class VassGUI(QMainWindow):
         self._build_loading_widget()
         self.stacked.addWidget(self.loading_widget)
 
+        self._btn_full_text = ""
+        self.stacked.installEventFilter(self)
+
         self._left_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self._right_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
@@ -712,7 +715,8 @@ class VassGUI(QMainWindow):
         if detail:
             text = f"{text} {detail}"
         prefix = "[C] " if self._current_mode == "chat" else "[T] "
-        self.btn.setText(prefix + text)
+        self._btn_full_text = prefix + text
+        self._elide_button_text()
         self.btn.setStyleSheet(
             "QPushButton { background: transparent; color: %s; "
             "border: none; border-radius: 0; text-align: center; }"
@@ -756,6 +760,18 @@ class VassGUI(QMainWindow):
             except Exception:
                 pass
             self._fade_opacity(target)
+
+    def eventFilter(self, obj, event):
+        if obj == self.stacked and event.type() == QEvent.Type.Resize:
+            self._elide_button_text()
+        return super().eventFilter(obj, event)
+
+    def _elide_button_text(self):
+        if not self._btn_full_text:
+            return
+        fm = QFontMetrics(self.btn.font())
+        available = max(10, self.btn.width() - 6)
+        self.btn.setText(fm.elidedText(self._btn_full_text, Qt.TextElideMode.ElideRight, available))
 
     def _fade_opacity(self, target):
         self._fade_anim.stop()
@@ -852,6 +868,11 @@ class VassGUI(QMainWindow):
         self._chat_btn.setChecked(False)
         self._chat_input.setVisible(False)
         self._chat_input.clear()
+        self.stacked.setVisible(True)
+        vis = getattr(self, '_left_side_visibility', {})
+        for w in self._left_side:
+            w.setVisible(vis.get(w, True))
+        self._left_side_visibility = {}
         if should_restore:
             self.resize(self._chat_original_width, self.height())
             if self._chat_original_x is not None:
@@ -898,6 +919,10 @@ class VassGUI(QMainWindow):
         if self._chat_btn.isChecked():
             self._chat_original_width = self.width()
             self._chat_original_x = self.x()
+            self._left_side_visibility = {w: w.isVisible() for w in self._left_side}
+            for w in self._left_side:
+                w.setVisible(False)
+            self.stacked.setVisible(False)
             self.resize(self._chat_original_width * 2, self.height())
             self._clamp_to_screen()
             self._rebalance_spacers()
@@ -946,8 +971,9 @@ class VassGUI(QMainWindow):
         self.start_tts_signal.emit(data, samplerate, total_samples, on_complete)
 
     def _on_start_tts(self, data, samplerate, total_samples, on_complete):
-        self.player.load_data(data, samplerate)
-        self.stacked.setCurrentWidget(self.player)
+        if getattr(self.app, 'waveform_enabled', True):
+            self.player.load_data(data, samplerate)
+            self.stacked.setCurrentWidget(self.player)
         self._tts_polling = True
         self._tts_total_samples = total_samples
         self._tts_on_complete = on_complete
@@ -968,9 +994,17 @@ class VassGUI(QMainWindow):
         if pos >= getattr(self, '_tts_total_samples', 0) and pos > 0:
             done = True
         elif pos == self._tts_last_pos and pos > 0:
-            self._tts_stall_count += 1
-            if self._tts_stall_count > 40:
-                done = True
+            paused = False
+            try:
+                paused = self.app.tts._tts_paused if self.app and self.app.tts else False
+            except Exception:
+                pass
+            if not paused:
+                self._tts_stall_count += 1
+                if self._tts_stall_count > 40:
+                    done = True
+            else:
+                self._tts_stall_count = 0
         else:
             self._tts_stall_count = 0
         self._tts_last_pos = pos
@@ -994,8 +1028,9 @@ class VassGUI(QMainWindow):
     def _on_stop_tts(self):
         self._tts_polling = False
         self.stacked.setCurrentWidget(self.btn)
-        self.player.data = None
-        self.player.peaks = []
+        if getattr(self.app, 'waveform_enabled', True):
+            self.player.data = None
+            self.player.peaks = []
 
     def request_auth(self, script_name, func_name):
         import threading
