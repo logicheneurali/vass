@@ -411,6 +411,7 @@
     "google_auth_expired": "⚠ Google-Anmeldeinformationen abgelaufen. Öffnen Sie Einstellungen → Externe Dienste → Setup starten.",
     "new_email": "Neue Mail von {from}: {subject}",
     "email_truncated": "... Vollständiger Text auf Gmail",
+    "read_online": "Online lesen",
     "auto_model_selected": "KI-Modell fehlt. Automatisch ausgewaehlt: {model}"
   },
   "setup_google": {
@@ -519,7 +520,17 @@
       "verknüpfung",
       "browser",
       "öffnen",
-      "lesen"
+      "lesen",
+      "information",
+      "informationen",
+      "nachricht",
+      "nachrichten",
+      "artikel",
+      "wikipedia",
+      "blog",
+      "google",
+      "prüfen",
+      "nachschlagen"
     ],
     "calendar": [
       "kalender",
@@ -536,7 +547,17 @@
       "treffen",
       "sitzung",
       "frist",
-      "erinnerung"
+      "erinnerung",
+      "synchronisieren",
+      "einladung",
+      "einladungen",
+      "teilen",
+      "wiederholen",
+      "absagen",
+      "verschieben",
+      "verfügbar",
+      "beschäftigt",
+      "termin verschieben"
     ],
     "files": [
       "datei",
@@ -552,10 +573,21 @@
       "ordner",
       "export",
       "import",
-      "speicherung"
+      "speicherung",
+      "erstellen",
+      "löschen",
+      "umbenennen",
+      "bearbeiten",
+      "herunterladen",
+      "hochladen",
+      "anhang",
+      "anhänge",
+      "drucken",
+      "konvertieren"
     ],
     "events": [
       "ereignis",
+      "ereignisse",
       "erinnerung",
       "alarm",
       "benachrichtigung",
@@ -568,7 +600,17 @@
       "uhrzeit",
       "datum",
       "planen",
-      "merken"
+      "merken",
+      "geburtstag",
+      "geburtstage",
+      "jahrestag",
+      "jahrestage",
+      "feier",
+      "feiern",
+      "urlaub",
+      "feiertag",
+      "feiertage",
+      "versammlung"
     ],
     "time": [
       "uhr",
@@ -585,7 +627,17 @@
       "zeitraum",
       "tag",
       "monat",
-      "jahr"
+      "jahr",
+      "minute",
+      "minuten",
+      "sekunde",
+      "sekunden",
+      "woche",
+      "wochen",
+      "morgen",
+      "abend",
+      "morgen",
+      "gestern"
     ],
     "compute": [
       "berechnen",
@@ -617,7 +669,17 @@
       "mal",
       "geteilt",
       "wurzel",
-      "quadrat"
+      "quadrat",
+      "prozent",
+      "prozente",
+      "durchschnitt",
+      "verhältnis",
+      "runden",
+      "schätzen",
+      "umrechnen",
+      "währung",
+      "rabatt",
+      "anteil"
     ],
     "lang": [
       "sprache",
@@ -634,7 +696,17 @@
       "analysieren",
       "satz",
       "wort",
-      "linguistik"
+      "linguistik",
+      "konjugieren",
+      "synonym",
+      "synonyme",
+      "antonym",
+      "antonyme",
+      "aussprache",
+      "plural",
+      "singular",
+      "ausdruck",
+      "redewendung"
     ],
     "clipboard": [
       "kopieren",
@@ -650,8 +722,17 @@
       "speichern",
       "temporär",
       "zurückbringen",
-      "einfügen",
-      "nehmen"
+      "nehmen",
+      "auswählen",
+      "rückgängig",
+      "wiederholen",
+      "leeren",
+      "chronik",
+      "snapshot",
+      "erfassen",
+      "ausschneiden",
+      "alles auswählen",
+      "schneiden"
     ],
     "idle": [
       "inaktiv",
@@ -668,7 +749,17 @@
       "arbeit",
       "bildschirm",
       "computer",
-      "status"
+      "status",
+      "zeitüberschreitung",
+      "nicht stören",
+      "verfügbar",
+      "aktiv",
+      "arbeitend",
+      "tippen",
+      "maus",
+      "tastatur",
+      "eingabe",
+      "interaktion"
     ],
     "tags": [
       "etikett",
@@ -684,7 +775,16 @@
       "organisieren",
       "erinnern",
       "kontext",
-      "thema"
+      "stichwort",
+      "stichworte",
+      "metadaten",
+      "index",
+      "filter",
+      "sortieren",
+      "lesezeichen",
+      "favorit",
+      "favoriten",
+      "markieren"
     ]
   },
   "tool_names": {

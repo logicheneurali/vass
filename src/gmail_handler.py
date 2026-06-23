@@ -2,6 +2,7 @@
 import json, os, datetime
 
 from google_auth import get_google_credentials
+from utils import encrypt_fields
 
 
 def _get_service():
@@ -88,6 +89,11 @@ class GmailHandler:
         seen_ids = self._load_seen_ids(seen_path)
         new_msgs = []
         seen_data = self._load_seen_data(seen_path)
+        needs_migration = seen_data.get("version") != 2
+
+        if needs_migration:
+            seen_data["seen"] = [encrypt_fields(e, keep_plain={"id"}) for e in seen_data.get("seen", [])]
+            seen_data["version"] = 2
 
         for mid in all_ids:
             if mid in seen_ids:
@@ -101,11 +107,13 @@ class GmailHandler:
                 "from": meta["from"],
                 "subject": meta["subject"],
                 "snippet": meta["snippet"],
+                "important": meta.get("important", False),
             }
-            seen_data["seen"].append(entry)
+            seen_data["seen"].append(encrypt_fields(entry, keep_plain={"id"}))
             new_msgs.append(entry)
 
-        if new_msgs:
+        if new_msgs or needs_migration:
+            seen_data["seen"] = seen_data["seen"][-500:]
             os.makedirs(os.path.dirname(seen_path), exist_ok=True)
             with open(seen_path, "w", encoding="utf-8") as f:
                 json.dump(seen_data, f, ensure_ascii=False, indent=2)

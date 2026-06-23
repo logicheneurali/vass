@@ -411,6 +411,7 @@
     "google_auth_expired": "⚠ Google credentials expired. Open Settings → External Services → Run Setup.",
     "new_email": "New Mail from {from}: {subject}",
     "email_truncated": "... Full message on Gmail",
+    "read_online": "Read online",
     "auto_model_selected": "AI model missing. Auto-selected {model}"
   },
   "setup_google": {
@@ -520,7 +521,17 @@
       "link",
       "online",
       "fetch",
-      "read"
+      "read",
+      "information",
+      "news",
+      "article",
+      "wikipedia",
+      "blog",
+      "google",
+      "check",
+      "lookup",
+      "info",
+      "query"
     ],
     "calendar": [
       "calendar",
@@ -537,7 +548,17 @@
       "timeline",
       "organize",
       "reservation",
-      "todo"
+      "todo",
+      "sync",
+      "invite",
+      "invites",
+      "share",
+      "repeat",
+      "cancel",
+      "reschedule",
+      "move",
+      "available",
+      "busy"
     ],
     "files": [
       "file",
@@ -554,10 +575,21 @@
       "export",
       "import",
       "data",
-      "archive"
+      "archive",
+      "create",
+      "delete",
+      "rename",
+      "edit",
+      "download",
+      "upload",
+      "attachment",
+      "attachments",
+      "print",
+      "convert"
     ],
     "events": [
       "event",
+      "events",
       "reminder",
       "alarm",
       "notification",
@@ -571,7 +603,17 @@
       "remind",
       "notify",
       "trigger",
-      "warn"
+      "warn",
+      "birthday",
+      "birthdays",
+      "anniversary",
+      "anniversaries",
+      "party",
+      "parties",
+      "vacation",
+      "vacations",
+      "holiday",
+      "holidays"
     ],
     "time": [
       "time",
@@ -588,7 +630,17 @@
       "moment",
       "schedule",
       "delay",
-      "wait"
+      "wait",
+      "minute",
+      "minutes",
+      "second",
+      "seconds",
+      "week",
+      "weeks",
+      "morning",
+      "evening",
+      "tomorrow",
+      "yesterday"
     ],
     "compute": [
       "calculate",
@@ -605,7 +657,17 @@
       "count",
       "number",
       "plus",
-      "minus"
+      "minus",
+      "percentage",
+      "percentages",
+      "average",
+      "averages",
+      "ratio",
+      "round",
+      "estimate",
+      "convert",
+      "currency",
+      "discount"
     ],
     "lang": [
       "language",
@@ -622,7 +684,17 @@
       "analyze",
       "dictionary",
       "meaning",
-      "linguistic"
+      "linguistic",
+      "conjugate",
+      "synonym",
+      "synonyms",
+      "antonym",
+      "antonyms",
+      "pronunciation",
+      "plural",
+      "singular",
+      "expression",
+      "idiom"
     ],
     "clipboard": [
       "copy",
@@ -639,7 +711,17 @@
       "store",
       "recall",
       "retrieve",
-      "get"
+      "get",
+      "select",
+      "undo",
+      "redo",
+      "clear",
+      "empty",
+      "history",
+      "snapshot",
+      "capture",
+      "cut",
+      "select all"
     ],
     "idle": [
       "idle",
@@ -656,7 +738,17 @@
       "sleep",
       "standby",
       "locked",
-      "activity"
+      "activity",
+      "timeout",
+      "do not disturb",
+      "available",
+      "active",
+      "working",
+      "typing",
+      "mouse",
+      "keyboard",
+      "input",
+      "interaction"
     ],
     "tags": [
       "tag",
@@ -673,7 +765,17 @@
       "organize",
       "remember",
       "context",
-      "theme"
+      "theme",
+      "keyword",
+      "keywords",
+      "metadata",
+      "index",
+      "filter",
+      "sort",
+      "bookmark",
+      "bookmarks",
+      "favorite",
+      "favorites"
     ]
   },
   "tool_names": {

@@ -8,6 +8,7 @@ Shared by VASScript ai() and main AI fallback — zero redundancy.
 """
 import os
 import json
+from utils import fuzzy_match_word
 
 # Groups whose requests are always self-contained (no memory needed)
 STANDALONE_GROUPS = {"compute", "time", "lang"}
@@ -83,23 +84,70 @@ def _default_keywords():
 _ANAPHORA_KEYWORDS = {
     "it": {"lui","lei","loro","ne","stesso","stessa","stessi","stesse",
            "tale","tali","suddetto","menzionato","continuare","prosegui",
-           "riprendi","ripeti","precedente","scorso","altra","altro"},
+           "riprendi","ripeti","precedente","scorso","altra","altro",
+           "mio","mia","miei","mie","tuo","tua","tuoi","tue","suo","sua","suoi","sue",
+           "prossimo","prossima","prossimi","prossime",
+           "ricordi","ricordami",
+           "ieri",
+           "quel","quello","quella","quei","quegli",
+           "prima","allora"},
     "en": {"he","him","she","her","they","them","continue","proceed",
            "repeat","resume","previous","earlier","above","aforementioned",
-           "mentioned","another"},
+           "mentioned","another",
+           "my","mine","your","yours","our","ours",
+           "next",
+           "remember",
+           "yesterday",
+           "that","those",
+           "before","then"},
     "de": {"er","ihn","ihm","sie","ihr","fortsetzen","weiter","wiederholen",
-           "vorherige","vorher","erwähnt","besagt","obig","letzte","gestrig"},
+           "vorherige","vorher","erwähnt","besagt","obig","letzte","gestrig",
+           "mein","meine","dein","deine","sein","seine",
+           "nächst","nächste",
+           "erinnere",
+           "jener","jene",
+           "damals"},
     "fr": {"il","lui","elle","ils","elles","continuer","répéter","poursuivre",
-           "reprendre","précédent","mentionné","susdit","autre","hier"},
+           "reprendre","précédent","mentionné","susdit","autre","hier",
+           "mon","ma","mes","ton","ta","tes","son","sa","ses",
+           "prochain","prochaine",
+           "souviens",
+           "ce","cet","cette",
+           "avant","alors"},
     "es": {"él","ella","ellos","ellas","continuar","repetir","proseguir",
-           "retomar","anterior","mencionado","dicho","ayer","otro","otra"},
+           "retomar","anterior","mencionado","dicho","ayer","otro","otra",
+           "mi","mis","tu","tus","su","sus",
+           "próximo","próxima",
+           "recuerdas",
+           "ese","esa","esos","esas",
+           "antes","entonces"},
     "pt": {"ele","ela","eles","elas","continuar","repetir","prosseguir",
-           "retomar","anterior","mencionado","dito","ontem","outro","outra"},
+           "retomar","anterior","mencionado","dito","ontem","outro","outra",
+           "meu","minha","meus","minhas","teu","tua","seu","sua",
+           "próximo","próxima",
+           "lembra",
+           "esse","essa","esses","essas",
+           "antes","então"},
     "ja": {"彼","彼女","続ける","繰り返す","最初から","もう一度","前の","昨日",
-           "前述","上記"},
+           "前述","上記",
+           "私の","あなたの",
+           "次",
+           "覚えて",
+           "その",
+           "前に"},
     "ko": {"그","그녀","계속하다","반복하다","다시","이전","어제","앞서",
-           "위","앞의"},
-    "zh": {"他","她","继续","重复","再来","之前的","昨天","上述","前面"},
+           "위","앞의",
+           "내","나의","너의",
+           "다음",
+           "기억해",
+           "그",
+           "전에"},
+    "zh": {"他","她","继续","重复","再来","之前的","昨天","上述","前面",
+           "我的","你的",
+           "下一个",
+           "记得",
+           "那个",
+           "之前"},
 }
 
 
@@ -113,15 +161,16 @@ def needs_memory(prompt, lang="it"):
     keywords = load_keywords(lang)
     prompt_lower = prompt.lower()
 
-    # 1. Standalone group match → NO memory needed
-    for group in STANDALONE_GROUPS:
-        if any(w in prompt_lower for w in keywords.get(group, [])):
-            return False
-
-    # 2. Anaphora/context keywords → SI memory needed
+    # 1. Anaphora/context keywords → SI memory needed (prevale su standalone)
     ctx = _ANAPHORA_KEYWORDS.get(lang, _ANAPHORA_KEYWORDS["en"])
-    if any(w in prompt_lower for w in ctx):
+    if any(w in prompt_lower for w in ctx) or fuzzy_match_word(prompt_lower, ctx):
         return True
+
+    # 2. Standalone group match → NO memory needed
+    for group in STANDALONE_GROUPS:
+        words = keywords.get(group, [])
+        if any(w in prompt_lower for w in words) or fuzzy_match_word(prompt_lower, words):
+            return False
 
     # 3. Default: conservative
     return True
@@ -148,7 +197,7 @@ def select_tool_groups(prompt, lang="it"):
     for group_name, words in keywords.items():
         if group_name not in TOOL_GROUPS:
             continue
-        if any(w in prompt_lower for w in words):
+        if any(w in prompt_lower for w in words) or fuzzy_match_word(prompt_lower, words):
             groups.add(group_name)
     return groups or {"web"}
 

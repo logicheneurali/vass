@@ -1255,7 +1255,7 @@ class VassApp:
                 script_called = any(
                     tc_obj.function.name == "script" or
                     (tc_obj.function.name == "interact" and
-                     any(kw in tc_obj.function.arguments.lower() for kw in ("addevent", "listevents", "removeevent")))
+                     any(kw in tc_obj.function.arguments.lower() for kw in ("addevent", "add_event", "listevents", "list_events", "removeevent", "remove_event")))
                     for tc_obj in tool_calls_list
                 )
 
@@ -1399,6 +1399,14 @@ class VassApp:
                     except Exception:
                         pass
                 if summary_text and summary_text != "No Info":
+                    if summary_text.startswith("writeinfo("):
+                        try:
+                            inner = summary_text[len("writeinfo("):]
+                            if inner.startswith("'") and inner.endswith("')"):
+                                inner = inner[1:-2]
+                            summary_text = json.loads(inner).get("summary", summary_text)
+                        except Exception:
+                            pass
                     cached = self._summary_cache.get(summary_id)
                     if cached:
                         summary_text = cached
@@ -1619,7 +1627,7 @@ class VassApp:
         except Exception as e:
             print(f"[Classify] Error: {e}")
 
-    def _trim_memory_if_needed(self):
+    def _trim_memory_if_needed(self, force=False):
         if not self._trim_lock.acquire(blocking=False):
             print("[Memory] Trim already in progress, skip")
             return
@@ -1651,9 +1659,12 @@ class VassApp:
                     total_size += os.path.getsize(sf_path)
 
             threshold = self.memory_tokens * 2
-            if total_size < threshold:
+            if total_size < threshold and not force:
                 return
-            print(f"[Memory] Total size {total_size} > threshold {threshold}, compressing...")
+            if force:
+                print(f"[Memory] Force compressing (size={total_size})")
+            else:
+                print(f"[Memory] Total size {total_size} > threshold {threshold}, compressing...")
             mtime_before = os.path.getmtime(path)
 
             allowed_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root")
@@ -1713,7 +1724,7 @@ class VassApp:
             if old_summary:
                 prompt += "\n\nExisting summary to build upon:\n" + old_summary
             prompt += f"\n\nTagged conversations ({len(history_content)} entries):\n" + json.dumps(history_content, ensure_ascii=False)
-            prompt += "\n\nAfter summarizing, save your result using the writeinfo() function. Example: writeinfo('{\"summary\": \"...\"}'). The function returns an ID — include it in your response to confirm success."
+            prompt += "\n\nReturn ONLY a JSON object with your summary. Example: {\"summary\": \"...\"}"
 
             print(f"[Memory] Summarization request -> prompt_len={len(prompt)}, entries={len(history_content)}")
             resp = call_with_retry(lambda: self.openai_client.chat.completions.create(
@@ -1727,10 +1738,20 @@ class VassApp:
             if not summary_text:
                 print("[Memory] Trim: AI returned empty summary, skipping")
                 return
+            if summary_text.startswith("writeinfo("):
+                try:
+                    inner = summary_text[len("writeinfo("):]
+                    if inner.startswith("'") and inner.endswith("')"):
+                        inner = inner[1:-2]
+                    summary_text = inner
+                except Exception:
+                    pass
             try:
                 parsed = json.loads(summary_text)
                 if isinstance(parsed, dict) and "summary" in parsed:
-                    summary_text = json.dumps(parsed["summary"], ensure_ascii=False)
+                    summary_text = parsed["summary"]
+                elif isinstance(parsed, str):
+                    summary_text = parsed
             except (json.JSONDecodeError, ValueError):
                 pass
 
@@ -1841,103 +1862,18 @@ def main():
             ai_url = config.get("ai", "url", fallback="http://127.0.0.1:8080/v1")
             ai_model = config.get("ai", "model", fallback="gemma-4-E2B-it-Q8_0")
             client = OpenAI(base_url=ai_url, api_key="not-needed")
-            mem_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory.json")
-            mem_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory")
-            if os.path.exists(mem_path):
-                with open(mem_path, encoding="utf-8") as f:
-                    old = json.load(f)
-                history_ids = old.get("history", [])
-                # Load history from individual files
-                history_content = []
-                for vid in history_ids:
-                    hf_path = os.path.join(mem_dir, f"{vid}.json")
-                    if os.path.exists(hf_path):
-                        try:
-                            with open(hf_path, encoding="utf-8") as hf:
-                                entry = json.load(hf).get("info", "")
-                            history_content.append(json.loads(entry))
-                        except Exception:
-                            pass
-                # Load existing summary
-                old_summary = ""
-                summary_id = old.get("summary_id", "")
-                if summary_id:
-                    sf_path = os.path.join(mem_dir, f"{summary_id}.json")
-                    if os.path.exists(sf_path):
-                        try:
-                            with open(sf_path, encoding="utf-8") as sf:
-                                old_summary = json.load(sf).get("info", "")
-                        except Exception:
-                            pass
-                if history_content:
-                    prompt = MEMORY_SUMMARIZATION_PROMPT
-                    if old_summary:
-                        prompt += "\n\nExisting summary to build upon:\n" + old_summary
-                    prompt += "\n\nNew conversations:\n" + json.dumps(history_content, ensure_ascii=False)
-                    prompt += "\n\nAfter summarizing, save your result using the writeinfo() function. Example: writeinfo('{\"summary\": \"...\"}')"
-                    try:
-                        resp = call_with_retry(lambda: client.chat.completions.create(
-                            model=ai_model,
-                            messages=[{"role": "user", "content": prompt}],
-                            temperature=0.3,
-                            extra_body={"disable_thinking": True}
-                        ))
-                        summary_text = (resp.choices[0].message.content or "").strip()
-                        if not summary_text:
-                            print("[Memory] Compression: AI returned empty summary, skipping")
-                        else:
-                            try:
-                                parsed = json.loads(summary_text)
-                                if isinstance(parsed, dict) and "summary" in parsed:
-                                    summary_text = json.dumps(parsed["summary"], ensure_ascii=False)
-                            except (json.JSONDecodeError, ValueError):
-                                pass
-                            new_sid = str(int(time.time() * 1000))
-                            sf_path = os.path.join(mem_dir, f"{new_sid}.json")
-                            with open(sf_path, "w", encoding="utf-8") as sf:
-                                json.dump({"info": summary_text}, sf, ensure_ascii=False, indent=2)
-                            new_history_ids = history_ids[-6:]
-                            new_data = {"history": new_history_ids, "summary_id": new_sid}
-                            with open(mem_path, "w", encoding="utf-8") as f:
-                                json.dump(new_data, f, ensure_ascii=False, indent=2)
-                            # Archive unreferenced files
-                            import shutil
-                            referenced = set(new_history_ids) | {new_sid}
-                            if summary_id:
-                                referenced.add(summary_id)
-                            now_ts = time.time()
-                            archive_date = time.strftime("%Y-%m", time.localtime(now_ts))
-                            archive_dir = os.path.join(mem_dir, "archive", archive_date)
-                            os.makedirs(archive_dir, exist_ok=True)
-                            for fname in os.listdir(mem_dir):
-                                if fname.endswith(".json"):
-                                    fid = fname[:-5]
-                                    if fid not in referenced:
-                                        try:
-                                            shutil.move(os.path.join(mem_dir, fname), os.path.join(archive_dir, fname))
-                                        except OSError:
-                                            pass
-                            # Cleanup archives older than 6 months
-                            archive_root = os.path.join(mem_dir, "archive")
-                            if os.path.isdir(archive_root):
-                                cutoff_ts = now_ts - (180 * 86400)
-                                for entry in os.listdir(archive_root):
-                                    entry_path = os.path.join(archive_root, entry)
-                                    if os.path.isdir(entry_path):
-                                        try:
-                                            entry_date = time.mktime(time.strptime(entry, "%Y-%m"))
-                                            if entry_date < cutoff_ts:
-                                                shutil.rmtree(entry_path)
-                                                print(f"[Memory] Cleaned old archive: {entry}")
-                                        except (ValueError, OSError):
-                                            pass
-                            print(f"[Memory] Compressed: {len(history_content)} exchanges -> summary + last 6")
-                    except Exception as e:
-                        print(f"[Memory] Compression failed: {e}")
-                else:
-                    print("[Memory] No history to compress.")
-            else:
-                print("[Memory] memory.json not found.")
+            mem_tokens = config.getint("ai", "memory_tokens", fallback=2000)
+            app = VassApp.__new__(VassApp)
+            app.openai_client = client
+            app.ai_model = ai_model
+            app.memory_tokens = mem_tokens
+            app._trim_lock = threading.Lock()
+            app._summary_cache = {}
+            try:
+                app._count_tokens = lambda text: len(text) // 4
+                app._trim_memory_if_needed(force=True)
+            except Exception as e:
+                print(f"[Memory] Compression failed: {e}")
             if llama_proc:
                 llama_proc.kill()
                 llama_proc.wait(timeout=5)

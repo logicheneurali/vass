@@ -25,8 +25,8 @@ TEMPLATES = {
     "ai_raw": 'ai_raw("prompt")',
     "say": 'say("testo")',
     "ai → say": '$risultato = ai("prompt")\nsay($risultato)',
-    "ifcontains": 'ifcontains($variabile, "testo", say("vero"), say("falso"))',
-    "ifempty": 'ifempty($variabile, say("vuoto"), say("pieno"))',
+    "if_contains": 'if_contains($variabile, "testo", say("vero"), say("falso"))',
+    "if_empty": 'if_empty($variabile, say("vuoto"), say("pieno"))',
     "run": 'run("powershell -Command Get-Process")',
     "wait": 'wait(2)',
     "web → riassunto": (
@@ -40,56 +40,57 @@ TEMPLATES = {
     "screen_highlight": 'screen_highlight($x, $y, $w, $h, 1.0)',
     "screen_search → highlight": (
         '$risultati = screen_search("Cerca")\n'
-        'ifempty($risultati, exit(), "")\n'
+        'if_empty($risultati, exit(), "")\n'
         'screen_highlight($_sx, $_sy, $_sw, $_sh, 1.0)'
     ),
     "screen_search → click": (
         '$risultati = screen_search("Cerca")\n'
-        'ifempty($risultati, exit(), "")\n'
+        'if_empty($risultati, exit(), "")\n'
         'screen_click($_sx, $_sy)'
     ),
     "screen_click (posizione corrente)": 'screen_click()',
     "listen": 'listen()',
-    "setActiveWindow": 'setActiveWindow("notepad")',
-    "sendText": 'sendText("Hello World")',
+    "set_active_window": 'set_active_window("notepad")',
+    "send_text": 'send_text("Hello World")',
     "exit": 'exit()',
     "trim": 'trim($testo)',
     "len": 'len($testo)',
-    "tonum": 'tonum($x)',
+    "to_num": 'to_num($x)',
     "add": 'add($a, $b)',
     "sub": 'sub($a, $b)',
     "mul": 'mul($a, $b)',
     "div": 'div($a, $b)',
     "contains": 'contains($testo, "cerca")',
     "equals": 'equals($a, $b)',
-    "ifequals": 'ifequals($a, $b, say("uguali"), say("diversi"))',
-    "ifgreater": 'ifgreater($x, 10, say("maggiore"), say("minore"))',
-    "ifless": 'ifless($x, 5, say("minore"), say("maggiore"))',
-    "ifgreaterequal": 'ifgreaterequal($x, 100, say("almeno 100"), say("meno di 100"))',
-    "iflessequal": 'iflessequal($x, 50, say("al massimo 50"), say("sopra 50"))',
-    "addevent": 'addevent("2026-06-15", "14:30", "60", "Riunione")',
-    "addevent ricorsivo": 'addevent("2026-06-15", "08:00", "5", "Pillola", "1d")',
-    "listevents": 'listevents("2026-12-31")',
-    "listevents → prettyevents": '\n'.join([
-        '$e = listevents("2026-12-31")',
-        '$p = prettyevents($e)',
+    "if_equals": 'if_equals($a, $b, say("uguali"), say("diversi"))',
+    "if_greater": 'if_greater($x, 10, say("maggiore"), say("minore"))',
+    "if_less": 'if_less($x, 5, say("minore"), say("maggiore"))',
+    "if_greater_equal": 'if_greater_equal($x, 100, say("almeno 100"), say("meno di 100"))',
+    "if_less_equal": 'if_less_equal($x, 50, say("al massimo 50"), say("sopra 50"))',
+    "add_event": 'add_event("2026-06-15", "14:30", "60", "Riunione")',
+    "add_event ricorsivo": 'add_event("2026-06-15", "08:00", "5", "Pillola", "1d")',
+    "list_events": 'list_events("2026-12-31")',
+    "list_events → pretty_events": '\n'.join([
+        '$e = list_events("2026-12-31")',
+        '$p = pretty_events($e)',
         'say($p)',
     ]),
-    "removeevent": 'removeevent("riunione")',
-    "getdatetime": 'getdatetime()',
-    "clipboardget": 'clipboardget()',
-    "clipboardset": 'clipboardset("testo da copiare")',
-    "readinfo": 'readinfo("id_file")',
-    "writeinfo": 'writeinfo("dati da salvare")',
-    "readstate": 'readstate("ventilatore")',
-    "writestate": 'writestate("ventilatore", "acceso")',
+    "remove_event": 'remove_event("riunione")',
+    "get_datetime": 'get_datetime()',
+    "clipboard_get": 'clipboard_get()',
+    "clipboard_set": 'clipboard_set("testo da copiare")',
+    "read_info": 'read_info("id_file")',
+    "write_info": 'write_info("dati da salvare")',
+    "read_state": 'read_state("ventilatore")',
+    "write_state": 'write_state("ventilatore", "acceso")',
     "timer_start": 'timer_start("1h30m")',
     "timer_list": '$lista = timer_list()\nsay($lista)',
     "timer_cancel": 'timer_cancel("id_timer")',
     "notify": 'notify("Operazione completata", 5)',
-    "savetags": 'savetags("food,health,pets")',
-    "delevent": 'delevent("riunione")',
+    "save_tags": 'save_tags("food,health,pets")',
+    "delete_event": 'delete_event("riunione")',
     "fetch_text": '$contenuto = fetch_text("https://example.com")\nsay($contenuto)',
+    "fetch_json": '$dati = fetch_json("https://api.example.com/data")\nsay($dati)',
     "search_web": '$risultati = search_web("python tutorial")\nsay($risultati)',
     "inject": 'inject("L\'utente preferisce il tema scuro")',
     "inject_memory": 'inject_memory("Informazione importante da ricordare")',
@@ -100,13 +101,16 @@ TEMPLATES = {
     "google_home_command": 'google_home_command("accendi le luci", false)',
     "google_home_ask": '$risposta = google_home_ask("che tempo fa domani?")\nsay($risposta)',
     "get_weather": '$tt = get_weather("Milano")\nsay("A {$tt.city} ci sono {$tt.temperature} gradi, percepiti {$tt.feels_like}")',
-    "getidle": '$idle = getidle()\nifgreater($idle.idle_seconds, 600, say("Inattivo da " + trim($idle.idle_seconds) + "s"), say("Attivo"))',
+    "filter_json": '$lista = filter_json($dati, "- {titolo} ({anno})")',
+    "filter_json con filtro": '$filtro = filter_json($dati, "{nome}: {email}", "citta=Roma")',
+    "filter_json con filtro numerico": '$risultati = filter_json($dati, "{nome}", "eta>=18")',
+    "get_idle": '$idle = get_idle()\nif_greater($idle.idle_seconds, 600, say("Inattivo da " + trim($idle.idle_seconds) + "s"), say("Attivo"))',
     "listen → say": '$testo = listen()\nsay($testo)',
     "screen_search → listen → screen_search": (
         '$richiesta = listen("Cosa vuoi cercare?")\n'
         'say("Cerco $richiesta")\n'
         '$risultati = screen_search($richiesta)\n'
-        'ifempty($risultati, say("Non trovato"), screen_highlight($_sx, $_sy, $_sw, $_sh, 3.0))'
+        'if_empty($risultati, say("Non trovato"), screen_highlight($_sx, $_sy, $_sw, $_sh, 3.0))'
     ),
 }
 

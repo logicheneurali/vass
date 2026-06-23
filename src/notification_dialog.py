@@ -216,6 +216,17 @@ class NotificationDialog:
                         f'<a href="{escaped_link}" style="color:{BTN_BG}; font-size:11px; text-decoration:none;">'
                         f'{self._t("rss.read_article")}</a></div>'
                     )
+                elif ntype == "mail" and data.get("link"):
+                    link = data.get("link", "")
+                    escaped_link = link.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+                    parts.append(
+                        f'<div style="padding:6px 0;">'
+                        f'<span style="color:{icon_color};">{icon}</span> '
+                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
+                        f'<span style="color:{FG};">{escaped_txt}</span><br>'
+                        f'<a href="{escaped_link}" style="color:{BTN_BG}; font-size:11px; text-decoration:none;">'
+                        f'{self._t("notifications.read_online")}</a></div>'
+                    )
                 else:
                     parts.append(
                         f'<div style="padding:6px 0;">'

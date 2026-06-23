@@ -89,7 +89,7 @@ screen_click($_sx, $_sy)
 
 ```
 screen_search("OK")
-$found = ifempty($_sx, "Nothing found", "Found at {$_sx}, {$_sy}")
+$found = if_empty($_sx, "Nothing found", "Found at {$_sx}, {$_sy}")
 say($found)
 ```
 
@@ -112,72 +112,72 @@ screen_highlight(500, 300, 200, 100, 2.0)
 ```
 
 
-### **`setActiveWindow(name)`**
+### **`set_active_window(name)`**
 Activates a window by process name or title substring (case-insensitive, requires authorization).
 First searches by process name, then by window title.
-Returns "ok" if found, "not found" otherwise.
+Returns "ok" if found, "not found" otherwise. (alias: `setActivewindow`)
 
 ```
-setActiveWindow("firefox")
-setActiveWindow("notepad")
-$result = setActiveWindow("chrome")
+set_active_window("firefox")
+set_active_window("notepad")
+$result = set_active_window("chrome")
 say("Window: {$result}")
 ```
 
 
-### **`sendText(text)`**
+### **`send_text(text)`**
 Simulates typing each character with human-like random delays (0.10-0.15s between keys).
-Supports `\n` for Enter key and `\t` for Tab key. Requires authorization.
+Supports `\n` for Enter key and `\t` for Tab key. Requires authorization. (alias: `sendtext`)
 
 ```
-sendText("Hello World")
-sendText("First line\nSecond line")
-setActiveWindow("notepad")
+send_text("Hello World")
+send_text("First line\nSecond line")
+set_active_window("notepad")
 wait(0.5)
-sendText("VASS says hello!")
+send_text("VASS says hello!")
 ```
 
 
-### **`addevent(date, time, duration, description, recur?)`**
+### **`add_event(date, time, duration, description, recur?)`**
 Adds an event to events.json. Requires authorization. Name is auto-generated.
-Optional `recur` parameter for recurring events: "1d"=daily, "7d"=weekly, "1m"=monthly, "2h"=every 2 hours.
+Optional `recur` parameter for recurring events: "1d"=daily, "7d"=weekly, "1m"=monthly, "2h"=every 2 hours. (alias: `addevent`)
 
 ```
-addevent("2026-06-10", "14:30", "60", "Riunione team")
-addevent("2026-06-12", "08:00", "5", "Pillola", "1d")    # every day
-addevent("2026-06-02", "09:00", "30", "Chiamata", "7d")  # weekly
+add_event("2026-06-10", "14:30", "60", "Riunione team")
+add_event("2026-06-12", "08:00", "5", "Pillola", "1d")    # every day
+add_event("2026-06-02", "09:00", "30", "Chiamata", "7d")  # weekly
 
 ```
 
 
-### **`listevents(until_date)`**
-Lists upcoming events from today to until_date. Returns a JSON array.
+### **`list_events(until_date)`**
+Lists upcoming events from today to until_date. Returns a JSON array. (alias: `listevents`)
 
 ```
-$events = listevents("2026-12-31")
+$events = list_events("2026-12-31")
 say($events)
 ```
 
 
-### **`removeevent(description, date?, time?)`**
+### **`remove_event(description, date?, time?)`**
 Removes an event by fuzzy-matching the description (threshold 0.75). Requires authorization.
 Optional `date` (`YYYY-MM-DD`) and `time` (`HH:MM`) to disambiguate matching events.
 If multiple events match without date/time, returns the list instead of deleting.
-Alias: `delevent(description, date?, time?)`
+Aliases: `removeevent`, `delevent`, `delete_event`
 ```
-removeevent("riunione team")
-delevent("Meeting", "2026-06-15", "14:00")
-$result = removeevent("chiamata")
+remove_event("riunione team")
+delete_event("Meeting", "2026-06-15", "14:00")
+$result = remove_event("chiamata")
 say($result)                    # says "ok: removed 'Chiamata' on 2026-06-12 at 09:00"
 ```
 
 
-### **`savetags(tags)`**
-Classifies the current message with comma-separated memory tags. Tags are validated against a predefined list. Only saved if total relevance >= 10. No auth required.
+### **`save_tags(tags)`**
+Classifies the current message with comma-separated memory tags. Tags are validated against a predefined list. Only saved if total relevance >= 10. No auth required. (alias: `savetags`)
 
 ```
-savetags("food,health,pets")    # saves to memory_tags.json if relevance >= 10
-$result = savetags("generic")   # returns "skipped: relevance 1 < 10"
+save_tags("food,health,pets")    # saves to memory_tags.json if relevance >= 10
+$result = save_tags("generic")   # returns "skipped: relevance 1 < 10"
 ```
 
 
@@ -303,12 +303,12 @@ say("Temperatura: $temperature C, percepita: $feels_like, unita: $temperature_un
 ```
 
 
-### **`getidle()`**
-Returns system idle time in seconds since last user input (keyboard/mouse) or voice command. Returns JSON with a single key.
+### **`get_idle()`**
+Returns system idle time in seconds since last user input (keyboard/mouse) or voice command. Returns JSON with a single key. (alias: `getidle`)
 
 ```
-$idle = getidle()
-ifgreater($idle.idle_seconds, 600, say("Inattivo da troppo tempo"), say("Utente attivo"))
+$idle = get_idle()
+if_greater($idle.idle_seconds, 600, say("Inattivo da troppo tempo"), say("Utente attivo"))
 ```
 
 
@@ -331,138 +331,164 @@ say("Saved: {$id}")
 ```
 
 
-### **`getdatetime()`**
-Returns current local date and time in "YYYY-MM-DD HH:MM" format. No auth required.
+### **`get_datetime()`**
+Returns current local date and time in "YYYY-MM-DD HH:MM" format. No auth required. (alias: `getdatetime`)
 
 ```
-$now = getdatetime()
+$now = get_datetime()
 say($now)    # says "2026-06-02 14:30"
 ```
 
 
-### **`prettyevents(json)`**
-Formats the JSON output of listevents() into readable text. No auth required.
+### **`pretty_events(json)`**
+Formats the JSON output of `list_events()` into readable text. No auth required. (alias: `prettyevents`)
 
 ```
-$events = listevents("2026-12-31")
-$text = prettyevents($events)
+$events = list_events("2026-12-31")
+$text = pretty_events($events)
 say($text)    # says "Monday 02 June 2026 14:30 Riunione (60 min)"
 ```
 
 
-### **`clipboardget()`**
-Returns the current clipboard text content. Requires authorization.
+### **`filter_json(json, format, ...conditions)`**
+Filters a JSON array of objects (or a single object) and formats each matching item as a human-readable line. No auth required.
+
+`format` is a template string with `{field}` placeholders. Optional `conditions` are `key=value` (exact, case-insensitive) or `key>=value`, `key>value`, `key<=value`, `key<value` (numeric comparison when both sides are numeric, string comparison otherwise). Multiple conditions are AND-ed.
 
 ```
-$text = clipboardget()
+$data = '[{"name":"Alice","age":30,"city":"Roma"},{"name":"Bob","age":25,"city":"Milano"}]'
+
+# Formatta senza filtri
+$list = filter_json($data, "{name} ({age}), {city}")
+# → "Alice (30), Roma\nBob (25), Milano"
+
+# Filtro esatto + formatta
+$list = filter_json($data, "{name}", "city=roma")
+# → "Alice"
+
+# Filtro numerico
+$list = filter_json($data, "{name} vive a {city}", "age>=25")
+# → "Alice vive a Roma\nBob vive a Milano"
+
+# Oggetto singolo
+$meteo = filter_json('{"citta":"Torino","temp":18}', "{citta}: {temp}C", "temp<20")
+# → "Torino: 18C"
+```
+
+
+### **`clipboard_get()`**
+Returns the current clipboard text content. Requires authorization. (alias: `clipboardget`)
+
+```
+$text = clipboard_get()
 say($text)
 ```
 
 
-### **`clipboardset(text)`**
-Sets the clipboard text content. Requires authorization.
+### **`clipboard_set(text)`**
+Sets the clipboard text content. Requires authorization. (alias: `clipboardset`)
 
 ```
-clipboardset("Hello from VASS")
+clipboard_set("Hello from VASS")
 ```
 
 
-### **`readinfo(id)`**
-Reads an info file by its ID from the memory storage. Requires authorization.
+### **`read_info(id)`**
+Reads an info file by its ID from the memory storage. Requires authorization. (alias: `readinfo`)
 
 ```
-$info = readinfo("1780297134565")
+$info = read_info("1780297134565")
 say($info)
 ```
 
 
-### **`writeinfo(text)`**
-Writes text to a new info file. Returns the file ID. Requires authorization.
+### **`write_info(text)`**
+Writes text to a new info file. Returns the file ID. Requires authorization. (alias: `writeinfo`)
 
 ```
-$id = writeinfo("Important user data")
+$id = write_info("Important user data")
 say("Saved with ID: {$id}")
 ```
 
 
-### **`readstate(key)`**
-Reads a persistent key-value state from the current session memory. Returns the stored value or empty string. State is shared across all VASScript executions but lost on restart. No authorization required.
+### **`read_state(key)`**
+Reads a persistent key-value state from the current session memory. Returns the stored value or empty string. State is shared across all VASScript executions but lost on restart. No authorization required. (alias: `readstate`)
 
 ```
-$last = readstate("ventilatore")
-ifequals($last, "acceso", exit(), say("Stato cambiato"))
+$last = read_state("ventilatore")
+if_equals($last, "acceso", exit(), say("Stato cambiato"))
 ```
 
 
-### **`writestate(key, value)`**
-Writes a key-value pair to the current session memory. Returns "ok". State is shared across all VASScript executions but lost on restart. Useful for tracking state between scheduled script runs. No authorization required.
+### **`write_state(key, value)`**
+Writes a key-value pair to the current session memory. Returns "ok". State is shared across all VASScript executions but lost on restart. Useful for tracking state between scheduled script runs. No authorization required. (alias: `writestate`)
 
 ```
-writestate("ventilatore", "acceso")
-writestate("last_check", "2026-06-15 14:30")
+write_state("ventilatore", "acceso")
+write_state("last_check", "2026-06-15 14:30")
 ```
 
 
 ## Conditional Functions
 
 
-### **`ifcontains(variable, substring, if_true, if_false?)`**
-Checks if variable contains substring. Returns value from the appropriate branch.
+### **`if_contains(variable, substring, if_true, if_false?)`**
+Checks if variable contains substring. Returns value from the appropriate branch. (alias: `ifcontains`)
 
 ```
-$status = ifcontains($response, "error", "Failed", "Success")
+$status = if_contains($response, "error", "Failed", "Success")
 say($status)
 ```
 
 
-### **`ifempty(variable, if_empty, if_not_empty?)`**
-Checks if variable is empty.
+### **`if_empty(variable, if_empty, if_not_empty?)`**
+Checks if variable is empty. (alias: `ifempty`)
 
 ```
-$name = ifempty($username, "Guest", $username)
+$name = if_empty($username, "Guest", $username)
 say("Welcome {$name}")
 ```
 
 
-### **`ifgreater(a, b, if_true, if_false?)`**
-Numeric comparison: returns if_true branch if a > b, otherwise if_false.
+### **`if_greater(a, b, if_true, if_false?)`**
+Numeric comparison: returns if_true branch if a > b, otherwise if_false. (alias: `ifgreater`)
 
 ```
-ifgreater($score, 10, say("Hai vinto"), say("Riprova"))
-```
-
-
-### **`ifless(a, b, if_true, if_false?)`**
-Numeric comparison: returns if_true branch if a < b, otherwise if_false.
-
-```
-ifless($temperatura, 0, say("Sotto zero!"), say("Sopra zero"))
+if_greater($score, 10, say("Hai vinto"), say("Riprova"))
 ```
 
 
-### **`ifgreaterequal(a, b, if_true, if_false?)`**
-Numeric comparison: returns if_true branch if a >= b, otherwise if_false.
+### **`if_less(a, b, if_true, if_false?)`**
+Numeric comparison: returns if_true branch if a < b, otherwise if_false. (alias: `ifless`)
 
 ```
-$msg = ifgreaterequal($eta, 18, "Maggiorenne", "Minorenne")
+if_less($temperatura, 0, say("Sotto zero!"), say("Sopra zero"))
+```
+
+
+### **`if_greater_equal(a, b, if_true, if_false?)`**
+Numeric comparison: returns if_true branch if a >= b, otherwise if_false. (alias: `ifgreaterequal`)
+
+```
+$msg = if_greater_equal($eta, 18, "Maggiorenne", "Minorenne")
 say($msg)
 ```
 
 
-### **`iflessequal(a, b, if_true, if_false?)`**
-Numeric comparison: returns if_true branch if a <= b, otherwise if_false.
+### **`if_less_equal(a, b, if_true, if_false?)`**
+Numeric comparison: returns if_true branch if a <= b, otherwise if_false. (alias: `iflessequal`)
 
 ```
-iflessequal($tentativi, 3, say("Ancora possibile"), say("Game over"))
+if_less_equal($tentativi, 3, say("Ancora possibile"), say("Game over"))
 ```
 
 
-### **`ifequals(a, b, if_true, if_false?)`**
-String comparison: returns if_true branch if a == b, otherwise if_false.
+### **`if_equals(a, b, if_true, if_false?)`**
+String comparison: returns if_true branch if a == b, otherwise if_false. (alias: `ifequals`)
 
 ```
-ifequals($status, "ok", say("Successo"), say("Fallito"))
-ifequals($last, "acceso", exit(), say("Stato cambiato"))
+if_equals($status, "ok", say("Successo"), say("Fallito"))
+if_equals($last, "acceso", exit(), say("Stato cambiato"))
 ```
 
 ## Utility Functions
@@ -483,14 +509,14 @@ Returns "True" or "False" depending on whether text contains substring.
 ### **`equals(a, b)`**
 Returns "True" or "False" depending on whether a equals b.
 
-### **`tonum(value)`**
-Converts a value to its numeric form. Returns integer if whole, float otherwise. Returns the original value if conversion fails.
+### **`to_num(value)`**
+Converts a value to its numeric form. Returns integer if whole, float otherwise. Returns the original value if conversion fails. (alias: `tonum`)
 
 ```
 $temp = get_weather("Rome")
-$current = tonum($temp.temperature)
+$current = to_num($temp.temperature)
 $threshold = 30
-ifgreater($current, $threshold, say("Fa caldo!"), say("Temperatura gradevole"))
+if_greater($current, $threshold, say("Fa caldo!"), say("Temperatura gradevole"))
 ```
 
 ### **`add(a, b)`**
@@ -498,7 +524,7 @@ Returns the sum of two numeric values.
 
 ```
 $result = add(5, 3)                     # → 8
-$total = add(tonum($x), tonum($y))
+$total = add(to_num($x), to_num($y))
 $five_minutes_from_now = add($timestamp, 300000)
 ```
 
@@ -507,7 +533,7 @@ Returns the result of subtracting b from a.
 
 ```
 $diff = sub(10, 4)                      # → 6
-$one_hour_before = sub(tonum($temp.sunset_timestamp), 3600000)
+$one_hour_before = sub(to_num($temp.sunset_timestamp), 3600000)
 $countdown = sub(100, $progress)
 ```
 
@@ -535,12 +561,12 @@ print("Debug: variabile X vale " . $x)
 ```
 
 
-### **`readfile(path)`**
-Reads a file from the Allowed_root directory. Path traversal is blocked for security. Returns the file content as text.
+### **`read_file(path)`**
+Reads a file from the Allowed_root directory. Path traversal is blocked for security. Returns the file content as text. (alias: `readfile`)
 
 ```
-$content = readfile("events.json")
-$data = readfile("memory/config.txt")
+$content = read_file("events.json")
+$data = read_file("memory/config.txt")
 ```
 
 
@@ -562,7 +588,7 @@ Contains the current language code (e.g. `"it"`, `"en"`, `"de"`, `"fr"`, `"es"`,
 
 ```
 say("Current language is {$_lang}")
-$dt = getdatetime($_lang)   # formatted in current language
+$dt = get_datetime($_lang)   # formatted in current language
 
 ```
 
@@ -622,5 +648,5 @@ say($response)
 ```
 screen_highlight(100, 100, 200, 50)
 $found = screen_search("Login")
-ifcontains($found, "Login", say("Login button found"), say("Not found"))
+if_contains($found, "Login", say("Login button found"), say("Not found"))
 ```

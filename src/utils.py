@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 import unicodedata
+from difflib import SequenceMatcher
 from openai import APIConnectionError
 from urllib.parse import urlparse
 
@@ -310,3 +311,92 @@ def clean_for_tts(text, max_len=300, truncated_suffix="..."):
     if len(text) > max_len:
         text = text[:max_len].rsplit(" ", 1)[0] + truncated_suffix
     return text
+
+
+# ── Crypto utilities ──────────────────────────────────────────────────────────
+
+_fernet_cache = None
+
+
+def _get_fernet():
+    global _fernet_cache
+    if _fernet_cache is not None:
+        return _fernet_cache
+    try:
+        from cryptography.fernet import Fernet
+    except ImportError:
+        print("[Crypto] cryptography library not available")
+        return None
+    key = _get_or_create_key()
+    if key:
+        _fernet_cache = Fernet(key)
+    return _fernet_cache
+
+
+def _get_or_create_key():
+    try:
+        import keyring
+        key = keyring.get_password("vass", "fernet_key")
+        if key:
+            return key.encode()
+        from cryptography.fernet import Fernet
+        new_key = Fernet.generate_key()
+        keyring.set_password("vass", "fernet_key", new_key.decode())
+        return new_key
+    except Exception:
+        pass
+    import platform, getpass, hashlib, base64
+    machine_id = platform.node() + getpass.getuser()
+    return base64.urlsafe_b64encode(hashlib.sha256(machine_id.encode()).digest())
+
+
+def encrypt_fields(entry, keep_plain=None):
+    if keep_plain is None:
+        keep_plain = {"id"}
+    f = _get_fernet()
+    if f is None:
+        return entry
+    out = {}
+    for k, v in entry.items():
+        if k in keep_plain:
+            out[k] = v
+        elif isinstance(v, str) and v.startswith("gAAAAA"):
+            out[k] = v
+        else:
+            out[k] = f.encrypt(str(v).encode()).decode()
+    return out
+
+
+def decrypt_fields(entry):
+    f = _get_fernet()
+    if f is None:
+        return entry
+    out = {}
+    for k, v in entry.items():
+        if isinstance(v, str) and v.startswith("gAAAAA"):
+            try:
+                out[k] = f.decrypt(v.encode()).decode()
+            except Exception:
+                out[k] = v
+        else:
+            out[k] = v
+
+
+# ── Fuzzy matching utilities ──────────────────────────────────────────────────
+
+def fuzzy_ratio(a, b):
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
+
+def fuzzy_match_word(prompt, keywords, threshold=0.75, min_len=4):
+    prompt_words = prompt.split()
+    for kw in keywords:
+        if len(kw) < min_len or ' ' in kw:
+            continue
+        for word in prompt_words:
+            if len(word) < min_len:
+                continue
+            if SequenceMatcher(None, kw, word).ratio() >= threshold:
+                return True
+    return False
+    return out

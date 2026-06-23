@@ -5,10 +5,10 @@ import subprocess
 import threading
 import time
 
-from utils import call_with_retry, execute_mcp_tool_calls, init_mcp
+from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, fuzzy_ratio
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "setactivewindow", "addevent", "listevents", "removeevent", "readinfo", "writeinfo", "clipboardget", "clipboardset", "savetags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "fetch_text", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "rss_fetch"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal"}
 
 
 def _is_int_str(s):
@@ -208,8 +208,11 @@ class VASScript:
             name = m.group(1)
             if name.startswith("$"):
                 name = name[1:]
+                if "." in name:
+                    return self._resolve_dotted_var(name)
+                return self.vars.get(name, m.group(0))
             if "." in name:
-                return self._resolve_dotted_var(name)
+                return m.group(0)
             return self.vars.get(name, m.group(0))
         return re.sub(r"\{(\$?\w+(?:\.\w+)*)\}", _repl, text)
 
@@ -258,7 +261,7 @@ class VASScript:
         def _eval_all(nodes):
             return [self._evaluate(n) for n in nodes]
 
-        if name == "ifcontains":
+        if name in ("ifcontains", "if_contains"):
             cond_raw = args[:2]
             cond = _eval_all(cond_raw)
             var_val = cond[0] if cond else ""
@@ -269,7 +272,7 @@ class VASScript:
                 return self._evaluate(args[3])
             return ""
 
-        if name == "ifempty":
+        if name in ("ifempty", "if_empty"):
             var_val = self._evaluate(args[0]) if args else ""
             if not var_val and len(args) > 1:
                 return self._evaluate(args[1])
@@ -277,10 +280,10 @@ class VASScript:
                 return self._evaluate(args[2])
             return ""
 
-        if name in ("ifgreater", "ifless", "ifgreaterequal", "iflessequal", "ifequals"):
+        if name in ("ifgreater", "ifless", "ifgreaterequal", "iflessequal", "ifequals", "if_greater", "if_less", "if_greater_equal", "if_less_equal", "if_equals"):
             a_str = self._evaluate(args[0]) if args else "0"
             b_str = self._evaluate(args[1]) if len(args) > 1 else "0"
-            if name == "ifequals":
+            if name in ("ifequals", "if_equals"):
                 a, b = a_str, b_str
             elif _is_int_str(b_str) and _is_int_str(a_str):
                 a, b = int(a_str), int(b_str)
@@ -288,13 +291,13 @@ class VASScript:
                 a, b = float(a_str), float(b_str)
             else:
                 a, b = a_str, b_str
-            if name == "ifgreater":
+            if name in ("ifgreater", "if_greater"):
                 cond = a > b
-            elif name == "ifless":
+            elif name in ("ifless", "if_less"):
                 cond = a < b
-            elif name == "ifgreaterequal":
+            elif name in ("ifgreaterequal", "if_greater_equal"):
                 cond = a >= b
-            elif name == "iflessequal":
+            elif name in ("iflessequal", "if_less_equal"):
                 cond = a <= b
             else:
                 cond = a == b
@@ -452,7 +455,7 @@ class VASScript:
         if name == "len":
             return str(len(evaluated[0] if evaluated else ""))
 
-        if name == "tonum":
+        if name in ("tonum", "to_num"):
             val = evaluated[0] if evaluated else ""
             try:
                 f = float(val)
@@ -605,7 +608,6 @@ class VASScript:
                 )
                 VASScript._ocr_active_langs = lang_codes
             results = VASScript._ocr_reader.readtext(frame)
-            import difflib as _difflib
             matches = []
             for bbox, text, conf in results:
                 ql = query.lower()
@@ -613,7 +615,7 @@ class VASScript:
                 if ql in tl:
                     ratio = 1.0
                 else:
-                    ratio = _difflib.SequenceMatcher(None, ql, tl).ratio()
+                    ratio = fuzzy_ratio(ql, tl)
                     if ratio < 0.70:
                         continue
                 xs = [p[0] for p in bbox]
@@ -644,7 +646,7 @@ class VASScript:
                 self.vars["_sh"] = ""
             return json.dumps(matches, ensure_ascii=False)
 
-        if name == "sendtext":
+        if name in ("sendtext", "send_text"):
             text = evaluated[0] if evaluated else ""
             if text:
                 from pynput.keyboard import Controller, Key
@@ -663,14 +665,14 @@ class VASScript:
                     time.sleep(_random.uniform(0.10, 0.15))
             return "ok"
 
-        if name == "setactivewindow":
+        if name in ("setactivewindow", "set_active_window"):
             name_arg = evaluated[0] if evaluated else ""
             if name_arg:
                 from window_manager import set_active_window
                 return "ok" if set_active_window(name_arg) else "not found"
             return "not found"
 
-        if name == "addevent":
+        if name in ("addevent", "add_event"):
             d = evaluated[0] if evaluated else ""
             t = evaluated[1] if len(evaluated) > 1 else "00:00"
             dur = evaluated[2] if len(evaluated) > 2 else "60"
@@ -678,32 +680,32 @@ class VASScript:
             recur = evaluated[4] if len(evaluated) > 4 else ""
             return self._manage_events("add", d, t, dur, desc, recur)
 
-        if name == "listevents":
+        if name in ("listevents", "list_events"):
             until = evaluated[0] if evaluated else ""
             return self._manage_events("list", until)
 
-        if name == "removeevent" or name == "delevent":
+        if name in ("removeevent", "delevent", "remove_event", "delete_event"):
             ename = evaluated[0] if evaluated else ""
             date = evaluated[1] if len(evaluated) > 1 else ""
             time_arg = evaluated[2] if len(evaluated) > 2 else ""
             return self._manage_events("remove", ename, date, time_arg)
 
-        if name == "readinfo":
+        if name in ("readinfo", "read_info"):
             vid = evaluated[0] if evaluated else ""
             return self._manage_info("read", vid)
 
-        if name == "writeinfo":
+        if name in ("writeinfo", "write_info"):
             text = evaluated[0] if evaluated else ""
             return self._manage_info("write", text)
 
-        if name == "readstate":
+        if name in ("readstate", "read_state"):
             key = evaluated[0] if evaluated else ""
             val = VASScript._state.get(key, "")
             if getattr(self.app, 'debug_enabled', False):
                 print(f"[VASScript] readstate({key!r}) -> {val!r}")
             return val
 
-        if name == "writestate":
+        if name in ("writestate", "write_state"):
             key = evaluated[0] if evaluated else ""
             val = evaluated[1] if len(evaluated) > 1 else ""
             if key:
@@ -713,14 +715,14 @@ class VASScript:
                 return "ok"
             return "error: key required"
 
-        if name == "clipboardget":
+        if name in ("clipboardget", "clipboard_get"):
             try:
                 import pyperclip
                 return pyperclip.paste()
             except Exception:
                 return ""
 
-        if name == "clipboardset":
+        if name in ("clipboardset", "clipboard_set"):
             text = evaluated[0] if evaluated else ""
             try:
                 import pyperclip
@@ -729,7 +731,7 @@ class VASScript:
             except Exception:
                 return "error"
 
-        if name == "savetags":
+        if name in ("savetags", "save_tags"):
             tags = evaluated[0] if evaluated else ""
             return self._manage_memory_tags(tags)
 
@@ -758,9 +760,20 @@ class VASScript:
             text = evaluated[0] if evaluated else ""
             return self.app.inject_memory(text)
 
+        if name == "compress_memory":
+            try:
+                self.app._trim_memory_if_needed(force=True)
+                return "ok: memory compression completed"
+            except Exception as e:
+                return f"error: {e}"
+
         if name == "fetch_text":
             url = evaluated[0] if evaluated else ""
             return self._fetch_web(url, "webfetch")
+
+        if name == "fetch_json":
+            url = evaluated[0] if evaluated else ""
+            return self._fetch_json(url)
 
         if name == "search_web":
             query = evaluated[0] if evaluated else ""
@@ -803,7 +816,7 @@ class VASScript:
             loc = evaluated[0] if evaluated else ""
             return self._do_weather(loc)
 
-        if name == "getidle":
+        if name in ("getidle", "get_idle"):
             if hasattr(self.app, 'idle_tracker') and self.app.idle_tracker:
                 seconds = self.app.idle_tracker.get_total_idle_seconds()
                 if getattr(self.app, 'debug_enabled', False):
@@ -820,7 +833,7 @@ class VASScript:
                     seconds = -1
             return '{"idle_seconds": ' + f'{seconds:.1f}' + '}'
 
-        if name == "getdatetime":
+        if name in ("getdatetime", "get_datetime"):
             from datetime import datetime
             lang = (evaluated[0] if evaluated else "").strip().lower()
             now = datetime.now()
@@ -870,14 +883,20 @@ class VASScript:
                 "date": now.strftime("%Y-%m-%d"),
                 "time": now.strftime("%H:%M"),
                 "timestamp": str(ts),
+                "year": str(now.year),
+                "month": str(now.month),
+                "day": str(now.day),
             }
             self.vars["datetime"] = dt_str
             self.vars["date"] = now.strftime("%Y-%m-%d")
             self.vars["time"] = now.strftime("%H:%M")
             self.vars["timestamp"] = str(ts)
+            self.vars["year"] = str(now.year)
+            self.vars["month"] = str(now.month)
+            self.vars["day"] = str(now.day)
             return json.dumps(result)
 
-        if name == "prettyevents":
+        if name in ("prettyevents", "pretty_events"):
             raw = evaluated[0] if evaluated else "[]"
             try:
                 events = json.loads(raw)
@@ -939,12 +958,82 @@ class VASScript:
                 lines.append(line)
             return "\n".join(lines)
 
+        if name == "filter_json":
+            raw = evaluated[0] if evaluated else "[]"
+            fmt = evaluated[1] if len(evaluated) > 1 else "{item}"
+            filters = [f.strip() for f in evaluated[2:] if f.strip()]
+            try:
+                data = json.loads(raw)
+                if isinstance(data, dict):
+                    if "data" in data and isinstance(data["data"], list):
+                        data = data["data"]
+                    else:
+                        data = [data]
+            except Exception:
+                return raw
+            import re as _re
+            def _fj_nested(item, key, default=""):
+                parts = key.split(".")
+                val = item
+                for p in parts:
+                    if isinstance(val, dict):
+                        val = val.get(p)
+                    else:
+                        return default
+                    if val is None:
+                        return default
+                return str(val)
+            for f in filters:
+                m = _re.match(r'^([\w.]+)\s*(>=|<=|>|<|=)\s*(.*)$', f)
+                if not m:
+                    continue
+                key, op, val = m.group(1), m.group(2), m.group(3).strip()
+                filtered = []
+                for item in data:
+                    field_val = _fj_nested(item, key)
+                    try:
+                        fv = float(val)
+                        ff = float(field_val)
+                        numeric = True
+                    except (ValueError, TypeError):
+                        numeric = False
+                    if numeric and op != "=":
+                        cond = (
+                            (op == ">=" and ff >= fv) or
+                            (op == "<=" and ff <= fv) or
+                            (op == ">" and ff > fv) or
+                            (op == "<" and ff < fv)
+                        )
+                    elif numeric and op == "=":
+                        cond = ff == fv
+                    elif op == "=":
+                        cond = field_val.lower() == val.lower()
+                    else:
+                        cond = (
+                            (op == ">=" and field_val >= val) or
+                            (op == "<=" and field_val <= val) or
+                            (op == ">" and field_val > val) or
+                            (op == "<" and field_val < val)
+                        )
+                    if cond:
+                        filtered.append(item)
+                data = filtered
+            if not data:
+                return ""
+            lines = []
+            for item in data:
+                try:
+                    lines.append(fmt.format(**item))
+                except (KeyError, ValueError, AttributeError):
+                    lines.append(_re.sub(r'\{([\w.]+)\}', lambda m: _fj_nested(item, m.group(1)), fmt))
+            return "\n".join(lines)
+
         if name == "print":
             text = evaluated[0] if evaluated else ""
             print(f"[VASScript] {text}", flush=True)
             return ""
 
-        if name == "readfile":
+        if name in ("readfile", "read_file"):
             filepath = evaluated[0] if evaluated else ""
             if not filepath:
                 return "error: path required"
@@ -1066,7 +1155,6 @@ class VASScript:
     def _manage_events(self, action, *args):
         import difflib
         from datetime import date as _date
-        from utils import init_mcp
 
         mcp, _ = init_mcp(self.app.mcp_server_url, timeout=10)
         if not mcp:
@@ -1195,7 +1283,7 @@ class VASScript:
                 return "not found: no events"
             matches = []
             for e in events:
-                ratio = difflib.SequenceMatcher(None, event_name.lower(), e.get("description", "").lower()).ratio()
+                ratio = fuzzy_ratio(event_name, e.get("description", ""))
                 if ratio >= 0.75:
                     matches.append((ratio, e))
             if not matches:
@@ -1250,6 +1338,37 @@ class VASScript:
             if final and not final.startswith("error:"):
                 cache[cache_key] = (now, final)
             return final
+        except Exception as e:
+            return f"error: {e}"
+
+    def _fetch_json(self, url):
+        if not url:
+            return "error: url required"
+        cache_key = url.strip().lower()
+        now = time.time()
+        if cache_key in VASScript._fetch_cache:
+            ts, cached = VASScript._fetch_cache[cache_key]
+            if now - ts < VASScript._fetch_cache_ttl:
+                return cached
+        try:
+            import httpx
+            accept_headers = ["application/json", "application/vnd.api+json", "*/*"]
+            last_exc = None
+            for accept in accept_headers:
+                try:
+                    r = httpx.get(url, timeout=30, follow_redirects=True,
+                                  headers={"Accept": accept, "User-Agent": "vass/1.0"})
+                    r.raise_for_status()
+                    data = json.loads(r.text)
+                    result = json.dumps(data, ensure_ascii=False)
+                    VASScript._fetch_cache[cache_key] = (now, result)
+                    return result
+                except httpx.HTTPStatusError as e:
+                    last_exc = e
+                    if e.response.status_code != 406:
+                        raise
+                    continue
+            raise last_exc
         except Exception as e:
             return f"error: {e}"
 
@@ -1408,10 +1527,9 @@ class VASScript:
         if key in cls._geonames_index:
             lat, lon, country = cls._geonames_index[key]
             return (lat, lon, country)
-        import difflib
         best, best_r = None, 0
         for name in cls._geonames_index:
-            r = difflib.SequenceMatcher(None, key, name).ratio()
+            r = fuzzy_ratio(key, name)
             if r > best_r:
                 best_r = r
                 best = name

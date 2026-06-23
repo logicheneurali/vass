@@ -7,6 +7,7 @@ import json
 import math
 import re
 from urllib.parse import quote
+from utils import fuzzy_ratio
 
 
 def _levenshtein(a, b):
@@ -296,7 +297,7 @@ class CommandExecutor:
                         best_keyword = keyword
                         best_vars = self._extract_vars_fuzzy(kw_lower, transcribed_lower, var_names)
             else:
-                ratio = difflib.SequenceMatcher(None, transcribed_lower, kw_lower).ratio()
+                ratio = fuzzy_ratio(transcribed_lower, kw_lower)
                 curr_scope = self.scopes.get(keyword, "command")
                 if ratio > best_ratio or (ratio == best_ratio and curr_scope == "delayed_command" and self.scopes.get(best_keyword, "command") != "delayed_command"):
                     best_ratio = ratio

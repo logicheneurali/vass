@@ -411,6 +411,7 @@
     "google_auth_expired": "⚠ Credenziali Google scadute. Apri Impostazioni → Servizi Esterni → Avvia configurazione.",
     "new_email": "Nuova Mail da {from}: {subject}",
     "email_truncated": "... Testo completo su Gmail",
+    "read_online": "Leggi online",
     "auto_model_selected": "Modello AI mancante. Auto-selezionato {model}"
   },
   "setup_google": {
@@ -520,7 +521,17 @@
       "browser",
       "consulta",
       "apri",
-      "leggi"
+      "leggi",
+      "informazione",
+      "informazioni",
+      "notizia",
+      "notizie",
+      "articolo",
+      "articoli",
+      "wikipedia",
+      "blog",
+      "google",
+      "verifica"
     ],
     "calendar": [
       "calendario",
@@ -537,7 +548,17 @@
       "incontro",
       "riunione",
       "scadenza",
-      "promemoria"
+      "promemoria",
+      "sincronizza",
+      "invito",
+      "inviti",
+      "condividi",
+      "ripeti",
+      "annulla",
+      "rinvia",
+      "sposta",
+      "disponibile",
+      "occupato"
     ],
     "files": [
       "file",
@@ -554,10 +575,21 @@
       "cartella",
       "export",
       "import",
-      "salvataggio"
+      "salvataggio",
+      "crea",
+      "elimina",
+      "rinomina",
+      "modifica",
+      "scarica",
+      "carica",
+      "allegato",
+      "allegati",
+      "stampa",
+      "converti"
     ],
     "events": [
       "evento",
+      "eventi",
       "promemoria",
       "sveglia",
       "notifica",
@@ -571,10 +603,21 @@
       "orario",
       "data",
       "pianifica",
-      "ricorda"
+      "ricorda",
+      "compleanno",
+      "compleanni",
+      "anniversario",
+      "anniversari",
+      "festa",
+      "feste",
+      "vacanza",
+      "vacanze",
+      "ferie",
+      "riunione"
     ],
     "time": [
       "ora",
+      "ore",
       "data",
       "tempo",
       "orario",
@@ -588,7 +631,17 @@
       "periodo",
       "giorno",
       "mese",
-      "anno"
+      "anno",
+      "minuto",
+      "secondo",
+      "settimana",
+      "settimane",
+      "matina",
+      "sera",
+      "domani",
+      "ieri",
+      "tra quanto",
+      "prossimo"
     ],
     "compute": [
       "calcola",
@@ -616,12 +669,23 @@
       "<",
       ">",
       "piu",
+      "piu'",
       "più",
       "meno",
       "per",
       "diviso",
       "radice",
-      "quadrato"
+      "quadrato",
+      "percentuale",
+      "media",
+      "proporzione",
+      "arrotonda",
+      "stima",
+      "converti",
+      "valuta",
+      "sconto",
+      "percentuali",
+      "medie"
     ],
     "lang": [
       "lingua",
@@ -638,7 +702,17 @@
       "analizza",
       "frase",
       "parola",
-      "linguaggio"
+      "linguaggio",
+      "coniuga",
+      "sinonimo",
+      "sinonimi",
+      "contrario",
+      "contrari",
+      "pronuncia",
+      "plurale",
+      "singolare",
+      "espressione",
+      "modo di dire"
     ],
     "clipboard": [
       "copia",
@@ -655,7 +729,17 @@
       "temporaneo",
       "riporta",
       "inserisci",
-      "prendi"
+      "prendi",
+      "seleziona",
+      "annulla",
+      "ripeti",
+      "pulisci",
+      "svuota",
+      "cronologia",
+      "snapshot",
+      "cattura",
+      "taglia",
+      "incolla speciale"
     ],
     "idle": [
       "inattivo",
@@ -663,6 +747,7 @@
       "pausa",
       "idle",
       "attività",
+      "attivita",
       "riposo",
       "stop",
       "bloccato",
@@ -672,7 +757,17 @@
       "lavoro",
       "schermo",
       "computer",
-      "stato"
+      "stato",
+      "timeout",
+      "non disturbare",
+      "disponibile",
+      "attivo",
+      "lavorando",
+      "digitando",
+      "mouse",
+      "tastiera",
+      "input",
+      "interazione"
     ],
     "tags": [
       "tag",
@@ -689,7 +784,17 @@
       "organizzare",
       "ricordare",
       "contesto",
-      "tema"
+      "tema",
+      "parola chiave",
+      "parole chiave",
+      "metadati",
+      "indice",
+      "filtra",
+      "ordina",
+      "segnalibro",
+      "segnalibri",
+      "preferito",
+      "preferiti"
     ]
   },
   "tool_names": {

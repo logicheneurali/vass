@@ -4,7 +4,6 @@ import os
 import threading
 import time
 
-from prompts import MEMORY_SUMMARIZATION_PROMPT
 from utils import call_with_retry, cleanup_orphan_files
 
 
@@ -191,85 +190,3 @@ class MemoryManager:
     def clear_notes(self):
         self._notes.clear()
 
-    def trim_memory_json(self):
-        mem_path = os.path.join(self._root, "memory.json")
-        if not os.path.exists(mem_path):
-            return
-        try:
-            with open(mem_path, encoding="utf-8") as f:
-                old = json.load(f)
-            history_ids = old.get("history", [])
-            if len(history_ids) <= 20:
-                return
-
-            mem_dir = os.path.join(self._root, "memory")
-            total_size = 0
-            for mid in history_ids:
-                hf = os.path.join(mem_dir, f"{mid}.json")
-                if os.path.exists(hf):
-                    total_size += os.path.getsize(hf)
-
-            threshold = 500_000
-            if total_size <= threshold:
-                return
-
-            print(f"[Memory] Total size {total_size} > threshold {threshold}, compressing...")
-
-            import datetime as _dt
-            recent = history_ids[-6:]
-
-            try:
-                resp = call_with_retry(lambda: self._client.chat.completions.create(
-                    model=getattr(self, '_model', 'gpt-3.5-turbo'),
-                    messages=[{"role": "system", "content": MEMORY_SUMMARIZATION_PROMPT}],
-                ))
-                summary_text = (resp.choices[0].message.content or "").strip()
-                if not summary_text:
-                    old["history"] = recent
-                    with open(mem_path, "w", encoding="utf-8") as f:
-                        json.dump(old, f, ensure_ascii=False, indent=2)
-                    return
-            except Exception:
-                old["history"] = recent
-                with open(mem_path, "w", encoding="utf-8") as f:
-                    json.dump(old, f, ensure_ascii=False, indent=2)
-                return
-
-            import hashlib
-            new_id = hashlib.sha256(summary_text.encode()).hexdigest()[:12]
-            sf = os.path.join(mem_dir, f"{new_id}.json")
-            with open(sf, "w", encoding="utf-8") as f:
-                json.dump({"info": summary_text}, f, ensure_ascii=False, indent=2)
-
-            import re
-            jdat = summary_text
-            try:
-                m = re.search(r'\{[\s\S]*"summary"[\s\S]*\}', summary_text)
-                if m:
-                    jdat = m.group(0)
-                if isinstance(jdat, str):
-                    for kw in ("```json", "```"):
-                        jdat = jdat.replace(kw, "")
-                jdat = jdat.strip()
-                parsed = json.loads(jdat)
-                if isinstance(parsed, dict) and "summary" in parsed:
-                    jdat = json.dumps(parsed["summary"], ensure_ascii=False)
-                elif isinstance(parsed, dict) and "info" in parsed:
-                    jdat = json.dumps(parsed["info"], ensure_ascii=False)
-            except Exception:
-                pass
-
-            with open(sf, "w", encoding="utf-8") as f:
-                json.dump({"info": jdat}, f, ensure_ascii=False, indent=2)
-
-            new_data = {"history": recent, "summary_id": new_id}
-            with open(mem_path, "w", encoding="utf-8") as f:
-                json.dump(new_data, f, ensure_ascii=False, indent=2)
-
-            for mid in old.get("history", []):
-                if mid not in recent:
-                    hf = os.path.join(mem_dir, f"{mid}.json")
-                    if os.path.exists(hf):
-                        os.remove(hf)
-        except Exception as e:
-            print(f"[Memory] Trim failed: {e}")
