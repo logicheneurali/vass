@@ -323,6 +323,7 @@ class VassGUI(QMainWindow):
     stop_tts_signal = Signal()
     schedule_signal = Signal(object)
     auth_requested_signal = Signal(str, str)
+    form_signal = Signal(str, list)
     volume_signal = Signal(float)
     chat_text_signal = Signal(str)
     tool_indicator_signal = Signal(str, str)
@@ -570,6 +571,7 @@ class VassGUI(QMainWindow):
         self.stop_tts_signal.connect(self._on_stop_tts)
         self.schedule_signal.connect(lambda cb: cb(), Qt.ConnectionType.QueuedConnection)
         self.auth_requested_signal.connect(self._on_auth_requested)
+        self.form_signal.connect(self._on_form_requested)
         self.volume_signal.connect(self._on_volume)
         self.tool_indicator_signal.connect(self._on_tool_indicator)
 
@@ -587,9 +589,16 @@ class VassGUI(QMainWindow):
                 import ctypes
                 hwnd = int(self.winId())
                 GWL_EXSTYLE = -20
-                WS_EX_APPWINDOW = 0x00040000
+                #WS_EX_APPWINDOW = 0x00040000
+                WS_EX_APPWINDOW = 0x00000080
                 ex = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
                 ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, ex | WS_EX_APPWINDOW)
+                ico_path = os.path.join(BASE, "vass.ico")
+                hicon = ctypes.windll.user32.LoadImageW(
+                    None, ico_path, 1, 0, 0, 0x00000010)
+                if hicon:
+                    ctypes.windll.user32.SendMessageW(hwnd, 0x80, 1, hicon)
+                    ctypes.windll.user32.SendMessageW(hwnd, 0x80, 0, hicon)
             except Exception:
                 pass
 
@@ -1040,6 +1049,15 @@ class VassGUI(QMainWindow):
         self._auth_event.wait()
         return self._auth_result if self._auth_result else "deny"
 
+    def request_form(self, title, fields):
+        import threading
+        self._form_result = None
+        self._form_event = threading.Event()
+        self.form_signal.emit(title, fields)
+        self._form_event.wait()
+        import json
+        return json.dumps(self._form_result) if self._form_result else "{}"
+
     def _on_auth_requested(self, script_name, func_name):
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
         dlg = QDialog(self)
@@ -1084,6 +1102,99 @@ class VassGUI(QMainWindow):
         dlg.exec()
         if self._auth_result is None:
             self._finish_auth("deny", dlg)
+
+    def _on_form_requested(self, title, fields):
+        from PySide6.QtWidgets import (
+            QDialog, QVBoxLayout, QFormLayout, QHBoxLayout,
+            QPushButton, QLineEdit, QCheckBox, QComboBox, QSpinBox, QTextEdit,
+        )
+        dlg = QDialog(self)
+        dlg.setWindowTitle(title)
+        dlg.setStyleSheet(
+            "QDialog { background-color: #2d2d2d; color: #e0e0e0; }"
+            "QLabel { color: #e0e0e0; font-size: 13px; }"
+            "QLineEdit, QSpinBox, QComboBox, QTextEdit {"
+            " background-color: #3d3d3d; color: #e0e0e0; border: 1px solid #555;"
+            " padding: 4px; font-size: 13px; }"
+            "QPushButton { background-color: #0d7377; color: white;"
+            " border: none; padding: 8px 16px; font-size: 12px; }"
+            "QPushButton:hover { background-color: #0a5c5f; }"
+            "QCheckBox { color: #e0e0e0; }"
+        )
+
+        lo = QVBoxLayout(dlg)
+        form = QFormLayout()
+        form.setSpacing(8)
+        widgets = {}
+
+        for field_def in fields:
+            parts = [p.strip() for p in field_def.split(":", 2)]
+            name = parts[0]
+            ftype = parts[1] if len(parts) > 1 else "text"
+            default = parts[2] if len(parts) > 2 else ""
+
+            if ftype == "text":
+                w = QLineEdit(default)
+            elif ftype == "number":
+                w = QSpinBox()
+                w.setRange(-999999, 999999)
+                if default:
+                    try:
+                        w.setValue(int(default))
+                    except ValueError:
+                        pass
+            elif ftype == "checkbox":
+                w = QCheckBox()
+                w.setChecked(default.lower() in ("si", "sì", "true", "yes", "1"))
+            elif ftype == "select":
+                w = QComboBox()
+                for opt in default.split(","):
+                    w.addItem(opt.strip())
+            elif ftype == "textarea":
+                w = QTextEdit(default)
+                w.setFixedHeight(100)
+            else:
+                w = QLineEdit(default)
+
+            form.addRow(name + ":", w)
+            widgets[name] = w
+
+        lo.addLayout(form)
+        lo.addSpacing(12)
+
+        btn_lo = QHBoxLayout()
+        btn_lo.addStretch()
+        ok_btn = QPushButton("OK")
+        ok_btn.clicked.connect(lambda: self._finish_form(
+            {n: (
+                w.text() if isinstance(w, QLineEdit) else
+                str(w.value()) if isinstance(w, QSpinBox) else
+                "true" if (isinstance(w, QCheckBox) and w.isChecked()) else
+                "false" if isinstance(w, QCheckBox) else
+                w.currentText() if isinstance(w, QComboBox) else
+                w.toPlainText() if isinstance(w, QTextEdit) else
+                ""
+            ) for n, w in widgets.items()}, dlg))
+        cancel_btn = QPushButton(self._t("gui.auth.cancel"))
+        cancel_btn.setStyleSheet(
+            "QPushButton { background-color: #555555; }"
+            "QPushButton:hover { background-color: #777777; }")
+        cancel_btn.clicked.connect(lambda: dlg.reject())
+        btn_lo.addWidget(ok_btn)
+        btn_lo.addWidget(cancel_btn)
+        lo.addLayout(btn_lo)
+
+        dlg.exec()
+        if self._form_result is None:
+            self._form_result = {}
+        if self._form_event:
+            self._form_event.set()
+
+    def _finish_form(self, result, dlg):
+        self._form_result = result
+        dlg.accept()
+        if self._form_event:
+            self._form_event.set()
 
     def _finish_auth(self, result, dlg):
         self._auth_result = result
@@ -1406,19 +1517,17 @@ class VassGUI(QMainWindow):
     def wheelEvent(self, event):
         if self.app and self.app.tts:
             delta = event.angleDelta().y() / 120.0
-            ov = self.app.settings.get("output_volume", 1.0)
-            current_eff = self.app.tts.tts_volume
-            new_eff = max(0.0, min(1.0, current_eff + delta * 0.05))
-            new_base = max(0.0, min(1.0, new_eff / ov)) if ov > 0 else new_eff
-            self.app.tts.update_settings(new_eff)
-            self.volume_top_bar.set_volume(new_eff)
+            new_vol = max(0.0, min(1.0, self.app.app_volume + delta * 0.05))
+            self.app.app_volume = new_vol
+            self.app.tts.update_settings(new_vol)
+            self.volume_top_bar.set_volume(new_vol)
             try:
                 import configparser
                 cfg = configparser.ConfigParser()
                 settings_path = os.path.join(BASE, "config", "settings.ini")
                 if os.path.exists(settings_path):
                     cfg.read(settings_path)
-                cfg.set("tts", "volume", f"{new_base:.2f}")
+                cfg.set("audio", "app_volume", f"{new_vol:.2f}")
                 with open(settings_path, "w") as f:
                     cfg.write(f)
             except Exception:

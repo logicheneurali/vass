@@ -20,13 +20,14 @@ _KOKORO_LANGS = {
 
 
 class TtsEngine:
-    def __init__(self, gui, state_getter, state_setter, tts_volume, language="en", output_device=-1):
+    def __init__(self, gui, state_getter, state_setter, app_volume, language="en", output_device=-1, kokoro_voice=""):
         self.gui = gui
         self._get_state = state_getter
         self._set_state = state_setter
-        self.tts_volume = tts_volume
+        self.app_volume = app_volume
         self.language = language
         self.output_device = None if output_device < 0 else output_device
+        self._kokoro_voice_override = kokoro_voice
 
         self.tts_playing = False
         self.tts_busy = threading.Lock()
@@ -142,7 +143,7 @@ class TtsEngine:
     def _init_kokoro(self):
         lang_code, voice = _KOKORO_LANGS.get(self.language, ("a", "af_heart"))
         self._kokoro_code = lang_code
-        self._kokoro_voice = voice
+        self._kokoro_voice = self._kokoro_voice_override or voice
 
     def preload(self):
         def _load():
@@ -177,10 +178,12 @@ class TtsEngine:
         import sounddevice as sd
         import soundfile as sf
         data, sr = sf.read(wav_path)
-        self._tts_data, self._tts_sr = data, sr
-        peak = np.max(np.abs(self._tts_data))
+        self._tts_sr = sr
+        peak = np.max(np.abs(data))
         if peak > 0:
-            self._tts_data = self._tts_data * (self.tts_volume / peak)
+            self._tts_data = data / peak
+        else:
+            self._tts_data = data
         self._tts_play_start = time.time()
         self._sd_pos = 0
         self._stream_gen += 1
@@ -192,7 +195,7 @@ class TtsEngine:
             if self._tts_data is None:
                 raise sd.CallbackStop()
             n = min(len(self._tts_data) - self._sd_pos, frames)
-            outdata[:n, 0] = self._tts_data[self._sd_pos:self._sd_pos + n]
+            outdata[:n, 0] = self._tts_data[self._sd_pos:self._sd_pos + n] * self.app_volume
             self._sd_pos += n
             if n < frames:
                 outdata[n:, 0] = 0
@@ -214,7 +217,7 @@ class TtsEngine:
             return
 
         if self.gui:
-            self.gui.volume_top_bar.set_volume(self.tts_volume)
+            self.gui.volume_top_bar.set_volume(self.app_volume)
         self.gui.start_tts_playback(
             data=self._tts_data,
             samplerate=self._tts_sr,
@@ -230,11 +233,12 @@ class TtsEngine:
                 self._sd_stream.stop()
             except Exception:
                 pass
-        self._tts_data = audio_data
         self._tts_sr = sample_rate
-        peak = np.max(np.abs(self._tts_data))
+        peak = np.max(np.abs(audio_data))
         if peak > 0:
-            self._tts_data = self._tts_data * (self.tts_volume / peak)
+            self._tts_data = audio_data / peak
+        else:
+            self._tts_data = audio_data
         self._tts_play_start = time.time()
         self._sd_pos = 0
         self._stream_gen += 1
@@ -248,7 +252,7 @@ class TtsEngine:
             if self._tts_data is None:
                 raise sd.CallbackStop()
             n = min(len(self._tts_data) - self._sd_pos, frames)
-            outdata[:n, 0] = self._tts_data[self._sd_pos:self._sd_pos + n]
+            outdata[:n, 0] = self._tts_data[self._sd_pos:self._sd_pos + n] * self.app_volume
             self._sd_pos += n
             if n < frames:
                 outdata[n:, 0] = 0
@@ -269,7 +273,7 @@ class TtsEngine:
             return
 
         if self.gui:
-            self.gui.volume_top_bar.set_volume(self.tts_volume)
+            self.gui.volume_top_bar.set_volume(self.app_volume)
         self.gui.start_tts_playback(
             data=self._tts_data,
             samplerate=sample_rate,
@@ -479,16 +483,20 @@ class TtsEngine:
         elapsed = time.time() - self._tts_play_start
         return max(0, int(elapsed * self._tts_sr))
 
-    def update_settings(self, tts_volume):
-        self.tts_volume = tts_volume
+    def update_settings(self, app_volume):
+        self.app_volume = app_volume
 
     def _on_tts_done(self):
         if not self.tts_playing:
             return
         self.tts_playing = False
+        current = self._get_state()
         prev = self._state_before_tts
-        self._set_state(prev)
-        print(f"[TTS] Playback ended, restored state to {prev}")
+        if current == "playing":
+            self._set_state(prev)
+            print(f"[TTS] Playback ended, restored state to {prev}")
+        else:
+            print(f"[TTS] Playback ended, state changed to {current} (was {prev}), not overwriting")
         self._tts_done.set()
         self.gui.stop_tts_playback()
         self._tts_data = None

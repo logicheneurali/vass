@@ -236,7 +236,7 @@ class ScriptRunner:
             engine = None
             try:
                 engine = VASScript(
-                    app, script_name=script_name, auth_callback=_auth_callback,
+                    app, script_name=script_name, silent=silent, auth_callback=_auth_callback,
                     line_callback=lambda c, t: [
                         app.set_state("running_script", f"{c}/{t}", silent_gui=silent),
                         (None if silent else app.gui.memory_bar.set_value(c, 1, t))
@@ -258,10 +258,7 @@ class ScriptRunner:
                 queue._active_engine = None
                 with queue._lock:
                     if len(queue._queue) == 0:
-                        if app.tts.tts_playing:
-                            app.set_state("playing", silent_gui=silent)
-                        else:
-                            app.set_state("listening", silent_gui=silent)
+                        app.set_state("listening", silent_gui=silent)
 
             if script_error and not result_callback:
                 app.tts.enqueue(f"Errore script: {script_error}")

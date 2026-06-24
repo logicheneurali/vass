@@ -217,6 +217,23 @@ notify("Operazione completata")
 ```
 
 
+### **`form(title, ...fields)`**
+Displays a modal dialog with form fields and returns field values as JSON. Supported types: `text`, `number`, `checkbox`, `select`, `textarea`. Each field is a string `name: type: default`. Fields with no explicit type default to `text`. Requires authorization.
+
+```
+$data = form("Inserisci dati", "nome: text", "età: number: 25", "paese: select: Italia,Francia,Germania", "attivo: checkbox: true", "note: textarea")
+say($data)
+```
+
+- `text` — single-line text input (default)
+- `number` — numeric spinner with min/max bounds
+- `checkbox` — boolean checkbox (default `true`/`false`/`si`/`no`)
+- `select` — dropdown menu; defaults are comma-separated options
+- `textarea` — multi-line text area
+
+Result example: `{"nome": "Mario", "età": "42", "paese": "Francia", "attivo": "true", "note": "testo"}`
+
+
 ### **`gcal_today()`**
 Returns today's Google Calendar events as JSON. Requires prior Google OAuth2 setup via setup_google.py. No auth required.
 ```
