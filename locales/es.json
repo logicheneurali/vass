@@ -23,7 +23,8 @@
       "help_usage": "Uso",
       "help_commands": "Comandos",
       "help_vasscript": "VASScript",
-      "memory_editor": "Memoria Permanente"
+      "memory_editor": "Memoria Permanente",
+      "compact_mode": "Modo compacto"
     },
     "dialog": {
       "exit_title": "Salir",
@@ -82,6 +83,7 @@
       "font_size": "Tamaño fuente",
       "wakeword": "Palabra de activación",
       "volume": "Volumen",
+      "kokoro_voice": "Voz Kokoro",
       "api_key": "Clave API",
       "command": "Comando reproductor",
       "sensitivity": "Sensibilidad",
@@ -113,7 +115,7 @@
       "input_device": "Grabación",
       "output_device": "Reproducción",
       "input_volume": "Ganancia micrófono",
-      "output_volume": "Volumen salida",
+      "app_volume": "Volumen general",
       "calendar_setup": "Iniciar configuración",
       "calendar_enabled": "Google Calendar",
       "calendar_sync_enabled": "Sync automático",
@@ -142,8 +144,9 @@
       "font_size": "Tamaño de texto en píxeles",
       "wakeword": "Palabra de activación (ej. vass, ordenador)",
       "volume": "0.0-1.0, más alto = más fuerte",
+      "kokoro_voice": "Selecciona la voz Kokoro para la síntesis de voz",
       "input_volume": "0.01-1.0, ganancia de entrada",
-      "output_volume": "0.01-1.0, multiplicador de salida",
+      "app_volume": "Volumen principal de la aplicación",
       "api_key": "Clave API para autenticación (dejar vacía si no es necesaria)",
       "language": "Idioma de la interfaz y comandos de voz",
       "command": "Comando y flags para el reproductor",
@@ -266,7 +269,10 @@
     },
     "allow_ai_scripts": "Permitir a la IA generar scripts",
     "functions_panel": "Funciones",
-    "select_function": "Selecciona una función para ver ayuda"
+    "select_function": "Selecciona una función para ver ayuda",
+    "ask_ai": "Preguntar a la IA",
+    "ask_ai_placeholder": "Describe el script que deseas...",
+    "ask_ai_loading": "Generando..."
   },
   "commands_editor": {
     "title": "Editor de comandos VASS",
@@ -409,8 +415,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Credenciales de Google caducadas. Abra Ajustes → Servicios Externos → Iniciar configuración.",
-    "new_email": "Nuevo correo de {from}: {subject}",
+    "new_email": "Nuevo correo de {from} ({date}): {subject}",
     "email_truncated": "... Texto completo en Gmail",
+    "just_now": "ahora mismo",
+    "ago_minutes": "hace {n} min",
+    "ago_hours": "hace {n} h",
+    "ago_days": "hace {n} d",
+    "ago_weeks": "hace {n} sem",
+    "ago_months": "hace {n} meses",
+    "on_date": "del {date}",
     "read_online": "Leer en línea",
     "auto_model_selected": "Modelo IA faltante. Auto-seleccionado: {model}"
   },

@@ -1,33 +1,112 @@
 import os
 import sys
 
+import configparser
 from PySide6.QtCore import Qt, QFileSystemWatcher
-from PySide6.QtGui import QKeySequence, QShortcut, QFont
+from PySide6.QtGui import QKeySequence, QShortcut
+from code_editor import CodeEditor
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QListWidget, QGroupBox,
-    QPlainTextEdit, QMessageBox, QInputDialog, QMenu,
+    QLabel, QPushButton, QListWidget, QLineEdit, QGroupBox,
+    QMessageBox, QInputDialog, QMenu,
     QDialog, QCheckBox,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
 
-STYLESHEET = BASE_STYLESHEET + f"""
-QPlainTextEdit {{
-    font-family: Consolas, monospace; font-size: 13px;
-}}
-"""
+STYLESHEET = BASE_STYLESHEET
 
 SCRIPT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 
 TEMPLATES = {
+    "add": 'add($a, $b)',
+    "add_event": 'add_event("2026-06-15", "14:30", "60", "Riunione")',
+    "add_event ricorsivo": 'add_event("2026-06-15", "08:00", "5", "Pillola", "1d")',
     "ai": 'ai("prompt")',
     "ai_raw": 'ai_raw("prompt")',
-    "say": 'say("testo")',
     "ai → say": '$risultato = ai("prompt")\nsay($risultato)',
+    "clipboard_get": 'clipboard_get()',
+    "clipboard_set": 'clipboard_set("testo da copiare")',
+    "contains": 'contains($testo, "cerca")',
+    "delete_event": 'delete_event("riunione")',
+    "div": 'div($a, $b)',
+    "equals": 'equals($a, $b)',
+    "exit": 'exit()',
+    "fetch_json": '$dati = fetch_json("https://api.example.com/data")\nsay($dati)',
+    "fetch_text": '$contenuto = fetch_text("https://example.com")\nsay($contenuto)',
+    "filter_json": '$lista = filter_json($dati, "- {titolo} ({anno})")',
+    "filter_json con filtro": '$filtro = filter_json($dati, "{nome}: {email}", "citta=Roma")',
+    "filter_json con filtro numerico": '$risultati = filter_json($dati, "{nome}", "eta>=18")',
+    "form": 'form("Titolo", "nome: text: Mario", "età: number: 30", "paese: select: Italia,Francia,Spagna", "attivo: checkbox: true", "note: textarea")',
+    "gcal_add": 'gcal_add("Riunione", "2026-06-15T14:00:00", "2026-06-15T15:00:00", "Sala A")',
+    "gcal_search": '$eventi = gcal_search("dentista")\nsay($eventi)',
+    "gcal_today": '$eventi = gcal_today()\nsay($eventi)',
+    "gcal_tomorrow": '$eventi = gcal_tomorrow()\nsay($eventi)',
+    "get_datetime": 'get_datetime()',
+    "get_idle": '$idle = get_idle()\nif_greater($idle.idle_seconds, 600, say("Inattivo da " + trim($idle.idle_seconds) + "s"), say("Attivo"))',
+    "get_weather": '$tt = get_weather("Milano")\nsay("A {$tt.city} ci sono {$tt.temperature} gradi, percepiti {$tt.feels_like}")',
+    "google_home_ask": '$risposta = google_home_ask("che tempo fa domani?")\nsay($risposta)',
+    "google_home_command": 'google_home_command("accendi le luci", false)',
     "if_contains": 'if_contains($variabile, "testo", say("vero"), say("falso"))',
     "if_empty": 'if_empty($variabile, say("vuoto"), say("pieno"))',
-    "run": 'run("powershell -Command Get-Process")',
+    "if_equals": 'if_equals($a, $b, say("uguali"), say("diversi"))',
+    "if_greater": 'if_greater($x, 10, say("maggiore"), say("minore"))',
+    "if_greater_equal": 'if_greater_equal($x, 100, say("almeno 100"), say("meno di 100"))',
+    "if_less": 'if_less($x, 5, say("minore"), say("maggiore"))',
+    "if_less_equal": 'if_less_equal($x, 50, say("al massimo 50"), say("sopra 50"))',
+    "inject": 'inject("L\'utente preferisce il tema scuro")',
+    "inject_memory": 'inject_memory("Informazione importante da ricordare")',
+    "launch_app": 'launch_app("firefox")',
+    "launch_app con args": 'launch_app("notepad", "C:\\\\file.txt")',
+    "len": 'len($testo)',
+    "listen": 'listen()',
+    "listen → say": '$testo = listen()\nsay($testo)',
+    "list_apps": '$apps = list_apps()\nsay("Trovate " + trim(len($apps)) + " app")',
+    "list_events": 'list_events("2026-12-31")',
+    "list_events → pretty_events": '\n'.join([
+        '$e = list_events("2026-12-31")',
+        '$p = pretty_events($e)',
+        'say($p)',
+    ]),
+    "mul": 'mul($a, $b)',
+    "notify": 'notify("Operazione completata", 5)',
+    "pretty_events": 'pretty_events($json_eventi)',
+    "read_info": 'read_info("id_file")',
+    "read_state": 'read_state("ventilatore")',
+    "remove_event": 'remove_event("riunione")',
+    "run": 'run("echo hello")',
+    "save_tags": 'save_tags("food,health,pets")',
+    "say": 'say("testo")',
+    "say_async": 'say_async("testo in background")',
+    "screen_click": 'screen_click($_sx, $_sy)',
+    "screen_click (posizione corrente)": 'screen_click()',
+    "screen_highlight": 'screen_highlight($x, $y, $w, $h, 1.0)',
+    "screen_search": 'screen_search("testo da cercare")',
+    "screen_search → click": (
+        '$risultati = screen_search("Cerca")\n'
+        'if_empty($risultati, exit(), "")\n'
+        'screen_click($_sx, $_sy)'
+    ),
+    "screen_search → highlight": (
+        '$risultati = screen_search("Cerca")\n'
+        'if_empty($risultati, exit(), "")\n'
+        'screen_highlight($_sx, $_sy, $_sw, $_sh, 1.0)'
+    ),
+    "screen_search → listen → screen_search": (
+        '$richiesta = listen("Cosa vuoi cercare?")\n'
+        'say("Cerco $richiesta")\n'
+        '$risultati = screen_search($richiesta)\n'
+        'if_empty($risultati, say("Non trovato"), screen_highlight($_sx, $_sy, $_sw, $_sh, 3.0))'
+    ),
+    "search_web": '$risultati = search_web("python tutorial")\nsay($risultati)',
+    "send_text": 'send_text("Hello World")',
+    "set_active_window": 'set_active_window("notepad")',
+    "sub": 'sub($a, $b)',
+    "timer_cancel": 'timer_cancel("id_timer")',
+    "timer_list": '$lista = timer_list()\nsay($lista)',
+    "timer_start": 'timer_start("1h30m")',
+    "to_num": 'to_num($x)',
+    "trim": 'trim($testo)',
     "wait": 'wait(2)',
     "web → riassunto": (
         '$html = ai("vai su https://esempio.it e riassumi il contenuto")\n'
@@ -35,83 +114,8 @@ TEMPLATES = {
         '$riassunto = ai("riassumi in italiano: {html}")\n'
         'say($riassunto)'
     ),
-    "screen_search": 'screen_search("testo da cercare")',
-    "screen_click": 'screen_click($_sx, $_sy)',
-    "screen_highlight": 'screen_highlight($x, $y, $w, $h, 1.0)',
-    "screen_search → highlight": (
-        '$risultati = screen_search("Cerca")\n'
-        'if_empty($risultati, exit(), "")\n'
-        'screen_highlight($_sx, $_sy, $_sw, $_sh, 1.0)'
-    ),
-    "screen_search → click": (
-        '$risultati = screen_search("Cerca")\n'
-        'if_empty($risultati, exit(), "")\n'
-        'screen_click($_sx, $_sy)'
-    ),
-    "screen_click (posizione corrente)": 'screen_click()',
-    "listen": 'listen()',
-    "set_active_window": 'set_active_window("notepad")',
-    "send_text": 'send_text("Hello World")',
-    "exit": 'exit()',
-    "trim": 'trim($testo)',
-    "len": 'len($testo)',
-    "to_num": 'to_num($x)',
-    "add": 'add($a, $b)',
-    "sub": 'sub($a, $b)',
-    "mul": 'mul($a, $b)',
-    "div": 'div($a, $b)',
-    "contains": 'contains($testo, "cerca")',
-    "equals": 'equals($a, $b)',
-    "if_equals": 'if_equals($a, $b, say("uguali"), say("diversi"))',
-    "if_greater": 'if_greater($x, 10, say("maggiore"), say("minore"))',
-    "if_less": 'if_less($x, 5, say("minore"), say("maggiore"))',
-    "if_greater_equal": 'if_greater_equal($x, 100, say("almeno 100"), say("meno di 100"))',
-    "if_less_equal": 'if_less_equal($x, 50, say("al massimo 50"), say("sopra 50"))',
-    "add_event": 'add_event("2026-06-15", "14:30", "60", "Riunione")',
-    "add_event ricorsivo": 'add_event("2026-06-15", "08:00", "5", "Pillola", "1d")',
-    "list_events": 'list_events("2026-12-31")',
-    "list_events → pretty_events": '\n'.join([
-        '$e = list_events("2026-12-31")',
-        '$p = pretty_events($e)',
-        'say($p)',
-    ]),
-    "remove_event": 'remove_event("riunione")',
-    "get_datetime": 'get_datetime()',
-    "clipboard_get": 'clipboard_get()',
-    "clipboard_set": 'clipboard_set("testo da copiare")',
-    "read_info": 'read_info("id_file")',
     "write_info": 'write_info("dati da salvare")',
-    "read_state": 'read_state("ventilatore")',
     "write_state": 'write_state("ventilatore", "acceso")',
-    "timer_start": 'timer_start("1h30m")',
-    "timer_list": '$lista = timer_list()\nsay($lista)',
-    "timer_cancel": 'timer_cancel("id_timer")',
-    "notify": 'notify("Operazione completata", 5)',
-    "save_tags": 'save_tags("food,health,pets")',
-    "delete_event": 'delete_event("riunione")',
-    "fetch_text": '$contenuto = fetch_text("https://example.com")\nsay($contenuto)',
-    "fetch_json": '$dati = fetch_json("https://api.example.com/data")\nsay($dati)',
-    "search_web": '$risultati = search_web("python tutorial")\nsay($risultati)',
-    "inject": 'inject("L\'utente preferisce il tema scuro")',
-    "inject_memory": 'inject_memory("Informazione importante da ricordare")',
-    "gcal_today": '$eventi = gcal_today()\nsay($eventi)',
-    "gcal_tomorrow": '$eventi = gcal_tomorrow()\nsay($eventi)',
-    "gcal_add": 'gcal_add("Riunione", "2026-06-15T14:00:00", "2026-06-15T15:00:00", "Sala A")',
-    "gcal_search": '$eventi = gcal_search("dentista")\nsay($eventi)',
-    "google_home_command": 'google_home_command("accendi le luci", false)',
-    "google_home_ask": '$risposta = google_home_ask("che tempo fa domani?")\nsay($risposta)',
-    "get_weather": '$tt = get_weather("Milano")\nsay("A {$tt.city} ci sono {$tt.temperature} gradi, percepiti {$tt.feels_like}")',
-    "filter_json": '$lista = filter_json($dati, "- {titolo} ({anno})")',
-    "filter_json con filtro": '$filtro = filter_json($dati, "{nome}: {email}", "citta=Roma")',
-    "filter_json con filtro numerico": '$risultati = filter_json($dati, "{nome}", "eta>=18")',
-    "get_idle": '$idle = get_idle()\nif_greater($idle.idle_seconds, 600, say("Inattivo da " + trim($idle.idle_seconds) + "s"), say("Attivo"))',
-    "listen → say": '$testo = listen()\nsay($testo)',
-    "screen_search → listen → screen_search": (
-        '$richiesta = listen("Cosa vuoi cercare?")\n'
-        'say("Cerco $richiesta")\n'
-        '$risultati = screen_search($richiesta)\n'
-        'if_empty($risultati, say("Non trovato"), screen_highlight($_sx, $_sy, $_sw, $_sh, 3.0))'
-    ),
 }
 
 
@@ -253,13 +257,24 @@ class ScriptsEditor(QMainWindow):
         right_group = QGroupBox(self._t("scripts_editor.right_panel"))
         right_layout = QVBoxLayout(right_group)
 
-        self.editor = QPlainTextEdit()
-        font = QFont("Consolas", 13)
-        font.setStyleHint(QFont.StyleHint.Monospace)
-        self.editor.setFont(font)
-        self.editor.setTabStopDistance(20)
+        self.editor = CodeEditor()
         self.editor.textChanged.connect(self._on_text_changed)
         right_layout.addWidget(self.editor)
+
+        ai_row = QHBoxLayout()
+        self.ai_input = QLineEdit()
+        self.ai_input.setPlaceholderText(self._t("scripts_editor.ask_ai_placeholder"))
+        self.ai_input.setStyleSheet(
+            "QLineEdit { background: #2d2d2d; color: #e0e0e0; border: 1px solid #3c3c3c; "
+            "border-radius: 4px; padding: 4px 8px; }"
+        )
+        ai_row.addWidget(self.ai_input)
+        self.ai_btn = QPushButton(self._t("scripts_editor.ask_ai"))
+        self.ai_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
+        self.ai_btn.clicked.connect(self._ask_ai)
+        self.ai_btn.setFixedWidth(120)
+        ai_row.addWidget(self.ai_btn)
+        right_layout.addLayout(ai_row)
 
         btn_row = QHBoxLayout()
 
@@ -343,6 +358,83 @@ class ScriptsEditor(QMainWindow):
         if name and name in TEMPLATES:
             code = TEMPLATES[name].split("\n")[0]
             self.editor.insertPlainText(code)
+
+    def _ask_ai(self):
+        prompt = self.ai_input.text().strip()
+        if not prompt:
+            return
+
+        from openai import OpenAI
+        from utils import call_with_retry
+
+        cfg = configparser.ConfigParser()
+        cfg.read(self._settings_path(), encoding="utf-8")
+        ai_url = cfg.get("ai", "url", fallback="http://127.0.0.1:8080/v1")
+        api_key = cfg.get("ai", "api_key", fallback="")
+        ai_model = cfg.get("ai", "model", fallback="Qwen3-8B-Q4_K_M")
+
+        try:
+            client = OpenAI(base_url=ai_url, api_key=api_key or "not-needed")
+        except Exception as e:
+            QMessageBox.critical(self, "AI Error", f"Failed to create AI client:\n{e}")
+            return
+
+        ref_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                 "Allowed_root", "VASCRIPT_REFERENCE.md")
+        reference_text = ""
+        try:
+            with open(ref_path, encoding="utf-8") as f:
+                reference_text = f.read()
+        except Exception:
+            reference_text = "(reference not found)"
+
+        func_lines = []
+        for name, code in sorted(TEMPLATES.items()):
+            func_lines.append(f"{name} → {code.split(chr(10))[0]}")
+        funcs_block = "\n".join(func_lines)
+
+        system_msg = (
+            "You are a VASScript code generator. Given a user's request, "
+            "write ONLY the VASScript code that accomplishes the task. "
+            "Do NOT include explanations, markdown, or surrounding backticks. "
+            "Use comments (lines starting with #) sparingly.\n\n"
+            "VASScript Reference:\n" + reference_text + "\n\n"
+            "Available functions:\n" + funcs_block
+        )
+
+        self.ai_btn.setEnabled(False)
+        self.ai_btn.setText(self._t("scripts_editor.ask_ai_loading"))
+        QApplication.processEvents()
+
+        try:
+            resp = call_with_retry(
+                lambda: client.chat.completions.create(
+                    model=ai_model,
+                    messages=[
+                        {"role": "system", "content": system_msg},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000,
+                ),
+                log_prefix="[ScriptsEditor AI]"
+            )
+            code = resp.choices[0].message.content.strip()
+        except Exception as e:
+            self.ai_btn.setEnabled(True)
+            self.ai_btn.setText(self._t("scripts_editor.ask_ai"))
+            QMessageBox.critical(self, "AI Error", f"AI request failed:\n{e}")
+            return
+        finally:
+            self.ai_btn.setEnabled(True)
+            self.ai_btn.setText(self._t("scripts_editor.ask_ai"))
+
+        if not code:
+            QMessageBox.warning(self, "AI", "AI returned an empty response.")
+            return
+
+        self.editor.setPlainText(code)
+        self.ai_input.clear()
 
     def _on_text_changed(self):
         self._dirty = True

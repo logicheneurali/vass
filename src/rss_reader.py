@@ -8,10 +8,10 @@ from datetime import datetime, timezone, timedelta
 
 
 class RssReader:
-    def __init__(self, feeds_path, cache_path, on_new_items=None):
+    def __init__(self, feeds_path, cache_path, notification_manager=None):
         self._feeds_path = feeds_path
         self._cache_path = cache_path
-        self._on_new_items = on_new_items
+        self._notification_manager = notification_manager
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
         self._feeds = []
@@ -133,13 +133,25 @@ class RssReader:
                     if item.get("guid") not in existing_guids:
                         cache_entry.setdefault("items", []).append(item)
                         existing_guids.add(item.get("guid"))
-                if len(cache_entry.get("items", [])) > 20:
-                    cache_entry["items"] = cache_entry["items"][-20:]
+                if len(cache_entry.get("items", [])) > 1000:
+                    cache_entry["items"] = cache_entry["items"][-1000:]
                 cache_entry["last_poll"] = now
                 self._cache[fid] = cache_entry
             all_items.extend(items)
         self._save_cache()
         return all_items
+
+    def _notify_new_items(self, items):
+        for item in items:
+            source = item.get("source", "RSS")
+            title = item.get("title", "")
+            link = item.get("link", "")
+            guid = item.get("guid", "")
+            msg = f"{source}: {title}"
+            self._notification_manager.add(
+                msg, priority=5,
+                data={"type": "rss", "link": link, "guid": guid, "title": title, "source": source}
+            )
 
     def get_new_items(self):
         result = []
@@ -244,16 +256,13 @@ class RssReader:
                                 cache_entry.setdefault("items", []).append(item)
                                 new_items.append(item)
                                 existing_guids.add(item.get("guid"))
-                        if len(cache_entry.get("items", [])) > 20:
-                            cache_entry["items"] = cache_entry["items"][-20:]
+                        if len(cache_entry.get("items", [])) > 1000:
+                            cache_entry["items"] = cache_entry["items"][-1000:]
                         cache_entry["last_poll"] = now_iso
                         self._cache[fid2] = cache_entry
                     self._save_cache()
-                    if new_items and self._on_new_items and last_poll is not None:
-                        try:
-                            self._on_new_items(new_items)
-                        except Exception as e:
-                            print(f"[RSS] on_new_items callback error: {e}")
+                    if new_items and self._notification_manager and last_poll is not None:
+                        self._notify_new_items(new_items)
             if min_sleep < 30:
                 min_sleep = 30
             if self._stop_event.wait(min_sleep):

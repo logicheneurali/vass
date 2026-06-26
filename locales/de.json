@@ -23,7 +23,8 @@
       "help_usage": "Benutzung",
       "help_commands": "Befehle",
       "help_vasscript": "VASScript",
-      "memory_editor": "Dauerhafter Speicher"
+      "memory_editor": "Dauerhafter Speicher",
+      "compact_mode": "Kompakter Modus"
     },
     "dialog": {
       "exit_title": "Beenden",
@@ -86,6 +87,7 @@
       "similarity": "Ähnlichkeitsschwelle",
       "tts_engine": "TTS-Engine",
       "volume": "Lautstärke",
+      "kokoro_voice": "Kokoro-Stimme",
       "url": "API-URL",
       "api_key": "API-Schlüssel",
       "model": "KI-Modell",
@@ -113,7 +115,7 @@
       "input_device": "Aufnahme",
       "output_device": "Wiedergabe",
       "input_volume": "Mikrofonverstärkung",
-      "output_volume": "Ausgabelautstärke",
+      "app_volume": "Allgemeine Lautstärke",
       "calendar_setup": "Setup starten",
       "calendar_enabled": "Google Kalender",
       "calendar_sync_enabled": "Auto-Sync",
@@ -147,8 +149,9 @@
       "similarity": "0.0-1.0, höher = genaue Übereinstimmung",
       "tts_engine": "kokoro = mehrsprachige KI-Synthese",
       "volume": "0.0-1.0, höher = lauter",
+      "kokoro_voice": "Wählen Sie die Kokoro-Stimme für die Sprachausgabe",
       "input_volume": "0.01-1.0, Mikrofon-Eingangsverstärkung",
-      "output_volume": "0.01-1.0, Ausgabe-Multiplikator",
+      "app_volume": "Hauptlautstärke der Anwendung",
       "url": "OpenAI-kompatible API-URL",
       "api_key": "API-Schlüssel zur Authentifizierung (leer lassen wenn nicht benötigt)",
       "model": "KI-Modellname (z.B. gemma, llama)",
@@ -266,7 +269,10 @@
     },
     "allow_ai_scripts": "KI darf Skripte generieren",
     "functions_panel": "Funktionen",
-    "select_function": "Funktion auswählen für Hilfe"
+    "select_function": "Funktion auswählen für Hilfe",
+    "ask_ai": "KI fragen",
+    "ask_ai_placeholder": "Beschreibe das gewünschte Skript...",
+    "ask_ai_loading": "Generierung läuft..."
   },
   "commands_editor": {
     "title": "VASS Befehlseditor",
@@ -409,8 +415,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Google-Anmeldeinformationen abgelaufen. Öffnen Sie Einstellungen → Externe Dienste → Setup starten.",
-    "new_email": "Neue Mail von {from}: {subject}",
+    "new_email": "Neue Mail von {from} ({date}): {subject}",
     "email_truncated": "... Vollständiger Text auf Gmail",
+    "just_now": "gerade eben",
+    "ago_minutes": "vor {n} Min",
+    "ago_hours": "vor {n} Std",
+    "ago_days": "vor {n} T",
+    "ago_weeks": "vor {n} W",
+    "ago_months": "vor {n} M",
+    "on_date": "vom {date}",
     "read_online": "Online lesen",
     "auto_model_selected": "KI-Modell fehlt. Automatisch ausgewaehlt: {model}"
   },

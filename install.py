@@ -899,8 +899,13 @@ def _verify_imports(dest: Path):
         ("pyperclip", "pyperclip"), ("spacy", "spacy"),
         ("cryptography", "cryptography"),
         ("tiktoken", "tiktoken"),
+        ("google-auth", "google.auth"),
         ("google-auth-oauthlib", "google_auth_oauthlib"),
         ("google-api-python-client", "googleapiclient"),
+        ("google-assistant-sdk", "google.assistant.embedded"),
+        ("grpcio", "grpc"),
+        ("GPUtil", "GPUtil"),
+        ("feedparser", "feedparser"),
         ("PySide6", "PySide6"),
     ]
     py = venv_python(dest)
@@ -1210,7 +1215,11 @@ def main():
     }
     cfg["wakeword"] = {"wakeword": wake, "sensitivity": "0.005"}
     cfg["commands"] = {"similarity": "0.6", "word_learning_enabled": "false"}
-    cfg["tts"] = {"tts_engine": "kokoro", "volume": "0.50"}
+    _KOKORO_DEFAULT_VOICE = {
+        "it": "if_sara", "en": "af_heart", "de": "af_heart", "fr": "ff_siwis",
+        "es": "ef_dora", "pt": "pf_dora", "ja": "jf_alpha", "ko": "af_heart", "zh": "zf_xiaobei",
+    }
+    cfg["tts"] = {"tts_engine": "kokoro", "kokoro_voice": _KOKORO_DEFAULT_VOICE.get(LANG, "af_heart")}
     cfg["ai"] = {
         "url": url,
         "model": model,
@@ -1240,6 +1249,7 @@ def main():
     }
     cfg["events"] = {"reminder_advance": "3600"}
     cfg["noise"] = {"noise_pause": "false", "noise_pause_threshold": "0.002", "noise_pause_duration": "30"}
+    cfg["audio"] = {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "app_volume": "0.50"}
 
     settings_path = dest / "config" / "settings.ini"
     with open(settings_path, "w", encoding="utf-8") as f:

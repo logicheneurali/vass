@@ -110,16 +110,16 @@ class TimerManager:
         self._play_alert(2)
         self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2))
 
-    @staticmethod
-    def _play_alert(count=1):
+    def _play_alert(self, count=1):
         try:
             import os
             import soundfile as sf
             import sounddevice as sd
             path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sounds", "alert.wav")
             data, sr = sf.read(path)
+            vol = getattr(self.app, "app_volume", 1.0)
             for _ in range(count):
-                sd.play(data, sr)
+                sd.play(data * vol, sr)
                 sd.wait()
         except Exception:
             pass

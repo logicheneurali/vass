@@ -105,8 +105,12 @@ class TtsEngine:
     def _play_worker(self):
         while self._speaker_running:
             if self._tts_paused:
-                time.sleep(0.1)
-                continue
+                with self._audio_lock:
+                    if self._audio_queue:
+                        self._tts_paused = False
+                    else:
+                        time.sleep(0.1)
+                        continue
             if self._get_state() in ("recording", "playing"):
                 time.sleep(0.1)
                 continue
@@ -432,6 +436,7 @@ class TtsEngine:
     def stop(self):
         self._tts_paused = True
         self._gen_seq += 1
+        self._stream_gen += 1
         with self._speak_lock:
             self._speak_queue.clear()
         with self._audio_lock:

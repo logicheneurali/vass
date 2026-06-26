@@ -23,7 +23,8 @@
       "help_usage": "使用说明",
       "help_commands": "命令",
       "help_vasscript": "VASScript",
-      "memory_editor": "永久记忆"
+      "memory_editor": "永久记忆",
+      "compact_mode": "紧凑模式"
     },
     "dialog": {
       "exit_title": "退出",
@@ -82,6 +83,7 @@
       "font_size": "字号",
       "wakeword": "唤醒词",
       "volume": "音量",
+      "kokoro_voice": "Kokoro 语音",
       "api_key": "API 密钥",
       "command": "播放器命令",
       "sensitivity": "灵敏度",
@@ -113,7 +115,7 @@
       "input_device": "录音",
       "output_device": "播放",
       "input_volume": "麦克风增益",
-      "output_volume": "输出音量",
+      "app_volume": "通用音量",
       "calendar_setup": "开始设置",
       "calendar_enabled": "Google 日历",
       "calendar_sync_enabled": "自动同步",
@@ -142,8 +144,9 @@
       "font_size": "文字大小（像素）",
       "wakeword": "唤醒词（如 vass, computer）",
       "volume": "0.0-1.0，越高越响亮",
+      "kokoro_voice": "选择Kokoro语音用于TTS",
       "input_volume": "0.01-1.0，麦克风输入增益",
-      "output_volume": "0.01-1.0，输出倍率",
+      "app_volume": "应用程序主音量",
       "api_key": "API 密钥，用于身份验证（不需要则留空）",
       "language": "界面和语音命令语言",
       "command": "音频播放器命令及参数",
@@ -266,7 +269,10 @@
     },
     "allow_ai_scripts": "允许AI生成脚本",
     "functions_panel": "函数",
-    "select_function": "选择一个函数以查看帮助"
+    "select_function": "选择一个函数以查看帮助",
+    "ask_ai": "向AI提问",
+    "ask_ai_placeholder": "描述您想要的脚本...",
+    "ask_ai_loading": "生成中..."
   },
   "commands_editor": {
     "title": "VASS 命令编辑器",
@@ -410,8 +416,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Google凭据已过期。请打开设置 → 外部服务 → 运行配置。",
-    "new_email": "新邮件 来自{from}: {subject}",
+    "new_email": "新邮件 来自{from} ({date}): {subject}",
     "email_truncated": "... 完整内容在Gmail查看",
+    "just_now": "刚刚",
+    "ago_minutes": "{n}分钟前",
+    "ago_hours": "{n}小时前",
+    "ago_days": "{n}天前",
+    "ago_weeks": "{n}周前",
+    "ago_months": "{n}个月前",
+    "on_date": "{date}",
     "read_online": "在线阅读",
     "auto_model_selected": "AI模型缺失。已自动选择: {model}"
   },

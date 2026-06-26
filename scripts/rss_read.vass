@@ -1,10 +1,5 @@
-# rss_read.vass - read and summarize RSS feeds
+# rss_read.vass - fetch and summarize RSS news
 say($_exec_message)
-$param1 = "{$param1}"
-$items = ""
-ifempty($param1,
-    $items = rss_fetch(),
-    $items = rss_fetch($param1)
-)
-$summary = ai("Ecco alcuni articoli RSS. Riassumi i piu importanti in italiano in poche frasi: " + $items)
+$xml = fetch_text("https://www.repubblica.it/rss/homepage/rss2.0.xml")
+$summary = ai_raw("Summarize the latest news from this RSS feed:\n{$xml}")
 say($summary)

@@ -23,7 +23,8 @@
       "help_usage": "Utilisation",
       "help_commands": "Commandes",
       "help_vasscript": "VASScript",
-      "memory_editor": "Mémoire Permanente"
+      "memory_editor": "Mémoire Permanente",
+      "compact_mode": "Mode compact"
     },
     "dialog": {
       "exit_title": "Quitter",
@@ -82,6 +83,7 @@
       "font_size": "Taille police",
       "wakeword": "Wakeword",
       "volume": "Volume",
+      "kokoro_voice": "Voix Kokoro",
       "api_key": "Clé API",
       "command": "Commande lecteur",
       "sensitivity": "Sensibilité",
@@ -113,7 +115,7 @@
       "input_device": "Enregistrement",
       "output_device": "Lecture",
       "input_volume": "Gain micro",
-      "output_volume": "Volume sortie",
+      "app_volume": "Volume général",
       "calendar_setup": "Démarrer config",
       "calendar_enabled": "Google Agenda",
       "calendar_sync_enabled": "Sync auto",
@@ -142,8 +144,9 @@
       "font_size": "Taille du texte en pixels",
       "wakeword": "Mot d'activation (ex. vass, ordinateur)",
       "volume": "0.0-1.0, plus haut = plus fort",
+      "kokoro_voice": "Sélectionnez la voix Kokoro pour la synthèse vocale",
       "input_volume": "0.01-1.0, gain d'entrée micro",
-      "output_volume": "0.01-1.0, multiplicateur de sortie",
+      "app_volume": "Volume principal de l'application",
       "api_key": "Clé API pour authentification (laisser vide si non requis)",
       "language": "Langue de l'interface et des commandes vocales",
       "command": "Commande et flags pour le lecteur audio",
@@ -266,7 +269,10 @@
     },
     "allow_ai_scripts": "Autoriser l'IA à générer des scripts",
     "functions_panel": "Fonctions",
-    "select_function": "Sélectionnez une fonction pour voir l'aide"
+    "select_function": "Sélectionnez une fonction pour voir l'aide",
+    "ask_ai": "Demander à l'IA",
+    "ask_ai_placeholder": "Décrivez le script souhaité...",
+    "ask_ai_loading": "Génération en cours..."
   },
   "commands_editor": {
     "title": "Éditeur de commandes VASS",
@@ -409,8 +415,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Identifiants Google expirés. Ouvrez Paramètres → Services Externes → Lancer la configuration.",
-    "new_email": "Nouveau mail de {from}: {subject}",
+    "new_email": "Nouveau mail de {from} ({date}): {subject}",
     "email_truncated": "... Message complet sur Gmail",
+    "just_now": "à l'instant",
+    "ago_minutes": "il y a {n} min",
+    "ago_hours": "il y a {n} h",
+    "ago_days": "il y a {n} j",
+    "ago_weeks": "il y a {n} sem",
+    "ago_months": "il y a {n} mois",
+    "on_date": "du {date}",
     "read_online": "Lire en ligne",
     "auto_model_selected": "Modele IA manquant. Auto-selectionne: {model}"
   },

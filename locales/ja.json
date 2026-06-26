@@ -23,7 +23,8 @@
       "help_usage": "使い方",
       "help_commands": "コマンド",
       "help_vasscript": "VASScript",
-      "memory_editor": "永続メモリ"
+      "memory_editor": "永続メモリ",
+      "compact_mode": "コンパクトモード"
     },
     "dialog": {
       "exit_title": "終了",
@@ -82,6 +83,7 @@
       "font_size": "フォントサイズ",
       "wakeword": "ウェイクワード",
       "volume": "音量",
+      "kokoro_voice": "Kokoroの声",
       "api_key": "API キー",
       "command": "プレイヤーコマンド",
       "sensitivity": "感度",
@@ -113,7 +115,7 @@
       "input_device": "録音",
       "output_device": "再生",
       "input_volume": "マイクゲイン",
-      "output_volume": "出力音量",
+      "app_volume": "一般音量",
       "calendar_setup": "設定を開始",
       "calendar_enabled": "Googleカレンダー",
       "calendar_sync_enabled": "自動同期",
@@ -142,8 +144,9 @@
       "font_size": "テキストサイズ（ピクセル）",
       "wakeword": "ウェイクワード（例：vass, computer）",
       "volume": "0.0-1.0、高いほど音量が大きい",
+      "kokoro_voice": "TTSに使用するKokoroの声を選択",
       "input_volume": "0.01-1.0、マイク入力ゲイン",
-      "output_volume": "0.01-1.0、出力倍率",
+      "app_volume": "アプリケーションのメインボリューム",
       "api_key": "認証用のAPIキー（不要な場合は空欄）",
       "language": "インターフェースと音声コマンドの言語",
       "command": "オーディオプレイヤーのコマンドとフラグ",
@@ -266,7 +269,10 @@
     },
     "allow_ai_scripts": "AIにスクリプト生成を許可",
     "functions_panel": "関数",
-    "select_function": "関数を選択するとヘルプが表示されます"
+    "select_function": "関数を選択するとヘルプが表示されます",
+    "ask_ai": "AIに質問",
+    "ask_ai_placeholder": "作成したいスクリプトを説明してください...",
+    "ask_ai_loading": "生成中..."
   },
   "commands_editor": {
     "title": "VASS コマンドエディタ",
@@ -410,8 +416,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Google認証情報の有効期限が切れました。設定 → 外部サービス → セットアップを実行してください。",
-    "new_email": "新着メール {from}より: {subject}",
+    "new_email": "新着メール {from}より ({date}): {subject}",
     "email_truncated": "... 全文はGmailで",
+    "just_now": "たった今",
+    "ago_minutes": "{n}分前",
+    "ago_hours": "{n}時間前",
+    "ago_days": "{n}日前",
+    "ago_weeks": "{n}週前",
+    "ago_months": "{n}ヶ月前",
+    "on_date": "{date}",
     "read_online": "オンラインで読む",
     "auto_model_selected": "AIモデルが見つかりません。自動選択されました: {model}"
   },

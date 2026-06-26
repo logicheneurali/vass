@@ -23,7 +23,8 @@
       "help_usage": "Uso",
       "help_commands": "Comandos",
       "help_vasscript": "VASScript",
-      "memory_editor": "Memória Permanente"
+      "memory_editor": "Memória Permanente",
+      "compact_mode": "Modo compacto"
     },
     "dialog": {
       "exit_title": "Sair",
@@ -82,6 +83,7 @@
       "font_size": "Tamanho da fonte",
       "wakeword": "Palavra de ativação",
       "volume": "Volume",
+      "kokoro_voice": "Voz Kokoro",
       "api_key": "Chave API",
       "command": "Comando do player",
       "sensitivity": "Sensibilidade",
@@ -113,7 +115,7 @@
       "input_device": "Gravação",
       "output_device": "Reprodução",
       "input_volume": "Ganho microfone",
-      "output_volume": "Volume saída",
+      "app_volume": "Volume geral",
       "calendar_setup": "Iniciar configuração",
       "calendar_enabled": "Google Calendar",
       "calendar_sync_enabled": "Sync automático",
@@ -142,8 +144,9 @@
       "font_size": "Tamanho do texto em pixels",
       "wakeword": "Palavra de ativação (ex. vass, computador)",
       "volume": "0.0-1.0, mais alto = mais forte",
+      "kokoro_voice": "Selecione a voz Kokoro para a síntese de fala",
       "input_volume": "0.01-1.0, ganho de entrada",
-      "output_volume": "0.01-1.0, multiplicador de saída",
+      "app_volume": "Volume principal da aplicação",
       "api_key": "Chave API para autenticação (deixar em branco se não for necessária)",
       "language": "Idioma da interface e comandos de voz",
       "command": "Comando e flags para o player de áudio",
@@ -266,7 +269,10 @@
     },
     "allow_ai_scripts": "Permitir que a IA gere scripts",
     "functions_panel": "Funções",
-    "select_function": "Selecione uma função para ver ajuda"
+    "select_function": "Selecione uma função para ver ajuda",
+    "ask_ai": "Perguntar à IA",
+    "ask_ai_placeholder": "Descreva o script que deseja...",
+    "ask_ai_loading": "Gerando..."
   },
   "commands_editor": {
     "title": "Editor de comandos VASS",
@@ -409,8 +415,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Credenciais Google expiradas. Abra Configurações → Serviços Externos → Iniciar configuração.",
-    "new_email": "Novo e-mail de {from}: {subject}",
+    "new_email": "Novo e-mail de {from} ({date}): {subject}",
     "email_truncated": "... Texto completo no Gmail",
+    "just_now": "agora mesmo",
+    "ago_minutes": "há {n} min",
+    "ago_hours": "há {n} h",
+    "ago_days": "há {n} d",
+    "ago_weeks": "há {n} sem",
+    "ago_months": "há {n} meses",
+    "on_date": "de {date}",
     "read_online": "Ler online",
     "auto_model_selected": "Modelo IA ausente. Auto-selecionado: {model}"
   },

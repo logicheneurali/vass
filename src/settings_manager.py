@@ -2,6 +2,18 @@
 import os
 import configparser
 
+_KOKORO_DEFAULT_VOICE = {
+    "it": "if_sara",
+    "en": "af_heart",
+    "de": "af_heart",
+    "fr": "ff_siwis",
+    "es": "ef_dora",
+    "pt": "pf_dora",
+    "ja": "jf_alpha",
+    "ko": "af_heart",
+    "zh": "zf_xiaobei",
+}
+
 
 def load_settings(settings_file):
     config = configparser.ConfigParser()
@@ -40,7 +52,21 @@ def load_settings(settings_file):
         result["paused_opacity"] = config.getfloat("gui", "paused_opacity", fallback=0.5)
         result["command_similarity"] = config.getfloat("commands", "similarity", fallback=0.6)
         result["word_learning_enabled"] = config.get("commands", "word_learning_enabled", fallback="false").lower() == "true"
-        result["volume"] = config.getfloat("tts", "volume", fallback=0.95)
+        lang = result.get("language", "en")
+        result["kokoro_voice"] = config.get("tts", "kokoro_voice", fallback=_KOKORO_DEFAULT_VOICE.get(lang, "af_heart"))
+
+        app_volume = config.getfloat("audio", "app_volume", fallback=None)
+        if app_volume is None:
+            old_vol = config.getfloat("tts", "volume", fallback=0.95)
+            old_out = config.getfloat("audio", "output_volume", fallback=1.0)
+            app_volume = old_vol * old_out
+            config.set("audio", "app_volume", f"{app_volume:.2f}")
+            for section, key in [("tts", "volume"), ("audio", "output_volume")]:
+                if config.has_option(section, key):
+                    config.remove_option(section, key)
+            with open(abs_path, "w", encoding="utf-8") as f:
+                config.write(f)
+        result["app_volume"] = max(0.0, min(1.0, app_volume))
         result["mcp_server_url"] = config.get("ai", "mcp_server_url", fallback="http://localhost:9988")
         result["memory_tokens"] = config.getint("ai", "memory_tokens", fallback=2000)
         result["blacklist"] = config.get("ai", "blacklist", fallback="")
@@ -60,7 +86,6 @@ def load_settings(settings_file):
         result["input_device"] = config.getint("audio", "input_device", fallback=-1)
         result["output_device"] = config.getint("audio", "output_device", fallback=-1)
         result["input_volume"] = config.getfloat("audio", "input_volume", fallback=1.0)
-        result["output_volume"] = config.getfloat("audio", "output_volume", fallback=1.0)
         result["calendar_enabled"] = config.get("google", "calendar_enabled", fallback="false")
         result["calendar_sync_enabled"] = config.get("google", "calendar_sync_enabled", fallback="false")
         result["calendar_sync_minutes"] = config.getint("google", "calendar_sync_minutes", fallback=30)
@@ -109,7 +134,8 @@ def load_settings(settings_file):
         result["paused_opacity"] = 0.5
         result["command_similarity"] = 0.6
         result["word_learning_enabled"] = False
-        result["volume"] = 0.95
+        result["app_volume"] = 1.0
+        result["kokoro_voice"] = _KOKORO_DEFAULT_VOICE.get(lang, "af_heart")
         result["mcp_server_url"] = "http://localhost:9988"
         result["memory_tokens"] = 2000
         result["blacklist"] = ""
@@ -129,7 +155,6 @@ def load_settings(settings_file):
         result["input_device"] = -1
         result["output_device"] = -1
         result["input_volume"] = 1.0
-        result["output_volume"] = 1.0
         result["calendar_enabled"] = "false"
         result["calendar_sync_enabled"] = "false"
         result["calendar_sync_minutes"] = 30
@@ -151,7 +176,7 @@ def load_settings(settings_file):
         }
         config["wakeword"] = {"sensitivity": "0.005", "wakeword": "vass"}
         config["commands"] = {"similarity": "0.6", "word_learning_enabled": "false"}
-        config["tts"] = {"tts_engine": "kokoro", "volume": "0.95"}
+        config["tts"] = {"tts_engine": "kokoro", "kokoro_voice": _KOKORO_DEFAULT_VOICE.get(lang, "af_heart")}
         config["llamacpp"] = {
             "llama_server_path": "",
             "llama_server_working_directory": "",
@@ -179,7 +204,7 @@ def load_settings(settings_file):
             "noise_pause_threshold": "0.002",
             "noise_pause_duration": "30"
         }
-        config["audio"] = {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "output_volume": "1.0"}
+        config["audio"] = {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "app_volume": "1.0"}
         config["google"] = {
             "calendar_enabled": "false",
             "calendar_sync_enabled": "false",

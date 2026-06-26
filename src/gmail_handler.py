@@ -104,6 +104,7 @@ class GmailHandler:
             entry = {
                 "id": meta["id"],
                 "date": datetime.datetime.utcnow().isoformat(),
+                "sent_date": meta["date"],
                 "from": meta["from"],
                 "subject": meta["subject"],
                 "snippet": meta["snippet"],

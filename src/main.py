@@ -4,6 +4,7 @@ import time
 import threading
 from collections import deque
 import re
+import datetime
 import warnings
 warnings.filterwarnings("ignore", message=".*dropout option.*")
 warnings.filterwarnings("ignore", message=".*num_layers.*")
@@ -40,6 +41,15 @@ except ImportError:
 os.makedirs("log", exist_ok=True)
 _faulthandler_file = open("log/faulthandler.log", "w")
 faulthandler.enable(_faulthandler_file)
+
+import ssl as _ssl
+import threading as _threading
+_ssl_lock = _threading.Lock()
+_original_create_default_context = _ssl.create_default_context
+def _safe_create_default_context(*args, **kwargs):
+    with _ssl_lock:
+        return _original_create_default_context(*args, **kwargs)
+_ssl.create_default_context = _safe_create_default_context
 
 from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
@@ -138,17 +148,18 @@ class VassApp:
         self.gui_font_size = self.settings["gui_font_size"]
         self.command_similarity = self.settings["command_similarity"]
         self.word_learning_enabled = self.settings.get("word_learning_enabled", False)
-        tts_volume = self.settings.get("volume", 0.95) * self.settings.get("output_volume", 1.0)
+        self.app_volume = self.settings.get("app_volume", 1.0)
         self.tts = TtsEngine(
             gui=gui,
             state_getter=lambda: self.state,
             state_setter=self.set_state,
-            tts_volume=tts_volume,
+            app_volume=self.app_volume,
             language=self.language,
             output_device=out,
+            kokoro_voice=self.settings.get("kokoro_voice", ""),
         )
         self.tts.preload()
-        self.gui.volume_top_bar.set_volume(tts_volume)
+        self.gui.volume_top_bar.set_volume(self.app_volume)
         self.mcp_server_url = self.settings["mcp_server_url"]
         self.mcp_process = None
         self.memory_tokens = self.settings.get("memory_tokens", 2000)
@@ -232,23 +243,11 @@ class VassApp:
             feeds_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "rss_feeds.json")
             cache_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "rss_cache.json")
             from rss_reader import RssReader
-            self.rss_reader = RssReader(feeds_path, cache_path, on_new_items=self._on_rss_items)
+            self.rss_reader = RssReader(feeds_path, cache_path, notification_manager=self.notification_manager)
             self.rss_reader.start_polling()
             print("[RSS] Polling started")
         except Exception as e:
             print(f"[RSS] Failed to start: {e}")
-
-    def _on_rss_items(self, items):
-        for item in items:
-            source = item.get("source", "RSS")
-            title = item.get("title", "")
-            link = item.get("link", "")
-            guid = item.get("guid", "")
-            msg = f"{source}: {title}"
-            self.notification_manager.add(
-                msg, priority=5,
-                data={"type": "rss", "link": link, "guid": guid, "title": title, "source": source}
-            )
 
 
     def _get_tokenizer(self):
@@ -324,10 +323,13 @@ class VassApp:
             elif current == "playing":
                 self.stop_playback()
                 self.set_state("listening")
+                self.gui.schedule(0, lambda: self.set_state("listening"))
             elif current == "running_script":
                 self.script_runner.cancel_current()
             elif current in ("waiting",):
-                pass
+                if self.gui.player.data is not None:
+                    self.stop_playback()
+                    self.set_state("listening")
             elif current == "waiting_resources":
                 self.set_state("listening")
         if self.gui.player.isVisible():
@@ -388,6 +390,7 @@ class VassApp:
                         self.auto_context_selection = self.settings.get("auto_context_selection", False)
                         self.debug_enabled = self.settings.get("debug_enabled", False)
                         self.voice_recognition.debug_enabled = self.debug_enabled
+                        self.gui.debug_border_signal.emit()
                         if self.ai_url != old_url:
                             self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
                         self.mcp_server_url = self.settings["mcp_server_url"]
@@ -395,11 +398,9 @@ class VassApp:
                         self.blacklist = parse_blacklist(self.settings.get("blacklist", ""))
                         self.llama_server_path = self.settings.get("llama_server_path", "")
                         self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
-                        tv = self.settings.get("volume", 0.95)
-                        ov = self.settings.get("output_volume", 1.0)
-                        effective = tv * ov
-                        self.tts.update_settings(effective)
-                        self.gui.volume_top_bar.set_volume(effective)
+                        self.app_volume = self.settings.get("app_volume", 1.0)
+                        self.tts.update_settings(self.app_volume)
+                        self.gui.volume_top_bar.set_volume(self.app_volume)
                         self.voice_recognition.input_volume = self.settings.get("input_volume", 1.0)
                         self.noise_pause = self.settings.get("noise_pause", False)
                         self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
@@ -487,10 +488,9 @@ class VassApp:
         self.gui.update_memory_bar()
 
         # Double beep to indicate app is ready
-        vol = self.settings.get("volume", 0.95)
-        beep(vol)
+        beep(self.app_volume)
         time.sleep(0.15)
-        beep(vol)
+        beep(self.app_volume)
         while self.running:
             try:
                 if self._input_mode:
@@ -563,7 +563,7 @@ class VassApp:
                         try:
                             wake = self.voice_recognition.detect_wake_word(frame)
                         except Exception as ex:
-                            with open("crash.log", "a") as f:
+                            with open("log/crash.log", "a") as f:
                                 f.write(f"detect_wake_word error: {ex}\n")
                             wake = False
                         if wake and current_state == "listening":
@@ -573,9 +573,9 @@ class VassApp:
                                 self._running_noise_floor = None
                             print("Wake word detected! Switching to recording mode...")
                             try:
-                                beep(self.settings.get("volume", 0.95))
+                                beep(self.app_volume)
                             except Exception as ex:
-                                with open("crash.log", "a") as f:
+                                with open("log/crash.log", "a") as f:
                                     f.write(f"Beep error: {ex}\n")
                             self.audio_handler.clear_queue()
                             self.audio_handler.start_recording()
@@ -622,7 +622,7 @@ class VassApp:
                 break
             except Exception as e:
                 import traceback
-                with open("crash.log", "a") as f:
+                with open("log/crash.log", "a") as f:
                     f.write(f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
                     traceback.print_exc(file=f)
                 print(f"\n[CRASH] Loop error. Restarting in 3 seconds. Details in crash.log")
@@ -643,17 +643,17 @@ class VassApp:
         time.sleep(2)
 
     def _health_check_loop(self):
-        import httpx
+        import urllib.request
         while self.running:
             time.sleep(60)
             if not self.running:
                 break
             health_url = f"{self.ai_url.rstrip('/')}/health"
             try:
-                r = httpx.get(health_url, timeout=5)
-                ok = r.status_code == 200
+                with urllib.request.urlopen(health_url, timeout=5) as r:
+                    ok = r.status == 200
                 if self.debug_enabled:
-                    print(f"[Health] {health_url} -> {r.status_code}")
+                    print(f"[Health] {health_url} -> {r.status}")
             except Exception as e:
                 ok = False
                 if self.debug_enabled:
@@ -662,13 +662,13 @@ class VassApp:
 
     def _health_check_once(self):
         time.sleep(3)  # brief delay for server startup
-        import httpx
+        import urllib.request
         health_url = f"{self.ai_url.rstrip('/')}/health"
         try:
-            r = httpx.get(health_url, timeout=5)
-            ok = r.status_code == 200
+            with urllib.request.urlopen(health_url, timeout=5) as r:
+                ok = r.status == 200
             if self.debug_enabled:
-                print(f"[Health] {health_url} -> {r.status_code}")
+                print(f"[Health] {health_url} -> {r.status}")
         except Exception as e:
             ok = False
             if self.debug_enabled:
@@ -714,6 +714,31 @@ class VassApp:
             except Exception as e:
                 print(f"[Gmail] Sync error: {e}")
 
+    def _format_email_ago(self, sent_date, lang):
+        from email.utils import parsedate_to_datetime
+        try:
+            dt = parsedate_to_datetime(sent_date)
+            if dt is None:
+                return sent_date
+        except Exception:
+            return sent_date
+        now = datetime.datetime.now(dt.tzinfo) if dt.tzinfo else datetime.datetime.now()
+        delta = now - dt
+        secs = int(delta.total_seconds())
+        if secs < 60:
+            return t("notifications.just_now", lang)
+        if secs < 3600:
+            return t("notifications.ago_minutes", lang).replace("{n}", str(secs // 60))
+        if secs < 86400:
+            return t("notifications.ago_hours", lang).replace("{n}", str(secs // 3600))
+        if secs < 604800:
+            return t("notifications.ago_days", lang).replace("{n}", str(secs // 86400))
+        if secs < 2419200:
+            return t("notifications.ago_weeks", lang).replace("{n}", str(secs // 604800))
+        if secs < 31536000:
+            return t("notifications.ago_months", lang).replace("{n}", str(secs // 2592000))
+        return t("notifications.on_date", lang).replace("{date}", dt.strftime("%Y-%m-%d"))
+
     def _announce_emails(self, emails):
         if not emails:
             return
@@ -721,11 +746,15 @@ class VassApp:
             from_parts = clean_for_tts(em['from'], 80)
             subj = clean_for_tts(em['subject'], 120)
             snip = clean_for_tts(em['snippet'], 200, " " + t("notifications.email_truncated", self.language))
-            text = f"Nuova email da {from_parts}. Oggetto: {subj}. {snip}"
+            date_str = self._format_email_ago(em.get('sent_date', ''), self.language)
+            text = f"Nuova email da {from_parts} ({date_str}). Oggetto: {subj}. {snip}"
             self.tts.enqueue(text)
-            notif = t("notifications.new_email", self.language).replace("{from}", from_parts).replace("{subject}", subj)
+            notif = t("notifications.new_email", self.language)\
+                .replace("{from}", from_parts)\
+                .replace("{date}", date_str)\
+                .replace("{subject}", subj)
             priority = 7 if em.get("important") else 5
-            self.notification_manager.add(notif, priority=priority, data={"type": "mail"})
+            self.notification_manager.add(notif, priority=priority, data={"type": "mail", "link": f"https://mail.google.com/mail/u/0/#inbox/{em['id']}"})
 
     def _start_llamacpp(self):
         proc, status = start_llama_server(
@@ -1200,15 +1229,16 @@ class VassApp:
                             # if total_enqueued + n >= 3:
                             #     self.tts.unpause()
                             #     total_enqueued = 0                            
-                            print(f"[Stream] Enqueued {n} sentences , {buf_words} buf words >= {MIN_TTS_WORDS} min)")
+                            if self.debug_enabled:
+                                print(f"[Stream] Enqueued {n} sentences , {buf_words} buf words >= {MIN_TTS_WORDS} min)")
 
                     elapsed = time.time() - _stream_start
                     if elapsed > MIN_SECS_LENGTH:
                         prev_cps = CPS
                         prev_mtw = MIN_TTS_WORDS
                         CPS = ( prev_cps + ( len(full_content) / elapsed ) ) / 2
-                        MIN_TTS_WORDS = max(5, min(100, int(CPS * MIN_SECS_LENGTH * 2 )))
-                        if prev_cps != CPS or prev_mtw != MIN_TTS_WORDS:
+                        MIN_TTS_WORDS = max(5, min(100, int(CPS * MIN_SECS_LENGTH * 3 )))
+                        if self.debug_enabled and (prev_cps != CPS or prev_mtw != MIN_TTS_WORDS):
                             print(f"[Stream] CPS={CPS:.1f} ({prev_cps:.1f}) -> MIN_TTS_WORDS={MIN_TTS_WORDS} ({prev_mtw}), tot_chars={len(full_content)}, elapsed={elapsed:.1f}s")
 
                 if delta.tool_calls:
@@ -1460,11 +1490,11 @@ class VassApp:
 
     def _detect_context_length(self):
         try:
-            import httpx
+            import urllib.request
+            import json
             url = f"{self.ai_url.rstrip('/')}/models"
-            with httpx.Client(timeout=5) as client:
-                resp = client.get(url)
-            models = resp.json().get("data", [])
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                models = json.loads(resp.read()).get("data", [])
             if models:
                 ctx = 0
                 for m in models:
@@ -1492,11 +1522,11 @@ class VassApp:
             return
 
         try:
-            import httpx
+            import urllib.request
+            import json
             url = f"{self.ai_url.rstrip('/')}/models"
-            with httpx.Client(timeout=5) as client:
-                resp = client.get(url)
-            models = resp.json().get("data", [])
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                models = json.loads(resp.read()).get("data", [])
 
             candidates = []
             for m in models:
@@ -1839,10 +1869,12 @@ def main():
             gui_font_family = config.get("gui", "font_family", fallback="Segoe UI")
             gui_font_size = config.getint("gui", "font_size", fallback=12)
             gui_language = config.get("locale", "language", fallback="en")
+            compact_mode = config.getboolean("gui", "compact_mode", fallback=False)
         else:
             gui_x, gui_y, gui_width, gui_height = 1541, 52, 220, 32
             gui_font_family, gui_font_size = "Segoe UI", 12
             gui_language = "en"
+            compact_mode = False
         
         if args.compress_memory:
             import subprocess
@@ -1887,7 +1919,12 @@ def main():
         qapp = QApplication(sys.argv)
         if sys.platform == "win32":
             try:
-                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("vass.app")
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("logicheneurali.vass.app")
+                import winreg
+                key = winreg.CreateKey(winreg.HKEY_CURRENT_USER,
+                    r"Software\Classes\AppUserModelId\logicheneurali.vass.app")
+                winreg.SetValueEx(key, "IconUri", 0, winreg.REG_EXPAND_SZ, ico_path)
+                winreg.CloseKey(key)
             except Exception:
                 pass
         ico_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vass.ico")
@@ -1901,13 +1938,17 @@ def main():
             font_family=gui_font_family, font_size=gui_font_size,
             language=gui_language
         )
-    
+        if compact_mode:
+            gui.set_compact_mode(True)
+            gui._compact_toggle.setChecked(True)
+
         # Defer heavy init so the event loop paints the window first
         _state = {"app": None, "thread": None}
     
         def _start_vass():
             _state["app"] = VassApp(gui=gui)
             gui.app = _state["app"]
+            gui._refresh_debug_border()
             _state["app"].notification_manager.gui = gui
             gui.chat_text_signal.connect(_state["app"]._process_chat_text)
             gui.set_state("loading")
@@ -1916,7 +1957,7 @@ def main():
                     _state["app"].run()
                 except BaseException as e:
                     import traceback
-                    with open("crash.log", "a") as f:
+                    with open("log/crash.log", "a") as f:
                         f.write(f"\n=== CRASH in _run_safe ({time.strftime('%Y-%m-%d %H:%M:%S')}) ===\n")
                         traceback.print_exc(file=f)
                     print(f"\n[FATAL] Unrecoverable error: {e}")
@@ -1940,3 +1981,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

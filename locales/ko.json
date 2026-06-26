@@ -23,7 +23,8 @@
       "help_usage": "사용법",
       "help_commands": "명령어",
       "help_vasscript": "VASScript",
-      "memory_editor": "영구 메모리"
+      "memory_editor": "영구 메모리",
+      "compact_mode": "소형 모드"
     },
     "dialog": {
       "exit_title": "종료",
@@ -82,6 +83,7 @@
       "font_size": "글꼴 크기",
       "wakeword": "웨이크워드",
       "volume": "볼륨",
+      "kokoro_voice": "Kokoro 음성",
       "api_key": "API 키",
       "command": "플레이어 명령",
       "sensitivity": "민감도",
@@ -113,7 +115,7 @@
       "input_device": "녹음",
       "output_device": "재생",
       "input_volume": "마이크 게인",
-      "output_volume": "출력 볼륨",
+      "app_volume": "일반 볼륨",
       "calendar_setup": "설정 시작",
       "calendar_enabled": "Google 캘린더",
       "calendar_sync_enabled": "자동 동기화",
@@ -142,8 +144,9 @@
       "font_size": "텍스트 크기 (픽셀)",
       "wakeword": "웨이크워드 (예: vass, computer)",
       "volume": "0.0-1.0, 높을수록 큼",
+      "kokoro_voice": "TTS에 사용할 Kokoro 음성 선택",
       "input_volume": "0.01-1.0, 마이크 입력 게인",
-      "output_volume": "0.01-1.0, 출력 배율",
+      "app_volume": "애플리케이션 메인 볼륨",
       "api_key": "인증을 위한 API 키 (필요하지 않으면 비워둠)",
       "language": "인터페이스 및 음성 명령 언어",
       "command": "오디오 플레이어 명령 및 플래그",
@@ -266,7 +269,10 @@
     },
     "allow_ai_scripts": "AI가 스크립트를 생성하도록 허용",
     "functions_panel": "함수",
-    "select_function": "함수를 선택하면 도움말이 표시됩니다"
+    "select_function": "함수를 선택하면 도움말이 표시됩니다",
+    "ask_ai": "AI에게 물어보기",
+    "ask_ai_placeholder": "원하는 스크립트를 설명하세요...",
+    "ask_ai_loading": "생성 중..."
   },
   "commands_editor": {
     "title": "VASS 명령 편집기",
@@ -410,8 +416,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Google 자격 증명이 만료되었습니다. 설정 → 외부 서비스 → 설정 실행을 여세요.",
-    "new_email": "새 메일 {from}: {subject}",
+    "new_email": "새 메일 {from} ({date}): {subject}",
     "email_truncated": "... Gmail에서 전체 보기",
+    "just_now": "방금",
+    "ago_minutes": "{n}분 전",
+    "ago_hours": "{n}시간 전",
+    "ago_days": "{n}일 전",
+    "ago_weeks": "{n}주 전",
+    "ago_months": "{n}개월 전",
+    "on_date": "{date}",
     "read_online": "온라인에서 읽기",
     "auto_model_selected": "AI 모델이 없습니다. 자동 선택됨: {model}"
   },

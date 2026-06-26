@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import re
@@ -5,12 +6,14 @@ import shutil
 import sys
 import uuid
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QDate
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QGroupBox,
     QLineEdit, QMessageBox, QComboBox, QSpinBox, QFileDialog, QCheckBox,
+    QCalendarWidget, QListWidgetItem,
 )
+from PySide6.QtGui import QTextCharFormat, QColor, QFont
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
 
@@ -53,6 +56,8 @@ class EventsEditor(QMainWindow):
         self.lang = language
         self._current_category = CATEGORIES[0]
         self._current_items = []
+        self._items_snapshot = []
+        self._selected_idx = None
         self._build_ui()
         self._load_category()
 
@@ -68,22 +73,49 @@ class EventsEditor(QMainWindow):
 
     def _load_category(self):
         self._current_items = _load(self._file_path())
+        self._items_snapshot = copy.deepcopy(self._current_items)
         self._clear_form()
         self._refresh_list()
 
     def _refresh_list(self):
-        self.list_widget.clear()
+        self._highlight_calendar()
+        self.day_list.blockSignals(True)
+        self.day_list.clear()
+        selected_date = self.calendar.selectedDate().toString("yyyy-MM-dd")
+        has_items = False
+        for i, item in enumerate(self._current_items):
+            if item.get("date") == selected_date:
+                has_items = True
+                time_str = item.get("time", "")
+                desc = item.get("description", "")
+                line = f"{time_str}  —  {desc}"
+                if self._current_category == "events" and item.get("recur"):
+                    line += f" [{item['recur']}]"
+                li = QListWidgetItem(line)
+                li.setData(Qt.UserRole, i)
+                self.day_list.addItem(li)
+        self.day_list.blockSignals(False)
+        if has_items:
+            self.day_list.setCurrentRow(0)
+        else:
+            self._clear_form()
+            self.date_edit.setText(selected_date)
+
+    def _highlight_calendar(self):
+        event_fmt = QTextCharFormat()
+        event_fmt.setFontWeight(QFont.Weight.Bold)
+        event_fmt.setForeground(QColor("#ffffff"))
+        event_fmt.setBackground(QColor("#0d7377"))
+        year = self.calendar.yearShown()
+        month = self.calendar.monthShown()
+        days_in = QDate(year, month, 1).daysInMonth()
+        for day in range(1, days_in + 1):
+            self.calendar.setDateTextFormat(QDate(year, month, day), QTextCharFormat())
         for item in self._current_items:
-            desc = item.get("description", "")
-            date = item.get("date", "")
-            time_str = item.get("time", "")
-            line = f"{date} {time_str}  —  {desc}"
-            if self._current_category == "events" and item.get("recur"):
-                line += f" [{item['recur']}]"
-            self.list_widget.addItem(line)
-        if self._current_items:
-            self.list_widget.setCurrentRow(0)
-            self._on_select(0)
+            date_str = item.get("date", "")
+            if DATE_RE.match(date_str):
+                y, m, d = map(int, date_str.split("-"))
+                self.calendar.setDateTextFormat(QDate(y, m, d), event_fmt)
 
     def _clear_form(self):
         self.date_edit.clear()
@@ -117,13 +149,29 @@ class EventsEditor(QMainWindow):
         top_row.addStretch()
         layout.addLayout(top_row)
 
-        list_group = QGroupBox(self._t("events_editor.list_label"))
-        list_layout = QVBoxLayout(list_group)
+        content_row = QHBoxLayout()
+        content_row.setSpacing(10)
 
-        self.list_widget = QListWidget()
-        self.list_widget.currentRowChanged.connect(self._on_select)
-        list_layout.addWidget(self.list_widget)
-        layout.addWidget(list_group, 1)
+        calendar_group = QGroupBox()
+        cal_layout = QVBoxLayout(calendar_group)
+        self.calendar = QCalendarWidget()
+        self.calendar.setFixedWidth(280)
+        self.calendar.clicked.connect(self._on_date_clicked)
+        self.calendar.currentPageChanged.connect(lambda y, m: self._highlight_calendar())
+        cal_layout.addWidget(self.calendar)
+        content_row.addWidget(calendar_group)
+
+        right_panel = QVBoxLayout()
+        right_panel.setSpacing(6)
+
+        day_group = QGroupBox(self._t("events_editor.list_label"))
+        day_layout = QVBoxLayout(day_group)
+        day_layout.setContentsMargins(4, 4, 4, 4)
+        self.day_list = QListWidget()
+        self.day_list.setMinimumHeight(80)
+        self.day_list.currentRowChanged.connect(self._on_select)
+        day_layout.addWidget(self.day_list)
+        right_panel.addWidget(day_group)
 
         form_group = QGroupBox(self._t("events_editor.form_label"))
         form_grid = QVBoxLayout(form_group)
@@ -194,10 +242,8 @@ class EventsEditor(QMainWindow):
         row_recur.addWidget(self._silent_cb)
         row_recur.addStretch()
         form_grid.addLayout(row_recur)
-        layout.addWidget(form_group)
 
-        self._toggle_fields()
-
+        form_grid.addSpacing(8)
         btn_row = QHBoxLayout()
         btn_add = QPushButton(self._t("events_editor.buttons.add"))
         btn_add.clicked.connect(self._add_item)
@@ -213,7 +259,13 @@ class EventsEditor(QMainWindow):
         btn_row.addWidget(btn_del)
 
         btn_row.addStretch()
-        layout.addLayout(btn_row)
+        form_grid.addLayout(btn_row)
+
+        right_panel.addWidget(form_group)
+        content_row.addLayout(right_panel, 1)
+        layout.addLayout(content_row, 1)
+
+        self._toggle_fields()
 
     def closeEvent(self, event):
         self._do_save()
@@ -249,21 +301,33 @@ class EventsEditor(QMainWindow):
         if path:
             self.workdir_edit.setText(path)
 
+    def _on_date_clicked(self, qdate):
+        self._selected_idx = None
+        self._refresh_list()
+
     def _on_select(self, row):
-        if 0 <= row < len(self._current_items):
-            item = self._current_items[row]
-            self.date_edit.setText(item.get("date", ""))
-            self.time_edit.setText(item.get("time", ""))
-            self.dur_spin.setValue(int(item.get("duration", 60) or 60))
-            self.desc_edit.setText(item.get("description", ""))
-            self.recur_edit.setText(item.get("recur", ""))
-            self.cmd_edit.setText(item.get("command", ""))
-            self.args_edit.setText(item.get("arguments", ""))
-            self.workdir_edit.setText(item.get("workingdir", ""))
-            enabled = item.get("enabled", "true")
-            self._enabled_cb.setChecked(enabled.lower() != "false")
-            silent = item.get("silent", "false")
-            self._silent_cb.setChecked(silent.lower() == "true")
+        item_widget = self.day_list.item(row)
+        if item_widget is None:
+            self._selected_idx = None
+            return
+        actual_idx = item_widget.data(Qt.UserRole)
+        if actual_idx is None or actual_idx < 0 or actual_idx >= len(self._current_items):
+            self._selected_idx = None
+            return
+        self._selected_idx = actual_idx
+        item = self._current_items[actual_idx]
+        self.date_edit.setText(item.get("date", ""))
+        self.time_edit.setText(item.get("time", ""))
+        self.dur_spin.setValue(int(item.get("duration", 60) or 60))
+        self.desc_edit.setText(item.get("description", ""))
+        self.recur_edit.setText(item.get("recur", ""))
+        self.cmd_edit.setText(item.get("command", ""))
+        self.args_edit.setText(item.get("arguments", ""))
+        self.workdir_edit.setText(item.get("workingdir", ""))
+        enabled = item.get("enabled", "true")
+        self._enabled_cb.setChecked(enabled.lower() != "false")
+        silent = item.get("silent", "false")
+        self._silent_cb.setChecked(silent.lower() == "true")
 
     def _validate(self):
         date = self.date_edit.text().strip()
@@ -380,27 +444,91 @@ class EventsEditor(QMainWindow):
             return
         self._current_items.append(self._build_item())
         self._refresh_list()
-        self.list_widget.setCurrentRow(len(self._current_items) - 1)
+        idx = len(self._current_items) - 1
+        for i in range(self.day_list.count()):
+            if self.day_list.item(i).data(Qt.UserRole) == idx:
+                self.day_list.setCurrentRow(i)
+                break
 
     def _update_item(self):
-        row = self.list_widget.currentRow()
-        if row < 0:
+        if self._selected_idx is None:
             return
         if not self._validate():
             return
-        self._current_items[row] = self._build_item(existing=self._current_items[row])
+        self._current_items[self._selected_idx] = self._build_item(existing=self._current_items[self._selected_idx])
         self._refresh_list()
-        self.list_widget.setCurrentRow(row)
+        for i in range(self.day_list.count()):
+            if self.day_list.item(i).data(Qt.UserRole) == self._selected_idx:
+                self.day_list.setCurrentRow(i)
+                break
 
     def _delete_item(self):
-        row = self.list_widget.currentRow()
-        if row < 0:
+        if self._selected_idx is None:
             return
-        del self._current_items[row]
+        del self._current_items[self._selected_idx]
+        self._selected_idx = None
         self._refresh_list()
 
+    @staticmethod
+    def _item_fallback_key(item):
+        return (item.get("description", ""), item.get("date", ""), item.get("time", ""))
+
     def _do_save(self):
-        _save(self._file_path(), self._current_items, self._key())
+        path = self._file_path()
+        key = self._key()
+        fresh_items = _load(path)
+
+        # Ensure all fresh items have an id for reliable matching
+        for fi in fresh_items:
+            if "id" not in fi:
+                fi["id"] = uuid.uuid4().hex[:8]
+
+        fresh_by_id = {fi["id"]: fi for fi in fresh_items if fi.get("id")}
+        fresh_by_fallback = {self._item_fallback_key(fi): fi for fi in fresh_items}
+        snap_by_id = {si["id"]: si for si in self._items_snapshot if si.get("id")}
+        snap_by_fallback = {self._item_fallback_key(si): si for si in self._items_snapshot}
+
+        EDITABLE = {"date", "time", "duration", "description", "recur",
+                     "command", "arguments", "workingdir", "enabled", "silent"}
+
+        merged = []
+        seen_ids = set()
+
+        for item in self._current_items:
+            item_id = item.get("id")
+
+            # Match by id or fallback to desc+date+time
+            fresh = fresh_by_id.get(item_id) if item_id else None
+            if not fresh and not item_id:
+                fresh = fresh_by_fallback.get(self._item_fallback_key(item))
+                if fresh:
+                    item["id"] = fresh["id"]
+
+            snap = snap_by_id.get(item["id"]) if item.get("id") else None
+            if not snap:
+                snap = snap_by_fallback.get(self._item_fallback_key(item))
+
+            if "id" not in item:
+                item["id"] = uuid.uuid4().hex[:8]
+            item_id = item["id"]
+            seen_ids.add(item_id)
+
+            if fresh:
+                merged_item = dict(fresh)
+                if snap:
+                    for field in EDITABLE:
+                        if item.get(field) != snap.get(field):
+                            merged_item[field] = item[field]
+                desc = merged_item.get("description", "")
+                d = merged_item.get("date", "")
+                t = merged_item.get("time", "")
+                merged_item["name"] = f"{desc}_{d}_{t}".replace(" ", "_").lower()
+                merged.append(merged_item)
+            else:
+                merged.append(dict(item))
+
+        self._items_snapshot = copy.deepcopy(merged)
+        _save(path, merged, key)
 
     def _save_file(self):
         self._do_save()

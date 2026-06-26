@@ -1,14 +1,16 @@
 import json
 import math
 import re
+import shlex
 import subprocess
+import sys
 import threading
 import time
 
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, fuzzy_ratio
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "launch_app", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "form", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal"}
 
 
 def _is_int_str(s):
@@ -62,11 +64,12 @@ class VASScript:
     _search_cache_ttl = 600
     _state = {}
 
-    def __init__(self, app, script_name="inline", auth_callback=None, line_callback=None):
+    def __init__(self, app, script_name="inline", auth_callback=None, line_callback=None, silent=False):
         self.app = app
         self.script_name = script_name
         self.auth_callback = auth_callback
         self.line_callback = line_callback
+        self._silent = silent
         self.vars = {}
         self.vars["_lang"] = getattr(app, "language", "en")
         from i18n import t
@@ -424,6 +427,8 @@ class VASScript:
             text = evaluated[0] if evaluated else ""
             if not text.strip():
                 return ""
+            if self._silent:
+                return ""
             speed = float(_tof(evaluated[1])) if len(evaluated) > 1 else 1.0
             self._do_say(text, speed)
             return ""
@@ -513,7 +518,7 @@ class VASScript:
             cmd = evaluated[0] if evaluated else ""
             deny_list = [
                 "remove-item", "rm ", "del ", "format-", "clear-", "stop-",
-                "restart-computer", "shutdown", "stop-computer"
+                "restart-computer", "shutdown", "stop-computer", "rm -rf"
             ]
             cmd_lower = cmd.lower()
             for bad in deny_list:
@@ -521,12 +526,19 @@ class VASScript:
                     return f"error: command blocked by security policy (contains '{bad}')"
             print(f"[Security] run() executing: {cmd[:200]}")
             try:
-                result = subprocess.run(
-                    ["powershell", "-NoProfile", "-Command", cmd],
-                    capture_output=True, text=True, encoding="utf-8", errors="replace",
-                    creationflags=subprocess.CREATE_NO_WINDOW,
-                    timeout=30
-                )
+                if sys.platform == "win32":
+                    result = subprocess.run(
+                        ["powershell", "-NoProfile", "-Command", cmd],
+                        capture_output=True, text=True, encoding="utf-8", errors="replace",
+                        creationflags=subprocess.CREATE_NO_WINDOW,
+                        timeout=30
+                    )
+                else:
+                    result = subprocess.run(
+                        cmd, shell=True,
+                        capture_output=True, text=True, encoding="utf-8", errors="replace",
+                        timeout=30
+                    )
                 output = (result.stdout or "").strip()
                 if result.stderr:
                     stderr = result.stderr.strip()
@@ -535,6 +547,20 @@ class VASScript:
                 return output or f"exit code: {result.returncode}"
             except Exception as e:
                 return f"error: {e}"
+
+        if name == "launch_app":
+            query = evaluated[0] if evaluated else ""
+            args = evaluated[1] if len(evaluated) > 1 else ""
+            if not str(query).strip():
+                return "error: no app name specified"
+            from app_launcher import launch
+            return launch(str(query), str(args))
+
+        if name == "list_apps":
+            from app_launcher import list_apps as _list_apps
+            apps = _list_apps()
+            out = [{"name": a["name"], "path": a["path"]} for a in apps]
+            return json.dumps(out, ensure_ascii=False)
 
         if name == "screen_highlight":
             cx = int(_tof(evaluated[0])) if evaluated else 0
@@ -749,7 +775,16 @@ class VASScript:
         if name == "notify":
             text = evaluated[0] if evaluated else ""
             priority = int(evaluated[1]) if len(evaluated) > 1 and evaluated[1].strip().isdigit() else 1
-            return self.app.notification_manager.add(text, priority, data={"type": "script"})
+            link = evaluated[2] if len(evaluated) > 2 else ""
+            data = {"type": "script"}
+            if link:
+                data["link"] = link
+            return self.app.notification_manager.add(text, priority, data=data)
+
+        if name == "form":
+            title = evaluated[0] if evaluated else ""
+            fields = evaluated[1:]
+            return self.app.gui.request_form(title, fields)
 
         if name == "inject":
             text = evaluated[0] if evaluated else ""
@@ -882,6 +917,8 @@ class VASScript:
                 "datetime": dt_str,
                 "date": now.strftime("%Y-%m-%d"),
                 "time": now.strftime("%H:%M"),
+                "hour": now.strftime("%H"),
+                "minute": now.strftime("%M"),
                 "timestamp": str(ts),
                 "year": str(now.year),
                 "month": str(now.month),
@@ -890,6 +927,8 @@ class VASScript:
             self.vars["datetime"] = dt_str
             self.vars["date"] = now.strftime("%Y-%m-%d")
             self.vars["time"] = now.strftime("%H:%M")
+            self.vars["hour"] = now.strftime("%H")
+            self.vars["minute"] = now.strftime("%M")
             self.vars["timestamp"] = str(ts)
             self.vars["year"] = str(now.year)
             self.vars["month"] = str(now.month)
@@ -1434,7 +1473,8 @@ class VASScript:
                 if hasattr(self.app, 'command_executor'):
                     self.app.command_executor.track_command_outcome(text, ok)
                 if play_audio:
-                    gh.play_audio_response(result["audio"], output_device)
+                    av = getattr(self.app, "app_volume", 1.0)
+                    gh.play_audio_response(result["audio"], output_device, av)
             elif result.get("text"):
                 if play_audio:
                     self.app.tts.enqueue(result["text"])

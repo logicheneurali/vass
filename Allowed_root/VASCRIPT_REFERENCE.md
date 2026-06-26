@@ -46,12 +46,38 @@ run("long_task.exe")
 
 
 ### **`run(command)`**
-Executes a PowerShell command. Returns stdout and stderr as text. Requires authorization.
+Executes a shell command (PowerShell on Windows, /bin/sh on macOS/Linux). Returns stdout and stderr as text. Requires authorization. A denylist blocks dangerous commands (rm, shutdown, format, etc.).
 
 ```
 run("notepad.exe")
+run("echo hello")
 $processes = run("Get-Process | Select-Object -First 3")
 say($processes)
+```
+
+
+### **`launch_app(name, args?)`**
+Opens an installed application by fuzzy-matched name (cross-platform: Start Menu shortcuts on Windows, .app bundles on macOS, .desktop files on Linux). Optional `args` passed to the app. Requires authorization.
+
+Returns: `ok: launched <name>` or `error: no app found matching: <query>`.
+
+- `name`: app name (case-insensitive, partial match OK, fuzzy threshold 0.70)
+- `args` (optional): arguments passed to the app (subject to a light denylist)
+
+```
+launch_app("firefox")
+launch_app("notepad", "C:\\file.txt")
+$ok = launch_app("spotify")
+if_empty($ok, exit(), "")
+```
+
+
+### **`list_apps()`**
+Returns a JSON array of installed apps: `[{"name": str, "path": str}, ...]`. Read-only (no authorization needed). Cached for 5 minutes.
+
+```
+$apps = list_apps()
+say("Trovate " + trim(len($apps)) + " app")
 ```
 
 

@@ -135,7 +135,7 @@ class GoogleHome:
             if channel:
                 channel.close()
 
-    def play_audio_response(self, audio_bytes, output_device=None):
+    def play_audio_response(self, audio_bytes, output_device=None, volume=1.0):
         if not audio_bytes:
             return False
         try:
@@ -149,7 +149,7 @@ class GoogleHome:
             arr = arr.astype(np.float32) / 32768.0
             sf.write(tmp_path, arr, 24000)
             data, sr = sf.read(tmp_path)
-            sd.play(data, sr, device=output_device)
+            sd.play(data * volume, sr, device=output_device)
             sd.wait()
             os.unlink(tmp_path)
             return True

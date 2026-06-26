@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal
-from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon
+from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
@@ -316,6 +316,137 @@ class HTMLViewer(QMainWindow):
         self._web.page().runJavaScript(css)
 
 
+class _CompactWidget(QWidget):
+    """Custom widget disegnato con QPainter: 3 cerchi concentrici + icona centrale."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._main_window = parent
+        self.setFixedSize(36, 36)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._color = QColor("#2ecc71")
+        self._state = "listening"
+
+    def set_state(self, color, state):
+        self._color = QColor(color)
+        self._state = state
+        self.update()
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        r, g, b = self._color.red(), self._color.green(), self._color.blue()
+
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(r, g, b, 51))
+        p.drawEllipse(2, 2, 32, 32)
+
+        p.setBrush(QColor(r, g, b, 127))
+        p.drawEllipse(6, 6, 24, 24)
+
+        p.setBrush(QColor(r, g, b, 255))
+        p.drawEllipse(10, 10, 16, 16)
+
+        p.setBrush(Qt.GlobalColor.white)
+        p.setPen(Qt.PenStyle.NoPen)
+        self._draw_icon(p)
+
+    def _draw_icon(self, p):
+        if self._state == "loading":
+            return
+
+        cx, cy = 18, 18
+
+        if self._state == "recording":
+            p.drawEllipse(cx - 4, cy - 4, 8, 8)
+            return
+
+        if self._state == "playing":
+            path = QPainterPath()
+            path.moveTo(cx - 5, cy - 6)
+            path.lineTo(cx - 5, cy + 6)
+            path.lineTo(cx + 6, cy)
+            path.closeSubpath()
+            p.drawPath(path)
+            return
+
+        if self._state == "paused":
+            p.drawRect(cx - 5, cy - 6, 3, 12)
+            p.drawRect(cx + 2, cy - 6, 3, 12)
+            return
+
+        if self._state in ("waiting", "waiting_resources"):
+            r = 2
+            for dx in (-4, 0, 4):
+                p.drawEllipse(cx + dx - r, cy - r, r * 2, r * 2)
+            return
+
+        if self._state == "running_script":
+            path = QPainterPath()
+            s = 5
+            path.moveTo(cx, cy - s)
+            path.lineTo(cx + s, cy)
+            path.lineTo(cx, cy + s)
+            path.lineTo(cx - s, cy)
+            path.closeSubpath()
+            p.drawPath(path)
+            return
+
+        if self._state == "listening":
+            for i, h in enumerate([5, 9, 5]):
+                x = cx - 4 + i * 4 - 1
+                y = cy - h // 2
+                p.drawRoundedRect(x, y, 2, h, 1, 1)
+            return
+
+    def mousePressEvent(self, event):
+        win = self._main_window
+        if event.button() == Qt.MouseButton.RightButton:
+            if win and hasattr(win, '_menu'):
+                win._menu.exec(event.globalPosition().toPoint())
+            return
+        if event.button() == Qt.MouseButton.MiddleButton:
+            if win and hasattr(win, '_exit_app'):
+                win._exit_app()
+            return
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start = event.globalPosition().toPoint()
+            self._drag_pos = self._drag_start
+            self._drag_started = False
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.MouseButton.LeftButton and self._drag_pos:
+            cur = event.globalPosition().toPoint()
+            if not self._drag_started and self._drag_start:
+                if (cur - self._drag_start).manhattanLength() > 5:
+                    self._drag_started = True
+            if self._drag_started:
+                win = self._main_window
+                if win:
+                    win.move(
+                        win.x() + cur.x() - self._drag_pos.x(),
+                        win.y() + cur.y() - self._drag_pos.y(),
+                    )
+            self._drag_pos = cur
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self._drag_pos is not None:
+            win = self._main_window
+            if not self._drag_started:
+                if win and hasattr(win, 'app') and win.app:
+                    win.app.handle_button_press()
+            else:
+                if win:
+                    if hasattr(win, '_clamp_to_screen'):
+                        win._clamp_to_screen()
+                    if hasattr(win, 'app') and win.app:
+                        win._pending_pos = (win.x(), win.y())
+                        win._pos_debounce.start()
+        self._drag_pos = None
+        self._drag_start = None
+
+
 class VassGUI(QMainWindow):
     set_state_signal = Signal(str, str)
     update_memory_signal = Signal()
@@ -327,7 +458,9 @@ class VassGUI(QMainWindow):
     volume_signal = Signal(float)
     chat_text_signal = Signal(str)
     tool_indicator_signal = Signal(str, str)
-
+    compact_mode_signal = Signal(bool)
+    debug_border_signal = Signal()
+ 
     COLORS = {
         "listening": "#2ecc71",
         "recording": "#e67e22",
@@ -349,14 +482,15 @@ class VassGUI(QMainWindow):
         self._current_state = "listening"
         self._current_detail = ""
         self._current_mode = "chat"
+        self._compact_mode = False
         self._html_viewers = []
 
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         )
-        self.setAttribute(Qt.WA_TranslucentBackground, False)
-        self.setGeometry(x, y, width, height)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setStyleSheet("QMainWindow { background-color: #101010; }")
+        self.setGeometry(x, y, width, height)
 
         ico_path = os.path.join(BASE, "vass.ico")
         if os.path.exists(ico_path):
@@ -368,6 +502,8 @@ class VassGUI(QMainWindow):
         # --- Layout ---
         central = QWidget()
         self.setCentralWidget(central)
+        self._central = central
+        self._refresh_debug_border()
         outer = QVBoxLayout(central)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
@@ -406,7 +542,7 @@ class VassGUI(QMainWindow):
 
         self._bell_btn = QPushButton("0")
         self._bell_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #3f3f3f; "
+            "QPushButton { background-color: #101010; color: #3f3f3f; "
             "border: none; font-size: 10px; padding: 2px 4px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -429,7 +565,7 @@ class VassGUI(QMainWindow):
 
         self.replay_btn = QPushButton("\u21bb")
         self.replay_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #ffffff; "
+            "QPushButton { background-color: #101010; color: #ffffff; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -445,7 +581,7 @@ class VassGUI(QMainWindow):
         # Right-side widget — automatically balanced by _rebalance_spacers()
         self._menu_btn = QPushButton("\u2630")
         self._menu_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #888888; "
+            "QPushButton { background-color: #101010; color: #888888; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -487,6 +623,9 @@ class VassGUI(QMainWindow):
         self._mem_none = self._menu.addAction(self._t("gui.memory_mode.none"))
         self._mem_none.setCheckable(True)
         self._mem_none.triggered.connect(lambda: self._switch_memory_mode("none"))
+        self._compact_toggle = self._menu.addAction(self._t("gui.menu.compact_mode"))
+        self._compact_toggle.setCheckable(True)
+        self._compact_toggle.triggered.connect(lambda checked: self._toggle_compact_mode(checked))
         self._menu.addSeparator()
         self._menu.addAction(self._t("gui.menu.exit"), self._exit_app)
         self._menu_btn.clicked.connect(
@@ -498,10 +637,10 @@ class VassGUI(QMainWindow):
 
         self._chat_btn = QPushButton("\u2726")
         self._chat_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #888888; "
+            "QPushButton { background-color: #101010; color: #888888; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
-            "QPushButton:checked { background: transparent; color: #0d7377; }"
+            "QPushButton:checked { background-color: #101010; color: #0d7377; }"
         )
         self._chat_btn.setFixedWidth(16)
         self._chat_btn.setCheckable(True)
@@ -515,7 +654,7 @@ class VassGUI(QMainWindow):
         self._chat_input.setMaxLength(128000)
         self._chat_input.setPlaceholderText(self._t("gui.chat_placeholder"))
         self._chat_input.setStyleSheet(
-            "QLineEdit { background: transparent; color: #e0e0e0; "
+            "QLineEdit { background-color: #101010; color: #e0e0e0; "
             "border: none; "
             "padding: 2px 6px; font-size: 12px; "
             "margin-right: 10px; }"
@@ -534,6 +673,14 @@ class VassGUI(QMainWindow):
         self.memory_bar = MemoryBar()
         outer.addWidget(self.memory_bar)
 
+        # Compact mode dot
+        self._compact_dot = _CompactWidget(self)
+        self._compact_dot.setVisible(False)
+        self._compact_dot.setToolTip(self._t("gui.button_tooltip"))
+        self._compact_dot.set_state("#2ecc71", "listening")
+        outer.addWidget(self._compact_dot, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._normal_geometry = None
+
         # Drag state
         self._drag_start = None
         self._drag_pos = None
@@ -545,6 +692,13 @@ class VassGUI(QMainWindow):
         self.player.mousePressEvent = self._btn_press
         self.player.mouseMoveEvent = self._btn_move
         self.player.mouseReleaseEvent = self._btn_release
+
+        # Position save debounce (200ms after last drag)
+        self._pos_debounce = QTimer()
+        self._pos_debounce.setSingleShot(True)
+        self._pos_debounce.setInterval(200)
+        self._pos_debounce.timeout.connect(self._save_position_debounced)
+        self._pending_pos = None
 
         # TTS polling
         self._tts_polling = False
@@ -574,6 +728,8 @@ class VassGUI(QMainWindow):
         self.form_signal.connect(self._on_form_requested)
         self.volume_signal.connect(self._on_volume)
         self.tool_indicator_signal.connect(self._on_tool_indicator)
+        self.compact_mode_signal.connect(self.set_compact_mode)
+        self.debug_border_signal.connect(self._refresh_debug_border)
 
         self._auto_fade_enabled = True
         import threading as _th
@@ -647,9 +803,93 @@ class VassGUI(QMainWindow):
         if reply == QMessageBox.Yes:
             QApplication.quit()
 
+    def _toggle_compact_mode(self, checked):
+        self.set_compact_mode(checked)
+        if self.app:
+            self.app.settings["compact_mode"] = checked
+            self.app._save_setting("gui", "compact_mode", "true" if checked else "false")
+        self._compact_toggle.setChecked(checked)
+
+    def set_compact_mode(self, enabled):
+        if enabled == self._compact_mode:
+            return
+        self._compact_mode = enabled
+        self._compact_toggle.setChecked(enabled)
+        if enabled:
+            self.setGeometry(self.x()+self.width()//2, self.y(), self.width(), self.height())
+            if self.app:
+                self.app.save_gui_position(self.x(), self.y())
+            self._normal_geometry = (self.x(), self.y(), self.width(), self.height())
+            self.volume_top_bar.hide()
+            self.memory_bar.hide()
+            for w in self._left_side:
+                w.hide()
+            for w in self._right_side:
+                w.hide()
+            self._chat_input.hide()
+            self._chat_btn.hide()
+            self.stacked.hide()
+            self.setAttribute(Qt.WA_TranslucentBackground, True)
+            self.setStyleSheet("")
+            self._central.setStyleSheet("background-color: transparent; border: none;")
+            self._compact_dot.show()
+            if sys.platform == "win32":
+                try:
+                    import ctypes
+                    hwnd = int(self.winId())
+                    dwm = ctypes.windll.dwmapi
+                    dwm.DwmSetWindowAttribute(
+                        hwnd, 2,
+                        ctypes.byref(ctypes.c_int(2)), 4)
+                    ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
+                        0x0027)
+                except Exception:
+                    pass
+            self.setFixedSize(36, 36)
+        else:
+            self._compact_dot.hide()
+            self.setAttribute(Qt.WA_TranslucentBackground, True)
+            self.setStyleSheet("QMainWindow { background-color: #101010; }")
+            self._refresh_debug_border()
+            if sys.platform == "win32":
+                try:
+                    import ctypes
+                    hwnd = int(self.winId())
+                    dwm = ctypes.windll.dwmapi
+                    dwm.DwmSetWindowAttribute(
+                        hwnd, 2,
+                        ctypes.byref(ctypes.c_int(1)), 4)
+                    try:
+                        dwm.DwmSetWindowAttribute(
+                            hwnd, 33,
+                            ctypes.byref(ctypes.c_int(2)), 4)
+                    except Exception:
+                        pass
+                    ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
+                        0x0027)
+                except Exception:
+                    pass
+            self.setMinimumSize(0, 0)
+            self.setMaximumSize(16777215, 16777215)
+            self.volume_top_bar.show()
+            self.memory_bar.show()
+            self.stacked.show()
+            for w in self._left_side:
+                w.show()
+            for w in self._right_side:
+                w.show()
+            if self._normal_geometry:
+                x, y, w, h = self._normal_geometry
+                self.setGeometry(x-w//2, y, w, h)
+                if self.app:
+                    self.app.save_gui_position(self.x(), self.y())
+            else:
+                self.setGeometry(self.x(), self.y(), 220, 60)
+            self._on_set_state(self._current_state, self._current_detail)
+
     def _build_loading_widget(self):
         self.loading_widget = QWidget()
-        self.loading_widget.setStyleSheet("background: transparent;")
+        self.loading_widget.setStyleSheet("background-color: #101010;")
         lo = QVBoxLayout(self.loading_widget)
         lo.setContentsMargins(0, 0, 0, 0)
         self.loading_label = QLabel("...")
@@ -657,7 +897,7 @@ class VassGUI(QMainWindow):
         f.setBold(True)
         self.loading_label.setFont(f)
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.loading_label.setStyleSheet("color: #888888; background: transparent;")
+        self.loading_label.setStyleSheet("color: #888888; background-color: #101010;")
         lo.addWidget(self.loading_label)
 
     def _build_main_button(self):
@@ -667,7 +907,7 @@ class VassGUI(QMainWindow):
         font.setBold(True)
         self.btn.setFont(font)
         self.btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #2ecc71; "
+            "QPushButton { background-color: #101010; color: #2ecc71; "
             "border: none; border-radius: 0; text-align: center; }"
             "QPushButton:hover { color: #27ae60; }"
         )
@@ -682,7 +922,7 @@ class VassGUI(QMainWindow):
             self._drag_pos = self._drag_start
             self._drag_started = False
 
-    def _btn_move(self, event):
+    def _ui_move(self,event):
         if event.buttons() == Qt.MouseButton.LeftButton and self._drag_pos:
             cur = event.globalPosition().toPoint()
             if not self._drag_started and self._drag_start:
@@ -694,8 +934,11 @@ class VassGUI(QMainWindow):
                     self.y() + cur.y() - self._drag_pos.y(),
                 )
             self._drag_pos = cur
+    
+    def _btn_move(self, event):
+        self._ui_move(event)
 
-    def _btn_release(self, event):
+    def _ui_release(self,event):
         if event.button() == Qt.MouseButton.LeftButton and self._drag_pos is not None:
             if not self._drag_started:
                 if self.app:
@@ -703,9 +946,19 @@ class VassGUI(QMainWindow):
             else:
                 self._clamp_to_screen()
                 if self.app:
-                    self.app.save_gui_position(self.x(), self.y())
+                    self._pending_pos = (self.x(), self.y())
+                    self._pos_debounce.start()
         self._drag_pos = None
         self._drag_start = None
+
+    def _save_position_debounced(self):
+        if self._pending_pos and self.app:
+            x, y = self._pending_pos
+            self.app.save_gui_position(x, y)
+        self._pending_pos = None
+
+    def _btn_release(self, event):
+        self._ui_release(event)
 
     # ---- Thread-safe public API called from VassApp ----
 
@@ -717,8 +970,10 @@ class VassGUI(QMainWindow):
         self._current_detail = detail
         if state == "loading":
             self.stacked.setCurrentWidget(self.loading_widget)
+            self._compact_dot.set_state("#888888", state)
             return
         color = self.COLORS.get(state, "#1e1e1e")
+        self._compact_dot.set_state(color, state)
         text_color = "#888888" if not self._health_ok else color
         text = self._t(f"gui.states.{state}")
         if detail:
@@ -727,22 +982,23 @@ class VassGUI(QMainWindow):
         self._btn_full_text = prefix + text
         self._elide_button_text()
         self.btn.setStyleSheet(
-            "QPushButton { background: transparent; color: %s; "
+            "QPushButton { background-color: #101010; color: %s; "
             "border: none; border-radius: 0; text-align: center; }"
             "QPushButton:hover { color: %s; }"
             % (text_color, QColor(text_color).lighter(130).name())
         )
-        self.stacked.setCurrentWidget(self.btn)
-        if state == "listening":
-            path = os.path.join(BASE, "Allowed_root", "last_response.txt")
-            self.replay_btn.setVisible(os.path.exists(path) and os.path.getsize(path) > 0)
-            self._chat_btn.setVisible(True)
-        else:
-            self.replay_btn.setVisible(False)
-            self._chat_btn.setVisible(False)
-            if self._chat_btn.isChecked():
-                self._collapse_chat()
-        self._rebalance_spacers()
+        if not self._compact_mode:
+            self.stacked.setCurrentWidget(self.btn)
+            if state == "listening":
+                path = os.path.join(BASE, "Allowed_root", "last_response.txt")
+                self.replay_btn.setVisible(os.path.exists(path) and os.path.getsize(path) > 0)
+                self._chat_btn.setVisible(True)
+            else:
+                self.replay_btn.setVisible(False)
+                self._chat_btn.setVisible(False)
+                if self._chat_btn.isChecked():
+                    self._collapse_chat()
+            self._rebalance_spacers()
         if state == "recording":
             self.memory_bar.set_color("#69DB7C")
             self.memory_bar.set_tooltip_context(self._t("gui.bar.volume"), "")
@@ -824,14 +1080,14 @@ class VassGUI(QMainWindow):
             color = self.app.notification_manager.color_for(max_priority)
             self._bell_btn.setText(str(count))
             self._bell_btn.setStyleSheet(
-                f"QPushButton {{ background: transparent; color: {color}; "
+                f"QPushButton {{ background-color: #101010; color: {color}; "
                 "border: none; font-size: 10px; padding: 2px 4px; font-weight: bold; }"
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )
         else:
             self._bell_btn.setText("0")
             self._bell_btn.setStyleSheet(
-                "QPushButton { background: transparent; color: #3f3f3f; "
+                "QPushButton { background-color: #101010; color: #3f3f3f; "
                 "border: none; font-size: 10px; padding: 2px 4px; }"
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )
@@ -946,6 +1202,15 @@ class VassGUI(QMainWindow):
             self._chat_input.add_to_history(text)
             self.chat_text_signal.emit(text)
         self._collapse_chat()
+
+    def _refresh_debug_border(self):
+        debug = getattr(self.app, 'debug_enabled', False)
+        if self._compact_mode:
+            self._central.setStyleSheet("background-color: transparent; border: none;")
+        elif debug:
+            self._central.setStyleSheet("background-color: #101010; border: 2px solid #ffcc00;")
+        else:
+            self._central.setStyleSheet("background-color: #101010;")
 
     def update_memory_bar(self):
         self.update_memory_signal.emit()
@@ -1489,6 +1754,7 @@ class VassGUI(QMainWindow):
         import time as _time
         prev_opacity = 1.0
         fading = False
+        was_compact = False
         while self._auto_fade_enabled:
             try:
                 fullscreen = self._is_fullscreen()
@@ -1503,6 +1769,11 @@ class VassGUI(QMainWindow):
                     if not fading:
                         fading = True
                         prev_opacity = self.windowOpacity()
+                        was_compact = self._compact_mode
+                        if not was_compact:
+                            self.compact_mode_signal.emit(True)
+                            while not self._compact_mode:
+                                _time.sleep(0.01)
                     current = self.windowOpacity()
                     target = max(0.10, current - 0.02)
                     self.setWindowOpacity(target)
@@ -1510,6 +1781,10 @@ class VassGUI(QMainWindow):
                     if fading:
                         fading = False
                         self.setWindowOpacity(prev_opacity)
+                        if not was_compact:
+                            self.compact_mode_signal.emit(False)
+                            while self._compact_mode:
+                                _time.sleep(0.01)
             except Exception:
                 pass
             _time.sleep(1)
@@ -1570,3 +1845,5 @@ class VassGUI(QMainWindow):
         if event.button() == Qt.MouseButton.MiddleButton:
             self._exit_app()
         super().mousePressEvent(event)
+
+

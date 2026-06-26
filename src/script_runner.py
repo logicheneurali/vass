@@ -227,7 +227,10 @@ class ScriptRunner:
                 result_callback({"status": "not_found", "script": name_or_code, "detail": err_msg, "message": err_msg})
             else:
                 app.tts.enqueue(err_msg)
-                return
+            with queue._lock:
+                if len(queue._queue) == 0:
+                    app.set_state("listening", silent_gui=silent)
+            return
 
         if code_text:
             from script_engine import VASScript

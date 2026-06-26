@@ -36,7 +36,11 @@ playwright>=1.50.0
 pyautogui>=0.9.54
 pyperclip>=1.9.0
 spacy>=3.8.0
+google-auth>=2.0.0
 google-auth-oauthlib>=1.0.0
 google-api-python-client>=2.0.0
+google-assistant-sdk>=0.5.0
+grpcio>=1.60.0
+GPUtil>=1.4.0
 cryptography>=42.0.0
 feedparser

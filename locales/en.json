@@ -23,7 +23,8 @@
       "help_usage": "Usage",
       "help_commands": "Commands",
       "help_vasscript": "VASScript",
-      "memory_editor": "Permanent Memory"
+      "memory_editor": "Permanent Memory",
+      "compact_mode": "Compact Mode"
     },
     "dialog": {
       "exit_title": "Exit",
@@ -86,6 +87,7 @@
       "similarity": "Similarity threshold",
       "tts_engine": "TTS Engine",
       "volume": "Volume",
+      "kokoro_voice": "Kokoro Voice",
       "url": "API URL",
       "api_key": "API Key",
       "model": "AI model",
@@ -113,7 +115,7 @@
       "input_device": "Recording",
       "output_device": "Playback",
       "input_volume": "Microphone gain",
-      "output_volume": "Output volume",
+      "app_volume": "General volume",
       "calendar_setup": "Start setup",
       "calendar_enabled": "Google Calendar",
       "calendar_sync_enabled": "Auto sync",
@@ -147,8 +149,9 @@
       "similarity": "0.0-1.0, higher = exact match",
       "tts_engine": "kokoro = AI multilingual synthesis",
       "volume": "0.0-1.0, higher = louder",
+      "kokoro_voice": "Select the Kokoro voice for TTS",
       "input_volume": "0.01-1.0, microphone input gain",
-      "output_volume": "0.01-1.0, output multiplier",
+      "app_volume": "Main application volume",
       "url": "OpenAI-compatible API URL",
       "api_key": "API key for authentication (leave empty if not needed)",
       "model": "AI model name (e.g. gemma, llama)",
@@ -266,7 +269,10 @@
     },
     "allow_ai_scripts": "Allow AI to generate scripts",
     "functions_panel": "Functions",
-    "select_function": "Select a function to see its help"
+    "select_function": "Select a function to see its help",
+    "ask_ai": "Ask AI",
+    "ask_ai_placeholder": "Describe the script you want...",
+    "ask_ai_loading": "Generating..."
   },
   "commands_editor": {
     "title": "VASS Command Editor",
@@ -409,8 +415,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Google credentials expired. Open Settings → External Services → Run Setup.",
-    "new_email": "New Mail from {from}: {subject}",
+    "new_email": "New Mail from {from} ({date}): {subject}",
     "email_truncated": "... Full message on Gmail",
+    "just_now": "just now",
+    "ago_minutes": "{n} min ago",
+    "ago_hours": "{n}h ago",
+    "ago_days": "{n}d ago",
+    "ago_weeks": "{n}w ago",
+    "ago_months": "{n}mo ago",
+    "on_date": "on {date}",
     "read_online": "Read online",
     "auto_model_selected": "AI model missing. Auto-selected {model}"
   },

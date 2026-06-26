@@ -23,7 +23,8 @@
       "help_usage": "Utilizzo",
       "help_commands": "Comandi",
       "help_vasscript": "VASScript",
-      "memory_editor": "Memoria Permanente"
+      "memory_editor": "Memoria Permanente",
+      "compact_mode": "Modalità compatta"
     },
     "dialog": {
       "exit_title": "Uscita",
@@ -100,7 +101,10 @@
     },
     "allow_ai_scripts": "Permetti alla AI di generare scripts",
     "functions_panel": "Funzioni",
-    "select_function": "Seleziona una funzione per vederne la guida"
+    "select_function": "Seleziona una funzione per vederne la guida",
+    "ask_ai": "Chiedi alla AI",
+    "ask_ai_placeholder": "Descrivi lo script che vuoi...",
+    "ask_ai_loading": "Generazione in corso..."
   },
   "settings_editor": {
     "title": "Impostazioni VASS",
@@ -117,6 +121,7 @@
       "similarity": "Soglia similarità",
       "tts_engine": "Motore TTS",
       "volume": "Volume",
+      "kokoro_voice": "Voce Kokoro",
       "url": "URL API",
       "api_key": "Chiave API",
       "model": "Modello AI",
@@ -144,7 +149,7 @@
       "input_device": "Registrazione",
       "output_device": "Riproduzione",
       "input_volume": "Guadagno microfono",
-      "output_volume": "Volume output",
+      "app_volume": "Volume generale",
       "calendar_setup": "Avvia configurazione",
       "calendar_enabled": "Google Calendar",
       "calendar_sync_enabled": "Sync automatico",
@@ -178,8 +183,9 @@
       "similarity": "0.0-1.0, alto = corrispondenza esatta",
       "tts_engine": "kokoro = sintesi AI multilingua",
       "volume": "0.0-1.0, più alto = più forte",
+      "kokoro_voice": "Seleziona la voce Kokoro per la sintesi vocale",
       "input_volume": "0.01-1.0, guadagno ingresso microfono",
-      "output_volume": "0.01-1.0, moltiplicatore output",
+      "app_volume": "Volume principale dell'applicazione",
       "url": "URL API compatibile OpenAI",
       "api_key": "Chiave API per autenticazione (lasciare vuota se non serve)",
       "model": "Nome modello AI (es. gemma, llama)",
@@ -409,8 +415,15 @@
   },
   "notifications": {
     "google_auth_expired": "⚠ Credenziali Google scadute. Apri Impostazioni → Servizi Esterni → Avvia configurazione.",
-    "new_email": "Nuova Mail da {from}: {subject}",
+    "new_email": "Nuova Mail da {from} ({date}): {subject}",
     "email_truncated": "... Testo completo su Gmail",
+    "just_now": "adesso",
+    "ago_minutes": "{n} min fa",
+    "ago_hours": "{n} ore fa",
+    "ago_days": "{n} giorni fa",
+    "ago_weeks": "{n} sett. fa",
+    "ago_months": "{n} mesi fa",
+    "on_date": "del {date}",
     "read_online": "Leggi online",
     "auto_model_selected": "Modello AI mancante. Auto-selezionato {model}"
   },

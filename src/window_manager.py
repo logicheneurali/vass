@@ -71,6 +71,11 @@ def _activate_win32(hwnd, label: str) -> bool:
     import ctypes
     user32 = ctypes.windll.user32
 
+    # If already the foreground window, do nothing
+    if hwnd == user32.GetForegroundWindow():
+        print(f"[Window] Already active: {label}")
+        return True
+
     if user32.IsIconic(hwnd):
         user32.ShowWindow(hwnd, 9)  # SW_RESTORE
     else:

@@ -29,7 +29,7 @@ QSlider::sub-page:horizontal {{
 
 
 BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection"}
-HIDDEN_KEYS = {"lastmode"}
+HIDDEN_KEYS = {"lastmode", "output_volume"}
 
 COMBO_OPTIONS = {
     "overflow_strategy": {"truncate": "Truncate", "summarize": "Summarize"},
@@ -38,17 +38,31 @@ COMBO_OPTIONS = {
 SLIDER_CONFIG = {
     "sensitivity": {"min": 1, "max": 20, "scale": 0.001, "default": 5},
     "similarity":  {"min": 0, "max": 100, "scale": 0.01, "default": 60},
+    "app_volume":    {"min": 1, "max": 100, "scale": 0.01, "default": 100},
     "input_volume":  {"min": 1, "max": 100, "scale": 0.01, "default": 100},
-    "output_volume": {"min": 1, "max": 100, "scale": 0.01, "default": 100},
     "paused_opacity": {"min": 10, "max": 100, "scale": 0.01, "default": 50},
+}
+
+_KOKORO_VOICES = {
+    "en": ["af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_korea", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky", "af_sol", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa", "am_wick"],
+    "en (British)": ["bf_emma", "bf_isabella", "bf_lily", "bm_daniel", "bm_fable", "bm_george", "bm_lewis"],
+    "es": ["ef_dora", "em_alex", "em_santa"],
+    "fr": ["ff_siwis", "fm_pablito"],
+    "hi": ["hf_alpha", "hf_beta", "hf_gamma"],
+    "it": ["if_ada", "if_jen", "if_liam", "if_marc", "if_nicola", "if_ragusa", "if_sara"],
+    "ja": ["jf_alpha", "jf_ghibli", "jf_heart", "jf_kana", "jf_kumo", "jf_sora", "jf_kokoro", "jm_alpha", "jm_kumo"],
+    "ko": ["kf_alpha", "km_alpha"],
+    "pt": ["pf_dora", "pm_alex", "pm_santa"],
+    "zh": ["zf_xiaobei", "zf_xiaoniu", "zf_xiaoxiao", "zf_xiaoyi"],
 }
 
 
 
 _SECTION_DEFAULTS = {
     "gui": {"paused_opacity": "0.5"},
-    "audio": {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "output_volume": "1.0"},
+    "audio": {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "app_volume": "1.0"},
     "ai": {"compress_context": "false", "auto_context_selection": "false"},
+    "tts": {"kokoro_voice": "af_heart"},
     "google": {
         "calendar_enabled": "false", "calendar_sync_enabled": "false",
         "calendar_sync_minutes": "30", "calendar_sync_days": "7",
@@ -303,6 +317,28 @@ class SettingsEditor(QMainWindow):
                     idx = entry.findText(current_val)
                     if idx >= 0:
                         entry.setCurrentIndex(idx)
+                    group_layout.addWidget(entry, row, 1)
+                elif key == "kokoro_voice":
+                    entry = QComboBox()
+                    current_val = self.config.get(section, key)
+                    current_idx = -1
+                    group_keys = list(_KOKORO_VOICES.keys())
+                    for gi, lang_label in enumerate(group_keys):
+                        voices = _KOKORO_VOICES[lang_label]
+                        header_text = f"\u2500\u2500 {lang_label} \u2500\u2500"
+                        entry.addItem(header_text)
+                        entry.model().item(entry.count() - 1).setEnabled(False)
+                        for voice in voices:
+                            entry.addItem(voice)
+                            if voice == current_val:
+                                current_idx = entry.count() - 1
+                        if gi < len(group_keys) - 1:
+                            entry.insertSeparator(entry.count())
+                    if current_idx >= 0:
+                        entry.setCurrentIndex(current_idx)
+                    elif current_val:
+                        entry.addItem(current_val)
+                        entry.setCurrentIndex(entry.count() - 1)
                     group_layout.addWidget(entry, row, 1)
                 elif key in COMBO_OPTIONS:
                     entry = QComboBox()

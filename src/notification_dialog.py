@@ -204,14 +204,14 @@ class NotificationDialog:
                 )
                 ts = n.get("ts", "")
                 txt = n.get("text", "")
-                escaped_txt = txt.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+                escaped_txt = txt.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>").replace("\\n", "<br>")
                 if ntype == "rss":
                     link = data.get("link", "")
                     escaped_link = link.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
                     parts.append(
                         f'<div style="padding:6px 0;">'
                         f'<span style="color:{icon_color};">{icon}</span> '
-                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
+                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span><br>'
                         f'<span style="color:{FG};">{escaped_txt}</span><br>'
                         f'<a href="{escaped_link}" style="color:{BTN_BG}; font-size:11px; text-decoration:none;">'
                         f'{self._t("rss.read_article")}</a></div>'
@@ -222,17 +222,22 @@ class NotificationDialog:
                     parts.append(
                         f'<div style="padding:6px 0;">'
                         f'<span style="color:{icon_color};">{icon}</span> '
-                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
+                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span><br>'
                         f'<span style="color:{FG};">{escaped_txt}</span><br>'
                         f'<a href="{escaped_link}" style="color:{BTN_BG}; font-size:11px; text-decoration:none;">'
                         f'{self._t("notifications.read_online")}</a></div>'
                     )
                 else:
+                    link = data.get("link", "")
                     parts.append(
                         f'<div style="padding:6px 0;">'
                         f'<span style="color:{icon_color};">{icon}</span> '
-                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span> '
-                        f'<span style="color:{FG};">{escaped_txt}</span></div>'
+                        f'<span style="color:{LABEL_FG}; font-size:11px;">{ts}</span><br>'
+                        f'<span style="color:{FG};">{escaped_txt}</span>'
+                        + (f'<br><a href="{link.replace("&","&amp;").replace("\"","&quot;").replace("<","&lt;").replace(">","&gt;")}" '
+                           f'style="color:{BTN_BG}; font-size:11px; text-decoration:none;">'
+                           f'{self._t("notifications.read_online")}</a>' if link else "")
+                        + '</div>'
                     )
                 if i < len(items) - 1:
                     parts.append(

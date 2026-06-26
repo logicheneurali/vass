@@ -233,7 +233,7 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
                 args = json.loads(tc.function.arguments)
                 result = mcp.call_tool(tc.function.name, args)
                 print(f"[MCP] Result: {tool_name} -> {str(result)[:200]}")
-                if isinstance(result, dict) and "content" in result:
+                if isinstance(result, dict) and isinstance(result.get("content"), list):
                     parts = []
                     for item in result["content"]:
                         if isinstance(item, dict) and item.get("type") == "text":
