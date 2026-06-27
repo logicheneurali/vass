@@ -109,7 +109,8 @@ def _load_version():
         return "0.0.0"
 
 from prompts import (MCP_PROMPT, VASSCRIPT_TOOLS_PROMPT, MEMORY_SUMMARIZATION_PROMPT,
-                     SAVETAGS_PROMPT, _STOPWORDS, _compress_heuristic, _load_vascript_reference)
+                     SAVETAGS_PROMPT, _STOPWORDS, _compress_heuristic, _load_vascript_reference,
+                     append_tool_descriptions)
 
 __version__ = _load_version()
 
@@ -401,7 +402,6 @@ class VassApp:
                         self.app_volume = self.settings.get("app_volume", 1.0)
                         self.tts.update_settings(self.app_volume)
                         self.gui.volume_top_bar.set_volume(self.app_volume)
-                        self.voice_recognition.input_volume = self.settings.get("input_volume", 1.0)
                         self.noise_pause = self.settings.get("noise_pause", False)
                         self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
                         self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
@@ -422,6 +422,26 @@ class VassApp:
                         self.gui.schedule(0, lambda: self.gui.setGeometry(
                             self.gui_x, self.gui_y, self.gui_width, self.gui_height))
                         self.gui.schedule(0, self.gui._clamp_to_screen)
+                        # Ricarica dispositivi audio
+                        new_inp = int(self.settings.get("input_device", -1))
+                        old_inp = -1 if self.audio_handler.input_device is None else self.audio_handler.input_device
+                        if new_inp != old_inp:
+                            was_streaming = (self.audio_handler.stream is not None)
+                            self.audio_handler.stop_stream()
+                            self.audio_handler.input_device = None if new_inp < 0 else new_inp
+                            if was_streaming:
+                                self.audio_handler.start_stream()
+                            with self._state_vars_lock:
+                                self._running_noise_floor = None
+                            self.voice_recognition.reset_noise_floor()
+                            print(f"[Watch] Input device changed to: {new_inp}")
+                        new_out = int(self.settings.get("output_device", -1))
+                        self.tts.update_output_device(new_out)
+                        # Ricarica sensitivity wake word
+                        new_sens = float(self.settings.get("sensitivity", 0.003))
+                        if new_sens != self.voice_recognition.energy_threshold:
+                            self.voice_recognition.energy_threshold = new_sens
+                            print(f"[Watch] Wake word sensitivity changed to: {new_sens}")
                         print(f"[Watch] Settings reloaded from {abs_path}")
             except Exception as e:
                 print(f"[Watch] Settings watcher error: {e}")
@@ -436,7 +456,7 @@ class VassApp:
                 config["gui"] = {}
             config["gui"]["x"] = str(x)
             config["gui"]["y"] = str(y)
-            with open(abs_path, "w") as f:
+            with open(abs_path, "w", encoding="utf-8") as f:
                 config.write(f)
         except Exception as e:
             print(f"[Settings] Could not save position: {e}")
@@ -469,6 +489,8 @@ class VassApp:
         self.set_state("listening")
         self.running = True
         self.audio_handler.start_stream()
+        from utils import list_audio_devices
+        list_audio_devices()
         threading.Thread(target=self._watch_commands_file, daemon=True).start()
         threading.Thread(target=self._watch_settings_file, daemon=True).start()
         threading.Thread(target=self.script_runner.watch_queue, daemon=True).start()
@@ -537,14 +559,18 @@ class VassApp:
                                 continue
                             else:
                                 print(f"[Noise] Still noisy, staying paused for another {self.noise_pause_duration}s")
-                                self.audio_handler.stop_stream()
-                                with self._state_vars_lock:
-                                    self._auto_paused_at = time.time()
+                                with self.state_lock:
+                                    if self.state == "paused":
+                                        self.audio_handler.stop_stream()
+                                        with self._state_vars_lock:
+                                            self._auto_paused_at = time.time()
                         else:
                             print(f"[Noise] Check: no audio samples captured, staying paused")
-                            self.audio_handler.stop_stream()
-                            with self._state_vars_lock:
-                                self._auto_paused_at = time.time()
+                            with self.state_lock:
+                                if self.state == "paused":
+                                    self.audio_handler.stop_stream()
+                                    with self._state_vars_lock:
+                                        self._auto_paused_at = time.time()
                 if frame is not None:
                     with self.state_lock:
                         current_state = self.state
@@ -592,6 +618,26 @@ class VassApp:
                                     self._running_noise_floor = 0.99 * self._running_noise_floor + 0.01 * nf
                                 nf = self._running_noise_floor
                                 self._nf_print_counter += 1
+                                if self._nf_print_counter % 50 == 0:
+                                    if self.debug_enabled:
+                                        gain = max(0.0, min(1.0, self.voice_recognition.input_volume))
+                                        self.gui.noise_floor_signal.emit(gain)
+                                    if nf > 0.02:
+                                        factor = max(0.5, 0.03 / nf)
+                                        old = self.voice_recognition.input_volume
+                                        self.voice_recognition.input_volume = max(0.05, min(1.0, self.voice_recognition.input_volume * factor))
+                                        if old != self.voice_recognition.input_volume:
+                                            self.voice_recognition.reset_noise_floor()
+                                            if self.debug_enabled:
+                                                print(f"[NoiseFloor] Gain reduced: {old:.3f} -> {self.voice_recognition.input_volume:.3f} (noise_floor={nf:.4f})")
+                                    elif nf < 0.01 and self.voice_recognition.input_volume < 1.0:
+                                        factor = min(1.25, 0.03 / nf)
+                                        old = self.voice_recognition.input_volume
+                                        self.voice_recognition.input_volume = max(0.05, min(1.0, self.voice_recognition.input_volume * factor))
+                                        if old != self.voice_recognition.input_volume:
+                                            self.voice_recognition.reset_noise_floor()
+                                            if self.debug_enabled:
+                                                print(f"[NoiseFloor] Gain increased: {old:.3f} -> {self.voice_recognition.input_volume:.3f} (noise_floor={nf:.4f})")
                                 if self.noise_pause and nf > self.noise_pause_threshold:
                                     self._noise_high_frames += 1
                                     frames_per_sec = 50
@@ -1125,7 +1171,9 @@ class VassApp:
                 if self.debug_enabled:
                     print(f"[DEBUG] needs_memory({prompt[:80]}) = True  (include memory)")
 
-            tools_block = (MCP_PROMPT + VASSCRIPT_TOOLS_PROMPT + vas_ref) if self.allow_ai_scripts else MCP_PROMPT
+            tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
+            if self.allow_ai_scripts:
+                tools_block += VASSCRIPT_TOOLS_PROMPT + vas_ref
             notes_block = "\n".join(self.context_notes)
             if notes_block:
                 notes_block = f"Context notes (low priority, can be ignored if context is full):\n{notes_block}\n\n"
@@ -1141,7 +1189,7 @@ class VassApp:
                 model=self.ai_model,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - (2500 if tools else 0) - 256, 4096)),
+                max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - (self._count_tokens(json.dumps(tools)) if tools else 0) - 256, 4096)),
                 extra_body={"disable_thinking": True}
             )
 
@@ -1157,7 +1205,7 @@ class VassApp:
                 ctx_available = (self.context_length or 4096)
             prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
             if tools:
-                prompt_tokens_est += 2500
+                prompt_tokens_est += self._count_tokens(json.dumps(tools))
             if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
                 if tools and tools_block in messages[0]["content"]:
                     messages[0]["content"] = messages[0]["content"][:messages[0]["content"].rfind(tools_block)].rstrip()
@@ -1859,7 +1907,6 @@ def main():
         settings_file = "config/settings.ini"
         config = configparser.ConfigParser()
         abs_path = os.path.abspath(settings_file)
-        
         if os.path.exists(abs_path):
             config.read(abs_path, encoding="utf-8")
             gui_x = config.getint("gui", "x", fallback=1541)
@@ -1939,7 +1986,7 @@ def main():
             language=gui_language
         )
         if compact_mode:
-            gui.set_compact_mode(True)
+            gui.set_compact_mode(True, from_restore=True)
             gui._compact_toggle.setChecked(True)
 
         # Defer heavy init so the event loop paints the window first

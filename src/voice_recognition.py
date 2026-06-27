@@ -56,6 +56,7 @@ class VoiceRecognition:
         self._noise_floor = 0.0
         self._noise_buffer = []
         self._noise_frames = 0
+        self._auto_calibrated = False
 
         self._lock = threading.Lock()
 
@@ -69,14 +70,35 @@ class VoiceRecognition:
     def detect_wake_word(self, audio_chunk):
         if isinstance(audio_chunk, bytes):
             audio_chunk = np.frombuffer(audio_chunk, dtype=np.int16).astype(np.float32) / 32768.0
+        if self.input_volume != 1.0:
+            audio_chunk = audio_chunk * self.input_volume
             
         energy = np.sqrt(np.mean(audio_chunk**2))
+        raw_energy = energy
         
         with self._lock:
-            threshold = self.energy_threshold
-            if self._noise_floor > 0:
-                threshold = max(threshold, self._noise_floor * 3.0)
-            if energy > threshold:
+            if self._noise_floor == 0.0:
+                self._noise_buffer.append(raw_energy)
+                self._noise_frames += 1
+                if self._noise_frames >= 50:
+                    avg = sum(self._noise_buffer) / len(self._noise_buffer)
+                    self._noise_floor = avg
+                    if not self._auto_calibrated and self._noise_floor > 0.02:
+                        factor = min(1.0, 0.03 / self._noise_floor)
+                        self.input_volume *= factor
+                        self._noise_floor *= factor
+                        print(f"[NoiseFloor] High noise ({avg:.4f}), auto-adjusted input_volume to {self.input_volume:.3f}, target noise {self._noise_floor:.4f}")
+                    self._auto_calibrated = True
+                    if self.debug_enabled:
+                        print(f"[NoiseFloor] Initial: {self._noise_floor:.6f}")
+                    self._noise_buffer = []
+                    self._noise_frames = 0
+                return False
+            if raw_energy > self._noise_floor * 1.3:
+                energy = raw_energy
+            else:
+                energy = max(0.0, raw_energy - self._noise_floor)
+            if energy > self.energy_threshold:
                 self.is_speaking = True
                 self.silence_counter = 0
                 if len(self.speech_buffer) < self.max_speech_chunks:
@@ -84,16 +106,20 @@ class VoiceRecognition:
             else:
                 self.silence_counter += 1
                 if not self.is_speaking:
-                    self._noise_buffer.append(energy)
+                    self._noise_buffer.append(raw_energy)
                     self._noise_frames += 1
-                    if self._noise_frames >= 100:
+                    if self._noise_frames >= 50:
                         avg = sum(self._noise_buffer) / len(self._noise_buffer)
-                        if self._noise_floor == 0.0:
-                            self._noise_floor = avg
-                            if self.debug_enabled:
-                                print(f"[NoiseFloor] Initial: {self._noise_floor:.6f}")
+                        self._noise_floor = 0.9 * self._noise_floor + 0.1 * avg
+                        if self._noise_floor > 0.02:
+                            factor = max(0.5, 0.03 / self._noise_floor)
+                        elif self._noise_floor < 0.01:
+                            factor = min(1.25, 0.03 / self._noise_floor)
                         else:
-                            self._noise_floor = 0.9 * self._noise_floor + 0.1 * avg
+                            factor = 1.0
+                        if factor != 1.0:
+                            self.input_volume = max(0.05, min(1.0, self.input_volume * factor))
+                            self._noise_floor *= factor
                         self._noise_buffer = []
                         self._noise_frames = 0
                 if self.is_speaking and self.silence_counter > self.silence_timeout:
@@ -147,6 +173,13 @@ class VoiceRecognition:
             self.speech_buffer = []
             self.is_speaking = False
             self.silence_counter = 0
+
+    def reset_noise_floor(self):
+        with self._lock:
+            self._noise_floor = 0.0
+            self._noise_buffer = []
+            self._noise_frames = 0
+            self._auto_calibrated = False
 
     def transcribe_audio(self, audio_data, sample_rate=16000):
         if self.input_volume != 1.0:

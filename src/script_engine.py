@@ -334,23 +334,6 @@ class VASScript:
                 if getattr(self.app, 'debug_enabled', False):
                     print(f"[DEBUG] needs_memory({prompt[:80]}) = {use_memory}  (lang={self.app.language})")
 
-            system_content = ""
-            if use_memory:
-                now = time.strftime("%Y-%m-%d %H:%M:%S")
-                base = self.app.system_message or ""
-                from i18n import t as _ti18n
-                date_prefix = _ti18n("ai.date_prefix", self.app.language)
-                system_content = f"{base}\n\n{date_prefix}{now}".strip()
-
-                memory_content = self.app._build_memory_content()
-                from main import MCP_PROMPT, _load_vascript_reference
-                vas_ref = _load_vascript_reference()
-                tools_block = MCP_PROMPT + vas_ref if self.app.allow_ai_scripts else ""
-                system_content = memory_content + system_content + tools_block
-
-            messages = [{"role": "system", "content": system_content}] if system_content else []
-            messages.append({"role": "user", "content": prompt})
-
             mcp, tools = init_mcp(self.app.mcp_server_url, timeout=120, log_prefix="[VASScript]")
 
             if tools and not self.app.allow_ai_scripts:
@@ -365,6 +348,25 @@ class VASScript:
                 groups = tool_groups.select_tool_groups(prompt, self.app.language)
                 tools = tool_groups.resolve_tool_names(groups, tools,
                                                         getattr(self.app, 'debug_enabled', False))
+
+            system_content = ""
+            if use_memory:
+                now = time.strftime("%Y-%m-%d %H:%M:%S")
+                base = self.app.system_message or ""
+                from i18n import t as _ti18n
+                date_prefix = _ti18n("ai.date_prefix", self.app.language)
+                system_content = f"{base}\n\n{date_prefix}{now}".strip()
+
+                memory_content = self.app._build_memory_content()
+                from prompts import MCP_PROMPT, append_tool_descriptions, _load_vascript_reference
+                tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
+                if self.app.allow_ai_scripts:
+                    vas_ref = _load_vascript_reference()
+                    tools_block += vas_ref
+                system_content = memory_content + system_content + tools_block
+
+            messages = [{"role": "system", "content": system_content}] if system_content else []
+            messages.append({"role": "user", "content": prompt})
 
             kwargs = dict(
                 model=self.app.ai_model,

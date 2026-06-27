@@ -166,7 +166,8 @@
       "debug_log_max_kb": "Max KB log",
       "compress_context": "Compressione contesto (SPERIMENTALE)",
       "auto_context_selection": "Selezione automatica contesto",
-      "paused_opacity": "Opacità pausa"
+      "paused_opacity": "Opacità pausa",
+      "compact_mode": "Modalità compatta"
     },
     "field_descriptions": {
       "x": "Posizione X sullo schermo",
@@ -225,7 +226,8 @@
       "debug_enabled": "Attiva il logging su file log/debug.log e le immagini di debug OCR",
       "debug_log_max_kb": "Dimensione massima del file di debug in KB (default 1024)",
       "compress_context": "Rimuove articoli, preposizioni e congiunzioni dal testo inviato all'AI per ridurre il numero di token.",
-      "auto_context_selection": "Salta l'iniezione della memoria quando la richiesta non necessita del contesto (es. calcoli, ora, traduzioni)."
+      "auto_context_selection": "Salta l'iniezione della memoria quando la richiesta non necessita del contesto (es. calcoli, ora, traduzioni).",
+      "compact_mode": "Riduce la finestra a 36x36 pixel con cerchi concentrici e sfondo trasparente"
     },
     "section_labels": {
       "gui": "Finestra",

@@ -132,7 +132,8 @@
       "debug_log_max_kb": "최대 로그 KB",
       "compress_context": "컨텍스트 압축 (실험적)",
       "auto_context_selection": "컨텍스트 자동 선택",
-      "paused_opacity": "일시정지 불투명도"
+      "paused_opacity": "일시정지 불투명도",
+      "compact_mode": "컴팩트 모드"
     },
     "field_descriptions": {
       "x": "화면 X 위치",
@@ -191,7 +192,8 @@
       "debug_enabled": "log/debug.log 파일 로깅 및 OCR 디버그 이미지 활성화",
       "debug_log_max_kb": "디버그 로그 파일 최대 크기 KB (기본값 1024)",
       "compress_context": "AI에 전송되는 텍스트에서 관사, 전치사, 접속사를 제거하여 토큰 수를 줄입니다.",
-      "auto_context_selection": "요청이 컨텍스트를 필요로 하지 않는 경우(계산, 시간, 번역 등) 메모리 주입을 건너뜁니다."
+      "auto_context_selection": "요청이 컨텍스트를 필요로 하지 않는 경우(계산, 시간, 번역 등) 메모리 주입을 건너뜁니다.",
+      "compact_mode": "창을 36x36 픽셀로 축소하고 동심원과 투명 배경을 표시합니다"
     },
     "section_labels": {
       "gui": "창",

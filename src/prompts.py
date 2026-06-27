@@ -27,6 +27,17 @@ VASSCRIPT_TOOLS_PROMPT = (
     "\n- interact(code): run VASScript code (e.g. interact(\"say('hello')\") speaks via TTS)"
 )
 
+
+def append_tool_descriptions(base_prompt, tools):
+    parts = [base_prompt]
+    for t in tools:
+        fn = t.get("function", t)
+        name = fn.get("name", "")
+        desc = fn.get("description", "")
+        if name:
+            parts.append(f"\n- {name}: {desc}")
+    return "".join(parts)
+
 _STOPWORDS = {
     "it": {"il","lo","la","i","gli","le","un","uno","una","l","dell","dell'",
            "di","a","da","in","con","su","per","tra","fra","del","dei","degli","della","delle",

@@ -491,6 +491,9 @@ class TtsEngine:
     def update_settings(self, app_volume):
         self.app_volume = app_volume
 
+    def update_output_device(self, device_id):
+        self.output_device = None if device_id < 0 else device_id
+
     def _on_tts_done(self):
         if not self.tts_playing:
             return

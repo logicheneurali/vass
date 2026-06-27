@@ -399,4 +399,29 @@ def fuzzy_match_word(prompt, keywords, threshold=0.75, min_len=4):
             if SequenceMatcher(None, kw, word).ratio() >= threshold:
                 return True
     return False
-    return out
+
+
+def list_audio_devices():
+    try:
+        import sounddevice as sd
+        import configparser
+        cfg = configparser.ConfigParser()
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "settings.ini")
+        cfg.read(path, encoding="utf-8")
+        inp = cfg.getint("audio", "input_device", fallback=-1)
+        out = cfg.getint("audio", "output_device", fallback=-1)
+        hostapis = sd.query_hostapis()
+        devs = sd.query_devices()
+        def _print_dev(kind, idx):
+            for d in devs:
+                if d["index"] == idx:
+                    ha = hostapis[d["hostapi"]]["name"][:18]
+                    print(f"  [{d['index']:2d}] {d['name'][:49]:50s} api={ha:20s} ch={d['max_input_channels'] if kind=='Input' else d['max_output_channels']}")
+                    return
+            print(f"  [{idx:2d}] (non trovato)")
+        print(f"Input device (settings: {inp}):")
+        _print_dev("Input", inp if inp >= 0 else sd.default.device[0])
+        print(f"Output device (settings: {out}):")
+        _print_dev("Output", out if out >= 0 else sd.default.device[1])
+    except Exception:
+        pass

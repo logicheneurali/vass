@@ -46,7 +46,7 @@ def _default_keywords():
         "files":     {"file", "salva", "scrivi", "leggi", "documento",
                        "archivia", "registra", "appunto", "nota", "testo",
                        "backup", "cartella", "export", "import", "salvataggio"},
-        "events":    {"evento", "promemoria", "sveglia", "notifica",
+        "events":    {"evento", "eventi", "promemoria", "sveglia", "notifica",
                        "programma", "avviso", "alert", "reminder", "scadenza",
                        "timer", "appuntamento", "orario", "data", "pianifica",
                        "ricorda"},

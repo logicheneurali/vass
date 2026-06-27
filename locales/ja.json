@@ -132,7 +132,8 @@
       "debug_log_max_kb": "最大ログKB",
       "compress_context": "コンテキスト圧縮（実験的）",
       "auto_context_selection": "コンテキスト自動選択",
-      "paused_opacity": "一時停止の不透明度"
+      "paused_opacity": "一時停止の不透明度",
+      "compact_mode": "コンパクトモード"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -191,7 +192,8 @@
       "debug_enabled": "log/debug.logへのファイルログとOCRデバッグ画像を有効にする",
       "debug_log_max_kb": "デバッグログファイルの最大サイズKB（デフォルト1024）",
       "compress_context": "AIに送信されるテキストから冠詞、前置詞、接続詞を削除し、トークン数を削減します。",
-      "auto_context_selection": "リクエストがコンテキストを必要としない場合（計算、時刻、翻訳など）、メモリの注入をスキップします。"
+      "auto_context_selection": "リクエストがコンテキストを必要としない場合（計算、時刻、翻訳など）、メモリの注入をスキップします。",
+      "compact_mode": "ウィンドウを36x36ピクセルに縮小し、同心円と透明な背景を表示します"
     },
     "section_labels": {
       "gui": "ウィンドウ",

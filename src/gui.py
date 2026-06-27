@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal
-from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath
+from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
@@ -89,11 +89,18 @@ class VolumeTopBar(QWidget):
         w = self.width()
         h = self.height()
         painter.fillRect(0, 0, w, h, QColor("#333333"))
+        center = w // 2
         fw = int(w * self._ratio)
         if fw > 0:
-            center = w // 2
             half = fw // 2
             painter.fillRect(center - half, 0, fw, h, QColor("#2ecc71"))
+        nf_ratio = getattr(self, '_noise_floor_ratio', 0)
+        if nf_ratio > 0.001 and getattr(self, '_debug_enabled', False):
+            nf_w = int(w * nf_ratio)
+            if nf_w > 0:
+                bar_h = max(2, h // 3)
+                bar_y = (h - bar_h) // 2
+                painter.fillRect(center - nf_w // 2, bar_y, nf_w, bar_h, QColor("#e67e22"))
 
 
 class MemoryBar(QWidget):
@@ -456,6 +463,7 @@ class VassGUI(QMainWindow):
     auth_requested_signal = Signal(str, str)
     form_signal = Signal(str, list)
     volume_signal = Signal(float)
+    noise_floor_signal = Signal(float)
     chat_text_signal = Signal(str)
     tool_indicator_signal = Signal(str, str)
     compact_mode_signal = Signal(bool)
@@ -502,6 +510,7 @@ class VassGUI(QMainWindow):
         # --- Layout ---
         central = QWidget()
         self.setCentralWidget(central)
+        central.setObjectName("_centralWidget")
         self._central = central
         self._refresh_debug_border()
         outer = QVBoxLayout(central)
@@ -727,6 +736,7 @@ class VassGUI(QMainWindow):
         self.auth_requested_signal.connect(self._on_auth_requested)
         self.form_signal.connect(self._on_form_requested)
         self.volume_signal.connect(self._on_volume)
+        self.noise_floor_signal.connect(self._on_noise_floor)
         self.tool_indicator_signal.connect(self._on_tool_indicator)
         self.compact_mode_signal.connect(self.set_compact_mode)
         self.debug_border_signal.connect(self._refresh_debug_border)
@@ -810,16 +820,21 @@ class VassGUI(QMainWindow):
             self.app._save_setting("gui", "compact_mode", "true" if checked else "false")
         self._compact_toggle.setChecked(checked)
 
-    def set_compact_mode(self, enabled):
+    def set_compact_mode(self, enabled, from_restore=False):
         if enabled == self._compact_mode:
             return
         self._compact_mode = enabled
         self._compact_toggle.setChecked(enabled)
         if enabled:
-            self.setGeometry(self.x()+self.width()//2, self.y(), self.width(), self.height())
-            if self.app:
-                self.app.save_gui_position(self.x(), self.y())
-            self._normal_geometry = (self.x(), self.y(), self.width(), self.height())
+            if from_restore:
+                normal_x = self.x() + 18 - self.width() // 2
+                self._normal_geometry = (normal_x, self.y(), self.width(), self.height())
+            else:
+                center_x = self.x() + self.width() // 2
+                self._normal_geometry = (self.x(), self.y(), self.width(), self.height())
+                self.setGeometry(center_x - 18, self.y(), self.width(), self.height())
+                if self.app:
+                    self.app.save_gui_position(self.x(), self.y())
             self.volume_top_bar.hide()
             self.memory_bar.hide()
             for w in self._left_side:
@@ -831,7 +846,7 @@ class VassGUI(QMainWindow):
             self.stacked.hide()
             self.setAttribute(Qt.WA_TranslucentBackground, True)
             self.setStyleSheet("")
-            self._central.setStyleSheet("background-color: transparent; border: none;")
+            self._central.setStyleSheet("#_centralWidget { background-color: transparent; border: none; }")
             self._compact_dot.show()
             if sys.platform == "win32":
                 try:
@@ -880,7 +895,7 @@ class VassGUI(QMainWindow):
                 w.show()
             if self._normal_geometry:
                 x, y, w, h = self._normal_geometry
-                self.setGeometry(x-w//2, y, w, h)
+                self.setGeometry(x, y, w, h)
                 if self.app:
                     self.app.save_gui_position(self.x(), self.y())
             else:
@@ -968,6 +983,7 @@ class VassGUI(QMainWindow):
     def _on_set_state(self, state, detail=""):
         self._current_state = state
         self._current_detail = detail
+        self.setEnabled(state != "loading")
         if state == "loading":
             self.stacked.setCurrentWidget(self.loading_widget)
             self._compact_dot.set_state("#888888", state)
@@ -1050,6 +1066,10 @@ class VassGUI(QMainWindow):
         self.memory_bar._tip_max = 1
         self.memory_bar._update_tooltip()
         self.memory_bar.set_level(level)
+
+    def _on_noise_floor(self, ratio):
+        self.volume_top_bar._noise_floor_ratio = ratio
+        self.volume_top_bar.update()
 
     def set_health_status(self, ok):
         if self._health_ok != ok:
@@ -1205,12 +1225,15 @@ class VassGUI(QMainWindow):
 
     def _refresh_debug_border(self):
         debug = getattr(self.app, 'debug_enabled', False)
+        if hasattr(self, 'volume_top_bar'):
+            self.volume_top_bar._debug_enabled = debug
+            self.volume_top_bar.update()
         if self._compact_mode:
-            self._central.setStyleSheet("background-color: transparent; border: none;")
+            self._central.setStyleSheet("#_centralWidget { background-color: transparent; border: none; }")
         elif debug:
-            self._central.setStyleSheet("background-color: #101010; border: 2px solid #ffcc00;")
+            self._central.setStyleSheet("#_centralWidget { background-color: #101010; border: 2px solid #ffcc00; }")
         else:
-            self._central.setStyleSheet("background-color: #101010;")
+            self._central.setStyleSheet("#_centralWidget { background-color: #101010; }")
 
     def update_memory_bar(self):
         self.update_memory_signal.emit()

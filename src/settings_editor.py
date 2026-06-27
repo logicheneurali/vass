@@ -1,6 +1,7 @@
 import configparser
 import os
 import sys
+import re
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -28,8 +29,8 @@ QSlider::sub-page:horizontal {{
 """
 
 
-BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection"}
-HIDDEN_KEYS = {"lastmode", "output_volume"}
+BOOLEAN_KEYS = {"llama_autostart", "noise_pause", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode"}
+HIDDEN_KEYS = {"lastmode", "output_volume", "input_device_name", "output_device_name"}
 
 COMBO_OPTIONS = {
     "overflow_strategy": {"truncate": "Truncate", "summarize": "Summarize"},
@@ -59,7 +60,7 @@ _KOKORO_VOICES = {
 
 
 _SECTION_DEFAULTS = {
-    "gui": {"paused_opacity": "0.5"},
+    "gui": {"paused_opacity": "0.5", "compact_mode": "false"},
     "audio": {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "app_volume": "1.0"},
     "ai": {"compress_context": "false", "auto_context_selection": "false"},
     "tts": {"kokoro_voice": "af_heart"},
@@ -160,6 +161,8 @@ class SettingsEditor(QMainWindow):
                     self.config.set(section, key, default)
                     changed = True
         if changed:
+            from utils import list_audio_devices
+            list_audio_devices()
             with open(self.settings_file, "w", encoding="utf-8") as f:
                 self.config.write(f)
 
@@ -356,14 +359,47 @@ class SettingsEditor(QMainWindow):
                     try:
                         import sounddevice as sd
                         kind = "input" if key == "input_device" else "output"
+                        seen = set()
                         for d in sd.query_devices():
                             ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
                             if ch > 0:
-                                entry.addItem(f"{d['index']}: {d['name']}", d['index'])
+                                name = d['name']
+                                base = re.sub(r'\s*[\(\[][^\)\]]*[\)\]]?\s*$', '', name).strip()
+                                if base in seen:
+                                    continue
+                                seen.add(base)
+                                entry.addItem(f"{d['index']}: {name}", d['index'])
                     except Exception:
                         pass
                     current_val = self.config.getint(section, key)
                     idx = entry.findData(current_val)
+                    if idx < 0:
+                        for i in range(entry.count()):
+                            if entry.itemData(i) == current_val:
+                                idx = i
+                                break
+                    if idx < 0:
+                        saved_name = self.config.get(section, f"{key}_name", fallback="")
+                        if saved_name:
+                            for i in range(entry.count()):
+                                if saved_name in entry.itemText(i):
+                                    idx = i
+                                    break
+                    if idx < 0 and saved_name:
+                        try:
+                            import sounddevice as sd
+                            for d in sd.query_devices():
+                                if d.get("name", "") == saved_name:
+                                    new_idx = d["index"]
+                                    idx = entry.findData(new_idx)
+                                    if idx < 0:
+                                        for i in range(entry.count()):
+                                            if entry.itemData(i) == new_idx:
+                                                idx = i
+                                                break
+                                    break
+                        except Exception:
+                            pass
                     if idx >= 0:
                         entry.setCurrentIndex(idx)
                     group_layout.addWidget(entry, row, 1)
@@ -569,6 +605,17 @@ class SettingsEditor(QMainWindow):
             else:
                 value = entry.text()
 
+            if key in ("input_device", "output_device") and value != "-1":
+                try:
+                    import re
+                    txt = entry.currentText() if isinstance(entry, QComboBox) else ""
+                    name = re.sub(r'^\d+:\s*', '', txt).strip()
+                    if name:
+                        name_key = f"{key}_name"
+                        self.config.set(section, name_key, name)
+                except Exception:
+                    pass
+
             if section == "ai" and key == "api_key":
                 if value != self._original_api_key:
                     try:
@@ -586,6 +633,8 @@ class SettingsEditor(QMainWindow):
             else:
                 self.config.set(section, key, value)
 
+        from utils import list_audio_devices
+        list_audio_devices()
         with open(self.settings_file, "w", encoding="utf-8") as f:
             self.config.write(f)
         QMessageBox.information(self, self._t("settings_editor.dialog.info"),

@@ -132,7 +132,8 @@
       "debug_log_max_kb": "最大日志KB",
       "compress_context": "上下文压缩（实验性）",
       "auto_context_selection": "自动上下文选择",
-      "paused_opacity": "暂停不透明度"
+      "paused_opacity": "暂停不透明度",
+      "compact_mode": "紧凑模式"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
@@ -191,7 +192,8 @@
       "debug_enabled": "启用到log/debug.log的文件日志和OCR调试图像",
       "debug_log_max_kb": "调试日志文件最大大小KB（默认1024）",
       "compress_context": "从发送给AI的文本中移除冠词、介词和连词以减少token数量。",
-      "auto_context_selection": "当请求不需要上下文时（如计算、时间、翻译），跳过内存注入。"
+      "auto_context_selection": "当请求不需要上下文时（如计算、时间、翻译），跳过内存注入。",
+      "compact_mode": "将窗口缩小为36x36像素，显示同心圆和透明背景"
     },
     "section_labels": {
       "gui": "窗口",

@@ -28,15 +28,21 @@ class AudioHandler:
             pass
 
     def start_stream(self):
-        self.stream = sd.InputStream(
-            samplerate=self.sample_rate,
-            channels=self.channels,
-            callback=self.audio_callback,
-            blocksize=self.frame_size,
-            latency='high',
-            device=self.input_device
-        )
-        self.stream.start()
+        print(f"[Audio] Starting stream: device={self.input_device}, sr={self.sample_rate}, ch={self.channels}")
+        try:
+            self.stream = sd.InputStream(
+                samplerate=self.sample_rate,
+                channels=self.channels,
+                callback=self.audio_callback,
+                blocksize=self.frame_size,
+                latency='high',
+                device=self.input_device
+            )
+            self.stream.start()
+            print(f"[Audio] Stream started OK")
+        except Exception as e:
+            print(f"[Audio] Stream start FAILED: {e}")
+            self.stream = None
 
     def stop_stream(self):
         if hasattr(self, 'stream') and self.stream:
