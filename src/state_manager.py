@@ -6,9 +6,12 @@ class StateManager:
     """Centralizes VASS application state transitions.
 
     Guarantees:
-    - Manual pause is never overridden by automatic transitions.
+    - Pause intent (manual or auto) is preserved while temporary states
+      (waiting, running_script, playing, ...) are active.
+    - Operations that finish and request "listening" return to "paused" if
+      a pause flag is still set.
+    - Manual pause has priority over auto-pause.
     - Auto-pause can only happen from the listening state.
-    - Stream and GUI are updated atomically through VassApp callbacks.
     """
 
     def __init__(self, app):
@@ -24,14 +27,20 @@ class StateManager:
             return self._state
 
     def set_state(self, new_state, detail="", silent_gui=False, force=False):
-        """Generic state change. Respects manual pause when entering listening."""
+        """Generic state change. Preserves pause flags across transitions.
+
+        When listening is requested but a pause flag is active, the state
+        is redirected to "paused" instead (unless force=True).
+        """
         with self._lock:
-            if new_state == "listening" and self._manual_pause and not force:
-                return False
+            if new_state == "listening" and not force:
+                if self._manual_pause:
+                    new_state = "paused"
+                    detail = detail or "manual"
+                elif self._auto_paused_at is not None:
+                    new_state = "paused"
+                    detail = detail or "auto"
             self._state = new_state
-            if new_state != "paused":
-                self._manual_pause = False
-                self._auto_paused_at = None
         self.app._update_gui_state(new_state, detail, silent_gui)
         return True
 
@@ -61,9 +70,18 @@ class StateManager:
         return True
 
     def resume_listening(self, force=False):
-        """Resume listening, unless manually paused (unless force=True)."""
+        """Resume listening.
+
+        Without force, a manual pause prevents resuming (auto-pause is cleared).
+        With force, all pause flags are cleared.
+        """
         with self._lock:
             if self._manual_pause and not force:
+                # Manual pause wins; just clear any stale auto-pause flag.
+                self._auto_paused_at = None
+                if self._state != "paused":
+                    self._state = "paused"
+                    self.app._update_gui_state("paused")
                 return False
             self._state = "listening"
             self._manual_pause = False
@@ -74,8 +92,25 @@ class StateManager:
         return True
 
     def exit_auto_pause(self):
-        """Leave auto-pause and resume listening."""
-        return self.resume_listening(force=False)
+        """Leave auto-pause and resume listening.
+
+        Only resumes when the current state is actually paused, so temporary
+        states (waiting, running_script, ...) are not interrupted.
+        """
+        with self._lock:
+            if self._manual_pause:
+                # Manual pause is in effect; just drop the auto-pause flag.
+                self._auto_paused_at = None
+                return False
+            if self._state != "paused":
+                # Operation in progress; keep the flag so we return to paused after.
+                return False
+            self._auto_paused_at = None
+            self._state = "listening"
+        self.app.audio_handler.start_stream()
+        self.app._update_gui_state("listening")
+        self.app._verify_stream_state(expected_listening=True)
+        return True
 
     def is_manual_paused(self):
         with self._lock:
@@ -84,6 +119,10 @@ class StateManager:
     def is_auto_paused(self):
         with self._lock:
             return self._auto_paused_at is not None
+
+    def is_paused(self):
+        with self._lock:
+            return self._manual_pause or self._auto_paused_at is not None
 
     def get_auto_paused_at(self):
         with self._lock:

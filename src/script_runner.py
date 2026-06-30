@@ -51,10 +51,6 @@ class ScriptQueue:
             if self.app.state in ("waiting", "waiting_resources", "playing", "recording"):
                 time.sleep(0.1)
                 continue
-            # Manual pause is sacred: do not start scripts while user paused.
-            if getattr(self.app, 'state_manager', None) and self.app.state_manager.is_manual_paused():
-                time.sleep(0.1)
-                continue
             with self._lock:
                 if not self._queue:
                     item = None

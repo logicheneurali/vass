@@ -303,16 +303,11 @@ class VassApp:
     def set_state(self, new_state, detail="", silent_gui=False):
         """Backward-compatible state setter. Delegates to StateManager.
 
-        If the user manually paused, attempts to set 'listening' are redirected
-        back to 'paused' so the UI always reflects the sacred manual pause.
+        StateManager handles redirecting 'listening' back to 'paused' when a
+        pause flag is still active, so operations that complete while paused
+        automatically return to the paused state.
         """
-        if new_state == "listening":
-            if not self.state_manager.resume_listening(force=False):
-                self.state_manager.set_state("paused", detail, silent_gui)
-        elif new_state == "paused":
-            self.state_manager.set_state("paused", detail, silent_gui)
-        else:
-            self.state_manager.set_state(new_state, detail, silent_gui)
+        self.state_manager.set_state(new_state, detail, silent_gui)
 
     def _update_gui_state(self, new_state, detail="", silent_gui=False):
         """Pure GUI update. Called by StateManager after internal state is set."""
@@ -691,13 +686,9 @@ class VassApp:
                     self.audio_handler.process_recording(frame)
 
                     if not self.audio_handler.is_recording and len(self.audio_handler.recorded_buffer) > 0:
-                        if self.state_manager.is_manual_paused():
-                            print("[Recording] Discarded: manual pause is active")
-                            self.audio_handler.recorded_buffer.clear()
-                        else:
-                            self.state_manager.set_state("listening")
-                            self._transcribe_and_process()
-                            self.audio_handler.clear_queue()
+                        self.state_manager.set_state("listening")
+                        self._transcribe_and_process()
+                        self.audio_handler.clear_queue()
 
                 # Periodic audio diagnostics log (every 10s)
                 try:
@@ -923,9 +914,6 @@ class VassApp:
         return overhead
 
     def _process_chat_text(self, text):
-        if self.state_manager.is_manual_paused():
-            print(f"[Chat] Ignored: manual pause is active")
-            return
         if self.state not in ("listening", "paused"):
             print(f"[Chat] Ignored: state={self.state}")
             return
@@ -1017,14 +1005,15 @@ class VassApp:
             print("No audio recorded.")
 
     def _listen_once(self, timeout=15):
-        if self.state not in ("listening", "paused"):
+        if self.state_manager.is_paused():
+            print("[ListenOnce] Ignored: paused")
+            return ""
+        if self.state != "listening":
             print(f"[ListenOnce] Blocked: state={self.state}")
             return ""
         import sounddevice as sd
         import numpy as np
         import webrtcvad
-        prev_state = self.state
-        was_manual_paused = self.state_manager.is_manual_paused()
         self._input_mode = True
         self.audio_handler.stop_stream()
         self.audio_handler.clear_queue()
@@ -1077,12 +1066,12 @@ class VassApp:
             print("[Listen] No speech detected or no audio")
             return ""
         finally:
-            if prev_state == "paused" or was_manual_paused:
-                # Restore manual/auto-paused state: keep stream stopped.
+            if self.state_manager.is_paused():
                 self.state_manager.set_state("paused")
-                print(f"[Listen] Restored paused state (manual_pause={was_manual_paused})")
+                print("[Listen] Restored paused state")
             else:
-                self.state_manager.resume_listening(force=False)
+                self.state_manager.set_state("listening")
+                self.audio_handler.start_stream()
             self.audio_handler.clear_queue()
             self._input_mode = False
 
