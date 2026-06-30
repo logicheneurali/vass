@@ -40,6 +40,10 @@ class EventReminder:
         self._alerted_schedules = set()
         self._last_schedule_mtime = 0
 
+    def _log(self, msg):
+        if getattr(self.app, 'debug_enabled', False):
+            print(f"[EventReminder] {msg}")
+
     def _root_dir(self):
         return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -379,6 +383,7 @@ class EventReminder:
         command = sc.get("command", "")
         arguments = sc.get("arguments", "")
         silent = sc.get("silent", "false").lower() == "true"
+        self._log(f"_execute_schedule_thread: start desc='{desc}' command='{command}' silent={silent} state={self.app.state}")
 
         try:
             from i18n import t
@@ -405,12 +410,14 @@ class EventReminder:
             elif not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
                 self.app.tts.enqueue(failed_msg)
+            self._log(f"_execute_schedule_thread: end (script enqueue) desc='{desc}' state={self.app.state}")
             return
 
         if not _validate_command(command, arguments):
             if not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
                 self.app.tts.enqueue(failed_msg)
+            self._log(f"_execute_schedule_thread: end (invalid command) desc='{desc}' state={self.app.state}")
             return
 
         try:
@@ -448,6 +455,7 @@ class EventReminder:
                 self.app.tts.enqueue(failed_msg)
             if hasattr(self.app, 'notification_manager'):
                 self.app.notification_manager.add(failed_msg, priority=9, data={"type": "schedule"})
+        self._log(f"_execute_schedule_thread: end desc='{desc}' state={self.app.state}")
 
     # ── Main loop ─────────────────────────────────────────────────────────────
 
@@ -511,10 +519,13 @@ class EventReminder:
         sched_key = int(self._next_schedule_ts)
         if sched_key in self._alerted_schedules:
             return
-        if self.app.state in ("playing", "recording", "waiting", "waiting_resources", "running_script"):
-            print(f"[Schedules] Skipped: app state is {self.app.state}, will retry next cycle")
+        state = self.app.state
+        if state in ("playing", "recording", "waiting", "waiting_resources", "running_script"):
+            self._log(f"_process_schedules: skipped, state={state}")
+            print(f"[Schedules] Skipped: app state is {state}, will retry next cycle")
             return
         self._alerted_schedules.add(sched_key)
+        self._log(f"_process_schedules: executing {len(self._next_schedules)} schedule(s), state={state}")
         for sc in list(self._next_schedules):
             self._execute_schedule(sc)
         self._mark_schedule_executed()

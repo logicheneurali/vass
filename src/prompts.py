@@ -39,34 +39,34 @@ def append_tool_descriptions(base_prompt, tools):
     return "".join(parts)
 
 _STOPWORDS = {
-    "it": {"il","lo","la","i","gli","le","un","uno","una","l","dell","dell'",
-           "di","a","da","in","con","su","per","tra","fra","del","dei","degli","della","delle",
+    "it": {"il","lo","la","i","gli","le","l","dell","dell'",
+           "di","a","da","con","su","del","dei","degli","della","delle",
            "e","ma","o","che","se","né","ed","non","si","ci","vi","ne",
            "è","sono","era","erano","ho","ha","hanno","sta","stanno","può","possono",
-           "solo","anche","ancora","più","meno","molto","pochi","sua","loro","nostro",
+           "solo","anche","ancora","sua","loro","nostro",
            "questi","questa","questo","quelle","quelli","quella","quello"},
-    "en": {"the","a","an","of","in","on","at","to","for","with","by","from","as","is","was",
+    "en": {"the","a","an","of","on","at","to","for","with","from","as","is","was",
            "are","were","be","been","being","have","has","had","do","does","did","will","would",
            "can","could","should","may","might","shall","it","its","and","but","or","not","no",
            "so","if","than","then","that","this","these","those","just","only","also","very",
-           "some","any","each","every","all","both","few","more","most","other","such"},
+           "some","any","each","every","all","both","other","such"},
     "de": {"der","die","das","ein","eine","einer","eines","einem","einen","den","dem","des",
-           "in","auf","zu","von","mit","bei","für","aus","durch","gegen","ohne","um","bis",
+           "auf","zu","von","mit","bei","für","aus","gegen","ohne","um","bis",
            "ist","sind","war","waren","hat","haben","wird","werden","kann","können",
-           "und","oder","aber","nicht","nur","auch","noch","schon","sehr","wie","so","als",
+           "und","oder","aber","nicht","nur","auch","noch","schon","wie","so","als",
            "dass","wenn","weil","diese","dieser","dieses","jene","jener","jenes"},
-    "es": {"el","la","los","las","un","una","unos","unas","de","del","en","con","por","para",
+    "es": {"el","la","los","las","de","del","con","para",
            "es","son","era","eran","ha","han","está","están","puede","pueden","y","o","pero",
            "no","si","que","se","lo","le","su","sus","este","esta","estos","estas","ese","esa",
-           "solo","más","muy","poco","mucho","cada","todo","alguno","ninguno","otro"},
-    "fr": {"le","la","les","l","un","une","des","de","du","à","au","aux","en","dans","sur",
-           "par","pour","avec","sans","sous","est","sont","était","étaient","a","ont","peut",
+           "solo","alguno","ninguno","otro"},
+    "fr": {"le","la","les","l","des","de","du","à","au","aux","en","dans","sur",
+           "pour","avec","sans","sous","est","sont","était","étaient","a","ont","peut",
            "peuvent","et","ou","mais","ne","pas","se","que","qui","ce","cette","ces","son","sa",
-           "ses","leur","leurs","tout","tous","très","plus","moins","chaque","autre"},
-    "pt": {"o","a","os","as","um","uma","uns","umas","de","do","da","dos","das","em","no","na",
-           "nos","nas","com","por","para","é","são","era","eram","tem","têm","pode","podem",
+           "ses","leur","leurs","autre"},
+    "pt": {"o","a","os","as","de","do","da","dos","das","em","no","na",
+           "nos","nas","com","para","é","são","era","eram","tem","têm","pode","podem",
            "e","ou","mas","não","se","que","este","esta","estes","estas","esse","essa","seu",
-           "sua","seus","suas","todo","todos","muito","mais","menos","cada","outro","algum"},
+           "sua","seus","suas","outro","algum"},
     "ja": {"は","が","を","に","で","の","へ","と","から","まで","より","です","ます","した",
            "して","する","いる","ある","ない","こと","もの","ため","よう","そう","これ","それ",
            "あれ","この","その","あの","ここ","そこ","あそこ"},
@@ -94,29 +94,35 @@ _NEGATION_WORDS = {
 }
 
 # Words that must NEVER be removed, even if they appear in _STOPWORDS,
-# because they are math operators or quantifiers essential to meaning.
-_MATH_WORDS = {
+# because they are negation markers, math operators, quantifiers, or
+# temporal references essential to meaning.
+_PROTECTED_WORDS = {
     "it": {"più", "meno", "molto", "pochi", "per", "diviso", "volte",
-           "uno", "una", "un"},
-    "en": {"more", "most", "few", "less", "over", "by", "times"},
-    "de": {"sehr", "mehr", "mal", "durch"},
+           "uno", "una", "un", "fra", "tra", "in"},
+    "en": {"more", "most", "few", "less", "over", "by", "times",
+           "fra", "tra", "in"},
+    "de": {"sehr", "mehr", "mal", "durch",
+           "fra", "tra", "in"},
     "fr": {"plus", "moins", "très", "peu", "beaucoup", "chaque", "tout",
             "par", "fois", "tous", "plusieurs",
-            "un", "une"},
+            "un", "une",
+            "fra", "tra", "in"},
     "es": {"más", "menos", "muy", "poco", "mucho", "cada", "todo",
             "por", "veces",
-            "un", "una", "unos", "unas"},
+            "un", "una", "unos", "unas",
+            "fra", "tra", "in"},
     "pt": {"mais", "menos", "muito", "cada", "todo", "todos", "por", "vezes",
-           "um", "uma", "uns", "umas"},
-    "ja": {},
-    "ko": {},
-    "zh": {},
+           "um", "uma", "uns", "umas",
+           "fra", "tra", "in"},
+    "ja": {"fra", "tra", "in"},
+    "ko": {"fra", "tra", "in"},
+    "zh": {"fra", "tra", "in"},
 }
 
 
 def _compress_heuristic(text, lang="en"):
     stopwords = _STOPWORDS.get(lang, _STOPWORDS["en"])
-    protected = _NEGATION_WORDS.get(lang, set()) | _MATH_WORDS.get(lang, set())
+    protected = _NEGATION_WORDS.get(lang, set()) | _PROTECTED_WORDS.get(lang, set())
     words = text.split()
     return ' '.join(w for w in words
         if w.lower().strip("',.!?;:()[]\"") not in stopwords

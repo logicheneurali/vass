@@ -372,34 +372,53 @@ class SettingsEditor(QMainWindow):
                     except Exception:
                         pass
                     current_val = self.config.getint(section, key)
-                    idx = entry.findData(current_val)
-                    if idx < 0:
-                        for i in range(entry.count()):
-                            if entry.itemData(i) == current_val:
-                                idx = i
-                                break
-                    if idx < 0:
-                        saved_name = self.config.get(section, f"{key}_name", fallback="")
+                    saved_name = self.config.get(section, f"{key}_name", fallback="")
+                    idx = -1
+                    # If the saved value is the default device (-1), always select it.
+                    # Do not fall back to a stale saved name.
+                    if current_val < 0:
+                        idx = entry.findData(-1)
+                    else:
+                        # Validate the saved ID against the saved name: IDs are not stable,
+                        # so a stale ID must be ignored in favor of the stable name.
                         if saved_name:
+                            try:
+                                import sounddevice as sd
+                                kind = "input" if key == "input_device" else "output"
+                                for d in sd.query_devices():
+                                    if d["index"] == current_val:
+                                        ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
+                                        if ch > 0 and d.get("name", "") == saved_name:
+                                            idx = entry.findData(current_val)
+                                        break
+                            except Exception:
+                                pass
+                        # If ID validation failed, look up by name.
+                        if idx < 0 and saved_name:
                             for i in range(entry.count()):
                                 if saved_name in entry.itemText(i):
                                     idx = i
                                     break
-                    if idx < 0 and saved_name:
-                        try:
-                            import sounddevice as sd
-                            for d in sd.query_devices():
-                                if d.get("name", "") == saved_name:
-                                    new_idx = d["index"]
-                                    idx = entry.findData(new_idx)
-                                    if idx < 0:
-                                        for i in range(entry.count()):
-                                            if entry.itemData(i) == new_idx:
-                                                idx = i
-                                                break
-                                    break
-                        except Exception:
-                            pass
+                        if idx < 0 and saved_name:
+                            try:
+                                import sounddevice as sd
+                                kind = "input" if key == "input_device" else "output"
+                                for d in sd.query_devices():
+                                    ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
+                                    if ch > 0 and d.get("name", "") == saved_name:
+                                        new_idx = d["index"]
+                                        idx = entry.findData(new_idx)
+                                        if idx < 0:
+                                            for i in range(entry.count()):
+                                                if entry.itemData(i) == new_idx:
+                                                    idx = i
+                                                    break
+                                        break
+                            except Exception:
+                                pass
+                    # If name resolution failed, the saved ID is stale: fall back to default.
+                    if idx < 0:
+                        idx = entry.findData(-1)
                     if idx >= 0:
                         entry.setCurrentIndex(idx)
                     group_layout.addWidget(entry, row, 1)
@@ -605,16 +624,21 @@ class SettingsEditor(QMainWindow):
             else:
                 value = entry.text()
 
-            if key in ("input_device", "output_device") and value != "-1":
-                try:
-                    import re
-                    txt = entry.currentText() if isinstance(entry, QComboBox) else ""
-                    name = re.sub(r'^\d+:\s*', '', txt).strip()
-                    if name:
-                        name_key = f"{key}_name"
-                        self.config.set(section, name_key, name)
-                except Exception:
-                    pass
+            if key in ("input_device", "output_device"):
+                name_key = f"{key}_name"
+                if value == "-1":
+                    # Default device: clear stale saved name.
+                    if self.config.has_option(section, name_key):
+                        self.config.remove_option(section, name_key)
+                else:
+                    try:
+                        import re
+                        txt = entry.currentText() if isinstance(entry, QComboBox) else ""
+                        name = re.sub(r'^\d+:\s*', '', txt).strip()
+                        if name:
+                            self.config.set(section, name_key, name)
+                    except Exception:
+                        pass
 
             if section == "ai" and key == "api_key":
                 if value != self._original_api_key:

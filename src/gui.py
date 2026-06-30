@@ -1124,6 +1124,37 @@ class VassGUI(QMainWindow):
     def set_replay_visible(self, visible):
         self.replay_btn.setVisible(visible)
 
+    def update_button_tooltip(self):
+        """Update the main button tooltip with currently used audio devices."""
+        if not self.app or not hasattr(self, 'btn'):
+            return
+        parts = [self._t("gui.button_tooltip")]
+        try:
+            import sounddevice as sd
+            devs = {d["index"]: d for d in sd.query_devices()}
+            default_in, default_out = sd.default.device
+
+            inp_id = -1 if self.app.audio_handler.input_device is None else self.app.audio_handler.input_device
+            if inp_id < 0:
+                inp_id = default_in
+            inp_dev = devs.get(inp_id)
+            if inp_dev:
+                parts.append(f"\nInput: {inp_dev.get('name', '?')}")
+            else:
+                parts.append(f"\nInput: (unknown)")
+
+            out_id = -1 if self.app.tts.output_device is None else self.app.tts.output_device
+            if out_id < 0:
+                out_id = default_out
+            out_dev = devs.get(out_id)
+            if out_dev:
+                parts.append(f"\nOutput: {out_dev.get('name', '?')}")
+            else:
+                parts.append(f"\nOutput: (unknown)")
+        except Exception:
+            pass
+        self.btn.setToolTip("".join(parts))
+
     def _update_bell(self):
         if not self.app:
             return
@@ -1608,7 +1639,11 @@ class VassGUI(QMainWindow):
                 pass
         import subprocess as _sp
         cmd = [sys.executable, script] + list(extra_args)
-        kwargs = {}
+        kwargs = {
+            "stdin": _sp.DEVNULL,
+            "stdout": _sp.DEVNULL,
+            "stderr": _sp.DEVNULL,
+        }
         if sys.platform == "win32":
             kwargs["creationflags"] = _sp.CREATE_NO_WINDOW
         _sp.Popen(cmd, **kwargs)

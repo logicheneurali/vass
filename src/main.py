@@ -15,6 +15,7 @@ except ImportError:
     pass
 import os
 import sys
+
 import configparser
 import faulthandler
 
@@ -67,7 +68,10 @@ from state_manager import StateManager
 import builtins as _builtins
 _original_print = _builtins.print
 def _ts_print(*args, **kwargs):
-    _original_print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]", *args, **kwargs)
+    try:
+        _original_print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]", *args, **kwargs)
+    except Exception:
+        pass
 _builtins.print = _ts_print
 
 
@@ -117,6 +121,40 @@ __version__ = _load_version()
 
 
 class VassApp:
+    @staticmethod
+    def _resolve_audio_device(saved_id, saved_name, kind="input"):
+        """Resolve a possibly stale device ID using the saved device name.
+
+        Device IDs assigned by the OS are not stable across reboots or
+        plug/unplug events. The saved name is the stable identifier.
+        A saved ID of -1 means "system default" and must be preserved.
+        """
+        if saved_id < 0:
+            return saved_id
+        if not saved_name:
+            return saved_id
+        try:
+            import sounddevice as sd
+            devs = sd.query_devices()
+            ch_key = "max_input_channels" if kind == "input" else "max_output_channels"
+            # If the saved ID still points to a device with the saved name, use it.
+            for d in devs:
+                if d["index"] == saved_id and d.get(ch_key, 0) > 0 and d.get("name", "") == saved_name:
+                    return saved_id
+            # Otherwise look for a device with the exact saved name.
+            for d in devs:
+                if d.get(ch_key, 0) > 0 and d.get("name", "") == saved_name:
+                    print(f"[Audio] Resolved {kind} device by name: '{saved_name}' -> id={d['index']} (was {saved_id})")
+                    return d["index"]
+            # Fallback: partial name match.
+            for d in devs:
+                if d.get(ch_key, 0) > 0 and saved_name in d.get("name", ""):
+                    print(f"[Audio] Resolved {kind} device by partial name: '{saved_name}' -> id={d['index']} (was {saved_id})")
+                    return d["index"]
+        except Exception as e:
+            print(f"[Audio] Device resolution failed: {e}")
+        return saved_id
+
     def __init__(self, gui, settings_file="config/settings.ini"):
         self.gui = gui
         self.state_manager = StateManager(self)
@@ -124,7 +162,11 @@ class VassApp:
         self.settings_file = settings_file
         self.settings = self._load_settings()
         inp = int(self.settings.get("input_device", -1))
+        inp_name = self.settings.get("input_device_name", "")
+        inp = self._resolve_audio_device(inp, inp_name, kind="input")
         out = int(self.settings.get("output_device", -1))
+        out_name = self.settings.get("output_device_name", "")
+        out = self._resolve_audio_device(out, out_name, kind="output")
         self.audio_handler = AudioHandler(input_device=inp)
         self.language = self.settings["language"]
         self.wake_word_sensitivity = self.settings["sensitivity"]
@@ -218,9 +260,11 @@ class VassApp:
         self.voice_recognition.debug_enabled = self.debug_enabled
         self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language, word_learning_enabled=self.word_learning_enabled, app=self)
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
-        if self.context_length <= 0:
+        # If llama.cpp is set to auto-start, defer context/model detection until
+        # the server is actually ready. Otherwise probe immediately.
+        if self.context_length <= 0 and not (self.llama_autostart and self.llama_server_path.strip()):
             threading.Thread(target=self._detect_context_length, daemon=True).start()
-        if not self.ai_model.strip() and self.llama_server_path.strip():
+        if not self.ai_model.strip() and self.llama_server_path.strip() and not self.llama_autostart:
             threading.Thread(target=self._auto_select_model, daemon=True).start()
         self.running = False
         self._trim_lock = threading.Lock()
@@ -450,6 +494,8 @@ class VassApp:
                         self.gui.schedule(0, self.gui._clamp_to_screen)
                         # Ricarica dispositivi audio
                         new_inp = int(self.settings.get("input_device", -1))
+                        new_inp_name = self.settings.get("input_device_name", "")
+                        new_inp = self._resolve_audio_device(new_inp, new_inp_name, kind="input")
                         old_inp = -1 if self.audio_handler.input_device is None else self.audio_handler.input_device
                         if new_inp != old_inp:
                             was_streaming = (self.audio_handler.stream is not None)
@@ -462,7 +508,10 @@ class VassApp:
                             self.voice_recognition.reset_noise_floor()
                             print(f"[Watch] Input device changed to: {new_inp}")
                         new_out = int(self.settings.get("output_device", -1))
+                        new_out_name = self.settings.get("output_device_name", "")
+                        new_out = self._resolve_audio_device(new_out, new_out_name, kind="output")
                         self.tts.update_output_device(new_out)
+                        self.gui.schedule(0, self.gui.update_button_tooltip)
                         # Ricarica sensitivity wake word
                         new_sens = float(self.settings.get("sensitivity", 0.010))
                         if new_sens != self.voice_recognition.energy_threshold:
@@ -853,6 +902,23 @@ class VassApp:
             priority = 7 if em.get("important") else 5
             self.notification_manager.add(notif, priority=priority, data={"type": "mail", "link": f"https://mail.google.com/mail/u/0/#inbox/{em['id']}"})
 
+    def _wait_for_llamacpp_ready(self, timeout=60):
+        """Poll /v1/models until llama-server responds or timeout expires."""
+        import urllib.request
+        import json
+        url = f"{self.ai_url.rstrip('/')}/models"
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                with urllib.request.urlopen(url, timeout=2) as resp:
+                    models = json.loads(resp.read()).get("data", [])
+                if models:
+                    return True
+            except Exception:
+                pass
+            time.sleep(0.5)
+        return False
+
     def _start_llamacpp(self):
         proc, status = start_llama_server(
             self.llama_server_path,
@@ -861,8 +927,16 @@ class VassApp:
         )
         if proc:
             self.llama_process = proc
+        print(f"[llama.cpp] {status}")
+        print("[llama.cpp] Waiting for server readiness...")
+        if self._wait_for_llamacpp_ready(timeout=60):
+            print("[llama.cpp] Server ready")
+            if self.context_length <= 0:
+                self._detect_context_length()
+            if not self.ai_model.strip():
+                self._auto_select_model()
         else:
-            print(f"[llama.cpp] {status}")
+            print("[llama.cpp] Server did not become ready within 60s")
 
     def stop(self):
         if self.rss_reader:
@@ -1117,8 +1191,12 @@ class VassApp:
     def _execute_delayed_command(self, duration_text, original_key, transcribed_text):
         from i18n import t
         lang = getattr(self, "language", "en")
+        if self.debug_enabled:
+            print(f"[Delayed] _execute_delayed_command: start duration_text='{duration_text}' cmd='{original_key}' state={self.state}")
         seconds = self._parse_delay_duration(duration_text)
         if seconds is None:
+            if self.debug_enabled:
+                print(f"[Delayed] _execute_delayed_command: parse failed, state={self.state}")
             self.tts.enqueue(t("delayed.parse_error", lang))
             self.set_state("listening")
             return
@@ -1133,6 +1211,8 @@ class VassApp:
         self.timer_manager.start(duration_str, command_text=original_key)
         print(f"[Delayed] Scheduled '{original_key}' in {seconds}s")
         self.tts.enqueue(t("delayed.scheduled", lang).replace("{cmd}", original_key))
+        if self.debug_enabled:
+            print(f"[Delayed] _execute_delayed_command: setting listening, state={self.state}")
         self.set_state("listening")
 
     def _parse_delay_duration(self, text):
@@ -1167,12 +1247,18 @@ class VassApp:
             return None
 
     def _process_delayed_command(self, text):
+        if self.debug_enabled:
+            print(f"[Delayed] _process_delayed_command: start text='{text}' state={self.state}")
         from utils import is_script_command, strip_script_prefix
         cmd, vars = self.command_executor.find_matching_command(text)
+        if self.debug_enabled:
+            print(f"[Delayed] _process_delayed_command: matched='{cmd}' is_script={is_script_command(cmd) if cmd else False} state={self.state}")
         if cmd and is_script_command(cmd):
             self.script_runner.enqueue(strip_script_prefix(cmd), params=vars, transcribed_text=text)
         elif cmd:
             self.command_executor.execute_command(cmd)
+        if self.debug_enabled:
+            print(f"[Delayed] _process_delayed_command: end state={self.state}")
 
     def _handle_ai_fallback(self, prompt):
         self.set_state("waiting")
@@ -1261,6 +1347,9 @@ class VassApp:
                     if self.context_length > 0:
                         break
                     time.sleep(0.1)
+                if self.context_length <= 0:
+                    # Detection may have failed or been skipped; retry once.
+                    self._detect_context_length()
                 ctx_available = (self.context_length or 4096)
             prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
             if tools:
@@ -1596,6 +1685,7 @@ class VassApp:
         return summary_text
 
     def _detect_context_length(self):
+        ctx = 0
         try:
             import urllib.request
             import json
@@ -1603,7 +1693,6 @@ class VassApp:
             with urllib.request.urlopen(url, timeout=5) as resp:
                 models = json.loads(resp.read()).get("data", [])
             if models:
-                ctx = 0
                 for m in models:
                     meta = m.get("meta", {})
                     if meta.get("n_ctx", 0) > 0:
@@ -1612,12 +1701,41 @@ class VassApp:
                     if m.get("max_seq_len", 0) > 0:
                         ctx = m["max_seq_len"]
                         break
+                    status = m.get("status", {})
+                    if isinstance(status, dict):
+                        args = status.get("args", [])
+                        if isinstance(args, list):
+                            for i, arg in enumerate(args):
+                                if arg in ("-c", "--ctx-size") and i + 1 < len(args):
+                                    try:
+                                        ctx = int(args[i+1])
+                                        break
+                                    except ValueError:
+                                        pass
+                    if ctx > 0:
+                        break
                 if ctx > 0:
                     self.context_length = ctx
-                    print(f"[Settings] Context length detected from model: {ctx} tokens")
+                    print(f"[Settings] Context length detected from model API: {ctx} tokens")
                     return
         except Exception as e:
             print(f"[Settings] Context length auto-detect failed ({e})")
+
+        if self.context_length <= 0:
+            try:
+                import shlex
+                args = shlex.split(self.llama_server_arguments, posix=False)
+                for i, arg in enumerate(args):
+                    if arg in ("-c", "--ctx-size") and i + 1 < len(args):
+                        ctx = int(args[i+1])
+                        break
+            except Exception:
+                pass
+            if ctx > 0:
+                self.context_length = ctx
+                print(f"[Settings] Context length detected from llama arguments: {ctx} tokens")
+                return
+
         if self.context_length <= 0:
             self.context_length = 4096
             print(f"[Settings] Context length fallback: {self.context_length} tokens")
@@ -2054,6 +2172,7 @@ def main():
         def _start_vass():
             _state["app"] = VassApp(gui=gui)
             gui.app = _state["app"]
+            gui.update_button_tooltip()
             gui._refresh_debug_border()
             _state["app"].notification_manager.gui = gui
             gui.chat_text_signal.connect(_state["app"]._process_chat_text)

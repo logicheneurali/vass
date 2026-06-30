@@ -85,6 +85,8 @@ def load_settings(settings_file):
         result["noise_pause_duration"] = config.getint("noise", "noise_pause_duration", fallback=30)
         result["input_device"] = config.getint("audio", "input_device", fallback=-1)
         result["output_device"] = config.getint("audio", "output_device", fallback=-1)
+        result["input_device_name"] = config.get("audio", "input_device_name", fallback="")
+        result["output_device_name"] = config.get("audio", "output_device_name", fallback="")
         result["input_volume"] = config.getfloat("audio", "input_volume", fallback=1.0)
         result["calendar_enabled"] = config.get("google", "calendar_enabled", fallback="false")
         result["calendar_sync_enabled"] = config.get("google", "calendar_sync_enabled", fallback="false")
@@ -154,6 +156,8 @@ def load_settings(settings_file):
         result["noise_pause_duration"] = 30
         result["input_device"] = -1
         result["output_device"] = -1
+        result["input_device_name"] = ""
+        result["output_device_name"] = ""
         result["input_volume"] = 1.0
         result["calendar_enabled"] = "false"
         result["calendar_sync_enabled"] = "false"
@@ -204,7 +208,7 @@ def load_settings(settings_file):
             "noise_pause_threshold": "0.002",
             "noise_pause_duration": "30"
         }
-        config["audio"] = {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "app_volume": "1.0"}
+        config["audio"] = {"input_device": "-1", "output_device": "-1", "input_device_name": "", "output_device_name": "", "input_volume": "1.0", "app_volume": "1.0"}
         config["google"] = {
             "calendar_enabled": "false",
             "calendar_sync_enabled": "false",

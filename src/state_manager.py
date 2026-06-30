@@ -2,6 +2,11 @@ import threading
 import time
 
 
+def _sm_log(app, msg):
+    if getattr(app, 'debug_enabled', False):
+        print(f"[StateManager] {msg}")
+
+
 class StateManager:
     """Centralizes VASS application state transitions.
 
@@ -33,23 +38,33 @@ class StateManager:
         is redirected to "paused" instead (unless force=True).
         """
         with self._lock:
+            old_state = self._state
+            redirected = False
             if new_state == "listening" and not force:
                 if self._manual_pause:
                     new_state = "paused"
                     detail = detail or "manual"
+                    redirected = True
                 elif self._auto_paused_at is not None:
                     new_state = "paused"
                     detail = detail or "auto"
+                    redirected = True
             self._state = new_state
+        _sm_log(self.app, f"set_state: {old_state} -> {new_state}"
+                f"{f' (redirected from listening, detail={detail})' if redirected else ''}"
+                f" manual_pause={self._manual_pause} auto_pause={self._auto_paused_at is not None}"
+                f" silent_gui={silent_gui}")
         self.app._update_gui_state(new_state, detail, silent_gui)
         return True
 
     def set_manual_paused(self):
         """User pressed the pause button. This state is sacred."""
         with self._lock:
+            old_state = self._state
             self._manual_pause = True
             self._auto_paused_at = None
             self._state = "paused"
+        _sm_log(self.app, f"set_manual_paused: {old_state} -> paused")
         self.app.audio_handler.stop_stream()
         self.app._update_gui_state("paused")
         self.app._verify_stream_state(expected_listening=False)
@@ -59,11 +74,15 @@ class StateManager:
         """Auto-pause due to noise. Blocked if user manually paused."""
         with self._lock:
             if self._manual_pause:
+                _sm_log(self.app, f"set_auto_paused: rejected, manual_pause is active")
                 return False
-            if self._state != "listening":
+            old_state = self._state
+            if old_state != "listening":
+                _sm_log(self.app, f"set_auto_paused: rejected, state={old_state} != listening")
                 return False
             self._state = "paused"
             self._auto_paused_at = time.time()
+        _sm_log(self.app, f"set_auto_paused: {old_state} -> paused")
         self.app.audio_handler.stop_stream()
         self.app._update_gui_state("paused")
         self.app._verify_stream_state(expected_listening=False)
@@ -76,16 +95,21 @@ class StateManager:
         With force, all pause flags are cleared.
         """
         with self._lock:
+            old_state = self._state
             if self._manual_pause and not force:
                 # Manual pause wins; just clear any stale auto-pause flag.
                 self._auto_paused_at = None
                 if self._state != "paused":
                     self._state = "paused"
+                    _sm_log(self.app, f"resume_listening: manual_pause blocked, {old_state} -> paused")
                     self.app._update_gui_state("paused")
+                else:
+                    _sm_log(self.app, f"resume_listening: rejected, manual_pause is active")
                 return False
             self._state = "listening"
             self._manual_pause = False
             self._auto_paused_at = None
+        _sm_log(self.app, f"resume_listening: {old_state} -> listening (force={force})")
         self.app.audio_handler.start_stream()
         self.app._update_gui_state("listening")
         self.app._verify_stream_state(expected_listening=True)
@@ -98,15 +122,19 @@ class StateManager:
         states (waiting, running_script, ...) are not interrupted.
         """
         with self._lock:
+            old_state = self._state
             if self._manual_pause:
                 # Manual pause is in effect; just drop the auto-pause flag.
                 self._auto_paused_at = None
+                _sm_log(self.app, f"exit_auto_pause: rejected, manual_pause is active")
                 return False
-            if self._state != "paused":
+            if old_state != "paused":
                 # Operation in progress; keep the flag so we return to paused after.
+                _sm_log(self.app, f"exit_auto_pause: deferred, state={old_state} != paused")
                 return False
             self._auto_paused_at = None
             self._state = "listening"
+        _sm_log(self.app, f"exit_auto_pause: {old_state} -> listening")
         self.app.audio_handler.start_stream()
         self.app._update_gui_state("listening")
         self.app._verify_stream_state(expected_listening=True)

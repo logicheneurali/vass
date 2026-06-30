@@ -25,6 +25,7 @@ class TtsEngine:
         self.gui = gui
         self._get_state = state_getter
         self._set_state = state_setter
+        self._app = getattr(state_setter, "__self__", None)
         self.app_volume = app_volume
         self.language = language
         self.output_device = None if output_device < 0 else output_device
@@ -60,6 +61,13 @@ class TtsEngine:
         threading.Thread(target=self._play_worker, daemon=True).start()
         self._cleanup_orphan_wavs()
 
+    def _debug_enabled(self):
+        return getattr(self._app, 'debug_enabled', False)
+
+    def _log(self, msg):
+        if self._debug_enabled():
+            print(f"[TTS-DEBUG] {threading.current_thread().name} | {msg}")
+
     def speak(self, text, speed=0.9):
         self._speak_kokoro(text, speed)
 
@@ -70,6 +78,8 @@ class TtsEngine:
         text = strip_markdown(str(text))
         with self._speak_lock:
             self._speak_queue.append((text, speed, on_done))
+            speak_len = len(self._speak_queue)
+        self._log(f"enqueue: text='{text[:60]}' speak_queue={speak_len} on_done={on_done is not None}")
         if text:
             print(f"[TTS] Enqueued: {text[:60]}")
 
@@ -106,6 +116,7 @@ class TtsEngine:
             self._audio_ready.set()
 
     def _play_worker(self):
+        last_wait_state = None
         while self._speaker_running:
             if self._tts_paused:
                 with self._audio_lock:
@@ -114,15 +125,22 @@ class TtsEngine:
                     else:
                         time.sleep(0.1)
                         continue
-            if self._get_state() in ("recording", "playing"):
+            current_state = self._get_state()
+            if current_state in ("recording", "playing"):
+                if last_wait_state != current_state:
+                    self._log(f"_play_worker: waiting, state={current_state}")
+                    last_wait_state = current_state
                 time.sleep(0.1)
                 continue
+            last_wait_state = None
             with self._audio_lock:
                 if self._audio_queue:
                     audio_data, sr, on_done = self._audio_queue.popleft()
+                    audio_len = len(self._audio_queue)
                 else:
                     audio_data = None
                     on_done = None
+                    audio_len = 0
             if audio_data is None:
                 if on_done:
                     try:
@@ -133,6 +151,7 @@ class TtsEngine:
                     self._audio_ready.wait(timeout=0.5)
                     self._audio_ready.clear()
                 continue
+            self._log(f"_play_worker: popped audio, audio_queue_remaining={audio_len} state={current_state}")
             print(f"[TTS] Playing audio")
             duration = len(audio_data) / max(sr or 24000, 1)
             timeout = max(60, duration * 1.5 + 5)
@@ -170,10 +189,17 @@ class TtsEngine:
     def _save_state_and_set_playing(self):
         self._state_before_tts = self._get_state()
         self.tts_playing = True
+        with self._speak_lock:
+            speak_len = len(self._speak_queue)
+        with self._audio_lock:
+            audio_len = len(self._audio_queue)
+        self._log(f"_save_state_and_set_playing: prev_state={self._state_before_tts} "
+                  f"tts_playing=True speak_queue={speak_len} audio_queue={audio_len}")
         self._set_state("playing")
         print(f"[TTS] Playback started (prev_state={self._state_before_tts})")
 
     def _play_wav(self, wav_path, speed=1.0):
+        self._log(f"_play_wav: starting path={wav_path} speed={speed}")
         self._tts_done.clear()
         self._sd_abort.clear()
         if hasattr(self, '_sd_stream') and self._sd_stream is not None:
@@ -233,6 +259,7 @@ class TtsEngine:
         )
 
     def _play_audio_data(self, audio_data, sample_rate):
+        self._log(f"_play_audio_data: starting sample_rate={sample_rate} samples={len(audio_data)}")
         self._tts_done.clear()
         self._sd_abort.clear()
         if hasattr(self, '_sd_stream') and self._sd_stream is not None:
@@ -499,10 +526,17 @@ class TtsEngine:
 
     def _on_tts_done(self):
         if not self.tts_playing:
+            self._log("_on_tts_done: ignored, tts_playing already False")
             return
         self.tts_playing = False
         current = self._get_state()
         prev = self._state_before_tts
+        with self._speak_lock:
+            speak_len = len(self._speak_queue)
+        with self._audio_lock:
+            audio_len = len(self._audio_queue)
+        self._log(f"_on_tts_done: current={current} prev={prev} tts_playing=False "
+                  f"speak_queue={speak_len} audio_queue={audio_len}")
         if current == "playing":
             self._set_state(prev)
             print(f"[TTS] Playback ended, restored state to {prev}")

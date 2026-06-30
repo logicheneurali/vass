@@ -9,6 +9,11 @@ import configparser
 from i18n import t
 
 
+def _sr_log(app, msg):
+    if getattr(app, 'debug_enabled', False):
+        print(f"[ScriptRunner] {threading.current_thread().name} | {msg}")
+
+
 class ScriptQueue:
     """FIFO serial script execution queue.  One script runs at a time;
     additional requests are queued and processed in order."""
@@ -28,6 +33,7 @@ class ScriptQueue:
         with self._lock:
             self._queue.append(item)
             qlen = len(self._queue)
+        _sr_log(self.app, f"enqueue: name={name_or_code or 'inline'} silent={silent} queue_len={qlen} state={self.app.state}")
         if qlen == 1:
             self.app.set_state("running_script", silent_gui=silent)
         elif qlen > 1:
@@ -47,20 +53,30 @@ class ScriptQueue:
             engine.stop()
 
     def _worker(self):
+        last_wait_state = None
         while True:
-            if self.app.state in ("waiting", "waiting_resources", "playing", "recording"):
+            state = self.app.state
+            if state in ("waiting", "waiting_resources", "playing", "recording"):
+                if last_wait_state != state:
+                    _sr_log(self.app, f"_worker: waiting, state={state}")
+                    last_wait_state = state
                 time.sleep(0.1)
                 continue
+            last_wait_state = None
             with self._lock:
                 if not self._queue:
                     item = None
+                    qlen = 0
                 else:
                     item = self._queue.popleft()
+                    qlen = len(self._queue)
             if item is None:
                 time.sleep(0.1)
                 continue
             name_or_code, code, params, result_callback, source, transcribed_text, silent = item
+            _sr_log(self.app, f"_worker: executing name={name_or_code or 'inline'} silent={silent} queue_remaining={qlen} state={self.app.state}")
             self._execute_impl(name_or_code, code, params, result_callback, self, transcribed_text, silent)
+            _sr_log(self.app, f"_worker: finished name={name_or_code or 'inline'} state={self.app.state} queue_remaining={len(self._queue)}")
             time.sleep(0.1)
 
 
@@ -235,6 +251,7 @@ class ScriptRunner:
         if code_text:
             from script_engine import VASScript
             app.set_state("running_script", silent_gui=silent)
+            _sr_log(app, f"_execute_script_impl: starting script={script_name} silent={silent} state={app.state}")
             script_error = None
             engine = None
             try:
@@ -260,8 +277,10 @@ class ScriptRunner:
             finally:
                 queue._active_engine = None
                 with queue._lock:
-                    if len(queue._queue) == 0:
+                    queue_len = len(queue._queue)
+                    if queue_len == 0:
                         app.set_state("listening", silent_gui=silent)
+                _sr_log(app, f"_execute_script_impl: finished script={script_name} silent={silent} state={app.state} queue_remaining={queue_len}")
 
             if script_error and not result_callback:
                 app.tts.enqueue(f"Errore script: {script_error}")
