@@ -10,7 +10,7 @@ import time
 from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, fuzzy_ratio
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "launch_app", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "form", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "launch_app", "close", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "form", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal"}
 
 
 def _is_int_str(s):
@@ -178,6 +178,20 @@ class VASScript:
 
         if token.startswith("$"):
             var_name = token[1:]
+            if pos + 1 < len(tokens) and tokens[pos + 1] == "(":
+                func_name = var_name
+                args = []
+                pos += 2
+                while pos < len(tokens) and tokens[pos] != ")":
+                    if tokens[pos] == ",":
+                        pos += 1
+                        continue
+                    arg, pos = self._parse_expr(tokens, pos)
+                    if arg is not None:
+                        args.append(arg)
+                if pos < len(tokens) and tokens[pos] == ")":
+                    pos += 1
+                return ("call", func_name, args), pos
             while pos + 2 < len(tokens) and tokens[pos + 1] == "." and tokens[pos + 2][0].isalpha():
                 var_name += "." + tokens[pos + 2]
                 pos += 2
@@ -557,6 +571,14 @@ class VASScript:
                 return "error: no app name specified"
             from app_launcher import launch
             return launch(str(query), str(args))
+
+        if name == "close":
+            target = evaluated[0] if evaluated else ""
+            timeout_val = float(evaluated[1]) if len(evaluated) > 1 else 5.0
+            if not str(target).strip():
+                return "false"
+            from app_launcher import close_app
+            return close_app(str(target), timeout_val)
 
         if name == "list_apps":
             from app_launcher import list_apps as _list_apps
@@ -1493,23 +1515,47 @@ class VASScript:
         done.wait()
 
     @staticmethod
-    def _parse_time_variants(am_pm_str):
-        if not am_pm_str:
+    def _parse_time_variants(raw_str, day_str=""):
+        if not raw_str:
             return "", "", ""
         import re, time
-        m = re.match(r'(\d{1,2}):(\d{2})\s*(AM|PM)', am_pm_str, re.IGNORECASE)
-        if not m:
-            return am_pm_str, am_pm_str, ""
-        h, minute, ampm = int(m.group(1)), int(m.group(2)), m.group(3).upper()
-        if ampm == "PM" and h != 12:
-            h += 12
-        elif ampm == "AM" and h == 12:
-            h = 0
-        h24 = f"{h:02d}:{minute:02d}"
         from datetime import date
-        today = date.today()
-        dt = time.mktime(time.struct_time((today.year, today.month, today.day, h, minute, 0, 0, 0, -1)))
-        return am_pm_str, h24, str(int(dt))
+
+        # ISO format: "2026-06-28T05:30:00" or "2026-06-28 05:30:00"
+        m_iso = re.match(r'(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})', raw_str)
+        if m_iso:
+            year, month, day = int(m_iso[1]), int(m_iso[2]), int(m_iso[3])
+            h, minute = int(m_iso[4]), int(m_iso[5])
+            h24 = f"{h:02d}:{minute:02d}"
+            ampm = "AM" if h < 12 else "PM"
+            h12 = 12 if h == 0 else (h if h <= 12 else h - 12)
+            ampm_str = f"{h12}:{minute:02d} {ampm}"
+            dt = time.mktime(time.struct_time((year, month, day, h, minute, 0, 0, 0, -1)))
+            return ampm_str, h24, str(int(dt))
+
+        # AM/PM format: "05:30 AM"
+        m = re.match(r'(\d{1,2}):(\d{2})\s*(AM|PM)', raw_str, re.IGNORECASE)
+        if m:
+            h, minute, ampm = int(m.group(1)), int(m.group(2)), m.group(3).upper()
+            if ampm == "PM" and h != 12:
+                h += 12
+            elif ampm == "AM" and h == 12:
+                h = 0
+            h24 = f"{h:02d}:{minute:02d}"
+            if day_str:
+                m_date = re.match(r'(\d{4})-(\d{2})-(\d{2})', day_str)
+                if m_date:
+                    y, m, d = int(m_date[1]), int(m_date[2]), int(m_date[3])
+                else:
+                    today = date.today()
+                    y, m, d = today.year, today.month, today.day
+            else:
+                today = date.today()
+                y, m, d = today.year, today.month, today.day
+            dt = time.mktime(time.struct_time((y, m, d, h, minute, 0, 0, 0, -1)))
+            return raw_str, h24, str(int(dt))
+
+        return raw_str, raw_str, ""
 
     _geonames_loaded = False
     _geonames_index = {}
@@ -1655,12 +1701,14 @@ class VASScript:
         wind_speed = float(cc.get("windspeedKmph", 0))
         wind_dir = cc.get("winddir16Point", "")
         obs_time = cc.get("observation_time", "")
-        astro = (data.get("weather") or [{}])[0].get("astronomy", [{}])[0] or {}
+        weather_day = (data.get("weather") or [{}])[0]
+        date_str = weather_day.get("date", "")
+        astro = weather_day.get("astronomy", [{}])[0] or {}
         sr_raw = astro.get("sunrise", "")
         ss_raw = astro.get("sunset", "")
-        sr, sr_24h, sr_ts = VASScript._parse_time_variants(sr_raw)
-        ss, ss_24h, ss_ts = VASScript._parse_time_variants(ss_raw)
-        ot, ot_24h, ot_ts = VASScript._parse_time_variants(obs_time)
+        sr, sr_24h, sr_ts = VASScript._parse_time_variants(sr_raw, date_str)
+        ss, ss_24h, ss_ts = VASScript._parse_time_variants(ss_raw, date_str)
+        ot, ot_24h, ot_ts = VASScript._parse_time_variants(obs_time, date_str)
         return {
             "city": city, "region": region, "country": country,
             "temperature": temp_c, "feels_like": feels_c, "humidity": humidity,

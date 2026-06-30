@@ -5,6 +5,7 @@ import threading
 import subprocess
 import numpy as np
 from collections import deque
+from utils import strip_markdown
 
 _KOKORO_LANGS = {
     "it": ("i", "if_sara"),
@@ -66,9 +67,11 @@ class TtsEngine:
         self._speak_kokoro(text, speed)
 
     def enqueue(self, text, speed=0.9, on_done=None):
+        text = strip_markdown(str(text))
         with self._speak_lock:
             self._speak_queue.append((text, speed, on_done))
-        print(f"[TTS] Enqueued: {text[:60]}")
+        if text:
+            print(f"[TTS] Enqueued: {text[:60]}")
 
     def _gen_worker(self):
         while self._speaker_running:

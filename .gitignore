@@ -5,6 +5,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.ruff_cache/
 
 # Virtual environment
 .venv/
@@ -100,3 +101,5 @@ Thumbs.db
 .DS_Store
 
 config/cities500.txt
+# VASS - unit tests (run manually during dev)
+tests/

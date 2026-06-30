@@ -80,15 +80,19 @@ class TimerManager:
         if not info:
             return
         state = getattr(self.app, "state", "listening")
+        is_manual_paused = getattr(getattr(self.app, 'state_manager', None), 'is_manual_paused', lambda: False)()
+        blocked_states = ("recording", "waiting", "waiting_resources", "playing")
         if command_text:
-            if state in ("recording", "waiting", "waiting_resources", "playing"):
-                print(f"[Timer] Delayed command waiting: state={state}")
+            if state in blocked_states or is_manual_paused:
+                print(f"[Timer] Delayed command waiting: state={state}, manual_pause={is_manual_paused}")
                 for _ in range(30):
                     _time.sleep(2)
-                    if getattr(self.app, "state", "listening") not in ("recording", "waiting", "waiting_resources", "playing"):
+                    cur_state = getattr(self.app, "state", "listening")
+                    cur_paused = getattr(getattr(self.app, 'state_manager', None), 'is_manual_paused', lambda: False)()
+                    if cur_state not in blocked_states and not cur_paused:
                         break
                 else:
-                    print(f"[Timer] Delayed command abandoned after 60s: state={state}")
+                    print(f"[Timer] Delayed command abandoned after 60s: state={state}, manual_pause={is_manual_paused}")
                     return
             if hasattr(self.app, '_process_delayed_command'):
                 self.app._process_delayed_command(command_text)
@@ -98,14 +102,16 @@ class TimerManager:
         msg = t("timer.expired", lang).replace("{duration}", self._clean_duration(info["duration"]))
         if hasattr(self.app, 'notification_manager'):
             self.app.notification_manager.add(msg, priority=8, data={"type": "timer"})
-        if state in ("recording", "playing"):
-            print(f"[Timer] Alert waiting: state={state}")
+        if state in ("recording", "playing") or is_manual_paused:
+            print(f"[Timer] Alert waiting: state={state}, manual_pause={is_manual_paused}")
             for _ in range(30):
                 _time.sleep(2)
-                if getattr(self.app, "state", "listening") not in ("recording", "playing"):
+                cur_state = getattr(self.app, "state", "listening")
+                cur_paused = getattr(getattr(self.app, 'state_manager', None), 'is_manual_paused', lambda: False)()
+                if cur_state not in ("recording", "playing") and not cur_paused:
                     break
             else:
-                print(f"[Timer] Alert abandoned after 60s: state={state}")
+                print(f"[Timer] Alert abandoned after 60s: state={state}, manual_pause={is_manual_paused}")
                 return
         self._play_alert(2)
         self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2))

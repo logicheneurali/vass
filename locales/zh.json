@@ -48,7 +48,8 @@
         "screen_highlight": "短暂高亮屏幕上的某个区域",
         "listen": "录制您的语音并返回转录文本",
         "sendtext": "在键盘上输入文本",
-        "setactivewindow": "通过进程名称或标题激活窗口"
+        "setactivewindow": "通过进程名称或标题激活窗口",
+        "close": "通过窗口标题或进程名称关闭应用程序"
       },
       "cancel": "取消"
     },
@@ -146,7 +147,7 @@
       "wakeword": "唤醒词（如 vass, computer）",
       "volume": "0.0-1.0，越高越响亮",
       "kokoro_voice": "选择Kokoro语音用于TTS",
-      "input_volume": "0.01-1.0，麦克风输入增益",
+      "input_volume": "0.01-1.0，麦克风输入增益。1.0 = 自动增益调节，较低值 = 固定手动增益",
       "app_volume": "应用程序主音量",
       "api_key": "API 密钥，用于身份验证（不需要则留空）",
       "language": "界面和语音命令语言",

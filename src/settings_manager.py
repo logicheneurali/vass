@@ -26,7 +26,7 @@ def load_settings(settings_file):
         config.read(abs_path, encoding="utf-8")
         result["language"] = config.get("locale", "language", fallback="en")
         result["lastmode"] = config.get("gui", "lastmode", fallback="c")
-        result["sensitivity"] = config.getfloat("wakeword", "sensitivity", fallback=0.005)
+        result["sensitivity"] = config.getfloat("wakeword", "sensitivity", fallback=0.010)
         result["wakeword"] = config.get("wakeword", "wakeword", fallback="vass")
         result["ai_url"] = config.get("ai", "url", fallback="http://127.0.0.1:8080/v1")
         try:
@@ -115,7 +115,7 @@ def load_settings(settings_file):
         lang = "en"
         result["language"] = lang
         result["lastmode"] = "c"
-        result["sensitivity"] = 0.005
+        result["sensitivity"] = 0.010
         result["wakeword"] = "vass"
         result["ai_url"] = "http://127.0.0.1:8080/v1"
         result["api_key"] = ""
@@ -174,7 +174,7 @@ def load_settings(settings_file):
             "font_family": "Segoe UI", "font_size": "12", "lastmode": "c",
             "paused_opacity": "0.5"
         }
-        config["wakeword"] = {"sensitivity": "0.005", "wakeword": "vass"}
+        config["wakeword"] = {"sensitivity": "0.010", "wakeword": "vass"}
         config["commands"] = {"similarity": "0.6", "word_learning_enabled": "false"}
         config["tts"] = {"tts_engine": "kokoro", "kokoro_voice": _KOKORO_DEFAULT_VOICE.get(lang, "af_heart")}
         config["llamacpp"] = {

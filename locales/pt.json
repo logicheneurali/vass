@@ -48,7 +48,8 @@
         "screen_highlight": "Destaca brevemente uma área da tela",
         "listen": "Grava sua voz e retorna o texto transcrito",
         "sendtext": "Simulates typing text on the keyboard",
-        "setactivewindow": "Activates a window by process name or title"
+        "setactivewindow": "Activates a window by process name or title",
+        "close": "Fecha um aplicativo por título da janela ou nome do processo"
       },
       "cancel": "Cancelar"
     },
@@ -146,7 +147,7 @@
       "wakeword": "Palavra de ativação (ex. vass, computador)",
       "volume": "0.0-1.0, mais alto = mais forte",
       "kokoro_voice": "Selecione a voz Kokoro para a síntese de fala",
-      "input_volume": "0.01-1.0, ganho de entrada",
+      "input_volume": "0.01-1.0, ganho de entrada. 1.0 = regulação automática de ganho; valores inferiores = ganho manual fixo",
       "app_volume": "Volume principal da aplicação",
       "api_key": "Chave API para autenticação (deixar em branco se não for necessária)",
       "language": "Idioma da interface e comandos de voz",

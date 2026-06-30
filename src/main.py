@@ -62,6 +62,7 @@ from script_engine import VASScript
 from tts_engine import TtsEngine
 from event_reminder import EventReminder
 from idle_tracker import IdleTracker
+from state_manager import StateManager
 
 import builtins as _builtins
 _original_print = _builtins.print
@@ -118,7 +119,7 @@ __version__ = _load_version()
 class VassApp:
     def __init__(self, gui, settings_file="config/settings.ini"):
         self.gui = gui
-        self.state = "loading"
+        self.state_manager = StateManager(self)
         self._ai_lock = threading.Lock()
         self.settings_file = settings_file
         self.settings = self._load_settings()
@@ -174,12 +175,20 @@ class VassApp:
         self.noise_pause = self.settings.get("noise_pause", False)
         self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
         self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
-        self._noise_high_frames = 0
+        self._noise_high_since = None  # timestamp when noise first exceeded threshold
         self._nf_print_counter = 0
         self._silent_frames = 0
-        self._auto_paused_at = None
         self._running_noise_floor = None
         self._memory_cache = None
+
+        # Audio diagnostics for wake-word issues
+        self._audio_stats_time = time.time()
+        self._audio_stats_frames = 0
+        self._audio_stats_wake = 0
+        self._audio_stats_energy_sum = 0.0
+        self._audio_stats_energy_max = 0.0
+        self._audio_stats_energy_min = float('inf')
+        self._audio_stats_count = 0
 
         reminder_advance = self.settings.get("reminder_advance", 3600)
         self.idle_tracker = IdleTracker()
@@ -287,15 +296,43 @@ class VassApp:
         from settings_manager import load_settings
         return load_settings(self.settings_file)
 
+    @property
+    def state(self):
+        return self.state_manager.state
+
     def set_state(self, new_state, detail="", silent_gui=False):
-        with self.state_lock:
-            self.state = new_state
-            if not silent_gui:
-                try:
-                    self.gui.set_state(new_state, detail)
-                except Exception as e:
-                    with open("log/crash.log", "a") as f:
-                        f.write(f"gui.set_state failed: {e}\n")
+        """Backward-compatible state setter. Delegates to StateManager.
+
+        If the user manually paused, attempts to set 'listening' are redirected
+        back to 'paused' so the UI always reflects the sacred manual pause.
+        """
+        if new_state == "listening":
+            if not self.state_manager.resume_listening(force=False):
+                self.state_manager.set_state("paused", detail, silent_gui)
+        elif new_state == "paused":
+            self.state_manager.set_state("paused", detail, silent_gui)
+        else:
+            self.state_manager.set_state(new_state, detail, silent_gui)
+
+    def _update_gui_state(self, new_state, detail="", silent_gui=False):
+        """Pure GUI update. Called by StateManager after internal state is set."""
+        if not silent_gui:
+            try:
+                self.gui.set_state(new_state, detail)
+            except Exception as e:
+                with open("log/crash.log", "a") as f:
+                    f.write(f"gui.set_state failed: {e}\n")
+
+    def _verify_stream_state(self, expected_listening):
+        """Log invariant violations between expected state and actual stream state."""
+        try:
+            stream_active = self.audio_handler.stream is not None
+            if expected_listening and not stream_active:
+                print(f"[StateInvariant] Expected listening but stream is stopped (state={self.state})")
+            elif not expected_listening and stream_active:
+                print(f"[StateInvariant] Expected paused but stream is still active (state={self.state})")
+        except Exception:
+            pass
 
     def handle_button_press(self):
         try:
@@ -307,32 +344,30 @@ class VassApp:
         with self.state_lock:
             current = self.state
             if current == "listening":
-                self.set_state("paused")
-                self.audio_handler.stop_stream()
+                self.state_manager.set_manual_paused()
             elif current == "recording":
                 self.audio_handler.stop_recording()
                 self.audio_handler.recorded_buffer.clear()
-                self.set_state("paused")
-                self.audio_handler.stop_stream()
+                self.state_manager.set_manual_paused()
             elif current == "paused":
                 with self._state_vars_lock:
-                    self._noise_high_frames = 0
-                    self._auto_paused_at = None
+                    self._noise_high_since = None
                     self._running_noise_floor = None
-                self.audio_handler.start_stream()
-                self.set_state("listening")
+                self.voice_recognition.reset_noise_floor()
+                self.voice_recognition.reset_model()
+                self.state_manager.resume_listening(force=True)
             elif current == "playing":
                 self.stop_playback()
-                self.set_state("listening")
-                self.gui.schedule(0, lambda: self.set_state("listening"))
+                self.state_manager.resume_listening(force=True)
+                self.gui.schedule(0, lambda: self.state_manager.resume_listening(force=True))
             elif current == "running_script":
                 self.script_runner.cancel_current()
             elif current in ("waiting",):
                 if self.gui.player.data is not None:
                     self.stop_playback()
-                    self.set_state("listening")
+                self.state_manager.resume_listening(force=True)
             elif current == "waiting_resources":
-                self.set_state("listening")
+                self.state_manager.resume_listening(force=True)
         if self.gui.player.isVisible():
             self.stop_playback()
 
@@ -405,15 +440,11 @@ class VassApp:
                         self.noise_pause = self.settings.get("noise_pause", False)
                         self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
                         self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
-                        with self._state_vars_lock:
-                            auto_paused = self._auto_paused_at
-                        if not self.noise_pause and auto_paused is not None:
-                            self.audio_handler.start_stream()
+                        if not self.noise_pause and self.state_manager.is_auto_paused():
                             with self._state_vars_lock:
-                                self._noise_high_frames = 0
-                                self._auto_paused_at = None
+                                self._noise_high_since = None
                                 self._running_noise_floor = None
-                            self.set_state("listening")
+                            self.state_manager.exit_auto_pause()
                             print("[Noise] Auto-pause disabled via settings, resuming")
                         self.gui_x = self.settings["gui_x"]
                         self.gui_y = self.settings["gui_y"]
@@ -438,7 +469,7 @@ class VassApp:
                         new_out = int(self.settings.get("output_device", -1))
                         self.tts.update_output_device(new_out)
                         # Ricarica sensitivity wake word
-                        new_sens = float(self.settings.get("sensitivity", 0.003))
+                        new_sens = float(self.settings.get("sensitivity", 0.010))
                         if new_sens != self.voice_recognition.energy_threshold:
                             self.voice_recognition.energy_threshold = new_sens
                             print(f"[Watch] Wake word sensitivity changed to: {new_sens}")
@@ -519,10 +550,12 @@ class VassApp:
                     time.sleep(0.05)
                     continue
                 frame = self.audio_handler.get_frame()
+                is_auto_paused = self.state_manager.is_auto_paused()
+                is_manual_paused = self.state_manager.is_manual_paused()
                 with self._state_vars_lock:
                     if frame is None:
                         self._silent_frames += 1
-                        if self._silent_frames > 300 and not self._auto_paused_at:
+                        if self._silent_frames > 300 and not is_auto_paused and not is_manual_paused:
                             with self.state_lock:
                                 cs = self.state
                             if cs == "listening":
@@ -533,14 +566,18 @@ class VassApp:
                                 self._silent_frames = 0
                     else:
                         self._silent_frames = 0
-                if self._auto_paused_at is not None:
-                    elapsed = time.time() - self._auto_paused_at
+
+                if is_auto_paused:
+                    auto_paused_at = self.state_manager.get_auto_paused_at()
+                    elapsed = time.time() - auto_paused_at
                     if elapsed >= self.noise_pause_duration:
                         print(f"[Noise] Checking noise floor after {self.noise_pause_duration}s pause...")
-                        self.audio_handler.start_stream()
-                        time.sleep(0.3)
+                        if self.audio_handler.stream is None:
+                            self.audio_handler.start_stream()
+                        # Non-blocking noise check: sample up to 20 frames or 0.5s
                         nf_samples = []
-                        for _ in range(100):
+                        deadline = time.time() + 0.5
+                        while len(nf_samples) < 20 and time.time() < deadline:
                             f = self.audio_handler.get_frame()
                             if f is not None:
                                 nf_samples.append(float(np.sqrt(np.mean(f**2))))
@@ -548,53 +585,59 @@ class VassApp:
                                 time.sleep(0.01)
                         if nf_samples:
                             current_nf = sum(nf_samples) / len(nf_samples)
-                            print(f"[Noise] Current noise floor: {current_nf:.6f} (threshold: {self.noise_pause_threshold})")
-                            if current_nf < self.noise_pause_threshold:
+                            adaptive_threshold = max(self.noise_pause_threshold,
+                                                     self.voice_recognition.noise_floor * 2.0)
+                            print(f"[Noise] Current noise floor: {current_nf:.6f} (adaptive threshold: {adaptive_threshold:.6f})")
+                            if current_nf < adaptive_threshold:
                                 print(f"[Noise] Auto-resuming: noise floor dropped below threshold")
                                 with self._state_vars_lock:
-                                    self._noise_high_frames = 0
-                                    self._auto_paused_at = None
+                                    self._noise_high_since = None
                                     self._running_noise_floor = None
-                                self.set_state("listening")
+                                self.voice_recognition.reset_noise_floor()
+                                self.state_manager.exit_auto_pause()
                                 continue
                             else:
                                 print(f"[Noise] Still noisy, staying paused for another {self.noise_pause_duration}s")
-                                with self.state_lock:
-                                    if self.state == "paused":
-                                        self.audio_handler.stop_stream()
-                                        with self._state_vars_lock:
-                                            self._auto_paused_at = time.time()
+                                self.state_manager.extend_auto_pause()
                         else:
                             print(f"[Noise] Check: no audio samples captured, staying paused")
-                            with self.state_lock:
-                                if self.state == "paused":
-                                    self.audio_handler.stop_stream()
-                                    with self._state_vars_lock:
-                                        self._auto_paused_at = time.time()
+                            self.state_manager.extend_auto_pause()
+
                 if frame is not None:
+                    # Accumulate audio diagnostics
+                    frame_energy = float(np.sqrt(np.mean(frame**2)))
+                    self._audio_stats_frames += 1
+                    self._audio_stats_energy_sum += frame_energy
+                    self._audio_stats_energy_max = max(self._audio_stats_energy_max, frame_energy)
+                    self._audio_stats_energy_min = min(self._audio_stats_energy_min, frame_energy)
+                    self._audio_stats_count += 1
+
+                    # Read state fresh under lock and decide whether to process this frame.
                     with self.state_lock:
                         current_state = self.state
                         if current_state == "recording":
-                            rms = float(np.sqrt(np.mean(frame**2)))
-                            self.gui.volume_signal.emit(rms)
-                        if current_state in ["paused", "playing", "waiting", "waiting_resources", "running_script"]:
-                            pass
-                        else:
-                            pass
+                            self.gui.volume_signal.emit(frame_energy)
+                        should_skip = current_state in ["paused", "playing", "waiting", "waiting_resources", "running_script"]
 
-                    if current_state in ["paused", "playing", "waiting", "waiting_resources", "running_script"]:
+                    if should_skip:
                         continue
-                    
+
                     if not self.audio_handler.is_recording:
+                        # Defensive: re-check we are still listening before wake-word detection.
+                        if current_state != "listening":
+                            continue
                         try:
                             wake = self.voice_recognition.detect_wake_word(frame)
+                            if wake:
+                                self._audio_stats_wake += 1
                         except Exception as ex:
                             with open("log/crash.log", "a") as f:
                                 f.write(f"detect_wake_word error: {ex}\n")
+                            print(f"[WakeWord] detect_wake_word error: {ex}")
                             wake = False
                         if wake and current_state == "listening":
                             with self._state_vars_lock:
-                                self._noise_high_frames = 0
+                                self._noise_high_since = None
                                 self._nf_print_counter = 0
                                 self._running_noise_floor = None
                             print("Wake word detected! Switching to recording mode...")
@@ -606,62 +649,79 @@ class VassApp:
                             self.audio_handler.clear_queue()
                             self.audio_handler.start_recording()
                             self.voice_recognition.reset_model()
-                            self.set_state("recording")
+                            self.state_manager.set_state("recording")
                             continue
 
                         if not wake and current_state == "listening":
                             with self._state_vars_lock:
                                 nf = float(np.sqrt(np.mean(frame**2)))
+                                adaptive_threshold = max(self.noise_pause_threshold,
+                                                         self.voice_recognition.noise_floor * 2.0)
                                 if self._running_noise_floor is None:
                                     self._running_noise_floor = nf
                                 else:
                                     self._running_noise_floor = 0.99 * self._running_noise_floor + 0.01 * nf
                                 nf = self._running_noise_floor
                                 self._nf_print_counter += 1
-                                if self._nf_print_counter % 50 == 0:
-                                    if self.debug_enabled:
-                                        gain = max(0.0, min(1.0, self.voice_recognition.input_volume))
-                                        self.gui.noise_floor_signal.emit(gain)
-                                    if nf > 0.02:
-                                        factor = max(0.5, 0.03 / nf)
-                                        old = self.voice_recognition.input_volume
-                                        self.voice_recognition.input_volume = max(0.05, min(1.0, self.voice_recognition.input_volume * factor))
-                                        if old != self.voice_recognition.input_volume:
-                                            self.voice_recognition.reset_noise_floor()
-                                            if self.debug_enabled:
-                                                print(f"[NoiseFloor] Gain reduced: {old:.3f} -> {self.voice_recognition.input_volume:.3f} (noise_floor={nf:.4f})")
-                                    elif nf < 0.01 and self.voice_recognition.input_volume < 1.0:
-                                        factor = min(1.25, 0.03 / nf)
-                                        old = self.voice_recognition.input_volume
-                                        self.voice_recognition.input_volume = max(0.05, min(1.0, self.voice_recognition.input_volume * factor))
-                                        if old != self.voice_recognition.input_volume:
-                                            self.voice_recognition.reset_noise_floor()
-                                            if self.debug_enabled:
-                                                print(f"[NoiseFloor] Gain increased: {old:.3f} -> {self.voice_recognition.input_volume:.3f} (noise_floor={nf:.4f})")
-                                if self.noise_pause and nf > self.noise_pause_threshold:
-                                    self._noise_high_frames += 1
-                                    frames_per_sec = 50
-                                    max_frames = self.noise_pause_duration * frames_per_sec
-                                    if self._noise_high_frames >= max_frames:
-                                        print(f"[Noise] Auto-pausing: noise floor {nf:.4f} > {self.noise_pause_threshold} for {self.noise_pause_duration}s")
-                                        self.audio_handler.stop_stream()
-                                        self._auto_paused_at = time.time()
-                                        self._noise_high_frames = 0
-                                        self.set_state("paused")
+
+                                # Track continuous high-noise duration using real time.
+                                # The main loop may be blocked by Whisper wake-word transcription,
+                                # so a frame counter is unreliable; elapsed time is robust.
+                                if self.noise_pause and nf > adaptive_threshold:
+                                    if self._noise_high_since is None:
+                                        self._noise_high_since = time.time()
+                                    elapsed_noisy = time.time() - self._noise_high_since
+                                    if elapsed_noisy >= self.noise_pause_duration:
+                                        print(f"[Noise] Auto-pausing: noise floor {nf:.4f} > {adaptive_threshold:.4f} for {self.noise_pause_duration}s")
+                                        self.state_manager.set_auto_paused()
+                                        self._noise_high_since = None
                                 else:
-                                    self._noise_high_frames = max(0, self._noise_high_frames - 1)
+                                    self._noise_high_since = None
+
+                                # GUI update every 50 frames (~1s)
+                                if self._nf_print_counter % 50 == 0:
+                                    gain = self.voice_recognition.input_volume
+                                    nf_raw = min(1.0, nf * 50)  # normalize 0-0.02 range to 0-1
+                                    self.gui.noise_floor_signal.emit(gain, nf_raw)
                                 if self._nf_print_counter >= 250:
                                     self._nf_print_counter = 0
-                                    if nf > self.noise_pause_threshold and self.debug_enabled:
-                                        print(f"[NoiseFloor] {nf:.6f} (threshold: {self.noise_pause_threshold})")
+                                    if nf > adaptive_threshold and self.debug_enabled:
+                                        print(f"[NoiseFloor] {nf:.6f} (adaptive threshold: {adaptive_threshold:.6f})")
 
                     self.audio_handler.process_recording(frame)
-                    
+
                     if not self.audio_handler.is_recording and len(self.audio_handler.recorded_buffer) > 0:
-                        self.set_state("listening")
-                        self._transcribe_and_process()
-                        self.audio_handler.clear_queue()
-                        
+                        if self.state_manager.is_manual_paused():
+                            print("[Recording] Discarded: manual pause is active")
+                            self.audio_handler.recorded_buffer.clear()
+                        else:
+                            self.state_manager.set_state("listening")
+                            self._transcribe_and_process()
+                            self.audio_handler.clear_queue()
+
+                # Periodic audio diagnostics log (every 10s)
+                try:
+                    now = time.time()
+                    if now - self._audio_stats_time >= 10:
+                        stream_ok = self.audio_handler.stream is not None
+                        if self._audio_stats_count > 0:
+                            avg_energy = self._audio_stats_energy_sum / self._audio_stats_count
+                            print(f"[AudioStats] stream_ok={stream_ok} frames={self._audio_stats_frames} "
+                                  f"avg_energy={avg_energy:.6f} min={self._audio_stats_energy_min:.6f} "
+                                  f"max={self._audio_stats_energy_max:.6f} input_volume={self.voice_recognition.input_volume:.3f} "
+                                  f"noise_floor={self.voice_recognition._noise_floor:.6f} wakes={self._audio_stats_wake}")
+                        else:
+                            print(f"[AudioStats] stream_ok={stream_ok} frames=0 NO_AUDIO_RECEIVED")
+                        self._audio_stats_time = now
+                        self._audio_stats_frames = 0
+                        self._audio_stats_wake = 0
+                        self._audio_stats_energy_sum = 0.0
+                        self._audio_stats_energy_max = 0.0
+                        self._audio_stats_energy_min = float('inf')
+                        self._audio_stats_count = 0
+                except Exception as e:
+                    print(f"[AudioStats] log error: {e}")
+
             except KeyboardInterrupt:
                 print("\nShutting down Vass...")
                 self.running = False
@@ -863,6 +923,9 @@ class VassApp:
         return overhead
 
     def _process_chat_text(self, text):
+        if self.state_manager.is_manual_paused():
+            print(f"[Chat] Ignored: manual pause is active")
+            return
         if self.state not in ("listening", "paused"):
             print(f"[Chat] Ignored: state={self.state}")
             return
@@ -960,6 +1023,8 @@ class VassApp:
         import sounddevice as sd
         import numpy as np
         import webrtcvad
+        prev_state = self.state
+        was_manual_paused = self.state_manager.is_manual_paused()
         self._input_mode = True
         self.audio_handler.stop_stream()
         self.audio_handler.clear_queue()
@@ -1012,7 +1077,12 @@ class VassApp:
             print("[Listen] No speech detected or no audio")
             return ""
         finally:
-            self.audio_handler.start_stream()
+            if prev_state == "paused" or was_manual_paused:
+                # Restore manual/auto-paused state: keep stream stopped.
+                self.state_manager.set_state("paused")
+                print(f"[Listen] Restored paused state (manual_pause={was_manual_paused})")
+            else:
+                self.state_manager.resume_listening(force=False)
             self.audio_handler.clear_queue()
             self._input_mode = False
 
@@ -1660,11 +1730,11 @@ class VassApp:
         tag_list = ", ".join(sorted(TAG_WEIGHTS.keys()))
         if assistant_text:
             classify_prompt = (
-                f"Classify this conversation with 1-3 comma-separated tags ONLY from: {tag_list}\n\n"
+                f"Classify this conversation with 1-2 comma-separated tags ONLY from: {tag_list}\n\n"
                 f"User: \"{user_message[:400]}\"\n"
                 f"Assistant: \"{assistant_text[:400]}\"\n\n"
                 f"Rules:\n"
-                f"- Return ONLY 1-3 most relevant tags, nothing else.\n"
+                f"- Return ONLY 1-2 most relevant tags, nothing else.\n"
                 f"- If the conversation is generic/chatty, return ONLY 'generic'.\n"
                 f"- Example travel chat: travel,personal_interests\n"
                 f"- Example health question: health\n"
@@ -1672,10 +1742,10 @@ class VassApp:
             )
         else:
             classify_prompt = (
-                f"Classify this user message with 1-3 comma-separated tags ONLY from: {tag_list}\n\n"
+                f"Classify this user message with 1-2 comma-separated tags ONLY from: {tag_list}\n\n"
                 f"Message: \"{user_message[:500]}\"\n\n"
                 f"Rules:\n"
-                f"- Return ONLY 1-3 most relevant tags, nothing else.\n"
+                f"- Return ONLY 1-2 most relevant tags, nothing else.\n"
                 f"- If the message is generic/chatty, return ONLY 'generic'.\n"
                 f"- Example travel chat: travel,personal_interests\n"
                 f"- Example health question: health\n"
@@ -1690,7 +1760,7 @@ class VassApp:
                 extra_body={"disable_thinking": True}
             )
             raw = (resp.choices[0].message.content or "").strip().lower()
-            tags = [t.strip() for t in raw.split(",") if t.strip() and t.strip() in TAG_WEIGHTS][:3]
+            tags = [t.strip() for t in raw.split(",") if t.strip() and t.strip() in TAG_WEIGHTS][:2]
             if tags:
                 tags_str = ",".join(tags)
                 result = mcp.call_tool("savetags", {"tags": tags_str, "entry_id": entry_id})

@@ -27,6 +27,8 @@ TEMPLATES = {
     "ai → say": '$risultato = ai("prompt")\nsay($risultato)',
     "clipboard_get": 'clipboard_get()',
     "clipboard_set": 'clipboard_set("testo da copiare")',
+    "close": 'close("notepad")',
+    "close con timeout": 'close("firefox", 10)',
     "contains": 'contains($testo, "cerca")',
     "delete_event": 'delete_event("riunione")',
     "div": 'div($a, $b)',

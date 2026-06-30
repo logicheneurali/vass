@@ -72,6 +72,22 @@ if_empty($ok, exit(), "")
 ```
 
 
+### **`close(name, timeout?)`**
+Closes an application by window title or process name (cross-platform: WM_CLOSE on Windows, osascript on macOS, wmctrl on Linux). Falls back to force-kill after timeout. Returns `true` or `false`.
+
+- `name`: window title or process name (case-insensitive, substring match)
+- `timeout` (optional): seconds to wait for graceful close before force-kill (default 5)
+
+Searches by window title first, then by process name. Tries graceful close and polls until timeout, then force-kills remaining processes.
+
+```
+close("notepad")
+close("firefox", 10)
+$ok = close("Documento.txt")
+if_equals($ok, "false", say("Impossibile chiudere"), say("Chiuso"))
+```
+
+
 ### **`list_apps()`**
 Returns a JSON array of installed apps: `[{"name": str, "path": str}, ...]`. Read-only (no authorization needed). Cached for 5 minutes.
 

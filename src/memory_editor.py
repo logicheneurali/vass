@@ -56,7 +56,9 @@ def _load_tag_weights():
     if os.path.exists(cfg_path):
         with open(cfg_path, encoding="utf-8") as f:
             return json.load(f).get("tags", {})
-    return {}
+    from tag_manager import _DEFAULT_TAGS, save_tags_config
+    save_tags_config(_DEFAULT_TAGS, 10)
+    return dict(_DEFAULT_TAGS)
 
 
 class _MemPage(QWebEnginePage):

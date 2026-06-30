@@ -28,6 +28,8 @@ class AudioHandler:
             pass
 
     def start_stream(self):
+        if self.stream is not None:
+            return
         print(f"[Audio] Starting stream: device={self.input_device}, sr={self.sample_rate}, ch={self.channels}")
         try:
             self.stream = sd.InputStream(

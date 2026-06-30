@@ -48,7 +48,8 @@
         "screen_highlight": "화면 영역을 잠시 강조 표시",
         "listen": "음성을 녹음하고 전사된 텍스트 반환",
         "sendtext": "키보드로 텍스트 입력",
-        "setactivewindow": "프로세스 이름이나 제목으로 창 활성화"
+        "setactivewindow": "프로세스 이름이나 제목으로 창 활성화",
+        "close": "창 제목 또는 프로세스 이름으로 애플리케이션 종료"
       },
       "cancel": "취소"
     },
@@ -146,7 +147,7 @@
       "wakeword": "웨이크워드 (예: vass, computer)",
       "volume": "0.0-1.0, 높을수록 큼",
       "kokoro_voice": "TTS에 사용할 Kokoro 음성 선택",
-      "input_volume": "0.01-1.0, 마이크 입력 게인",
+      "input_volume": "0.01-1.0, 마이크 입력 게인. 1.0 = 자동 게인 조절, 낮은 값 = 고정 수동 게인",
       "app_volume": "애플리케이션 메인 볼륨",
       "api_key": "인증을 위한 API 키 (필요하지 않으면 비워둠)",
       "language": "인터페이스 및 음성 명령 언어",

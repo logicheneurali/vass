@@ -61,7 +61,8 @@
         "screen_highlight": "Briefly highlights an area on screen",
         "listen": "Records your voice and returns the transcribed text",
         "sendtext": "Simulates typing text on the keyboard",
-        "setactivewindow": "Activates a window by process name or title"
+        "setactivewindow": "Activates a window by process name or title",
+        "close": "Closes an application by window title or process name"
       },
       "cancel": "Cancel"
     },
@@ -151,7 +152,7 @@
       "tts_engine": "kokoro = AI multilingual synthesis",
       "volume": "0.0-1.0, higher = louder",
       "kokoro_voice": "Select the Kokoro voice for TTS",
-      "input_volume": "0.01-1.0, microphone input gain",
+      "input_volume": "0.01-1.0, microphone input gain. 1.0 = automatic gain regulation; lower values = fixed manual gain",
       "app_volume": "Main application volume",
       "url": "OpenAI-compatible API URL",
       "api_key": "API key for authentication (leave empty if not needed)",

@@ -284,3 +284,224 @@ def _launch_linux(app, args):
         parts += shlex.split(args)
     subprocess.Popen(parts, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return f"ok: launched {app['name']}"
+
+
+# ── Close ────────────────────────────────────────────────────────
+
+def close_app(name: str, timeout: float = 5) -> str:
+    """Close application(s) by window title or process name.
+    Tries graceful close first, force-kills after timeout.
+    Returns 'true' if anything was closed, 'false' otherwise."""
+    if not name.strip():
+        return "false"
+
+    if sys.platform == "win32":
+        return _close_win32(name.strip(), timeout)
+    elif sys.platform == "darwin":
+        return _close_macos(name.strip(), timeout)
+    else:
+        return _close_linux(name.strip(), timeout)
+
+
+def _close_win32(name: str, timeout: float) -> str:
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+    psapi = ctypes.windll.psapi
+
+    name_lower = name.lower()
+    windows: list[tuple] = []
+    WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+    def enum_proc(hwnd, lparam):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        title_buf = ctypes.create_unicode_buffer(256)
+        user32.GetWindowTextW(hwnd, title_buf, 256)
+        title_str = title_buf.value
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        proc_name = ""
+        try:
+            h_process = kernel32.OpenProcess(0x0400 | 0x0010, False, pid)
+            if h_process:
+                exe_buf = ctypes.create_unicode_buffer(260)
+                psapi.GetModuleBaseNameW(h_process, None, exe_buf, 260)
+                proc_name = exe_buf.value
+                kernel32.CloseHandle(h_process)
+        except Exception:
+            pass
+        windows.append((hwnd, title_str or "", (proc_name or "").rstrip(".exe"), pid.value))
+        return True
+
+    callback = WNDENUMPROC(enum_proc)
+    user32.EnumWindows(callback, 0)
+
+    # Match by window title first
+    matched_pids: set[int] = set()
+    for hwnd, title, proc, pid in windows:
+        if title and name_lower in title.lower():
+            matched_pids.add(pid)
+
+    # Fallback: match by process name
+    if not matched_pids:
+        for hwnd, title, proc, pid in windows:
+            if proc and name_lower in proc.lower():
+                matched_pids.add(pid)
+
+    if not matched_pids:
+        # Try exact process match via tasklist (for background processes without visible windows)
+        try:
+            r = subprocess.run(
+                ["tasklist", "/FI", f"IMAGENAME eq {name}.exe", "/NH"],
+                capture_output=True, text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
+            )
+            if name_lower in r.stdout.lower():
+                subprocess.run(
+                    ["taskkill", "/IM", f"{name}.exe", "/F"],
+                    capture_output=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
+                )
+                return "true"
+        except Exception:
+            pass
+        return "false"
+
+    WM_CLOSE = 0x0010
+
+    def _get_all_windows_for_pid(target_pid):
+        result = []
+        for hwnd, title, proc, pid in windows:
+            if pid == target_pid:
+                result.append(hwnd)
+        return result
+
+    # Send WM_CLOSE to all windows of matched PIDs
+    for pid in matched_pids:
+        for hwnd in _get_all_windows_for_pid(pid):
+            user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
+
+    # Poll for process exit
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        alive = []
+        for pid in matched_pids:
+            try:
+                r = subprocess.run(
+                    ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+                    capture_output=True, text=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
+                )
+                if str(pid) in r.stdout:
+                    alive.append(pid)
+            except Exception:
+                pass
+        if not alive:
+            return "true"
+        time.sleep(0.2)
+
+    # Force kill survivors
+    killed = False
+    for pid in matched_pids:
+        try:
+            r = subprocess.run(
+                ["taskkill", "/F", "/PID", str(pid)],
+                capture_output=True, text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW, timeout=5
+            )
+            if r.returncode == 0:
+                killed = True
+        except Exception:
+            pass
+
+    return "true" if killed else "false"
+
+
+def _close_macos(name: str, timeout: float) -> str:
+    safe = name.replace('"', '\\"')
+    # Try graceful quit via osascript
+    script = (
+        'tell application "System Events"\n'
+        '  set found to false\n'
+        f'  set target to "{safe}"\n'
+        '  repeat with proc in (every process whose visible is true)\n'
+        '    set pname to name of proc as text\n'
+        '    if pname contains target then\n'
+        '      try\n'
+        '        tell proc to quit\n'
+        '        set found to true\n'
+        '      end try\n'
+        '    end if\n'
+        '  end repeat\n'
+        '  return found\n'
+        'end tell'
+    )
+    try:
+        r = subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True, text=True, timeout=timeout + 2
+        )
+        if "true" in r.stdout.lower():
+            return "true"
+    except Exception:
+        pass
+
+    # Fallback: pkill with timeout
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            r = subprocess.run(
+                ["pgrep", "-f", name], capture_output=True, text=True, timeout=5
+            )
+            if not r.stdout.strip():
+                return "true"
+        except Exception:
+            pass
+        time.sleep(0.2)
+
+    try:
+        subprocess.run(
+            ["pkill", "-f", name], capture_output=True, timeout=5
+        )
+        return "true"
+    except Exception:
+        return "false"
+
+
+def _close_linux(name: str, timeout: float) -> str:
+    # Try wmctrl graceful close
+    try:
+        r = subprocess.run(
+            ["wmctrl", "-l"], capture_output=True, text=True, timeout=5
+        )
+        for line in r.stdout.splitlines():
+            if name.lower() in line.lower():
+                wid = line.split(None, 1)[0]
+                subprocess.run(
+                    ["wmctrl", "-i", "-c", wid], capture_output=True, timeout=5
+                )
+    except Exception:
+        pass
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            r = subprocess.run(
+                ["pgrep", "-f", name], capture_output=True, text=True, timeout=5
+            )
+            if not r.stdout.strip():
+                return "true"
+        except Exception:
+            pass
+        time.sleep(0.2)
+
+    try:
+        subprocess.run(
+            ["pkill", "-9", "-f", name], capture_output=True, timeout=5
+        )
+        return "true"
+    except Exception:
+        return "false"

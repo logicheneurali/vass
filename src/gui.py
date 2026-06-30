@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import time
 
 from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal
 from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath, QPen
@@ -333,6 +334,17 @@ class _CompactWidget(QWidget):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._color = QColor("#2ecc71")
         self._state = "listening"
+        self._noise_floor_raw = 0.0
+        self._tool_color = None
+        self._last_click_time = 0
+
+    def set_noise_floor(self, raw):
+        self._noise_floor_raw = raw
+        self.update()
+
+    def set_tool(self, color=None):
+        self._tool_color = QColor(color) if color else None
+        self.update()
 
     def set_state(self, color, state):
         self._color = QColor(color)
@@ -346,7 +358,15 @@ class _CompactWidget(QWidget):
         r, g, b = self._color.red(), self._color.green(), self._color.blue()
 
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(r, g, b, 51))
+        raw = self._noise_floor_raw
+        if raw > 0.15:
+            severity = min(1.0, (raw - 0.15) / 0.45)
+            nr = int(r + (231 - r) * severity)
+            ng = int(g + (76 - g) * severity)
+            nb = int(b + (60 - b) * severity)
+            p.setBrush(QColor(nr, ng, nb, 51))
+        else:
+            p.setBrush(QColor(r, g, b, 51))
         p.drawEllipse(2, 2, 32, 32)
 
         p.setBrush(QColor(r, g, b, 127))
@@ -358,6 +378,11 @@ class _CompactWidget(QWidget):
         p.setBrush(Qt.GlobalColor.white)
         p.setPen(Qt.PenStyle.NoPen)
         self._draw_icon(p)
+
+        if self._tool_color is not None:
+            p.setBrush(self._tool_color)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(15, 26, 6, 6)
 
     def _draw_icon(self, p):
         if self._state == "loading":
@@ -418,6 +443,14 @@ class _CompactWidget(QWidget):
                 win._exit_app()
             return
         if event.button() == Qt.MouseButton.LeftButton:
+            now = time.monotonic()
+            interval = QApplication.instance().doubleClickInterval() / 1000.0
+            if self._last_click_time and now - self._last_click_time < interval:
+                self._last_click_time = 0
+                if win and hasattr(win, '_toggle_compact_mode'):
+                    win._toggle_compact_mode(False)
+                return
+            self._last_click_time = now
             self._drag_start = event.globalPosition().toPoint()
             self._drag_pos = self._drag_start
             self._drag_started = False
@@ -463,7 +496,7 @@ class VassGUI(QMainWindow):
     auth_requested_signal = Signal(str, str)
     form_signal = Signal(str, list)
     volume_signal = Signal(float)
-    noise_floor_signal = Signal(float)
+    noise_floor_signal = Signal(float, float)  # gain, raw_noise
     chat_text_signal = Signal(str)
     tool_indicator_signal = Signal(str, str)
     compact_mode_signal = Signal(bool)
@@ -512,6 +545,7 @@ class VassGUI(QMainWindow):
         self.setCentralWidget(central)
         central.setObjectName("_centralWidget")
         self._central = central
+        self._central.installEventFilter(self)
         self._refresh_debug_border()
         outer = QVBoxLayout(central)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -1003,6 +1037,8 @@ class VassGUI(QMainWindow):
             "QPushButton:hover { color: %s; }"
             % (text_color, QColor(text_color).lighter(130).name())
         )
+        if state == "listening":
+            self.hide_tool_indicator()
         if not self._compact_mode:
             self.stacked.setCurrentWidget(self.btn)
             if state == "listening":
@@ -1067,9 +1103,11 @@ class VassGUI(QMainWindow):
         self.memory_bar._update_tooltip()
         self.memory_bar.set_level(level)
 
-    def _on_noise_floor(self, ratio):
-        self.volume_top_bar._noise_floor_ratio = ratio
+    def _on_noise_floor(self, gain, raw):
+        self.volume_top_bar._noise_floor_ratio = gain
         self.volume_top_bar.update()
+        if self._compact_dot.isVisible():
+            self._compact_dot.set_noise_floor(raw)
 
     def set_health_status(self, ok):
         if self._health_ok != ok:
@@ -1858,11 +1896,23 @@ class VassGUI(QMainWindow):
     def _on_tool_indicator(self, color, tooltip):
         if not color:
             self._tool_indicator.setVisible(False)
+            self._compact_dot.set_tool()
             return
-        self._tool_indicator.setStyleSheet(
-            f"QLabel {{ background-color: {color}; border-radius: 5px; }}")
-        self._tool_indicator.setToolTip(tooltip)
-        self._tool_indicator.setVisible(True)
+        self._compact_dot.set_tool(color)
+        if not self._compact_mode:
+            self._tool_indicator.setStyleSheet(
+                f"QLabel {{ background-color: {color}; border-radius: 5px; }}")
+            self._tool_indicator.setToolTip(tooltip)
+            self._tool_indicator.setVisible(True)
+
+    def eventFilter(self, obj, event):
+        if (obj is self._central
+                and event.type() == QEvent.Type.MouseButtonDblClick
+                and event.button() == Qt.MouseButton.LeftButton
+                and not self._compact_mode):
+            self._toggle_compact_mode(True)
+            return True
+        return super().eventFilter(obj, event)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:

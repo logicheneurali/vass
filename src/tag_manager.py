@@ -27,12 +27,27 @@ def _t(path, lang="en"):
         return path.split(".")[-1].replace("_", " ").title()
 
 
+_DEFAULT_TAGS = {
+    "personal_data": 10, "health": 10, "finance": 10,
+    "family": 10, "pets": 10,
+    "contacts": 8,
+    "preferences": 7, "personal_interests": 7, "purchases": 7,
+    "orders": 6, "bills": 6, "invoices": 6, "work": 6, "education": 6,
+    "favorite_music": 5, "food": 5, "home": 5, "personal_means_of_transport": 5,
+    "deliveries": 4, "travel": 4, "tech": 4, "events": 4,
+    "sales": 3,
+    "generic": 1,
+}
+
+
 def load_tags_config():
     if os.path.exists(TAGS_CONFIG):
         with open(TAGS_CONFIG, encoding="utf-8") as f:
             data = json.load(f)
         return data.get("tags", {}), data.get("min_relevance", 10)
-    return {}, 10
+    tags = dict(_DEFAULT_TAGS)
+    save_tags_config(tags, 10)
+    return tags, 10
 
 
 def save_tags_config(tags, min_relevance):

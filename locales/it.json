@@ -61,7 +61,8 @@
         "screen_highlight": "Evidenzia brevemente un'area dello schermo",
         "listen": "Registra la tua voce e restituisce il testo trascritto",
         "sendtext": "Simula la digitazione di testo sulla tastiera",
-        "setactivewindow": "Attiva una finestra per nome processo o titolo"
+        "setactivewindow": "Attiva una finestra per nome processo o titolo",
+        "close": "Chiude un'applicazione per titolo finestra o nome processo"
       },
       "cancel": "Annulla"
     },
@@ -185,7 +186,7 @@
       "tts_engine": "kokoro = sintesi AI multilingua",
       "volume": "0.0-1.0, più alto = più forte",
       "kokoro_voice": "Seleziona la voce Kokoro per la sintesi vocale",
-      "input_volume": "0.01-1.0, guadagno ingresso microfono",
+      "input_volume": "0.01-1.0, guadagno ingresso microfono. 1.0 = regolazione automatica; valori inferiori = guadagno manuale fisso",
       "app_volume": "Volume principale dell'applicazione",
       "url": "URL API compatibile OpenAI",
       "api_key": "Chiave API per autenticazione (lasciare vuota se non serve)",

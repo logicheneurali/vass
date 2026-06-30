@@ -48,7 +48,8 @@
         "screen_highlight": "Hebt einen Bereich auf dem Bildschirm kurz hervor",
         "listen": "Nimmt Ihre Stimme auf und gibt den transkribierten Text zurück",
         "sendtext": "Simuliert das Tippen von Text auf der Tastatur",
-        "setactivewindow": "Aktiviert ein Fenster nach Prozessname oder Titel"
+        "setactivewindow": "Aktiviert ein Fenster nach Prozessname oder Titel",
+        "close": "Schließt eine Anwendung nach Fenstertitel oder Prozessname"
       },
       "cancel": "Abbrechen"
     },
@@ -151,7 +152,7 @@
       "tts_engine": "kokoro = mehrsprachige KI-Synthese",
       "volume": "0.0-1.0, höher = lauter",
       "kokoro_voice": "Wählen Sie die Kokoro-Stimme für die Sprachausgabe",
-      "input_volume": "0.01-1.0, Mikrofon-Eingangsverstärkung",
+      "input_volume": "0.01-1.0, Mikrofon-Eingangsverstärkung. 1.0 = automatische Verstärkungsregelung; niedrigere Werte = fester manueller Verstärkung",
       "app_volume": "Hauptlautstärke der Anwendung",
       "url": "OpenAI-kompatible API-URL",
       "api_key": "API-Schlüssel zur Authentifizierung (leer lassen wenn nicht benötigt)",

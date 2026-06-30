@@ -260,8 +260,6 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
         if not msg.tool_calls:
             break
 
-    if gui:
-        gui.hide_tool_indicator()
     return msg
 
 
