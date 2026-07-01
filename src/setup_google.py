@@ -180,14 +180,22 @@ def do_setup_gui(lang="en"):
 
     wizard = QWizard()
     wizard.setWindowTitle(_t("setup_google.title", lang))
-    wizard.resize(605, 462)
+    wizard.resize(620, 480)
     wizard.setStyleSheet(
-        "QWidget { background-color: #1e1e1e; color: #e0e0e0; font-size: 15px; }"
-        "QWizard QLabel { background: transparent; }"
-        "QWizard QPushButton { background-color: #3d3d3d; color: #e0e0e0; border: none; border-radius: 3px; padding: 8px 16px; font-weight: bold; font-size: 12px; }"
-        "QWizard QPushButton:hover { background-color: #0d7377; }"
-        "QWizard QPushButton:disabled { background-color: #2d2d2d; color: #666; }"
-        "QWizardPage QLabel#pageTitle { font-size: 16px; font-weight: bold; }"
+        "QWidget { background-color: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; font-size: 14px; }"
+        "QLabel { background: transparent; }"
+        "QLineEdit { background-color: #16213e; border: 1px solid #0f3460; border-radius: 4px; padding: 6px 10px; }"
+        "QPushButton { background-color: #0f3460; color: #e0e0e0; border: none; border-radius: 4px; padding: 8px 20px; font-size: 13px; }"
+        "QPushButton:hover { background-color: #1a5276; }"
+        "QPushButton:pressed { background-color: #16213e; }"
+        "QPushButton:disabled { background-color: #333344; color: #777788; }"
+        "QProgressBar { border: 1px solid #0f3460; border-radius: 4px; text-align: center; background-color: #16213e; }"
+        "QProgressBar::chunk { background-color: #e94560; border-radius: 3px; }"
+        "QCheckBox { spacing: 8px; }"
+        "QCheckBox::indicator { width: 18px; height: 18px; border: 1px solid #0f3460; border-radius: 3px; background-color: #16213e; }"
+        "QCheckBox::indicator:checked { background-color: #e94560; }"
+        "QTextBrowser { background-color: #0d1117; border: 1px solid #0f3460; border-radius: 4px; }"
+        "QWizard QLabel#pageTitle { font-size: 16px; font-weight: bold; color: #e94560; }"
     )
 
     result_data = {"success": False, "message": ""}
@@ -198,14 +206,14 @@ def do_setup_gui(lang="en"):
     l1 = QVBoxLayout(page1)
     text = _t("setup_google.page1.text", lang).format(path=CLIENT_SECRET_PATH)
     text = text.replace("https://console.cloud.google.com",
-                        '<a href="https://console.cloud.google.com" style="color:#0d7377;">https://console.cloud.google.com</a>')
+                        '<a href="https://console.cloud.google.com" style="color:#e94560;">https://console.cloud.google.com</a>')
     text = text.replace("https://console.cloud.google.com/apis/credentials/consent",
-                        '<a href="https://console.cloud.google.com/apis/credentials/consent" style="color:#0d7377;">OAuth consent screen</a>')
+                        '<a href="https://console.cloud.google.com/apis/credentials/consent" style="color:#e94560;">OAuth consent screen</a>')
     text = text.replace("https://console.cloud.google.com/apis/credentials",
-                        '<a href="https://console.cloud.google.com/apis/credentials" style="color:#0d7377;">Credentials</a>')
+                        '<a href="https://console.cloud.google.com/apis/credentials" style="color:#e94560;">Credentials</a>')
     lbl = QTextBrowser()
     lbl.setOpenExternalLinks(True)
-    lbl.setHtml(f'<body style="background-color:#1e1e1e;color:#e0e0e0;font-size:15px;">{text.replace(chr(10), "<br>")}</body>')
+    lbl.setHtml(f'<body style="background-color:#0d1117;color:#e0e0e0;font-size:14px;">{text.replace(chr(10), "<br>")}</body>')
     lbl.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
     lbl.setMinimumHeight(350)
     l1.addWidget(lbl)
@@ -325,7 +333,7 @@ def do_setup_gui(lang="en"):
     info = _t("setup_google.page5.info", lang).replace("{project_id}", project_id)
     lbl_info = QTextBrowser()
     lbl_info.setOpenExternalLinks(True)
-    lbl_info.setHtml(f'<body style="background-color:#1e1e1e;color:#e0e0e0;font-size:15px;">{info.replace(chr(10), "<br>")}</body>')
+    lbl_info.setHtml(f'<body style="background-color:#0d1117;color:#e0e0e0;font-size:14px;">{info.replace(chr(10), "<br>")}</body>')
     lbl_info.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
     lbl_info.setMinimumHeight(250)
     l5.addWidget(lbl_info)
@@ -371,7 +379,7 @@ def do_setup_gui(lang="en"):
     wizard.finished.connect(_on_finish)
 
     def _show_result():
-        color = "#2ecc71" if result_data["success"] else "#e74c3c"
+        color = "#27ae60" if result_data["success"] else "#e94560"
         page4.lbl_result.setStyleSheet(f"color: {color}; font-size: 13px;")
         page4.lbl_result.setText(result_data["message"])
 

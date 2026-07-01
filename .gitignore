@@ -5,6 +5,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+installer/
 .ruff_cache/
 
 # Virtual environment
@@ -31,8 +32,23 @@ bk/*.txt
 # VASS - agent instructions
 AGENTS.md
 
-# VASS - user scripts
-scripts/
+# VASS - user scripts (only standard scripts tracked)
+scripts/*
+!scripts/currency.vass
+!scripts/datetime.vass
+!scripts/gcal_add.vass
+!scripts/gcal_search.vass
+!scripts/gcal_today.vass
+!scripts/gcal_tomorrow.vass
+!scripts/movie.vass
+!scripts/read_news.vass
+!scripts/recipe.vass
+!scripts/rss_read.vass
+!scripts/search_shopping.vass
+!scripts/timer.vass
+!scripts/translate.vass
+!scripts/weather.vass
+!scripts/wiki.vass
 
 # VASS - windows shortcut
 VASS.lnk
@@ -90,6 +106,9 @@ todo.txt
 todo_AI.txt
 readme.txt
 lastcommands.txt
+INFO
+eight
+vass.spec
 
 # VASS - TTS models (too large)
 tts/*.onnx

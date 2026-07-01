@@ -71,7 +71,8 @@
     "notifications": "Notificações",
     "mark_read": "Marcar tudo como lido",
     "close": "Fechar",
-    "no_notifications": "Sem notificações"
+    "no_notifications": "Sem notificações",
+    "mcp_down_tooltip": "Servidor MCP indisponivel"
   },
   "settings_editor": {
     "title": "Configurações VASS",
@@ -904,5 +905,6 @@
       "name": "Tempo ocioso",
       "desc": "Tempo ocioso sistema"
     }
-  }
+  },
+  "mcp_down_tooltip": "Servidor MCP indisponivel"
 }

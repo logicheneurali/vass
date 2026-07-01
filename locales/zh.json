@@ -71,7 +71,8 @@
     "notifications": "通知",
     "mark_read": "全部标记为已读",
     "close": "关闭",
-    "no_notifications": "无通知"
+    "no_notifications": "无通知",
+    "mcp_down_tooltip": "MCP服务器不可用"
   },
   "settings_editor": {
     "title": "VASS 设置",
@@ -901,5 +902,6 @@
       "name": "空闲时间",
       "desc": "系统空闲时间"
     }
-  }
+  },
+  "mcp_down_tooltip": "MCP服务器不可用"
 }

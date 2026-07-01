@@ -1,6 +1,14 @@
 import sys
 import os
 
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+
+import logging
+logging.basicConfig(level=logging.ERROR, stream=sys.stderr, force=True)
+
 os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 _DEBUG_MODE = "--debug" in sys.argv

@@ -71,7 +71,8 @@
     "notifications": "Benachrichtigungen",
     "mark_read": "Alle als gelesen markieren",
     "close": "Schließen",
-    "no_notifications": "Keine Benachrichtigungen"
+    "no_notifications": "Keine Benachrichtigungen",
+    "mcp_down_tooltip": "MCP-Server nicht verfuegbar"
   },
   "settings_editor": {
     "title": "VASS Einstellungen",
@@ -900,5 +901,6 @@
       "name": "Leerlaufzeit",
       "desc": "System Leerlaufzeit"
     }
-  }
+  },
+  "mcp_down_tooltip": "MCP-Server nicht verfuegbar"
 }

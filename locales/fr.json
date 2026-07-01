@@ -71,7 +71,8 @@
     "notifications": "Notifications",
     "mark_read": "Marquer tout comme lu",
     "close": "Fermer",
-    "no_notifications": "Aucune notification"
+    "no_notifications": "Aucune notification",
+    "mcp_down_tooltip": "Serveur MCP indisponible"
   },
   "settings_editor": {
     "title": "Paramètres VASS",
@@ -903,5 +904,6 @@
       "name": "Temps inactif",
       "desc": "Temps inactivite systeme"
     }
-  }
+  },
+  "mcp_down_tooltip": "Serveur MCP indisponible"
 }

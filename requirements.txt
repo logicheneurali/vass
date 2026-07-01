@@ -44,3 +44,5 @@ grpcio>=1.60.0
 GPUtil>=1.4.0
 cryptography>=42.0.0
 feedparser
+loguru>=0.7.0
+transformers>=4.40.0

@@ -71,7 +71,8 @@
     "notifications": "알림",
     "mark_read": "모두 읽음으로 표시",
     "close": "닫기",
-    "no_notifications": "알림 없음"
+    "no_notifications": "알림 없음",
+    "mcp_down_tooltip": "MCP 서버를 사용할 수 없음"
   },
   "settings_editor": {
     "title": "VASS 설정",
@@ -903,5 +904,6 @@
       "name": "유휴 시간",
       "desc": "시스템 유휴 시간"
     }
-  }
+  },
+  "mcp_down_tooltip": "MCP 서버를 사용할 수 없음"
 }

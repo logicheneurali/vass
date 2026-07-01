@@ -1,0 +1,5 @@
+# gcal_add.vass — Google Calendar: add event
+$info = param1
+ifempty($info, exit(), "")
+$r = ai("Estrai da questo testo: titolo, data inizio, data fine, descrizione. Crea l'evento su Google Calendar usando il formato JSON con campi summary, start, end, description. Usa il tool calendar_add: " + $info, true)
+say($r)

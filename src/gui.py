@@ -520,6 +520,7 @@ class VassGUI(QMainWindow):
         from i18n import t
         self._t = lambda path: t(path, self.language)
         self._health_ok = True
+        self._mcp_down = False
         self._current_state = "listening"
         self._current_detail = ""
         self._current_mode = "chat"
@@ -1928,7 +1929,22 @@ class VassGUI(QMainWindow):
     def hide_tool_indicator(self):
         self.tool_indicator_signal.emit("", "")
 
+    def set_mcp_status(self, ok):
+        if ok:
+            self.hide_tool_indicator()
+        else:
+            self._mcp_down = True
+            self.tool_indicator_signal.emit("__mcp_down__", "")
+
     def _on_tool_indicator(self, color, tooltip):
+        if color == "__mcp_down__":
+            self._compact_dot.set_tool("#e74c3c")
+            if not self._compact_mode:
+                self._tool_indicator.setStyleSheet(
+                    "QLabel { background-color: #e74c3c; border-radius: 0px; border: none; }")
+                self._tool_indicator.setToolTip(self._t("gui.mcp_down_tooltip"))
+                self._tool_indicator.setVisible(True)
+            return
         if not color:
             self._tool_indicator.setVisible(False)
             self._compact_dot.set_tool()

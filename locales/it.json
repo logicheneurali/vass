@@ -71,7 +71,8 @@
     "notifications": "Notifiche",
     "mark_read": "Segna tutte come lette",
     "close": "Chiudi",
-    "no_notifications": "Nessuna notifica"
+    "no_notifications": "Nessuna notifica",
+    "mcp_down_tooltip": "Server MCP non disponibile"
   },
   "scripts_editor": {
     "title": "VASScript Editor",
@@ -910,5 +911,6 @@
       "name": "Tempo inattivo",
       "desc": "Tempo di inattivita sistema"
     }
-  }
+  },
+  "mcp_down_tooltip": "Server MCP non disponibile"
 }

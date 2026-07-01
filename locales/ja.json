@@ -71,7 +71,8 @@
     "notifications": "通知",
     "mark_read": "すべて既読にする",
     "close": "閉じる",
-    "no_notifications": "通知なし"
+    "no_notifications": "通知なし",
+    "mcp_down_tooltip": "MCPサーバーが利用できません"
   },
   "settings_editor": {
     "title": "VASS 設定",
@@ -904,5 +905,6 @@
       "name": "アイドル時間",
       "desc": "システムアイドル時間"
     }
-  }
+  },
+  "mcp_down_tooltip": "MCPサーバーが利用できません"
 }

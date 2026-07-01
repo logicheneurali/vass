@@ -1,0 +1,4 @@
+# gcal_today.vass — Google Calendar: today's events
+$events = gcal_today()
+$parsed = ai("Elenca in modo chiaro e conciso questi eventi del calendario di oggi: " + $events, true)
+say($parsed)

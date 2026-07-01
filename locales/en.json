@@ -71,7 +71,8 @@
     "notifications": "Notifications",
     "mark_read": "Mark all as read",
     "close": "Close",
-    "no_notifications": "No notifications"
+    "no_notifications": "No notifications",
+    "mcp_down_tooltip": "MCP server unavailable"
   },
   "settings_editor": {
     "title": "VASS Settings",
@@ -891,5 +892,6 @@
       "name": "Idle time",
       "desc": "System idle time"
     }
-  }
+  },
+  "mcp_down_tooltip": "MCP server unavailable"
 }

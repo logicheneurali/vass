@@ -1,0 +1,6 @@
+# gcal_search.vass — Google Calendar: search events
+$query = param1
+ifempty($query, exit(), "")
+$results = gcal_search($query)
+$parsed = ai("Elenca questi risultati della ricerca su Google Calendar: " + $results, true)
+say($parsed)

@@ -577,6 +577,7 @@ class VassApp:
             threading.Thread(target=self.event_reminder.run, daemon=True).start()
         threading.Thread(target=self._health_check_loop, daemon=True).start()
         threading.Thread(target=self._health_check_once, daemon=True).start()
+        threading.Thread(target=self._mcp_health_check_loop, daemon=True).start()
         if self.settings.get("calendar_sync_enabled", "false").lower() == "true":
             threading.Thread(target=self._sync_calendar_loop, daemon=True).start()
         if self.settings.get("gmail_enabled", "false").lower() == "true":
@@ -804,7 +805,31 @@ class VassApp:
                 ok = False
                 if self.debug_enabled:
                     print(f"[Health] {health_url} unreachable: {e}")
-            self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
+        self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
+
+    def _mcp_health_check_loop(self):
+        """Periodically check if the MCP server is reachable."""
+        import urllib.request, socket
+        time.sleep(10)  # give MCP server time to start
+        while self.running:
+            time.sleep(60)
+            if not self.running:
+                break
+            ok = False
+            try:
+                url = self.mcp_server_url.rstrip("/")
+                host = url.replace("http://", "").replace("https://", "").split(":")[0]
+                port = int(url.split(":")[-1]) if ":" in url.split("//")[-1] else 80
+                s = socket.socket()
+                s.settimeout(3)
+                s.connect((host, port))
+                s.close()
+                ok = True
+            except Exception:
+                ok = False
+            if self.debug_enabled and not ok:
+                print(f"[MCP-Health] MCP server unreachable at {self.mcp_server_url}")
+            self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_mcp_status(ok))
 
     def _health_check_once(self):
         time.sleep(3)  # brief delay for server startup
