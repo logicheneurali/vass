@@ -67,26 +67,22 @@ from state_manager import StateManager
 
 import builtins as _builtins
 _original_print = _builtins.print
+_debug_log_file = None
+
 def _ts_print(*args, **kwargs):
+    ts = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]"
+    msg = ts + " " + " ".join(str(a) for a in args)
+    if _debug_log_file is not None:
+        try:
+            _debug_log_file.write(msg + "\n")
+            _debug_log_file.flush()
+        except Exception:
+            pass
     try:
-        _original_print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]", *args, **kwargs)
+        _original_print(msg, **kwargs)
     except Exception:
         pass
 _builtins.print = _ts_print
-
-
-class _TeeOutput:
-    def __init__(self, *files):
-        self._files = files
-    def write(self, text):
-        for f in self._files:
-            f.write(text)
-            f.flush()
-    def flush(self):
-        for f in self._files:
-            f.flush()
-    def isatty(self):
-        return False
 
 
 def _rotate_debug_log(path, max_bytes):
@@ -552,12 +548,8 @@ class VassApp:
             os.makedirs("log", exist_ok=True)
             max_bytes = int(self.settings.get("debug_log_max_kb", 1024)) * 1024
             _rotate_debug_log("log/debug.log", max_bytes)
-            self._debug_file = open("log/debug.log", "a", encoding="utf-8")
-            self._debug_original_stdout = sys.stdout
-            files = [self._debug_file]
-            if sys.stdout and sys.stdout.isatty():
-                files.insert(0, sys.__stdout__)
-            sys.stdout = _TeeOutput(*files)
+            global _debug_log_file
+            _debug_log_file = open("log/debug.log", "a", encoding="utf-8")
 
         print(f"VASS v{__version__} - Voice assistant software")
         self.voice_recognition.load_models()
@@ -971,9 +963,10 @@ class VassApp:
             _faulthandler_file.close()
         except Exception:
             pass
-        if hasattr(self, '_debug_file') and self._debug_file:
-            sys.stdout = getattr(self, '_debug_original_stdout', sys.__stdout__)
-            self._debug_file.close()
+        global _debug_log_file
+        if _debug_log_file is not None:
+            _debug_log_file.close()
+            _debug_log_file = None
         import subprocess as _sp
         if self.llama_process:
             kill_process(self.llama_process)
