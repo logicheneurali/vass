@@ -87,21 +87,40 @@ class VolumeTopBar(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         w = self.width()
         h = self.height()
-        painter.fillRect(0, 0, w, h, QColor("#333333"))
-        center = w // 2
+        inset = h
+
+        # Volume fill trapezoid, centered
         fw = int(w * self._ratio)
         if fw > 0:
-            half = fw // 2
-            painter.fillRect(center - half, 0, fw, h, QColor("#2ecc71"))
+            left = (w - fw) // 2
+            right = left + fw
+            vol = QPainterPath()
+            vol.moveTo(left, 0)
+            vol.lineTo(right, 0)
+            vol.lineTo(right - inset, h)
+            vol.lineTo(left + inset, h)
+            vol.closeSubpath()
+            painter.fillPath(vol, QColor("#2ecc71"))
+
+        # Noise floor indicator (debug only)
         nf_ratio = getattr(self, '_noise_floor_ratio', 0)
         if nf_ratio > 0.001 and getattr(self, '_debug_enabled', False):
             nf_w = int(w * nf_ratio)
             if nf_w > 0:
+                left = (w - nf_w) // 2
+                right = left + nf_w
                 bar_h = max(2, h // 3)
                 bar_y = (h - bar_h) // 2
-                painter.fillRect(center - nf_w // 2, bar_y, nf_w, bar_h, QColor("#e67e22"))
+                nf = QPainterPath()
+                nf.moveTo(left, bar_y)
+                nf.lineTo(right, bar_y)
+                nf.lineTo(right - inset, bar_y + bar_h)
+                nf.lineTo(left + inset, bar_y + bar_h)
+                nf.closeSubpath()
+                painter.fillPath(nf, QColor("#e67e22"))
 
 
 class MemoryBar(QWidget):
@@ -159,14 +178,22 @@ class MemoryBar(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         w = self.width()
         h = self.height()
-        painter.fillRect(0, 0, w, h, QColor("#333333"))
+        inset = h
+
         fw = int(w * self._ratio)
         if fw > 0:
-            center = w // 2
-            half = fw // 2
-            painter.fillRect(center - half, 0, fw, h, self._color)
+            left = (w - fw) // 2
+            right = left + fw
+            bar = QPainterPath()
+            bar.moveTo(left + inset, 0)
+            bar.lineTo(right - inset, 0)
+            bar.lineTo(right, h)
+            bar.lineTo(left, h)
+            bar.closeSubpath()
+            painter.fillPath(bar, self._color)
 
 
 class _ChatLineEdit(QLineEdit):
@@ -776,6 +803,7 @@ class VassGUI(QMainWindow):
         self._t = lambda path: t(path, self.language)
         self._health_ok = True
         self._mcp_down = False
+        self._current_bg = "#101010"
         self._current_state = "listening"
         self._current_detail = ""
         self._current_mode = "chat"
@@ -841,7 +869,7 @@ class VassGUI(QMainWindow):
 
         self._bell_btn = QPushButton("0")
         self._bell_btn.setStyleSheet(
-            "QPushButton { background-color: #101010; color: #3f3f3f; "
+            "QPushButton { background-color: transparent; color: #3f3f3f; "
             "border: none; font-size: 10px; padding: 2px 4px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -864,7 +892,7 @@ class VassGUI(QMainWindow):
 
         self.replay_btn = QPushButton("\u21bb")
         self.replay_btn.setStyleSheet(
-            "QPushButton { background-color: #101010; color: #ffffff; "
+            "QPushButton { background-color: transparent; color: #ffffff; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -880,7 +908,7 @@ class VassGUI(QMainWindow):
         # Right-side widget — automatically balanced by _rebalance_spacers()
         self._menu_btn = QPushButton("\u2630")
         self._menu_btn.setStyleSheet(
-            "QPushButton { background-color: #101010; color: #888888; "
+            "QPushButton { background-color: transparent; color: #888888; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
         )
@@ -908,9 +936,9 @@ class VassGUI(QMainWindow):
         self._mode_chat = self._menu.addAction(self._t("gui.mode.chat"))
         self._mode_chat.setCheckable(True)
         self._mode_chat.triggered.connect(lambda: self._switch_mode("chat"))
-        self._mode_trascrizione = self._menu.addAction(self._t("gui.mode.trascrizione"))
-        self._mode_trascrizione.setCheckable(True)
-        self._mode_trascrizione.triggered.connect(lambda: self._switch_mode("trascrizione"))
+        self._mode_transcription = self._menu.addAction(self._t("gui.mode.trascrizione"))
+        self._mode_transcription.setCheckable(True)
+        self._mode_transcription.triggered.connect(lambda: self._switch_mode("transcription"))
         self._menu.addSeparator()
         self._mem_full = self._menu.addAction(self._t("gui.memory_mode.full"))
         self._mem_full.setCheckable(True)
@@ -936,10 +964,10 @@ class VassGUI(QMainWindow):
 
         self._chat_btn = QPushButton("\u2726")
         self._chat_btn.setStyleSheet(
-            "QPushButton { background-color: #101010; color: #888888; "
+            "QPushButton { background-color: transparent; color: #888888; "
             "border: none; font-size: 10px; padding: 2px; }"
             "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
-            "QPushButton:checked { background-color: #101010; color: #0d7377; }"
+            "QPushButton:checked { background-color: transparent; color: #0d7377; }"
         )
         self._chat_btn.setFixedWidth(16)
         self._chat_btn.setCheckable(True)
@@ -953,7 +981,7 @@ class VassGUI(QMainWindow):
         self._chat_input.setMaxLength(128000)
         self._chat_input.setPlaceholderText(self._t("gui.chat_placeholder"))
         self._chat_input.setStyleSheet(
-            "QLineEdit { background-color: #101010; color: #e0e0e0; "
+            "QLineEdit { background-color: #16213e; color: #e0e0e0; "
             "border: none; "
             "padding: 2px 6px; font-size: 12px; "
             "margin-right: 10px; }"
@@ -1085,7 +1113,7 @@ class VassGUI(QMainWindow):
 
     def _switch_mode(self, mode):
         self._mode_chat.setChecked(mode == "chat")
-        self._mode_trascrizione.setChecked(mode == "trascrizione")
+        self._mode_transcription.setChecked(mode == "transcription")
         if self.app:
             self.app.set_mode(mode)
 
@@ -1214,7 +1242,7 @@ class VassGUI(QMainWindow):
         font.setBold(True)
         self.btn.setFont(font)
         self.btn.setStyleSheet(
-            "QPushButton { background-color: #101010; color: #2ecc71; "
+            "QPushButton { background-color: transparent; color: #2ecc71; "
             "border: none; border-radius: 0; text-align: center; }"
             "QPushButton:hover { color: #27ae60; }"
         )
@@ -1282,6 +1310,17 @@ class VassGUI(QMainWindow):
             return
         color = self.COLORS.get(state, "#1e1e1e")
         self._compact_dot.set_state(color, state)
+        if not self._compact_mode:
+            bg = QColor(color)
+            bg.setHsv(bg.hue(), bg.saturation(), max(1, int(bg.value() * 0.25)))
+            self._current_bg = bg.name()
+            self.setStyleSheet(
+                "QMainWindow { background-color: %s; }" % self._current_bg
+            )
+            border = "border: 2px solid #ffcc00;" if getattr(self, '_debug_border', False) else ""
+            self._central.setStyleSheet(
+                f"#_centralWidget {{ background-color: {self._current_bg}; {border} }}"
+            )
         text_color = "#888888" if not self._health_ok else color
         text = self._t(f"gui.states.{state}")
         if detail:
@@ -1290,7 +1329,7 @@ class VassGUI(QMainWindow):
         self._btn_full_text = prefix + text
         self._elide_button_text()
         self.btn.setStyleSheet(
-            "QPushButton { background-color: #101010; color: %s; "
+            "QPushButton { background-color: transparent; color: %s; "
             "border: none; border-radius: 0; text-align: center; }"
             "QPushButton:hover { color: %s; }"
             % (text_color, QColor(text_color).lighter(130).name())
@@ -1375,10 +1414,14 @@ class VassGUI(QMainWindow):
 
     def set_mode_display(self, mode):
         self._mode_chat.setChecked(mode == "chat")
-        self._mode_trascrizione.setChecked(mode == "trascrizione")
+        self._mode_transcription.setChecked(mode == "transcription")
         if self._current_mode != mode:
             self._current_mode = mode
             self._on_set_state(self._current_state, self._current_detail)
+        if mode == "transcription":
+            self.tool_indicator_signal.emit("__transcription__", "")
+        else:
+            self.hide_tool_indicator()
 
     def set_replay_visible(self, visible):
         self.replay_btn.setVisible(visible)
@@ -1428,14 +1471,14 @@ class VassGUI(QMainWindow):
             color = self.app.notification_manager.color_for(max_priority)
             self._bell_btn.setText(str(count))
             self._bell_btn.setStyleSheet(
-                f"QPushButton {{ background-color: #101010; color: {color}; "
+                f"QPushButton {{ background-color: transparent; color: {color}; "
                 "border: none; font-size: 10px; padding: 2px 4px; font-weight: bold; }"
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )
         else:
             self._bell_btn.setText("0")
             self._bell_btn.setStyleSheet(
-                "QPushButton { background-color: #101010; color: #3f3f3f; "
+                "QPushButton { background-color: transparent; color: #3f3f3f; "
                 "border: none; font-size: 10px; padding: 2px 4px; }"
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )
@@ -1535,15 +1578,17 @@ class VassGUI(QMainWindow):
 
     def _refresh_debug_border(self):
         debug = getattr(self.app, 'debug_enabled', False)
+        self._debug_border = debug
+        bg = getattr(self, '_current_bg', '#101010')
         if hasattr(self, 'volume_top_bar'):
             self.volume_top_bar._debug_enabled = debug
             self.volume_top_bar.update()
         if self._compact_mode:
             self._central.setStyleSheet("#_centralWidget { background-color: transparent; border: none; }")
         elif debug:
-            self._central.setStyleSheet("#_centralWidget { background-color: #101010; border: 2px solid #ffcc00; }")
+            self._central.setStyleSheet(f"#_centralWidget {{ background-color: {bg}; border: 2px solid #ffcc00; }}")
         else:
-            self._central.setStyleSheet("#_centralWidget { background-color: #101010; }")
+            self._central.setStyleSheet(f"#_centralWidget {{ background-color: {bg}; }}")
 
     def update_memory_bar(self):
         self.update_memory_signal.emit()
@@ -2208,6 +2253,14 @@ class VassGUI(QMainWindow):
                 self._tool_indicator.setStyleSheet(
                     "QLabel { background-color: #e74c3c; border-radius: 0px; border: none; }")
                 self._tool_indicator.setToolTip(self._t("gui.mcp_down_tooltip"))
+                self._tool_indicator.setVisible(True)
+            return
+        if color == "__transcription__":
+            self._compact_dot.set_tool("#95a5a6")
+            if not self._compact_mode:
+                self._tool_indicator.setStyleSheet(
+                    "QLabel { background-color: #95a5a6; border-radius: 0px; border: none; }")
+                self._tool_indicator.setToolTip(self._t("gui.transcription_mode"))
                 self._tool_indicator.setVisible(True)
             return
         if not color:

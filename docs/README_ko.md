@@ -37,6 +37,10 @@ VASS는 Windows, macOS, Linux용 음성 비서입니다. 음성 명령에 응답
 
 ## 설치
 
+### 그래픽 설치 (권장)
+
+[Releases 페이지](https://github.com/logicheneurali/vass/releases)에서 설치 프로그램을 다운로드하여 실행하세요. 마법사가 Python, VASS, llama.cpp, AI 모델을 자동으로 설치합니다.
+
 ### 안내 설치
 
 프로젝트를 다운로드 또는 클론한 후 폴더에 들어가서 스크립트를 실행합니다:

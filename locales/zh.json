@@ -61,9 +61,9 @@
       "lines": "行"
     },
     "memory_mode": {
-      "full": "内存：完整",
-      "limited": "内存：受限",
-      "none": "内存：无"
+      "full": "记忆: 完整",
+      "limited": "记忆: 受限",
+      "none": "记忆: 无"
     },
     "button_tooltip": "点击 = 更改状态 | 滚轮 = 音量 | 中键 = 退出 | 拖动 = 移动",
     "chat_tooltip": "输入消息给AI",
@@ -74,7 +74,8 @@
     "no_notifications": "无通知",
     "mcp_down_tooltip": "MCP服务器不可用",
     "links": "链接",
-    "mark_all_read": "全部标记已读"
+    "mark_all_read": "全部标记已读",
+    "transcription_mode": "转录模式 — 工具不可用"
   },
   "settings_editor": {
     "title": "VASS 设置",

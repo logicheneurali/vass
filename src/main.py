@@ -277,7 +277,7 @@ class VassApp:
         self.rss_reader = None
         self.context_notes = []
         self.conversation_history = []
-        self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "trascrizione"
+        self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "transcription"
         self.memory_mode = "full"
         self._input_mode = False
         from memory_manager import MemoryManager
@@ -449,6 +449,8 @@ class VassApp:
                         self.ai_model = self.settings["ai_model"]
                         if not self.ai_model.strip() and self.settings.get("llama_server_path", "").strip():
                             threading.Thread(target=self._auto_select_model, daemon=True).start()
+                        elif self.ai_model.strip():
+                            threading.Thread(target=self._verify_model_and_autoselect, daemon=True).start()
                         old_url = self.ai_url
                         self.ai_url = self.settings["ai_url"]
                         self.system_message = self.settings.get("system_message", "")
@@ -952,6 +954,8 @@ class VassApp:
                 self._detect_context_length()
             if not self.ai_model.strip():
                 self._auto_select_model()
+            elif self.llama_server_path.strip():
+                self._verify_model_and_autoselect()
         else:
             print("[llama.cpp] Server did not become ready within 60s")
 
@@ -1180,7 +1184,7 @@ class VassApp:
         if not transcribed_text:
             print("Empty transcription.")
             return
-        if self.mode == "trascrizione":
+        if self.mode == "transcription":
             print(f"[Mode] Transcription mode: pasting text")
             paste_text(transcribed_text)
             self.set_state("listening")
@@ -1827,6 +1831,35 @@ class VassApp:
                 self.tts.enqueue(msg)
         except Exception as e:
             print(f"[Settings] Auto model selection failed: {e}")
+
+    def _verify_model_and_autoselect(self):
+        """Check if the configured AI model exists on the server; auto-select if not."""
+        current = self.ai_model.strip()
+        if not current:
+            return
+        try:
+            import urllib.request, json
+            url = f"{self.ai_url.rstrip('/')}/models"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                models = json.loads(resp.read()).get("data", [])
+            model_ids = {m["id"] for m in models}
+            if current in model_ids:
+                return
+            print(f"[Settings] Model '{current}' not found on server, auto-selecting...")
+            old = current
+            self.ai_model = ""
+            self.settings["ai_model"] = ""
+            self._auto_select_model()
+            if self.ai_model.strip() and self.ai_model != old:
+                from i18n import t
+                msg = t("notifications.model_not_found_retry", self.language)
+                msg = msg.replace("{old}", old).replace("{new}", self.ai_model)
+                if hasattr(self, 'notification_manager'):
+                    self.notification_manager.add(msg, priority=8, data={"type": "auth"})
+                if hasattr(self, 'tts') and self.tts and self.state not in ("recording", "playing"):
+                    self.tts.enqueue(msg)
+        except Exception as e:
+            print(f"[Settings] Model verification failed: {e}")
 
     def _classify_message(self, user_message):
         print(f"[Classify] Starting classification for: {user_message[:80]}...")

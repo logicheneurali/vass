@@ -43,6 +43,10 @@ VASS è un assistente vocale per Windows, macOS e Linux. Risponde a comandi voca
 
 ## Installazione
 
+### Installazione grafica (consigliata)
+
+Scarica l''installer dalla [pagina Releases](https://github.com/logicheneurali/vass/releases) ed eseguilo. Il wizard installera Python, VASS, llama.cpp e un modello AI automaticamente — nessuna configurazione manuale necessaria.
+
 ### Installazione guidata
 
 Scarica o clona il progetto, poi entra nella cartella ed esegui lo script:

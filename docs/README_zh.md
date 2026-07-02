@@ -36,6 +36,10 @@ VASS 是一个适用于 Windows、macOS 和 Linux 的语音助手。它响应语
 
 ## 安装
 
+### 图形化安装（推荐）
+
+从[Releases页面](https://github.com/logicheneurali/vass/releases)下载安装程序并运行。向导将自动安装Python、VASS、llama.cpp和AI模型。
+
 ### 引导安装
 
 下载或克隆项目，然后进入文件夹并运行脚本：

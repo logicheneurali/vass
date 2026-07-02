@@ -61,9 +61,9 @@
       "lines": "lines"
     },
     "memory_mode": {
-      "full": "Memory: Full",
-      "limited": "Memory: Limited",
-      "none": "Memory: None"
+      "full": "Memoria: Completa",
+      "limited": "Memoria: Limitada",
+      "none": "Memoria: Nenhuma"
     },
     "button_tooltip": "Clique = Mudar estado | Roda = Volume | Botão central = Sair | Arrastar = Mover",
     "chat_tooltip": "Escreva uma mensagem para a IA",
@@ -74,7 +74,8 @@
     "no_notifications": "Sem notificacoes",
     "mcp_down_tooltip": "Servidor MCP indisponivel",
     "links": "Links",
-    "mark_all_read": "Marcar tudo lido"
+    "mark_all_read": "Marcar tudo lido",
+    "transcription_mode": "Modo transcrição — ferramentas não disponíveis"
   },
   "settings_editor": {
     "title": "Configurações VASS",

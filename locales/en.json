@@ -74,7 +74,8 @@
     "no_notifications": "No notifications",
     "mcp_down_tooltip": "MCP server unavailable",
     "links": "Links",
-    "mark_all_read": "Mark All Read"
+    "mark_all_read": "Mark All Read",
+    "transcription_mode": "Transcription mode — tools not available"
   },
   "settings_editor": {
     "title": "VASS Settings",

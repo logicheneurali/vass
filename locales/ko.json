@@ -74,7 +74,8 @@
     "no_notifications": "알림 없음",
     "mcp_down_tooltip": "MCP 서버를 사용할 수 없음",
     "links": "링크",
-    "mark_all_read": "모두 읽음으로 표시"
+    "mark_all_read": "모두 읽음으로 표시",
+    "transcription_mode": "필사 모드 — 도구를 사용할 수 없음"
   },
   "settings_editor": {
     "title": "VASS 설정",

@@ -37,6 +37,10 @@ VASSはWindows、macOS、Linux向けの音声アシスタントです。音声�
 
 ## インストール
 
+### グラフィカルインストール（推奨）
+
+[Releasesページ](https://github.com/logicheneurali/vass/releases)からインストーラをダウンロードして実行してください。ウィザードがPython、VASS、llama.cpp、AIモデルを自動的にインストールします。
+
 ### ガイド付きインストール
 
 プロジェクトをダウンロードまたはクローンし、フォルダに入ってスクリプトを実行します:
