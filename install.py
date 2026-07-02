@@ -907,6 +907,8 @@ def _verify_imports(dest: Path):
         ("GPUtil", "GPUtil"),
         ("feedparser", "feedparser"),
         ("PySide6", "PySide6"),
+        ("loguru", "loguru"),
+        ("transformers", "transformers"),
     ]
     py = venv_python(dest)
     results = []
@@ -999,6 +1001,7 @@ def copy_tree_filtered(src: Path, dst: Path):
     exclude_patterns = {
         "bk", ".opencode", ".git", "__pycache__",
         ".venv", "venv", "env", ".mypy_cache", ".pytest_cache",
+        "installer",
     }
     exclude_suffixes = {".log", ".onnx", ".zip", ".pyc"}
     exclude_paths = {
@@ -1170,8 +1173,8 @@ def main():
         print(f"  {C_YELLOW}{_('req_not_found')}{C_RESET}")
     else:
         print(f"  {_('pip_preinstall')}")
-        pre_cmds = [("numpy", "numpy"), ("kokoro", "kokoro==0.7.16")]
-        extra_opts = [[], ["--no-deps", "--ignore-requires-python"]]
+        pre_cmds = [("numpy", "numpy"), ("kokoro", "kokoro==0.7.16"), ("loguru", "loguru"), ("transformers", "transformers")]
+        extra_opts = [[], ["--no-deps", "--ignore-requires-python"], [], []]
         rcs = []
         for (pkg_label, pkg_spec), opts in zip(pre_cmds, extra_opts):
             rc, _out, _err = run(venv_pip(dest) + ["install", pkg_spec] + opts, cwd=str(dest), show=False)
@@ -1212,8 +1215,10 @@ def main():
         "x": "100", "y": "100", "width": "200", "height": "32",
         "font_family": "Segoe UI" if sys.platform == "win32" else "sans-serif",
         "font_size": "10",
+        "paused_opacity": "0.5",
+        "compact_mode": "false",
     }
-    cfg["wakeword"] = {"wakeword": wake, "sensitivity": "0.005"}
+    cfg["wakeword"] = {"wakeword": wake, "sensitivity": "0.010"}
     cfg["commands"] = {"similarity": "0.6", "word_learning_enabled": "false"}
     _KOKORO_DEFAULT_VOICE = {
         "it": "if_sara", "en": "af_heart", "de": "af_heart", "fr": "ff_siwis",
@@ -1225,11 +1230,13 @@ def main():
         "model": model,
         "api_key": api_key,
         "system_message": system_msg,
-        "mcp_server_url": "http://localhost:9988",
+        "mcp_server_url": "http://127.0.0.1:9988",
         "memory_tokens": "4000",
         "blacklist": "Amara.org,QTTS",
         "allow_ai_scripts": "false",
+        "auto_context_selection": "false",
         "context_length": "0",
+        "compress_context": "false",
         "overflow_strategy": "truncate",
     }
     cfg["llamacpp"] = {
@@ -1250,6 +1257,23 @@ def main():
     cfg["events"] = {"reminder_advance": "3600"}
     cfg["noise"] = {"noise_pause": "false", "noise_pause_threshold": "0.002", "noise_pause_duration": "30"}
     cfg["audio"] = {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "app_volume": "0.50"}
+    cfg["google"] = {
+        "calendar_enabled": "false",
+        "calendar_sync_enabled": "false",
+        "calendar_sync_minutes": "30",
+        "calendar_sync_days": "7",
+        "gmail_enabled": "false",
+        "gmail_sync_minutes": "5",
+        "gmail_max_results": "10",
+        "google_home_enabled": "false",
+        "google_home_model_id": "",
+        "google_home_device_id": "",
+        "calendar_setup": "start",
+    }
+    cfg["debug"] = {
+        "debug_enabled": "false",
+        "debug_log_max_kb": "1024",
+    }
 
     settings_path = dest / "config" / "settings.ini"
     with open(settings_path, "w", encoding="utf-8") as f:
@@ -1262,8 +1286,9 @@ def main():
     if sys.platform == "win32":
         launcher = dest / "vass.bat"
         with open(launcher, "w", encoding="utf-8") as f:
+            f.write(f'@echo off\r\n')
             f.write(f'cd /d "{dest}"\r\n')
-            f.write(f'".venv\\Scripts\\pythonw.exe" "vass.py"\r\n')
+            f.write(f'start "" ".venv\\Scripts\\pythonw.exe" "vass.py"\r\n')
     elif sys.platform == "darwin":
         launcher = dest / "vass.command"
         with open(launcher, "w", encoding="utf-8") as f:
