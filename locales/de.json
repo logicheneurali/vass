@@ -72,7 +72,9 @@
     "mark_read": "Alle als gelesen markieren",
     "close": "Schließen",
     "no_notifications": "Keine Benachrichtigungen",
-    "mcp_down_tooltip": "MCP-Server nicht verfuegbar"
+    "mcp_down_tooltip": "MCP-Server nicht verfuegbar",
+    "links": "Links",
+    "mark_all_read": "Alle als gelesen markieren"
   },
   "settings_editor": {
     "title": "VASS Einstellungen",
@@ -429,7 +431,9 @@
     "ago_months": "vor {n} M",
     "on_date": "vom {date}",
     "read_online": "Online lesen",
-    "auto_model_selected": "KI-Modell fehlt. Automatisch ausgewaehlt: {model}"
+    "auto_model_selected": "KI-Modell fehlt. Automatisch ausgewaehlt: {model}",
+    "model_not_found_retry": "Modell {old} nicht gefunden. {new} ausgewaehlt. Versuche es erneut.",
+    "no_valid_model": "Kein gueltiges KI-Modell auf llama.cpp gefunden. Starten Sie den Server mit einem Modell."
   },
   "setup_google": {
     "title": "Google-Anmeldeinformationen",

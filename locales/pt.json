@@ -68,11 +68,13 @@
     "button_tooltip": "Clique = Mudar estado | Roda = Volume | Botão central = Sair | Arrastar = Mover",
     "chat_tooltip": "Escreva uma mensagem para a IA",
     "chat_placeholder": "Escreva aqui e pressione Enter...",
-    "notifications": "Notificações",
+    "notifications": "Notificacoes",
     "mark_read": "Marcar tudo como lido",
     "close": "Fechar",
-    "no_notifications": "Sem notificações",
-    "mcp_down_tooltip": "Servidor MCP indisponivel"
+    "no_notifications": "Sem notificacoes",
+    "mcp_down_tooltip": "Servidor MCP indisponivel",
+    "links": "Links",
+    "mark_all_read": "Marcar tudo lido"
   },
   "settings_editor": {
     "title": "Configurações VASS",
@@ -429,7 +431,9 @@
     "ago_months": "há {n} meses",
     "on_date": "de {date}",
     "read_online": "Ler online",
-    "auto_model_selected": "Modelo IA ausente. Auto-selecionado: {model}"
+    "auto_model_selected": "Modelo IA ausente. Auto-selecionado: {model}",
+    "model_not_found_retry": "Modelo {old} nao encontrado. Selecionado {new}. Tente novamente.",
+    "no_valid_model": "Nenhum modelo IA valido encontrado no llama.cpp. Inicie o servidor com um modelo."
   },
   "setup_google": {
     "title": "Configuração credenciais Google",

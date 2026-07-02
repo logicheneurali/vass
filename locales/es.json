@@ -72,7 +72,9 @@
     "mark_read": "Marcar todo como leído",
     "close": "Cerrar",
     "no_notifications": "Sin notificaciones",
-    "mcp_down_tooltip": "Servidor MCP no disponible"
+    "mcp_down_tooltip": "Servidor MCP no disponible",
+    "links": "Enlaces",
+    "mark_all_read": "Marcar todo leido"
   },
   "settings_editor": {
     "title": "Ajustes de VASS",
@@ -429,7 +431,9 @@
     "ago_months": "hace {n} meses",
     "on_date": "del {date}",
     "read_online": "Leer en línea",
-    "auto_model_selected": "Modelo IA faltante. Auto-seleccionado: {model}"
+    "auto_model_selected": "Modelo IA faltante. Auto-seleccionado: {model}",
+    "model_not_found_retry": "Modelo {old} no encontrado. Seleccionado {new}. Intentalo de nuevo.",
+    "no_valid_model": "No se encontro un modelo IA valido en llama.cpp. Inicie el servidor con un modelo."
   },
   "setup_google": {
     "title": "Configuración credenciales Google",

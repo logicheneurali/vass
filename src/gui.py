@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
     QLineEdit, QSpacerItem, QSizePolicy, QWidgetAction, QDialog,
-    QTextBrowser,
+    QTextBrowser, QFrame, QScrollArea,
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineProfile
@@ -487,6 +487,261 @@ class _CompactWidget(QWidget):
         self._drag_start = None
 
 
+class InfoPanel(QFrame):
+    """Floating panel: tab Links (AI response URLs) + tab Notifications."""
+
+    _TYPE_ICONS = {
+        "rss": "\U0001f4f0", "timer": "\u23f0", "event": "\U0001f4c5",
+        "schedule": "\U0001f4cb", "mail": "\U0001f4e7", "auth": "\U0001f511",
+        "script": "\U0001f4dc",
+    }
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._t = lambda k: k
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        self.setStyleSheet(
+            "InfoPanel { background-color: #0d1117; border: 1px solid #0f3460; "
+            "border-radius: 6px; }"
+        )
+        self._links = []
+        self._tab = "links"
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self.hide)
+        self._parent_window = None
+
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(4, 4, 4, 4)
+        self._layout.setSpacing(2)
+
+        tab_row = QHBoxLayout()
+        self._tab_links = QPushButton(self._t("gui.links"))
+        self._tab_notif = QPushButton(self._t("gui.notifications"))
+        for btn, tab in [(self._tab_links, "links"), (self._tab_notif, "notifications")]:
+            btn.setCheckable(True)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.clicked.connect(lambda checked=None, t=tab: self._switch_tab(t))
+        self._tab_links.setStyleSheet(self._tab_style(True))
+        self._tab_notif.setStyleSheet(self._tab_style(False))
+        tab_row.addWidget(self._tab_links)
+        tab_row.addWidget(self._tab_notif)
+        tab_row.addStretch()
+        close_btn = QPushButton("x")
+        close_btn.setFixedSize(20, 20)
+        close_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #888; border: none; "
+            "font-size: 14px; font-weight: bold; }"
+            "QPushButton:hover { color: #e94560; }"
+        )
+        close_btn.clicked.connect(self.hide)
+        tab_row.addWidget(close_btn)
+        self._layout.addLayout(tab_row)
+
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        self._scroll_widget = QWidget()
+        self._scroll_widget.setStyleSheet("background: transparent;")
+        self._scroll_layout = QVBoxLayout(self._scroll_widget)
+        self._scroll_layout.setContentsMargins(2, 2, 2, 2)
+        self._scroll_layout.setSpacing(2)
+        self._scroll.setWidget(self._scroll_widget)
+        self._layout.addWidget(self._scroll)
+
+        self._mark_btn = QPushButton(self._t("gui.mark_all_read"))
+        self._mark_btn.setStyleSheet(
+            "QPushButton { background-color: #16213e; color: #888; border: none; "
+            "border-radius: 3px; padding: 3px 8px; font-size: 11px; }"
+            "QPushButton:hover { background-color: #1a5276; color: #e0e0e0; }"
+        )
+        self._mark_btn.clicked.connect(self._mark_all_read)
+        self._mark_btn.hide()
+        self._layout.addWidget(self._mark_btn)
+
+        self.setMouseTracking(True)
+        self.hide()
+
+    def _tab_style(self, active):
+        c = "#e94560" if active else "#888"
+        return (
+            f"QPushButton {{ background: transparent; color: {c}; border: none; "
+            f"font-size: 12px; font-weight: bold; padding: 2px 8px; }}"
+            f"QPushButton:hover {{ color: #e94560; }}"
+        )
+
+    def _switch_tab(self, tab):
+        self._tab = tab
+        self._tab_links.setStyleSheet(self._tab_style(tab == "links"))
+        self._tab_notif.setStyleSheet(self._tab_style(tab == "notifications"))
+        self._mark_btn.setVisible(tab == "notifications")
+        if tab == "links":
+            self._build_links()
+        else:
+            self._build_notifications()
+
+    def _reset_timer(self):
+        if self.isVisible():
+            self._timer.start(30000)
+
+    def mouseMoveEvent(self, event):
+        self._reset_timer()
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event):
+        self._reset_timer()
+        super().mousePressEvent(event)
+
+    def show_panel(self, tab, parent_window):
+        self._parent_window = parent_window
+        self._tab_links.setText(self._t("gui.links"))
+        self._tab_notif.setText(self._t("gui.notifications"))
+        self._mark_btn.setText(self._t("gui.mark_all_read"))
+        self._switch_tab(tab)
+        self._position(parent_window)
+        self.show()
+        self._timer.start(30000)
+
+    def set_links(self, urls, parent_window):
+        self._links = urls
+        if not urls:
+            return
+        self._parent_window = parent_window
+        self._switch_tab("links")
+        self._position(parent_window)
+        self.show()
+        self._timer.start(30000)
+
+    def refresh_notifications(self, parent_window):
+        if self.isVisible() and self._tab == "notifications":
+            self._build_notifications()
+
+    def _clear_scroll(self):
+        while self._scroll_layout.count():
+            item = self._scroll_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def _build_links(self):
+        self._clear_scroll()
+        if not self._links:
+            return
+        from urllib.parse import urlparse
+        for url in self._links:
+            domain = urlparse(url).netloc or url
+            display = url if len(url) <= 50 else url[:47] + "..."
+            btn = QPushButton(f"{domain}\n{display}")
+            btn.setStyleSheet(
+                "QPushButton { background-color: #16213e; color: #aaaaaa; "
+                "border: none; border-radius: 3px; padding: 4px 8px; "
+                "text-align: left; font-size: 11px; }"
+                "QPushButton:hover { background-color: #1a5276; color: #e0e0e0; }"
+            )
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setToolTip(url)
+            btn.clicked.connect(lambda checked, u=url: (self._reset_timer(), self._open_url(u)))
+            self._scroll_layout.addWidget(btn)
+        self._scroll_layout.addStretch()
+
+    def _build_notifications(self):
+        self._clear_scroll()
+        if not hasattr(self, '_nm') or self._nm is None:
+            return
+        notifs = self._nm.list_all()
+        if not notifs:
+            lbl = QLabel(self._t("gui.no_notifications"))
+            lbl.setStyleSheet("color: #888; font-size: 11px; padding: 8px;")
+            self._scroll_layout.addWidget(lbl)
+            return
+        for n in notifs:
+            icon = self._TYPE_ICONS.get(n.get("data", {}).get("type", ""), "\U0001f514")
+            dot = "\u25cf" if not n.get("read", False) else "\u25cb"
+            prio = n.get("priority", 1)
+            if prio >= 8:
+                dot_color = "#e74c3c"
+            elif prio >= 4:
+                dot_color = "#f1c40f"
+            else:
+                dot_color = "#3498db"
+            txt = n.get("text", "")[:200]
+            # Top row: dot, icon, timestamp
+            top_row = QHBoxLayout()
+            dot_lbl = QLabel(dot)
+            dot_lbl.setStyleSheet(f"color: {dot_color}; font-size: 10px; background: transparent;")
+            dot_lbl.setFixedWidth(14)
+            top_row.addWidget(dot_lbl)
+            icon_lbl = QLabel(icon)
+            icon_lbl.setStyleSheet("font-size: 12px; background: transparent;")
+            icon_lbl.setFixedWidth(22)
+            top_row.addWidget(icon_lbl)
+            ts_lbl = QLabel(n.get("ts", ""))
+            ts_lbl.setStyleSheet("color: #666; font-size: 10px; background: transparent;")
+            top_row.addWidget(ts_lbl)
+            top_row.addStretch()
+            # Bottom row: full-width text
+            text_lbl = QLabel(txt)
+            text_lbl.setStyleSheet("color: #aaa; font-size: 11px; background: transparent;")
+            text_lbl.setWordWrap(True)
+            # Container
+            container = QWidget()
+            container.setStyleSheet("background: transparent;")
+            container_layout = QVBoxLayout(container)
+            container_layout.setContentsMargins(4, 3, 4, 3)
+            container_layout.setSpacing(1)
+            container_layout.addLayout(top_row)
+            container_layout.addWidget(text_lbl)
+            container.setCursor(Qt.CursorShape.PointingHandCursor)
+            container.setToolTip(n.get("text", ""))
+            nid = n["id"]
+            link = n.get("data", {}).get("link", "")
+            container.mousePressEvent = lambda e, nid=nid, link=link: self._on_notif_click(nid, link)
+            self._scroll_layout.addWidget(container)
+        self._scroll_layout.addStretch()
+
+    def _on_notif_click(self, nid, link):
+        self._reset_timer()
+        if hasattr(self, '_nm') and self._nm is not None:
+            for n in self._nm.list_all():
+                if n["id"] == nid:
+                    n["read"] = True
+                    break
+            if hasattr(self, '_update_bell_cb'):
+                self._update_bell_cb()
+            self._build_notifications()
+        if link:
+            import webbrowser
+            webbrowser.open(link)
+
+    def _mark_all_read(self):
+        if hasattr(self, '_nm') and self._nm is not None:
+            self._nm.mark_all_read()
+            self._build_notifications()
+
+    def _position(self, parent):
+        geo = parent.geometry()
+        screen = QApplication.primaryScreen().availableGeometry()
+        mid_y = screen.top() + screen.height() // 2
+        above = geo.center().y() < mid_y
+
+        panel_w = geo.width()
+        count = len(self._links) if self._tab == "links" else 5
+        panel_h = min(count * 38 + 52, 280)
+        px = geo.left()
+        py = geo.bottom() + 8 if above else geo.top() - panel_h - 8
+        py = max(screen.top(), min(py, screen.bottom() - panel_h))
+        self.setGeometry(px, py, panel_w, panel_h)
+
+    def _open_url(self, url):
+        import webbrowser
+        webbrowser.open(url)
+
+
 class VassGUI(QMainWindow):
     set_state_signal = Signal(str, str)
     update_memory_signal = Signal()
@@ -592,7 +847,7 @@ class VassGUI(QMainWindow):
         )
         self._bell_btn.setFixedWidth(35)
         self._bell_btn.setToolTip(self._t("gui.notifications"))
-        self._bell_btn.clicked.connect(self._show_bell_dialog)
+        self._bell_btn.clicked.connect(lambda: self._show_info_panel("notifications"))
         row.addWidget(self._bell_btn)
         self._left_side.append(self._bell_btn)
 
@@ -779,6 +1034,8 @@ class VassGUI(QMainWindow):
         self._auto_fade_enabled = True
         import threading as _th
         _th.Thread(target=self._auto_fade_loop, daemon=True).start()
+
+        self._link_panel = InfoPanel()
 
         self.show()
         self._clamp_to_screen()
@@ -1040,6 +1297,7 @@ class VassGUI(QMainWindow):
         )
         if state == "listening":
             self.hide_tool_indicator()
+            self.hide_link_panel()
         if not self._compact_mode:
             self.stacked.setCurrentWidget(self.btn)
             if state == "listening":
@@ -1181,24 +1439,6 @@ class VassGUI(QMainWindow):
                 "border: none; font-size: 10px; padding: 2px 4px; }"
                 "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
             )
-
-    def _show_bell_dialog(self):
-        try:
-            if not self.app:
-                return
-            notifs = self.app.notification_manager.list_all()
-            from notification_dialog import NotificationDialog
-            dlg = NotificationDialog(
-                self, notifs, self.app.notification_manager,
-                rss_reader=self.app.rss_reader,
-                t_fn=self._t,
-            )
-            dlg.exec()
-            self._update_bell()
-        except Exception as e:
-            print(f"[Bell] Error: {e}")
-            import traceback
-            traceback.print_exc()
 
     def _replay_btn_press(self, event):
         if event.button() == Qt.MouseButton.RightButton:
@@ -1928,6 +2168,31 @@ class VassGUI(QMainWindow):
 
     def hide_tool_indicator(self):
         self.tool_indicator_signal.emit("", "")
+
+    def show_links(self, text):
+        import re
+        urls = re.findall(r'https?://[^\s<>"]+', text or "")
+        clean = []
+        for u in urls:
+            u = u.rstrip(".,;:!?)]}'\"")
+            if u not in clean:
+                clean.append(u)
+        if clean:
+            self.schedule_signal.emit(lambda urls=clean: self._link_panel.set_links(urls, self))
+
+    def hide_link_panel(self):
+        self.schedule_signal.emit(lambda: self._link_panel.hide())
+
+    def _show_info_panel(self, tab="notifications"):
+        if not self.app:
+            return
+        nm = self.app.notification_manager
+        self.schedule_signal.emit(lambda: (
+            setattr(self._link_panel, '_t', self._t),
+            setattr(self._link_panel, '_nm', nm),
+            setattr(self._link_panel, '_update_bell_cb', self._update_bell),
+            self._link_panel.show_panel(tab, self)
+        ))
 
     def set_mcp_status(self, ok):
         if ok:

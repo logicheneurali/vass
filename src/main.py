@@ -1510,6 +1510,10 @@ class VassApp:
 
             ai_response = strip_think_tags(ai_response)
 
+            if ai_response and self.gui:
+                self.gui.schedule_signal.emit(
+                    lambda t=ai_response: self.gui.show_links(t))
+
             print(f"AI Agent Response: {ai_response}")
 
             if self.debug_enabled:
@@ -1584,6 +1588,22 @@ class VassApp:
                     err_msg = str(err_body)
             else:
                 err_msg = str(e)
+            if "model not found" in err_msg.lower():
+                old_model = self.ai_model
+                self.ai_model = ""
+                self.settings["ai_model"] = ""
+                self._auto_select_model()
+                if self.ai_model.strip() and self.ai_model != old_model:
+                    msg = t("notifications.model_not_found_retry", self.language)
+                    msg = msg.replace("{old}", old_model).replace("{new}", self.ai_model)
+                    if hasattr(self, 'notification_manager'):
+                        self.notification_manager.add(msg, priority=8, data={"type": "auth"})
+                    err_msg = msg
+                elif not self.ai_model.strip():
+                    msg = t("notifications.no_valid_model", self.language)
+                    if hasattr(self, 'notification_manager'):
+                        self.notification_manager.add(msg, priority=9, data={"type": "auth"})
+                    err_msg = msg
             print(f"Error calling AI Agent: {e}")
             self.set_state("listening")
             self.tts.enqueue(err_msg)

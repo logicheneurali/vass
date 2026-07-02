@@ -72,7 +72,9 @@
     "mark_read": "すべて既読にする",
     "close": "閉じる",
     "no_notifications": "通知なし",
-    "mcp_down_tooltip": "MCPサーバーが利用できません"
+    "mcp_down_tooltip": "MCPサーバーが利用できません",
+    "links": "リンク",
+    "mark_all_read": "全て既読にする"
   },
   "settings_editor": {
     "title": "VASS 設定",
@@ -430,7 +432,9 @@
     "ago_months": "{n}ヶ月前",
     "on_date": "{date}",
     "read_online": "オンラインで読む",
-    "auto_model_selected": "AIモデルが見つかりません。自動選択されました: {model}"
+    "auto_model_selected": "AIモデルが見つかりません。自動選択されました: {model}",
+    "model_not_found_retry": "モデル{old}が見つかりません。{new}を選択しました。再試行してください。",
+    "no_valid_model": "llama.cppに有効なAIモデルが見つかりません。サーバーをモデル付きで起動してください。"
   },
   "setup_google": {
     "title": "Google認証情報の設定",

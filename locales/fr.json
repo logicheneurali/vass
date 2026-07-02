@@ -72,7 +72,9 @@
     "mark_read": "Marquer tout comme lu",
     "close": "Fermer",
     "no_notifications": "Aucune notification",
-    "mcp_down_tooltip": "Serveur MCP indisponible"
+    "mcp_down_tooltip": "Serveur MCP indisponible",
+    "links": "Liens",
+    "mark_all_read": "Tout marquer comme lu"
   },
   "settings_editor": {
     "title": "Paramètres VASS",
@@ -429,7 +431,9 @@
     "ago_months": "il y a {n} mois",
     "on_date": "du {date}",
     "read_online": "Lire en ligne",
-    "auto_model_selected": "Modele IA manquant. Auto-selectionne: {model}"
+    "auto_model_selected": "Modele IA manquant. Auto-selectionne: {model}",
+    "model_not_found_retry": "Modele {old} introuvable. {new} selectionne. Reessayez.",
+    "no_valid_model": "Aucun modele IA valide trouve sur llama.cpp. Demarrez le serveur avec un modele."
   },
   "setup_google": {
     "title": "Configuration identifiants Google",

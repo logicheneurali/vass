@@ -72,7 +72,9 @@
     "mark_read": "全部标记为已读",
     "close": "关闭",
     "no_notifications": "无通知",
-    "mcp_down_tooltip": "MCP服务器不可用"
+    "mcp_down_tooltip": "MCP服务器不可用",
+    "links": "链接",
+    "mark_all_read": "全部标记已读"
   },
   "settings_editor": {
     "title": "VASS 设置",
@@ -430,7 +432,9 @@
     "ago_months": "{n}个月前",
     "on_date": "{date}",
     "read_online": "在线阅读",
-    "auto_model_selected": "AI模型缺失。已自动选择: {model}"
+    "auto_model_selected": "AI模型缺失。已自动选择: {model}",
+    "model_not_found_retry": "模型{old}未找到。已选择{new}。请重试。",
+    "no_valid_model": "llama.cpp上未找到有效的AI模型。请用模型启动服务器。"
   },
   "setup_google": {
     "title": "Google 凭据设置",

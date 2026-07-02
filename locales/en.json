@@ -72,7 +72,9 @@
     "mark_read": "Mark all as read",
     "close": "Close",
     "no_notifications": "No notifications",
-    "mcp_down_tooltip": "MCP server unavailable"
+    "mcp_down_tooltip": "MCP server unavailable",
+    "links": "Links",
+    "mark_all_read": "Mark All Read"
   },
   "settings_editor": {
     "title": "VASS Settings",
@@ -429,7 +431,9 @@
     "ago_months": "{n}mo ago",
     "on_date": "on {date}",
     "read_online": "Read online",
-    "auto_model_selected": "AI model missing. Auto-selected {model}"
+    "auto_model_selected": "AI model missing. Auto-selected {model}",
+    "model_not_found_retry": "Model {old} not found. Selected {new}. Try again.",
+    "no_valid_model": "No valid AI model found on llama.cpp. Start the server with a model."
   },
   "setup_google": {
     "title": "Google credentials setup",

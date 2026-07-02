@@ -72,7 +72,9 @@
     "mark_read": "모두 읽음으로 표시",
     "close": "닫기",
     "no_notifications": "알림 없음",
-    "mcp_down_tooltip": "MCP 서버를 사용할 수 없음"
+    "mcp_down_tooltip": "MCP 서버를 사용할 수 없음",
+    "links": "링크",
+    "mark_all_read": "모두 읽음으로 표시"
   },
   "settings_editor": {
     "title": "VASS 설정",
@@ -430,7 +432,9 @@
     "ago_months": "{n}개월 전",
     "on_date": "{date}",
     "read_online": "온라인에서 읽기",
-    "auto_model_selected": "AI 모델이 없습니다. 자동 선택됨: {model}"
+    "auto_model_selected": "AI 모델이 없습니다. 자동 선택됨: {model}",
+    "model_not_found_retry": "{old} 모델을 찾을 수 없습니다. {new} 선택됨. 다시 시도하세요.",
+    "no_valid_model": "llama.cpp에서 유효한 AI 모델을 찾을 수 없습니다. 모델과 함께 서버를 시작하세요."
   },
   "setup_google": {
     "title": "Google 자격 증명 설정",

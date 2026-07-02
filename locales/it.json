@@ -72,7 +72,9 @@
     "mark_read": "Segna tutte come lette",
     "close": "Chiudi",
     "no_notifications": "Nessuna notifica",
-    "mcp_down_tooltip": "Server MCP non disponibile"
+    "mcp_down_tooltip": "Server MCP non disponibile",
+    "links": "Link",
+    "mark_all_read": "Segna tutto come letto"
   },
   "scripts_editor": {
     "title": "VASScript Editor",
@@ -429,7 +431,9 @@
     "ago_months": "{n} mesi fa",
     "on_date": "del {date}",
     "read_online": "Leggi online",
-    "auto_model_selected": "Modello AI mancante. Auto-selezionato {model}"
+    "auto_model_selected": "Modello AI mancante. Auto-selezionato {model}",
+    "model_not_found_retry": "Modello {old} non trovato. Selezionato {new}. Riprova.",
+    "no_valid_model": "Nessun modello AI valido trovato su llama.cpp. Avvia il server con un modello."
   },
   "setup_google": {
     "title": "Setup credenziali Google",

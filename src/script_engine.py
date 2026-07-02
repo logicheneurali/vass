@@ -602,7 +602,6 @@ class VASScript:
                 return "ok"
             x = int(_tof(evaluated[0])) if evaluated else 0
             y = int(_tof(evaluated[1])) if len(evaluated) > 1 else 0
-            import sys
             if sys.platform == "win32":
                 import ctypes
                 dc = ctypes.windll.user32.GetDC(0)
