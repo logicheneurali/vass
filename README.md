@@ -1,5 +1,6 @@
 # VASS — Voice assistant software
-[![Basic interface video](https://img.youtube.com/vi/uvQ3drVZAi0/0.jpg)](https://www.youtube.com/watch?v=uvQ3drVZAi0)
+
+<a href="https://www.youtube.com/watch?v=uvQ3drVZAi0" target="_blank"><img src="https://img.youtube.com/vi/uvQ3drVZAi0/0.jpg"></a>
 
 
 <sub>[Italiano](docs/README_it.md) · [English](docs/README_en.md) · [Deutsch](docs/README_de.md) · [Français](docs/README_fr.md) · [Español](docs/README_es.md) · [Português](docs/README_pt.md) · [日本語](docs/README_ja.md) · [한국어](docs/README_ko.md) · [中文](docs/README_zh.md)</sub>
