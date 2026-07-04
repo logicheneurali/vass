@@ -481,9 +481,14 @@ let cx = 0, cy = 0;
 function resetLayout() {{
     cx = canvas.width / 2;
     cy = canvas.height / 2;
-    for (const b of bubbles) {{
-        b.x = cx + (Math.random() - 0.5) * 200;
-        b.y = cy + (Math.random() - 0.5) * 200;
+    const sorted = [...bubbles].sort((a, b) => a.tag.localeCompare(b.tag));
+    const baseR = Math.max(60, Math.min(cx, cy) * 0.25);
+    for (let i = 0; i < sorted.length; i++) {{
+        const angle = (i / sorted.length) * Math.PI * 2;
+        sorted[i].x = cx + Math.cos(angle) * baseR;
+        sorted[i].y = cy + Math.sin(angle) * baseR;
+        sorted[i].vx = 0;
+        sorted[i].vy = 0;
     }}
 }}
 resetLayout();
@@ -733,9 +738,14 @@ for (const b of bubbles) b.color = getColor(b.avgRel);
 
 function layout() {{
     const cx = canvas.width / 2, cy = canvas.height / 2;
-    for (const b of bubbles) {{
-        b.x = cx + (Math.random() - 0.5) * 180;
-        b.y = cy + (Math.random() - 0.5) * 180;
+    const sorted = [...bubbles].sort((a, b) => a.tag.localeCompare(b.tag));
+    const baseR = Math.max(50, Math.min(cx, cy) * 0.2);
+    for (let i = 0; i < sorted.length; i++) {{
+        const angle = (i / sorted.length) * Math.PI * 2;
+        sorted[i].x = cx + Math.cos(angle) * baseR;
+        sorted[i].y = cy + Math.sin(angle) * baseR;
+        sorted[i].vx = 0;
+        sorted[i].vy = 0;
     }}
     for (let i = 0; i < 60; i++) {{
         for (const b of bubbles) {{
