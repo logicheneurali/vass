@@ -1332,7 +1332,7 @@ class VassApp:
 
         self._ai_lock.acquire()
         try:
-            now = time.strftime("%Y-%m-%d %H:%M:%S")
+            now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
             base = self.system_message or ""
             date_prefix = t("ai.date_prefix", self.language)
             system_content = f"{base}\n\n{date_prefix}{now}".strip()

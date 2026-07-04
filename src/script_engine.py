@@ -365,7 +365,7 @@ class VASScript:
 
             system_content = ""
             if use_memory:
-                now = time.strftime("%Y-%m-%d %H:%M:%S")
+                now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
                 base = self.app.system_message or ""
                 from i18n import t as _ti18n
                 date_prefix = _ti18n("ai.date_prefix", self.app.language)
