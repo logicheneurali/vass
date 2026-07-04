@@ -1338,20 +1338,15 @@ class VassApp:
             system_content = f"{base}\n\n{date_prefix}{now}".strip()
             vas_ref = _load_vascript_reference()
 
-            mcp, all_tools = init_mcp(self.mcp_server_url, timeout=10)
+            mcp, tools = init_mcp(self.mcp_server_url, timeout=10)
 
-            if not self.allow_ai_scripts and all_tools:
-                tools = [t for t in all_tools if t["function"]["name"] not in ("interact", "script")]
+            if not self.allow_ai_scripts and tools:
+                tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
 
             import tool_groups
             groups = tool_groups.select_tool_groups(prompt, self.language)
             tools = tool_groups.resolve_tool_names(groups, tools,
                                                     getattr(self, 'debug_enabled', False))
-            # Always include current_time so AI can verify dates
-            if not any(t["function"]["name"] == "current_time" for t in tools):
-                ct = next((t for t in all_tools if t["function"]["name"] == "current_time"), None)
-                if ct and ct not in tools:
-                    tools.append(ct)
 
             if self.auto_context_selection and not tool_groups.needs_memory(prompt, self.language):
                 memory_content = ""

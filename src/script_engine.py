@@ -348,27 +348,20 @@ class VASScript:
                 if getattr(self.app, 'debug_enabled', False):
                     print(f"[DEBUG] needs_memory({prompt[:80]}) = {use_memory}  (lang={self.app.language})")
 
-            mcp, all_tools2 = init_mcp(self.app.mcp_server_url, timeout=120, log_prefix="[VASScript]")
+            mcp, tools = init_mcp(self.app.mcp_server_url, timeout=120, log_prefix="[VASScript]")
 
-            if all_tools2 and not self.app.allow_ai_scripts:
-                tools = [t for t in all_tools2 if t["function"]["name"] not in ("interact", "script")]
-            else:
-                tools = list(all_tools2) if all_tools2 else []
+            if tools and not self.app.allow_ai_scripts:
+                tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
 
             import tool_groups
             explicit_groups = [str(evaluated[i]).strip() for i in range(2, len(evaluated)) if evaluated[i]]
             if explicit_groups:
                 tools = tool_groups.resolve_tool_names(explicit_groups, tools,
-                                                         getattr(self.app, 'debug_enabled', False))
+                                                        getattr(self.app, 'debug_enabled', False))
             elif tools:
                 groups = tool_groups.select_tool_groups(prompt, self.app.language)
                 tools = tool_groups.resolve_tool_names(groups, tools,
-                                                         getattr(self.app, 'debug_enabled', False))
-            # Always include current_time so AI can verify dates
-            if not any(t["function"]["name"] == "current_time" for t in tools):
-                ct = next((t for t in all_tools2 if t["function"]["name"] == "current_time"), None) if all_tools2 else None
-                if ct:
-                    tools.append(ct)
+                                                        getattr(self.app, 'debug_enabled', False))
 
             system_content = ""
             if use_memory:
