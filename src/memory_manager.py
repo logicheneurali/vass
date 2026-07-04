@@ -406,8 +406,6 @@ class MemoryManager:
 
             from prompts import MEMORY_SUMMARIZATION_PROMPT
             prompt = MEMORY_SUMMARIZATION_PROMPT
-            if old_summary:
-                prompt += "\n\nExisting summary to build upon:\n" + old_summary
             prompt += f"\n\nTagged conversations ({len(history_content)} entries):\n" + json.dumps(history_content, ensure_ascii=False)
             if external_content:
                 prompt += f"\n\nTagged external data ({len(external_content)} entries):\n" + json.dumps(external_content, ensure_ascii=False)

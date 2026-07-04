@@ -342,21 +342,7 @@ class MemoryEditor(QMainWindow):
         if msg.clickedButton() == yes_btn:
             del entries[entry_idx]
             self._mark_dirty()
-            self._invalidate_summary()
             self._rebuild_content()
-
-    def _invalidate_summary(self):
-        """Clear summary_id from memory.json so next compression rebuilds from scratch."""
-        mem_path = os.path.join(ALLOWED, "memory.json")
-        if os.path.exists(mem_path):
-            try:
-                with open(mem_path, encoding="utf-8") as f:
-                    mem_data = json.load(f)
-                mem_data["summary_id"] = ""
-                with open(mem_path, "w", encoding="utf-8") as f:
-                    json.dump(mem_data, f, ensure_ascii=False, indent=2)
-            except Exception:
-                pass
 
     def _mark_dirty(self):
         self._dirty = True
