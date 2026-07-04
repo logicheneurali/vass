@@ -407,7 +407,11 @@
       "workingdir_system": "Le dossier '{dir}' est un dossier système. Non autorisé."
     },
     "saved": "Fichier enregistré.",
-    "form_label": "Détails"
+    "form_label": "Détails",
+    "delete_confirm_title": "Confirmer la suppression",
+    "delete_confirm_text": "Supprimer '{item}' ? Cette action est irréversible.",
+    "dialog_yes": "Oui, supprimer",
+    "dialog_no": "Annuler"
   },
   "timer": {
     "expired": "Minuteur {duration} expiré.",

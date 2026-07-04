@@ -407,7 +407,11 @@
       "workingdir_system": "Verzeichnis '{dir}' ist ein Systemverzeichnis. Nicht erlaubt."
     },
     "saved": "Datei gespeichert.",
-    "form_label": "Details"
+    "form_label": "Details",
+    "delete_confirm_title": "Löschung bestätigen",
+    "delete_confirm_text": "'{item}' löschen? Dies kann nicht rückgängig gemacht werden.",
+    "dialog_yes": "Ja, löschen",
+    "dialog_no": "Abbrechen"
   },
   "timer": {
     "expired": "Timer {duration} abgelaufen.",

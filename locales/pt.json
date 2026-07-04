@@ -407,7 +407,11 @@
       "workingdir_system": "A pasta '{dir}' é do sistema. Não permitida."
     },
     "saved": "Arquivo salvo.",
-    "form_label": "Detalhes"
+    "form_label": "Detalhes",
+    "delete_confirm_title": "Confirmar exclusão",
+    "delete_confirm_text": "Excluir '{item}'? Esta ação não pode ser desfeita.",
+    "dialog_yes": "Sim, excluir",
+    "dialog_no": "Cancelar"
   },
   "timer": {
     "expired": "Temporizador {duration} expirado.",

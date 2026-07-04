@@ -407,7 +407,11 @@
       "workingdir_system": "La cartella '{dir}' è di sistema. Non consentita."
     },
     "saved": "File salvato.",
-    "form_label": "Dettagli"
+    "form_label": "Dettagli",
+    "delete_confirm_title": "Conferma eliminazione",
+    "delete_confirm_text": "Eliminare '{item}'? L'operazione non può essere annullata.",
+    "dialog_yes": "Sì, elimina",
+    "dialog_no": "Annulla"
   },
   "timer": {
     "expired": "Timer {duration} scaduto.",

@@ -407,7 +407,11 @@
       "workingdir_system": "Directory '{dir}' is a system directory. Not allowed."
     },
     "saved": "File saved.",
-    "form_label": "Details"
+    "form_label": "Details",
+    "delete_confirm_title": "Confirm deletion",
+    "delete_confirm_text": "Delete '{item}'? This cannot be undone.",
+    "dialog_yes": "Yes, delete",
+    "dialog_no": "Cancel"
   },
   "timer": {
     "expired": "Timer {duration} expired.",

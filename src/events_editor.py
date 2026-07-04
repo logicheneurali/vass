@@ -465,6 +465,19 @@ class EventsEditor(QMainWindow):
     def _delete_item(self):
         if self._selected_idx is None:
             return
+        item = self._current_items[self._selected_idx]
+        desc = item.get("description", "?")
+        date = item.get("date", "")
+        detail = f"{desc} ({date})" if date else desc
+        msg = QMessageBox(self)
+        msg.setWindowTitle(self._t("events_editor.delete_confirm_title"))
+        msg.setText(self._t("events_editor.delete_confirm_text").replace("{item}", detail))
+        msg.setIcon(QMessageBox.Icon.Question)
+        yes_btn = msg.addButton(self._t("events_editor.dialog_yes"), QMessageBox.ButtonRole.YesRole)
+        no_btn = msg.addButton(self._t("events_editor.dialog_no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+        if msg.clickedButton() != yes_btn:
+            return
         del self._current_items[self._selected_idx]
         self._selected_idx = None
         self._refresh_list()

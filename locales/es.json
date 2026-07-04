@@ -407,7 +407,11 @@
       "workingdir_system": "El directorio '{dir}' es del sistema. No permitido."
     },
     "saved": "Archivo guardado.",
-    "form_label": "Detalles"
+    "form_label": "Detalles",
+    "delete_confirm_title": "Confirmar eliminación",
+    "delete_confirm_text": "¿Eliminar '{item}'? Esta acción no se puede deshacer.",
+    "dialog_yes": "Sí, eliminar",
+    "dialog_no": "Cancelar"
   },
   "timer": {
     "expired": "Temporizador {duration} expirado.",

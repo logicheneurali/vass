@@ -408,7 +408,11 @@
       "workingdir_system": "ディレクトリ '{dir}' はシステムディレクトリです。許可されていません。"
     },
     "saved": "ファイルを保存しました。",
-    "form_label": "詳細"
+    "form_label": "詳細",
+    "delete_confirm_title": "削除の確認",
+    "delete_confirm_text": "'{item}'を削除しますか？この操作は元に戻せません。",
+    "dialog_yes": "はい、削除",
+    "dialog_no": "キャンセル"
   },
   "timer": {
     "expired": "タイマー {duration} が終了しました。",

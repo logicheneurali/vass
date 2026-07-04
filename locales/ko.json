@@ -408,7 +408,11 @@
       "workingdir_system": "'{dir}' 폴더는 시스템 폴더입니다. 허용되지 않습니다."
     },
     "saved": "파일이 저장되었습니다.",
-    "form_label": "세부사항"
+    "form_label": "세부 정보",
+    "delete_confirm_title": "삭제 확인",
+    "delete_confirm_text": "'{item}'을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    "dialog_yes": "예, 삭제",
+    "dialog_no": "취소"
   },
   "timer": {
     "expired": "타이머 {duration}이(가) 종료되었습니다.",

@@ -408,7 +408,11 @@
       "workingdir_system": "目录 '{dir}' 是系统目录。不允许。"
     },
     "saved": "文件已保存。",
-    "form_label": "详情"
+    "form_label": "详细信息",
+    "delete_confirm_title": "确认删除",
+    "delete_confirm_text": "删除 '{item}'？此操作无法撤销。",
+    "dialog_yes": "是，删除",
+    "dialog_no": "取消"
   },
   "timer": {
     "expired": "计时器 {duration} 已到期。",
