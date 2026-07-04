@@ -144,6 +144,7 @@ class MemoryEditor(QMainWindow):
         self._tag_weights = _load_tag_weights()
         self._build_ui()
         self._reload_data()
+        self._rebuild_content()
         self._show_map = False
 
     def _tl(self, key):
@@ -806,6 +807,7 @@ canvas.addEventListener("click", (e) => {{
 }});
 
 resize();
+layout();
 draw();
 window.addEventListener("resize", () => {{ resize(); layout(); draw(); }});
 </script></body></html>'''
