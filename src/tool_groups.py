@@ -26,7 +26,7 @@ TOOL_GROUPS = {
     "compute":   ["calculate"],
     "lang":      ["langcheck"],
     "idle":      ["getidle"],
-    "tags":      ["savetags"],
+    "tags":      ["savetags", "search_tags"],
 }
 
 # ── Keyword loading ───────────────────────────────────────────────

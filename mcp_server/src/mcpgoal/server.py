@@ -16,7 +16,7 @@ from mcpgoal.tools.vasscript import clipboard_set as _clip_set
 from mcpgoal.tools.playwright import search_web as _search_web
 from mcpgoal.tools.playwright import fetch_page as _fetch_page
 from mcpgoal.tools.langcheck import check_language as _check_language
-from mcpgoal.tools.memory_tags import save_tags as _save_tags
+from mcpgoal.tools.memory_tags import save_tags as _save_tags, search_tags as _search_tags
 from mcpgoal.tools.calendar import calendar_list as _calendar_list
 from mcpgoal.tools.calendar import calendar_add as _calendar_add
 from mcpgoal.tools.calendar import calendar_search as _calendar_search
@@ -345,6 +345,11 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def savetags(tags: str, entry_id: str = "") -> str:
         """Classify the user's message with comma-separated memory tags. Always call after responding. Example: savetags('food,health,pets')"""
         return await _tool("savetags", f"tags={tags[:80]}", _save_tags(tags, config.allowed_root, entry_id), config)
+
+    @mcp.tool()
+    async def search_tags(tags: str) -> str:
+        """Search tagged memory entries by comma-separated tags. Returns top 10 most relevant. Example: search_tags('health,food')"""
+        return await _tool("search_tags", f"tags={tags[:80]}", _search_tags(tags, config.allowed_root), config)
 
     if _GET_IDLE is not None:
         import json as _json
