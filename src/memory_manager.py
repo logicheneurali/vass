@@ -199,7 +199,9 @@ class MemoryManager:
                                      "mcp_server", "src")
             if _mcp_src not in _sys.path:
                 _sys.path.insert(0, _mcp_src)
-            from mcpgoal.tools.memory_tags import TAG_WEIGHTS
+            from mcpgoal.tools.memory_tags import _refresh_weights, TAG_WEIGHTS
+            root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            _refresh_weights(os.path.join(root, "Allowed_root"))
             from utils import init_mcp
             mcp, _ = init_mcp(self._app.mcp_server_url, timeout=30)
             if not mcp:
@@ -496,7 +498,9 @@ class MemoryManager:
                 _os.path.abspath(__file__))), "mcp_server", "src")
             if _mcp_src not in _sys.path:
                 _sys.path.insert(0, _mcp_src)
-            from mcpgoal.tools.memory_tags import TAG_WEIGHTS
+            from mcpgoal.tools.memory_tags import _refresh_weights, TAG_WEIGHTS
+            root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+            _refresh_weights(_os.path.join(root, "Allowed_root"))
             from utils import init_mcp
             mcp, _ = init_mcp(self._app.mcp_server_url, timeout=30)
             if not mcp:
