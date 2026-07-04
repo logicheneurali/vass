@@ -383,6 +383,229 @@ class MemoryEditor(QMainWindow):
         self._data = _load_tags()
         self._tag_weights = _load_tag_weights()
 
+    def _show_bubble_map(self):
+        entries = self._data.get("entries", [])
+        if not entries:
+            self.browser.setHtml(
+                f'<div style="color:#888; text-align:center; padding:40px;">'
+                f'{self._escape_html(self._tl("memory_editor.no_entries"))}</div>',
+                QUrl("vass://local/"))
+            return
+
+        import json as _json
+        entries_json = _json.dumps(entries, ensure_ascii=False)
+        weights_json = _json.dumps(self._tag_weights, ensure_ascii=False)
+
+        html = f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+::-webkit-scrollbar {{ width: 0; }}
+body {{ margin: 0; overflow: hidden;
+       background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d1117 80%);
+       font-family: "Segoe UI", sans-serif; }}
+canvas {{ display: block; }}
+#tooltip {{ position: fixed; pointer-events: none; display: none;
+           background: #252525; color: #e0e0e0; padding: 8px 12px;
+           border: 1px solid #3a3a3a; border-radius: 4px; font-size: 12px;
+           z-index: 10; white-space: nowrap; }}
+</style></head><body>
+<canvas id="map"></canvas>
+<div id="tooltip"></div>
+<script>
+const entries = {entries_json};
+const weights = {weights_json};
+const canvas = document.getElementById("map");
+const ctx = canvas.getContext("2d");
+const tooltip = document.getElementById("tooltip");
+
+const tagData = {{}};
+for (const e of entries) {{
+    const tags = e.tags || [];
+    for (const t of tags) {{
+        if (!tagData[t]) tagData[t] = {{ tag: t, count: 0, totalRel: 0, entries: [], sources: new Set() }};
+        tagData[t].count++;
+        tagData[t].totalRel += e.relevance || 0;
+        tagData[t].entries.push(e);
+        if (e.source) tagData[t].sources.add(e.source);
+    }}
+}}
+const bubbles = Object.values(tagData);
+const totalEntries = entries.length;
+const uniqueTags = bubbles.length;
+
+const K = 18;
+let maxRel = 0;
+for (const b of bubbles) {{
+    b.r = Math.min(120, Math.max(20, Math.sqrt(b.count) * K));
+    b.avgRel = b.count > 0 ? b.totalRel / b.count : 0;
+    if (b.avgRel > maxRel) maxRel = b.avgRel;
+}}
+
+function getColor(avgRel) {{
+    const ratio = maxRel > 0 ? Math.min(1, avgRel / maxRel) : 0;
+    const stops = [
+        {{pos:0.0, r:0x34, g:0x98, b:0xdb}},
+        {{pos:0.25, r:0x1a, g:0xbc, b:0x9c}},
+        {{pos:0.5, r:0xf1, g:0xc4, b:0x0f}},
+        {{pos:0.75, r:0xe6, g:0x7e, b:0x22}},
+        {{pos:1.0, r:0xe7, g:0x4c, b:0x3c}}
+    ];
+    let lo = stops[0], hi = stops[stops.length-1];
+    for (let i = 0; i < stops.length-1; i++) {{
+        if (ratio >= stops[i].pos && ratio <= stops[i+1].pos) {{
+            lo = stops[i]; hi = stops[i+1]; break;
+        }}
+    }}
+    const t = (ratio - lo.pos) / (hi.pos - lo.pos || 0.001);
+    const r = Math.round(lo.r + (hi.r - lo.r) * t);
+    const g = Math.round(lo.g + (hi.g - lo.g) * t);
+    const b = Math.round(lo.b + (hi.b - lo.b) * t);
+    return `rgb(${{r}},${{g}},${{b}})`;
+}}
+
+for (const b of bubbles) b.color = getColor(b.avgRel);
+
+function resize() {{
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}}
+resize();
+window.addEventListener("resize", () => {{ resize(); step(30); draw(); }});
+
+let cx = 0, cy = 0;
+function resetLayout() {{
+    cx = canvas.width / 2;
+    cy = canvas.height / 2;
+    for (const b of bubbles) {{
+        b.x = cx + (Math.random() - 0.5) * 200;
+        b.y = cy + (Math.random() - 0.5) * 200;
+    }}
+}}
+resetLayout();
+
+function step(iterations) {{
+    const centerGravity = 0.01;
+    const repulsion = 800;
+    const damping = 0.9;
+    for (let i = 0; i < iterations; i++) {{
+        for (const b of bubbles) {{
+            let fx = 0, fy = 0;
+            fy += (cy - b.y) * centerGravity * (b.r / 50);
+            fx += (cx - b.x) * centerGravity * (b.r / 50);
+            for (const o of bubbles) {{
+                if (o === b) continue;
+                let dx = b.x - o.x;
+                let dy = b.y - o.y;
+                let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                let minDist = b.r + o.r + 8;
+                if (dist < minDist) {{
+                    let force = repulsion / (dist * dist);
+                    fx += (dx / dist) * force * damping;
+                    fy += (dy / dist) * force * damping;
+                }}
+            }}
+            if (!b.vx) b.vx = 0;
+            if (!b.vy) b.vy = 0;
+            b.vx = (b.vx + fx) * damping;
+            b.vy = (b.vy + fy) * damping;
+            b.x += b.vx;
+            b.y += b.vy;
+            b.x = Math.max(b.r, Math.min(canvas.width - b.r, b.x));
+            b.y = Math.max(b.r + 40, Math.min(canvas.height - b.r - 10, b.y));
+        }}
+    }}
+}}
+step(80);
+
+let hovered = null;
+let activeTag = null;
+
+function draw() {{
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#e0e0e0";
+    ctx.font = "14px 'Segoe UI', sans-serif";
+    ctx.fillText("Memoria Permanente — " + totalEntries + " voci, " + uniqueTags + " tag", 16, 30);
+    ctx.fillStyle = "#888";
+    ctx.font = "11px 'Segoe UI', sans-serif";
+    ctx.fillText("Clicca un tag per vedere i dettagli", 16, 48);
+
+    const sorted = [...bubbles].sort((a,b) => b.r - a.r);
+    for (const b of sorted) {{
+        const isHover = (b === hovered);
+        const isActive = (b === activeTag);
+        const r = isHover ? b.r * 1.15 : b.r;
+
+        const grad = ctx.createRadialGradient(b.x, b.y, r*0.7, b.x, b.y, r);
+        grad.addColorStop(0, b.color);
+        grad.addColorStop(1, "rgba(0,0,0,0.3)");
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        if (isActive) {{
+            ctx.strokeStyle = "#e94560";
+            ctx.lineWidth = 3;
+        }} else if (isHover) {{
+            ctx.strokeStyle = "rgba(255,255,255,0.6)";
+            ctx.lineWidth = 2;
+        }} else {{
+            ctx.strokeStyle = "rgba(255,255,255,0.15)";
+            ctx.lineWidth = 1;
+        }}
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        if (r > 30) {{
+            ctx.font = Math.min(16, Math.max(9, r*0.35)) + "px 'Segoe UI', sans-serif";
+            ctx.fillText(b.tag, b.x, b.y - 4);
+            ctx.font = Math.max(8, r*0.22) + "px 'Segoe UI', sans-serif";
+            ctx.fillStyle = "rgba(255,255,255,0.7)";
+            ctx.fillText(b.count, b.x, b.y + 12);
+        }} else {{
+            ctx.font = "10px 'Segoe UI', sans-serif";
+            ctx.fillText(b.count, b.x, b.y);
+        }}
+        ctx.textAlign = "start";
+        ctx.textBaseline = "alphabetic";
+    }}
+}}
+
+canvas.addEventListener("mousemove", (e) => {{
+    const mx = e.clientX, my = e.clientY;
+    let found = null;
+    for (const b of bubbles) {{
+        const dx = mx - b.x, dy = my - b.y;
+        if (Math.sqrt(dx*dx + dy*dy) < b.r) {{ found = b; break; }}
+    }}
+    if (found !== hovered) {{
+        hovered = found;
+        draw();
+        if (found) {{
+            tooltip.style.display = "block";
+            tooltip.style.left = (mx + 15) + "px";
+            tooltip.style.top = (my - 10) + "px";
+            const icons = {{chat:"\\ud83d\\udcac", email:"\\ud83d\\udce7", calendar:"\\ud83d\\udcc5", events:"\\ud83d\\udccc", timers:"\\u23f0"}};
+            const sources = [...found.sources].map(s => icons[s] || s).join(" ");
+            tooltip.innerHTML = "<b>" + found.tag + "</b><br>" + found.count + " voci &middot; ril. media " + Math.round(found.avgRel) + "<br>" + sources;
+        }} else {{
+            tooltip.style.display = "none";
+        }}
+    }}
+}});
+
+canvas.addEventListener("click", (e) => {{
+    if (hovered) {{
+        activeTag = hovered;
+        draw();
+        window.location.href = "vass:bubble:" + encodeURIComponent(hovered.tag);
+    }}
+}});
+
+draw();
+</script></body></html>'''
+        self.browser.setHtml(html, QUrl("vass://local/"))
+
     def closeEvent(self, event):
         self._check_unsaved_and_close()
         event.ignore()
