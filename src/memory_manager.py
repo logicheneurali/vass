@@ -355,7 +355,9 @@ class MemoryManager:
                             return candidate
                 return None
 
-            tagged_ids_list = sorted(tagged_ids)
+            # Sort tagged IDs by relevance descending (most important first)
+            id_relevance = {e["id"]: e.get("relevance", 0) for e in tags_data.get("entries", [])}
+            tagged_ids_list = sorted(tagged_ids, key=lambda vid: id_relevance.get(vid, 0), reverse=True)
             if not tagged_ids_list:
                 return
 
