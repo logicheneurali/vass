@@ -494,7 +494,15 @@
     "dialog_discard": "Discard",
     "dialog_cancel": "Cancel",
     "dialog_yes": "Yes",
-    "dialog_no": "No"
+    "dialog_no": "No",
+    "sources": "Sources",
+    "sources_title": "Permanent Memory Sources",
+    "sources_email": "Email (Gmail)",
+    "sources_calendar": "Google Calendar",
+    "sources_events": "Application Events",
+    "sources_timers": "Timers",
+    "sources_description": "Information from enabled sources will be tagged and added to permanent memory.",
+    "sources_saved": "Source preferences saved."
   },
   "tag_manager": {
     "title": "Tag Manager",

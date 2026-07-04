@@ -495,7 +495,15 @@
     "dialog_discard": "放弃",
     "dialog_cancel": "取消",
     "dialog_yes": "是",
-    "dialog_no": "否"
+    "dialog_no": "否",
+    "sources": "来源",
+    "sources_title": "永久记忆来源",
+    "sources_email": "电子邮件 (Gmail)",
+    "sources_calendar": "Google日历",
+    "sources_events": "应用程序事件",
+    "sources_timers": "计时器",
+    "sources_description": "来自已启用来源的信息将被标记并添加到永久记忆中。",
+    "sources_saved": "来源偏好已保存。"
   },
   "tag_manager": {
     "title": "标签管理器",

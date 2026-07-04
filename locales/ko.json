@@ -495,7 +495,15 @@
     "dialog_discard": "취소",
     "dialog_cancel": "취소",
     "dialog_yes": "예",
-    "dialog_no": "아니요"
+    "dialog_no": "아니요",
+    "sources": "소스",
+    "sources_title": "영구 메모리 소스",
+    "sources_email": "이메일 (Gmail)",
+    "sources_calendar": "Google 캘린더",
+    "sources_events": "애플리케이션 이벤트",
+    "sources_timers": "타이머",
+    "sources_description": "활성화된 소스의 정보는 태그와 함께 영구 메모리에 카탈로그화됩니다.",
+    "sources_saved": "소스 설정이 저장되었습니다."
   },
   "tag_manager": {
     "title": "태그 관리자",

@@ -2,8 +2,8 @@
 import sys, os, json
 from PySide6.QtCore import Qt, QUrl, QTimer
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                                QHBoxLayout, QLabel, QPushButton,
-                                QMessageBox, QMenu)
+                                QHBoxLayout, QLabel, QPushButton, QCheckBox,
+                                QMessageBox, QMenu, QDialog)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEnginePage
 
@@ -61,6 +61,65 @@ def _load_tag_weights():
     return dict(_DEFAULT_TAGS)
 
 
+class SourcesDialog(QDialog):
+    def __init__(self, parent=None, lang="en"):
+        super().__init__(parent)
+        self.lang = lang
+        self.setWindowTitle(_t("memory_editor.sources_title", lang))
+        self.setFixedSize(350, 240)
+        self.setStyleSheet(f"QDialog {{ background-color: {BG}; }}")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+
+        sources_path = os.path.join(ALLOWED, "memory_sources.json")
+        try:
+            with open(sources_path, encoding="utf-8") as f:
+                self._sources = json.load(f)
+        except Exception:
+            self._sources = {"email": False, "calendar": False,
+                             "events": False, "timers": False}
+
+        self._checkboxes = {}
+        for key, label_key in [("email", "sources_email"), ("calendar", "sources_calendar"),
+                                ("events", "sources_events"), ("timers", "sources_timers")]:
+            cb = QCheckBox(_t(f"memory_editor.{label_key}", lang))
+            cb.setChecked(self._sources.get(key, False))
+            cb.setStyleSheet(f"color: {FG}; spacing: 8px;")
+            self._checkboxes[key] = cb
+            layout.addWidget(cb)
+
+        desc = QLabel(_t("memory_editor.sources_description", lang))
+        desc.setWordWrap(True)
+        desc.setStyleSheet("color: #888; font-size: 11px;")
+        layout.addWidget(desc)
+
+        layout.addStretch()
+        btn_row = QHBoxLayout()
+        cancel_btn = QPushButton(_t("memory_editor.dialog_cancel", lang))
+        cancel_btn.clicked.connect(self.reject)
+        save_btn = QPushButton(_t("memory_editor.dialog_save", lang))
+        save_btn.setStyleSheet(f"background-color: {ACCENT}; font-weight: bold;")
+        save_btn.clicked.connect(self._save)
+        btn_row.addStretch()
+        btn_row.addWidget(cancel_btn)
+        btn_row.addWidget(save_btn)
+        layout.addLayout(btn_row)
+
+    def _save(self):
+        sources_path = os.path.join(ALLOWED, "memory_sources.json")
+        for key, cb in self._checkboxes.items():
+            self._sources[key] = cb.isChecked()
+        os.makedirs(ALLOWED, exist_ok=True)
+        with open(sources_path, "w", encoding="utf-8") as f:
+            json.dump(self._sources, f, ensure_ascii=False, indent=2)
+        print(f"[MemoryEditor] Sources saved: {self._sources}")
+        QMessageBox.information(self, _t("memory_editor.sources_title", self.lang),
+                                _t("memory_editor.sources_saved", self.lang))
+        self.accept()
+
+
 class _MemPage(QWebEnginePage):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -114,6 +173,9 @@ class MemoryEditor(QMainWindow):
         tags_btn = QPushButton(self._tl("memory_editor.manage_tags"))
         tags_btn.clicked.connect(self._open_tag_manager)
         btn_row.addWidget(tags_btn)
+        sources_btn = QPushButton(self._tl("memory_editor.sources"))
+        sources_btn.clicked.connect(self._open_sources_dialog)
+        btn_row.addWidget(sources_btn)
         btn_row.addStretch()
         self.save_btn = QPushButton(self._tl("memory_editor.save"))
         self.save_btn.clicked.connect(self._save)
@@ -299,6 +361,10 @@ class MemoryEditor(QMainWindow):
         if dlg.exec():
             self._tag_weights = dlg.tags
             self._rebuild_content()
+
+    def _open_sources_dialog(self):
+        dlg = SourcesDialog(self, self.lang)
+        dlg.exec()
 
     def closeEvent(self, event):
         self._check_unsaved_and_close()

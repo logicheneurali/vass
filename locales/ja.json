@@ -495,7 +495,15 @@
     "dialog_discard": "破棄",
     "dialog_cancel": "キャンセル",
     "dialog_yes": "はい",
-    "dialog_no": "いいえ"
+    "dialog_no": "いいえ",
+    "sources": "ソース",
+    "sources_title": "永続メモリのソース",
+    "sources_email": "メール (Gmail)",
+    "sources_calendar": "Googleカレンダー",
+    "sources_events": "アプリケーションイベント",
+    "sources_timers": "タイマー",
+    "sources_description": "有効化されたソースからの情報は、タグ付きで永続メモリにカタログ化されます。",
+    "sources_saved": "ソース設定を保存しました。"
   },
   "tag_manager": {
     "title": "タグマネージャー",

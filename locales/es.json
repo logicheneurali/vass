@@ -494,7 +494,15 @@
     "dialog_discard": "Descartar",
     "dialog_cancel": "Cancelar",
     "dialog_yes": "Sí",
-    "dialog_no": "No"
+    "dialog_no": "No",
+    "sources": "Fuentes",
+    "sources_title": "Fuentes de la memoria permanente",
+    "sources_email": "Correo (Gmail)",
+    "sources_calendar": "Google Calendar",
+    "sources_events": "Eventos de la aplicación",
+    "sources_timers": "Temporizadores",
+    "sources_description": "La información de las fuentes activadas se catalogará con etiquetas en la memoria permanente.",
+    "sources_saved": "Preferencias de fuentes guardadas."
   },
   "tag_manager": {
     "title": "Gestor de Tags",

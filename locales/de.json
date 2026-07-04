@@ -494,7 +494,15 @@
     "dialog_discard": "Verwerfen",
     "dialog_cancel": "Abbrechen",
     "dialog_yes": "Ja",
-    "dialog_no": "Nein"
+    "dialog_no": "Nein",
+    "sources": "Quellen",
+    "sources_title": "Quellen des permanenten Speichers",
+    "sources_email": "E-Mail (Gmail)",
+    "sources_calendar": "Google Kalender",
+    "sources_events": "App-Ereignisse",
+    "sources_timers": "Timer",
+    "sources_description": "Informationen aus aktivierten Quellen werden mit Tags im permanenten Speicher katalogisiert.",
+    "sources_saved": "Quelleneinstellungen gespeichert."
   },
   "tag_manager": {
     "title": "Tag-Verwaltung",
