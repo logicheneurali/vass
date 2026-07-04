@@ -274,6 +274,12 @@ class MemoryEditor(QMainWindow):
             self._show_add_tag_menu(int(parts[1]))
         elif action == "delentry" and len(parts) >= 2:
             self._delete_entry(int(parts[1]))
+        elif action == "bubble" and len(parts) >= 2:
+            from urllib.parse import unquote
+            tag = unquote(parts[1])
+            self._show_bubble_detail(tag)
+        elif action == "closepanel":
+            self._show_bubble_map()
 
     def _remove_tag(self, entry_idx, tag):
         entries = self._data.get("entries", [])
@@ -603,6 +609,205 @@ canvas.addEventListener("click", (e) => {{
 }});
 
 draw();
+</script></body></html>'''
+        self.browser.setHtml(html, QUrl("vass://local/"))
+
+    def _show_bubble_detail(self, tag):
+        entries = self._data.get("entries", [])
+        tagged = [e for e in entries if tag in e.get("tags", [])]
+        tagged.sort(key=lambda e: e.get("ts", ""), reverse=True)
+
+        import json as _json
+        entries_json = _json.dumps(entries, ensure_ascii=False)
+        weights_json = _json.dumps(self._tag_weights, ensure_ascii=False)
+        tagged_json = _json.dumps(tagged, ensure_ascii=False)
+
+        source_icons = {"chat": "\\ud83d\\udcac", "email": "\\ud83d\\udce7",
+                        "calendar": "\\ud83d\\udcc5", "events": "\\ud83d\\udccc", "timers": "\\u23f0"}
+
+        cards_html = ""
+        for entry in tagged:
+            ts = entry.get("ts", "?")
+            entry_tags = entry.get("tags", [])
+            relevance = entry.get("relevance", 0)
+            src = entry.get("source", "chat")
+            icon = source_icons.get(src, "\\ud83d\\udcac")
+            content, _role = _load_entry_content(entry.get("id", "?"))
+            safe_content = self._escape_html(content[:200])
+            dot_color = "#27ae60" if relevance > 20 else ("#f1c40f" if relevance > 10 else "#888")
+            tags_badges = " ".join(
+                f'<span class="tag-badge">{self._escape_html(t)}</span>'
+                for t in entry_tags)
+            cards_html += f'''
+<div class="entry-card">
+<div class="ts">{icon} {self._escape_html(ts)}</div>
+<div class="content"><span class="relevance-dot" style="background:{dot_color};"></span>{safe_content}</div>
+<div class="tags-row">{tags_badges}</div>
+</div>'''
+
+        html = f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+::-webkit-scrollbar {{ width: 8px; }}
+::-webkit-scrollbar-track {{ background: #1e1e1e; }}
+::-webkit-scrollbar-thumb {{ background: #3a3a3a; border-radius: 4px; }}
+body {{ margin: 0; background: #0d1117; font-family: "Segoe UI", sans-serif;
+       color: #e0e0e0; display: flex; height: 100vh; }}
+#map-area {{ flex: 0 0 60%; position: relative; overflow: hidden;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d1117 80%); }}
+#panel {{ flex: 1; background: #1a1a2e; border-left: 1px solid #0f3460;
+          overflow-y: auto; padding: 16px; }}
+#panel-header {{ margin-bottom: 16px; }}
+#panel-header h3 {{ margin: 0 0 4px 0; font-size: 15px; }}
+#panel-header .meta {{ color: #888; font-size: 12px; margin-bottom: 8px; }}
+.close-btn {{ float: right; background: transparent; border: none; color: #888;
+            font-size: 18px; cursor: pointer; }}
+.close-btn:hover {{ color: #e0e0e0; }}
+.entry-card {{ background: #252525; border: 1px solid #3a3a3a; border-radius: 4px;
+              padding: 12px; margin-bottom: 10px; font-size: 12px; }}
+.entry-card .ts {{ color: #888; font-size: 11px; margin-bottom: 4px; }}
+.entry-card .content {{ margin-top: 6px; white-space: pre-wrap; }}
+.entry-card .tags-row {{ margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }}
+.tag-badge {{ background: #3d3d3d; border-radius: 3px; padding: 2px 6px; font-size: 10px; }}
+.relevance-dot {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+                 margin-right: 6px; }}
+</style></head><body>
+<div id="map-area">
+<canvas id="map" style="width:100%;height:100%;"></canvas>
+</div>
+<div id="panel">
+<div id="panel-header">
+<button class="close-btn" onclick="window.location.href='vass:closepanel'">&times;</button>
+<h3>{self._escape_html(tag)}</h3>
+<div class="meta">{len(tagged)} voci</div>
+</div>
+<div id="entries">
+{cards_html}
+</div>
+</div>
+<script>
+const entries = {entries_json};
+const weights = {weights_json};
+const ACTIVE_TAG = {_json.dumps(tag)};
+const canvas = document.getElementById("map");
+const ctx = canvas.getContext("2d");
+const mapArea = document.getElementById("map-area");
+
+function resize() {{
+    canvas.width = mapArea.clientWidth;
+    canvas.height = mapArea.clientHeight;
+}}
+
+const tagData = {{}};
+for (const e of entries) {{
+    const tags = e.tags || [];
+    for (const t of tags) {{
+        if (!tagData[t]) tagData[t] = {{ tag: t, count: 0, totalRel: 0, sources: new Set() }};
+        tagData[t].count++;
+        tagData[t].totalRel += e.relevance || 0;
+        if (e.source) tagData[t].sources.add(e.source);
+    }}
+}}
+const bubbles = Object.values(tagData);
+const K = 18;
+let maxRel = 0;
+for (const b of bubbles) {{
+    b.r = Math.min(120, Math.max(20, Math.sqrt(b.count) * K));
+    b.avgRel = b.count > 0 ? b.totalRel / b.count : 0;
+    if (b.avgRel > maxRel) maxRel = b.avgRel;
+}}
+function getColor(avgRel) {{
+    const ratio = maxRel > 0 ? Math.min(1, avgRel / maxRel) : 0;
+    const stops = [
+        {{pos:0.0, r:0x34, g:0x98, b:0xdb}}, {{pos:0.25, r:0x1a, g:0xbc, b:0x9c}},
+        {{pos:0.5, r:0xf1, g:0xc4, b:0x0f}}, {{pos:0.75, r:0xe6, g:0x7e, b:0x22}},
+        {{pos:1.0, r:0xe7, g:0x4c, b:0x3c}}
+    ];
+    let lo = stops[0], hi = stops[stops.length-1];
+    for (let i = 0; i < stops.length-1; i++) {{
+        if (ratio >= stops[i].pos && ratio <= stops[i+1].pos) {{ lo = stops[i]; hi = stops[i+1]; break; }}
+    }}
+    const t = (ratio - lo.pos) / (hi.pos - lo.pos || 0.001);
+    return `rgb(${{Math.round(lo.r+(hi.r-lo.r)*t)}},${{Math.round(lo.g+(hi.g-lo.g)*t)}},${{Math.round(lo.b+(hi.b-lo.b)*t)}})`;
+}}
+for (const b of bubbles) b.color = getColor(b.avgRel);
+
+function layout() {{
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    for (const b of bubbles) {{
+        b.x = cx + (Math.random() - 0.5) * 180;
+        b.y = cy + (Math.random() - 0.5) * 180;
+    }}
+    for (let i = 0; i < 60; i++) {{
+        for (const b of bubbles) {{
+            let fx = 0, fy = 0;
+            fy += (cy - b.y) * 0.01 * (b.r / 50);
+            fx += (cx - b.x) * 0.01 * (b.r / 50);
+            for (const o of bubbles) {{
+                if (o === b) continue;
+                const dx = b.x - o.x, dy = b.y - o.y;
+                const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                const minDist = b.r + o.r + 6;
+                if (dist < minDist) {{
+                    const force = 600 / (dist * dist);
+                    if (!b.vx) b.vx = 0; if (!b.vy) b.vy = 0;
+                    b.vx = (b.vx + (dx/dist) * force) * 0.85;
+                    b.vy = (b.vy + (dy/dist) * force) * 0.85;
+                    b.x += b.vx; b.y += b.vy;
+                    b.x = Math.max(b.r, Math.min(canvas.width - b.r, b.x));
+                    b.y = Math.max(b.r + 30, Math.min(canvas.height - b.r - 10, b.y));
+                }}
+            }}
+        }}
+    }}
+}}
+layout();
+
+function draw() {{
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const b of [...bubbles].sort((a,b) => b.r - a.r)) {{
+        const isActive = (b.tag === ACTIVE_TAG);
+        const grad = ctx.createRadialGradient(b.x, b.y, b.r*0.7, b.x, b.y, b.r);
+        grad.addColorStop(0, isActive ? "#e94560" : b.color);
+        grad.addColorStop(1, "rgba(0,0,0,0.3)");
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = isActive ? "#e94560" : "rgba(255,255,255,0.15)";
+        ctx.lineWidth = isActive ? 2 : 1;
+        ctx.stroke();
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        if (b.r > 25) {{
+            ctx.font = Math.min(16, Math.max(9, b.r*0.35)) + "px 'Segoe UI',sans-serif";
+            ctx.fillText(b.tag, b.x, b.y - 3);
+            ctx.font = Math.max(8, b.r*0.22) + "px 'Segoe UI',sans-serif";
+            ctx.fillStyle = "rgba(255,255,255,0.7)";
+            ctx.fillText(b.count, b.x, b.y + 12);
+        }} else {{
+            ctx.font = "10px 'Segoe UI',sans-serif";
+            ctx.fillText(b.count, b.x, b.y);
+        }}
+        ctx.textAlign = "start";
+        ctx.textBaseline = "alphabetic";
+    }}
+}}
+
+canvas.addEventListener("click", (e) => {{
+    const mx = e.clientX - canvas.getBoundingClientRect().left;
+    const my = e.clientY - canvas.getBoundingClientRect().top;
+    for (const b of bubbles) {{
+        const dx = mx - b.x, dy = my - b.y;
+        if (Math.sqrt(dx*dx + dy*dy) < b.r) {{
+            window.location.href = "vass:bubble:" + encodeURIComponent(b.tag);
+            return;
+        }}
+    }}
+}});
+
+resize();
+draw();
+window.addEventListener("resize", () => {{ resize(); layout(); draw(); }});
 </script></body></html>'''
         self.browser.setHtml(html, QUrl("vass://local/"))
 
