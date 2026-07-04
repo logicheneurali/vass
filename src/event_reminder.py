@@ -474,6 +474,7 @@ class EventReminder:
                     if mtime != self._last_mtime:
                         self._last_mtime = mtime
                         self._calculate_next_alert()
+                        self._classify_new_events()
                         print(f"[Events] File changed, recalculated")
 
                 if os.path.exists(schedules_path):
@@ -490,6 +491,40 @@ class EventReminder:
                 pass
 
             time.sleep(30)
+
+    def _classify_new_events(self):
+        """Enqueue new/modified events from events.json for memory tagging."""
+        try:
+            events_path = self._events_path()
+            if not os.path.exists(events_path):
+                return
+            with open(events_path, encoding="utf-8") as f:
+                data = json.load(f)
+            items = data.get("events", [])
+            if not items:
+                return
+            if not hasattr(self.app, 'memory'):
+                return
+            root = self._root_dir()
+            tags_path = os.path.join(root, "Allowed_root", "memory_tags.json")
+            tagged_ids = set()
+            if os.path.exists(tags_path):
+                with open(tags_path, encoding="utf-8") as f:
+                    tags_data = json.load(f)
+                tagged_ids = {e["id"] for e in tags_data.get("entries", [])
+                              if e.get("source") == "events"}
+            for ev in items:
+                eid = ev.get("id", "")
+                if not eid or eid in tagged_ids:
+                    continue
+                desc = ev.get("description", "")
+                date = ev.get("date", "")
+                time_str = ev.get("time", "")
+                content = f"Event: {desc} | Date: {date} {time_str}"
+                self.app.memory.enqueue_external(content, eid, "events")
+                tagged_ids.add(eid)
+        except Exception as e:
+            print(f"[EventReminder] classify_new_events error: {e}")
 
     def _process_events(self):
         if not self._next_alert_ts or time.time() < self._next_alert_ts:
