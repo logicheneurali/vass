@@ -542,6 +542,51 @@ class EventsEditor(QMainWindow):
 
         self._items_snapshot = copy.deepcopy(merged)
         _save(path, merged, key)
+        self._tag_events(merged)
+
+    def _tag_events(self, items):
+        """Write event entries to memory_tags.json for classification."""
+        tags_path = os.path.join(ALLOWED, "memory_tags.json")
+        try:
+            with open(tags_path, encoding="utf-8") as f:
+                tags_data = json.load(f)
+        except Exception:
+            tags_data = {"entries": []}
+        existing = tags_data.get("entries", [])
+        existing_ids = {e["id"] for e in existing}
+        now = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M")
+        changed = False
+        for ev in items:
+            eid = ev.get("id", "")
+            if not eid:
+                continue
+            desc = ev.get("description", "")
+            date = ev.get("date", "")
+            time_str = ev.get("time", "")
+            content = f"Event: {desc} | Date: {date} {time_str}"
+            entry = {
+                "id": eid,
+                "tags": ["generic"],
+                "relevance": 1,
+                "ts": now,
+                "source": "events",
+                "content": content[:300],
+            }
+            if eid in existing_ids:
+                for i, e in enumerate(existing):
+                    if e.get("id") == eid:
+                        if e.get("content") != content[:300]:
+                            existing[i] = entry
+                            changed = True
+                        break
+            else:
+                existing.append(entry)
+                existing_ids.add(eid)
+                changed = True
+        if changed:
+            tags_data["entries"] = existing
+            with open(tags_path, "w", encoding="utf-8") as f:
+                json.dump(tags_data, f, ensure_ascii=False, indent=2)
 
     def _save_file(self):
         self._do_save()
