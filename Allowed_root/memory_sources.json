@@ -1,0 +1,6 @@
+{
+  "email": true,
+  "calendar": true,
+  "events": true,
+  "timers": true
+}

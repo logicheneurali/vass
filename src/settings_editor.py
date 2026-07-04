@@ -692,7 +692,7 @@ class SettingsEditor(QMainWindow):
     def _launch_google_setup(self):
         import subprocess, os
         path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "setup_google.py")
-        subprocess.Popen(["python", path, "--lang", self.lang])
+        subprocess.Popen([sys.executable, path, "--lang", self.lang])
 
     def _start_llama_server(self):
         from utils import start_llama_server, is_process_running

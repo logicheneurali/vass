@@ -179,9 +179,13 @@ def do_setup_gui(lang="en"):
     app = QApplication.instance() or QApplication(sys.argv)
 
     wizard = QWizard()
+    wizard.setWizardStyle(QWizard.ModernStyle)
+    wizard.setObjectName("googleWizard")
     wizard.setWindowTitle(_t("setup_google.title", lang))
     wizard.resize(620, 480)
     wizard.setStyleSheet(
+        "#googleWizard { background-color: #1a1a2e; }"
+        "QWizard > * > QFrame { background: #1a1a2e; }"
         "QWidget { background-color: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; font-size: 14px; }"
         "QLabel { background: transparent; }"
         "QLineEdit { background-color: #16213e; border: 1px solid #0f3460; border-radius: 4px; padding: 6px 10px; }"
@@ -205,11 +209,13 @@ def do_setup_gui(lang="en"):
     page1.setTitle(_t("setup_google.page1.title", lang))
     l1 = QVBoxLayout(page1)
     text = _t("setup_google.page1.text", lang).format(path=CLIENT_SECRET_PATH)
+    text = text.replace("https://console.cloud.google.com/apis/credentials/consent", "%%OAUTH_CONSENT%%")
+    text = text.replace("https://console.cloud.google.com/apis/credentials", "%%CREDENTIALS%%")
     text = text.replace("https://console.cloud.google.com",
                         '<a href="https://console.cloud.google.com" style="color:#e94560;">https://console.cloud.google.com</a>')
-    text = text.replace("https://console.cloud.google.com/apis/credentials/consent",
+    text = text.replace("%%OAUTH_CONSENT%%",
                         '<a href="https://console.cloud.google.com/apis/credentials/consent" style="color:#e94560;">OAuth consent screen</a>')
-    text = text.replace("https://console.cloud.google.com/apis/credentials",
+    text = text.replace("%%CREDENTIALS%%",
                         '<a href="https://console.cloud.google.com/apis/credentials" style="color:#e94560;">Credentials</a>')
     lbl = QTextBrowser()
     lbl.setOpenExternalLinks(True)
