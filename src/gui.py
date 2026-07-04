@@ -1325,8 +1325,7 @@ class VassGUI(QMainWindow):
         text = self._t(f"gui.states.{state}")
         if detail:
             text = f"{text} {detail}"
-        prefix = "[C] " if self._current_mode == "chat" else "[T] "
-        self._btn_full_text = prefix + text
+        self._btn_full_text = text
         self._elide_button_text()
         self.btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: %s; "
@@ -1598,7 +1597,12 @@ class VassGUI(QMainWindow):
             if self.app and hasattr(self.app, "memory_tokens"):
                 path = os.path.join(BASE, "Allowed_root", "memory.json")
                 mem_dir = os.path.join(BASE, "Allowed_root", "memory")
-                total = os.path.getsize(path) if os.path.exists(path) else 0
+                tags_path = os.path.join(BASE, "Allowed_root", "memory_tags.json")
+                total = 0
+                if os.path.exists(path):
+                    total += os.path.getsize(path)
+                if os.path.exists(tags_path):
+                    total += os.path.getsize(tags_path)
                 if os.path.isdir(mem_dir):
                     for fname in os.listdir(mem_dir):
                         if fname.endswith(".json"):
@@ -2223,6 +2227,7 @@ class VassGUI(QMainWindow):
             if u not in clean:
                 clean.append(u)
         if clean:
+            self._link_panel._t = self._t
             self.schedule_signal.emit(lambda urls=clean: self._link_panel.set_links(urls, self))
 
     def hide_link_panel(self):
@@ -2230,6 +2235,9 @@ class VassGUI(QMainWindow):
 
     def _show_info_panel(self, tab="notifications"):
         if not self.app:
+            return
+        if self._link_panel.isVisible() and self._link_panel._tab == tab:
+            self._link_panel.hide()
             return
         nm = self.app.notification_manager
         self.schedule_signal.emit(lambda: (
