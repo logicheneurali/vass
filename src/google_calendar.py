@@ -192,6 +192,21 @@ class GoogleCalendar:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         print(f"[GCal] Sync: {len(gcal_events)} from Google, {added} added, {updated} updated, {removed} removed, {len(new_events)} total")
 
+        result = []
+        if added or updated:
+            for ge in gcal_events:
+                gcal_found = any(
+                    e.get("gcal_id") == ge["id"] for e in new_events
+                )
+                if gcal_found:
+                    result.append({
+                        "id": ge["id"],
+                        "summary": ge.get("summary", ""),
+                        "start": ge.get("start", ""),
+                        "end": ge.get("end", ""),
+                    })
+        return result
+
     @staticmethod
     def _convert_gcal_to_vass(ge):
         from datetime import datetime as _dt

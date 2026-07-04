@@ -852,13 +852,27 @@ class VassApp:
         days = int(self.settings.get("calendar_sync_days", 7))
         events_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "events.json")
         try:
-            gcal.sync_to_vass(events_path, days=days)
+            new_or_changed = gcal.sync_to_vass(events_path, days=days) or []
+            if new_or_changed and self._is_source_enabled("calendar"):
+                for ev in new_or_changed:
+                    classify_content = (
+                        f"Calendar event: {ev.get('summary', '')}\n"
+                        f"When: {ev.get('start', '')} -> {ev.get('end', '')}"
+                    )
+                    self._enqueue_classify(classify_content, ev["id"], "calendar")
         except Exception as e:
             print(f"[GCal] Sync error: {e}")
         while self.running:
             time.sleep(minutes * 60)
             try:
-                gcal.sync_to_vass(events_path, days=days)
+                new_or_changed = gcal.sync_to_vass(events_path, days=days) or []
+                if new_or_changed and self._is_source_enabled("calendar"):
+                    for ev in new_or_changed:
+                        classify_content = (
+                            f"Calendar event: {ev.get('summary', '')}\n"
+                            f"When: {ev.get('start', '')} -> {ev.get('end', '')}"
+                        )
+                        self._enqueue_classify(classify_content, ev["id"], "calendar")
             except Exception as e:
                 print(f"[GCal] Sync error: {e}")
 
