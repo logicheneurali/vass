@@ -61,6 +61,14 @@ def _load_tag_weights():
     return dict(_DEFAULT_TAGS)
 
 
+def _load_min_relevance():
+    cfg_path = os.path.join(ALLOWED, "tags_config.json")
+    if os.path.exists(cfg_path):
+        with open(cfg_path, encoding="utf-8") as f:
+            return json.load(f).get("min_relevance", 10)
+    return 10
+
+
 class SourcesDialog(QDialog):
     def __init__(self, parent=None, lang="en"):
         super().__init__(parent)
@@ -142,6 +150,7 @@ class MemoryEditor(QMainWindow):
         self._data = _load_tags()
         self._dirty = False
         self._tag_weights = _load_tag_weights()
+        self._min_relevance = _load_min_relevance()
         self._build_ui()
         self._reload_data()
         self._rebuild_content()
@@ -195,6 +204,7 @@ class MemoryEditor(QMainWindow):
         self._scroll_y = self.browser.page().scrollPosition().y()
 
         entries = self._data.get("entries", [])
+        entries = [e for e in entries if e.get("relevance", 0) >= self._min_relevance]
         if not entries:
             self.browser.setHtml(f'<div style="color:#888; text-align:center; padding:40px;">'
                                  f'{self._escape_html(self._tl("memory_editor.no_entries"))}</div>',
@@ -384,9 +394,11 @@ class MemoryEditor(QMainWindow):
     def _reload_data(self):
         self._data = _load_tags()
         self._tag_weights = _load_tag_weights()
+        self._min_relevance = _load_min_relevance()
 
     def _show_bubble_map(self):
         entries = self._data.get("entries", [])
+        entries = [e for e in entries if e.get("relevance", 0) >= self._min_relevance]
         if not entries:
             self.browser.setHtml(
                 f'<div style="color:#888; text-align:center; padding:40px;">'
@@ -615,6 +627,7 @@ draw();
 
     def _show_bubble_detail(self, tag):
         entries = self._data.get("entries", [])
+        entries = [e for e in entries if e.get("relevance", 0) >= self._min_relevance]
         tagged = [e for e in entries if tag in e.get("tags", [])]
         tagged.sort(key=lambda e: e.get("ts", ""), reverse=True)
 
