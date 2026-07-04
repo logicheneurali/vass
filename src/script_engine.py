@@ -372,6 +372,9 @@ class VASScript:
                 system_content = f"{base}\n\n{date_prefix}{now}".strip()
 
                 memory_content = self.app._build_memory_content()
+                external_memory = self.app._build_external_memory_content(prompt)
+                if external_memory:
+                    memory_content += external_memory
                 from prompts import MCP_PROMPT, append_tool_descriptions, _load_vascript_reference
                 tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
                 if self.app.allow_ai_scripts:

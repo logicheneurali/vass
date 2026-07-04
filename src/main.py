@@ -1361,6 +1361,9 @@ class VassApp:
                     print(f"[DEBUG] needs_memory({prompt[:80]}) = False  (skip memory)")
             else:
                 memory_content = self._build_memory_content(mcp, tools)
+                external_memory = self._build_external_memory_content(prompt)
+                if external_memory:
+                    memory_content += external_memory
                 if self.debug_enabled:
                     print(f"[DEBUG] needs_memory({prompt[:80]}) = True  (include memory)")
 
@@ -1762,6 +1765,60 @@ class VassApp:
                     pass
         if parts:
             return "\n\nPrevious conversations:\n" + "\n".join(parts)
+        return ""
+
+    def _build_external_memory_content(self, prompt):
+        """Return tagged entries from active external sources matching prompt keywords.
+        Limits to 3 entries, 200 chars each. Excludes chat source (already in history)."""
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        tags_path = os.path.join(root, "Allowed_root", "memory_tags.json")
+        if not os.path.exists(tags_path):
+            return ""
+        try:
+            with open(tags_path, encoding="utf-8") as f:
+                tags_data = json.load(f)
+        except Exception:
+            return ""
+        sources = getattr(self, '_memory_sources', {})
+        active = {src for src, en in sources.items() if en}
+        if not active:
+            return ""
+
+        prompt_lower = prompt.lower()
+        tagged_entries = tags_data.get("entries", [])
+        matches = []
+        for entry in tagged_entries:
+            src = entry.get("source", "chat")
+            if src == "chat" or src not in active:
+                continue
+            entry_tags = entry.get("tags", [])
+            if any(t in prompt_lower or t.replace("_", " ") in prompt_lower for t in entry_tags):
+                matches.append(entry)
+        if not matches:
+            return ""
+
+        matches.sort(key=lambda e: e.get("relevance", 0), reverse=True)
+        top = matches[:3]
+        parts = []
+        mem_dir = os.path.join(root, "Allowed_root", "memory")
+        for entry in top:
+            content = ""
+            hf = os.path.join(mem_dir, f"{entry.get('id', '')}.json")
+            if os.path.exists(hf):
+                try:
+                    with open(hf, encoding="utf-8") as hf:
+                        info = json.loads(json.load(hf).get("info", "{}"))
+                    content = info.get("content", "")
+                except Exception:
+                    pass
+            if not content:
+                continue
+            content = content[:200].strip()
+            tags_str = ", ".join(entry.get("tags", []))
+            src = entry.get("source", entry.get("source", "unknown"))
+            parts.append(f"[{src}] [{tags_str}]: {content}")
+        if parts:
+            return "\n\nRelevant stored information (use if helpful):\n" + "\n".join(parts)
         return ""
 
     def _compress_summary(self, summary_text, summary_id, mem_data):
