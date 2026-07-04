@@ -98,9 +98,22 @@ async def _add_event(date, time, duration, description, recur, allowed_root):
     events = data.get("events", [])
 
     try:
-        dt.strptime(date, "%Y-%m-%d")
+        parsed = dt.strptime(date, "%Y-%m-%d")
     except ValueError:
         return f"error: invalid date format '{date}'. Use YYYY-MM-DD."
+    # Verify day-of-week matches if description mentions a day name
+    _weekdays_it = {"lunedì": 0, "martedì": 1, "mercoledì": 2, "giovedì": 3,
+                    "venerdì": 4, "sabato": 5, "domenica": 6}
+    _weekdays_en = {"monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+                    "friday": 4, "saturday": 5, "sunday": 6}
+    desc_lower = description.lower()
+    for name, weekday in {**_weekdays_it, **_weekdays_en}.items():
+        if name in desc_lower:
+            if parsed.weekday() != weekday:
+                actual = parsed.strftime("%A")
+                return (f"error: the date {date} is a {actual}, not a {name}. "
+                        f"Please correct the date to match {name}.")
+            break
     try:
         dt.strptime(time, "%H:%M")
     except ValueError:
@@ -260,7 +273,7 @@ def create_server(config: ServerConfig) -> FastMCP:
 
     @mcp.tool()
     async def addevent(date: str, time: str, duration: str, description: str, recur: str = "") -> str:
-        """Add an event to events.json. date='YYYY-MM-DD', time='HH:MM', duration=minutes (integer), recur='1d'/'7d'/'1m'/'2h' (optional). Example: addevent('2026-06-15', '14:00', '60', 'Team meeting', '1d')"""
+        """Add an event to events.json. date='YYYY-MM-DD', time='HH:MM', duration=minutes (integer), recur='1d'/'7d'/'1m'/'2h' (optional). IMPORTANT: Always verify the date matches the requested day of week (e.g., if user says 'monday', check the date IS actually a Monday). Example: addevent('2026-06-15', '14:00', '60', 'Team meeting', '1d')"""
         return await _tool("addevent", f"desc={description[:40]}", _add_event(date, time, duration, description, recur, config.allowed_root), config)
 
     @mcp.tool()

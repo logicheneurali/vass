@@ -1257,6 +1257,20 @@ class VASScript:
                     pass
             if normalized_date is None:
                 return f"error: invalid date format '{start_date}'. Use YYYY-MM-DD."
+            # Verify day-of-week matches if description mentions a day name
+            _wd_it = {"lunedì": 0, "martedì": 1, "mercoledì": 2, "giovedì": 3,
+                      "venerdì": 4, "sabato": 5, "domenica": 6}
+            _wd_en = {"monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+                      "friday": 4, "saturday": 5, "sunday": 6}
+            parsed_dt = _dt.datetime.strptime(normalized_date, "%Y-%m-%d")
+            desc_lower = description.lower()
+            for name, wd in {**_wd_it, **_wd_en}.items():
+                if name in desc_lower:
+                    if parsed_dt.weekday() != wd:
+                        actual = parsed_dt.strftime("%A")
+                        return (f"error: the date {normalized_date} is a {actual}, not a {name}. "
+                                f"Please correct the date to match {name}.")
+                    break
             try:
                 dt = _dt.datetime.strptime(start_time, "%H:%M")
                 normalized_time = dt.strftime("%H:%M")
