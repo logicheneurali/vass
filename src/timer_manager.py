@@ -100,10 +100,10 @@ class TimerManager:
         msg = t("timer.expired", lang).replace("{duration}", self._clean_duration(info["duration"]))
         if hasattr(self.app, 'notification_manager'):
             self.app.notification_manager.add(msg, priority=8, data={"type": "timer"})
-        if hasattr(self.app, '_enqueue_classify') and hasattr(self.app, '_is_source_enabled'):
-            if self.app._is_source_enabled("timers"):
+        if hasattr(self.app, 'memory') and hasattr(self.app.memory, 'enqueue_external'):
+            if self.app.memory.is_source_enabled("timers"):
                 label = self._clean_duration(info["duration"])
-                self.app._enqueue_classify(
+                self.app.memory.enqueue_external(
                     f"Timer expired: {label}",
                     tid,
                     "timers"

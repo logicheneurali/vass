@@ -371,10 +371,7 @@ class VASScript:
                 date_prefix = _ti18n("ai.date_prefix", self.app.language)
                 system_content = f"{base}\n\n{date_prefix}{now}".strip()
 
-                memory_content = self.app._build_memory_content()
-                external_memory = self.app._build_external_memory_content(prompt)
-                if external_memory:
-                    memory_content += external_memory
+                memory_content = self.app.memory.build_content(prompt)
                 from prompts import MCP_PROMPT, append_tool_descriptions, _load_vascript_reference
                 tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
                 if self.app.allow_ai_scripts:
@@ -1302,14 +1299,13 @@ class VASScript:
             except Exception as e:
                 return f"error: failed to save event: {e}"
             # Enqueue for memory tagging
-            if hasattr(self.app, '_enqueue_classify') and hasattr(self.app, '_is_source_enabled'):
-                if self.app._is_source_enabled("events"):
-                    classify_content = (
-                        f"Event: {description}\n"
-                        f"Date: {normalized_date} {normalized_time}\n"
-                        f"Duration: {duration} min"
-                    )
-                    self.app._enqueue_classify(classify_content, name, "events")
+            if hasattr(self.app, 'memory') and self.app.memory.is_source_enabled("events"):
+                classify_content = (
+                    f"Event: {description}\n"
+                    f"Date: {normalized_date} {normalized_time}\n"
+                    f"Duration: {duration} min"
+                )
+                self.app.memory.enqueue_external(classify_content, name, "events")
             return f"ok: added '{name}'"
 
         if action == "list":
