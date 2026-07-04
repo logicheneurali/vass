@@ -143,7 +143,8 @@ class MemoryEditor(QMainWindow):
         self._dirty = False
         self._tag_weights = _load_tag_weights()
         self._build_ui()
-        self._rebuild_content()
+        self._reload_data()
+        self._show_map = False
 
     def _tl(self, key):
         return _t(key, self.lang)
@@ -176,6 +177,10 @@ class MemoryEditor(QMainWindow):
         sources_btn = QPushButton(self._tl("memory_editor.sources"))
         sources_btn.clicked.connect(self._open_sources_dialog)
         btn_row.addWidget(sources_btn)
+        self._map_btn = QPushButton(self._tl("memory_editor.map"))
+        self._map_btn.setCheckable(True)
+        self._map_btn.clicked.connect(self._toggle_map_view)
+        btn_row.addWidget(self._map_btn)
         btn_row.addStretch()
         self.save_btn = QPushButton(self._tl("memory_editor.save"))
         self.save_btn.clicked.connect(self._save)
@@ -365,6 +370,18 @@ class MemoryEditor(QMainWindow):
     def _open_sources_dialog(self):
         dlg = SourcesDialog(self, self.lang)
         dlg.exec()
+
+    def _toggle_map_view(self, checked):
+        self._show_map = checked
+        if checked:
+            self._show_bubble_map()
+        else:
+            self._reload_data()
+            self._rebuild_content()
+
+    def _reload_data(self):
+        self._data = _load_tags()
+        self._tag_weights = _load_tag_weights()
 
     def closeEvent(self, event):
         self._check_unsaved_and_close()
