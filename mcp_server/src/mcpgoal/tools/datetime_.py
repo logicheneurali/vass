@@ -3,7 +3,9 @@ from datetime import datetime
 
 async def current_time() -> str:
     now = datetime.now()
-    return f"{now.strftime('%Y-%m-%d')} {now.strftime('%H:%M')}"
+    weekday_it = {0: "lunedì", 1: "martedì", 2: "mercoledì", 3: "giovedì",
+                  4: "venerdì", 5: "sabato", 6: "domenica"}
+    return f"{now.strftime('%Y-%m-%d')} ({weekday_it[now.weekday()]}) {now.strftime('%H:%M')}"
 
 
 async def convert_date_to_timestamp(date_str: str) -> str:
