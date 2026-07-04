@@ -924,6 +924,13 @@ class VassApp:
                 .replace("{subject}", subj)
             priority = 7 if em.get("important") else 5
             self.notification_manager.add(notif, priority=priority, data={"type": "mail", "link": f"https://mail.google.com/mail/u/0/#inbox/{em['id']}"})
+            if self._is_source_enabled("email"):
+                classify_content = (
+                    f"From: {from_parts}\n"
+                    f"Subject: {subj}\n"
+                    f"Snippet: {snip}"
+                )
+                self._enqueue_classify(classify_content, em['id'], "email")
 
     def _wait_for_llamacpp_ready(self, timeout=60):
         """Poll /v1/models until llama-server responds or timeout expires."""
