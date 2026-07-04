@@ -1892,11 +1892,12 @@ def main():
             app.openai_client = client
             app.ai_model = ai_model
             app.memory_tokens = mem_tokens
-            app._trim_lock = threading.Lock()
-            app._summary_cache = {}
+            app._ai_lock = threading.Lock()
+            app.memory_mode = "full"
+            from memory_manager import MemoryManager
+            app.memory = MemoryManager(app)
             try:
-                app._count_tokens = lambda text: len(text) // 4
-                app._trim_memory_if_needed(force=True)
+                app.memory.trim_if_needed(force=True)
             except Exception as e:
                 print(f"[Memory] Compression failed: {e}")
             if llama_proc:
