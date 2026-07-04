@@ -1298,6 +1298,15 @@ class VASScript:
                     return f"error: failed to save event: {result.get('content', [{}])[0].get('text', 'unknown error')}"
             except Exception as e:
                 return f"error: failed to save event: {e}"
+            # Enqueue for memory tagging
+            if hasattr(self.app, '_enqueue_classify') and hasattr(self.app, '_is_source_enabled'):
+                if self.app._is_source_enabled("events"):
+                    classify_content = (
+                        f"Event: {description}\n"
+                        f"Date: {normalized_date} {normalized_time}\n"
+                        f"Duration: {duration} min"
+                    )
+                    self.app._enqueue_classify(classify_content, name, "events")
             return f"ok: added '{name}'"
 
         if action == "list":
