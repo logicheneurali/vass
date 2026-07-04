@@ -622,8 +622,8 @@ draw();
         weights_json = _json.dumps(self._tag_weights, ensure_ascii=False)
         tagged_json = _json.dumps(tagged, ensure_ascii=False)
 
-        source_icons = {"chat": "\\ud83d\\udcac", "email": "\\ud83d\\udce7",
-                        "calendar": "\\ud83d\\udcc5", "events": "\\ud83d\\udccc", "timers": "\\u23f0"}
+        source_icons = {"chat": "\U0001F4AC", "email": "\U0001F4E7",
+                        "calendar": "\U0001F4C5", "events": "\U0001F4CC", "timers": "\u23F0"}
 
         cards_html = ""
         for entry in tagged:
