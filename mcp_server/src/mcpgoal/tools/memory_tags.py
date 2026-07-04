@@ -35,7 +35,7 @@ def _refresh_weights(allowed_root):
     MIN_RELEVANCE = 10
 
 
-async def save_tags(tags: str, allowed_root: str, entry_id: str = "", source: str = "chat") -> str:
+async def save_tags(tags: str, allowed_root: str, entry_id: str = "", source: str = "chat", content: str = "") -> str:
     _refresh_weights(allowed_root)
     tag_list = [t.strip().lower() for t in tags.split(",") if t.strip()]
     if not tag_list:
@@ -66,6 +66,7 @@ async def save_tags(tags: str, allowed_root: str, entry_id: str = "", source: st
         "relevance": relevance,
         "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "source": source,
+        "content": content[:300] if content else "",
     }
     existing_idx = None
     for i, e in enumerate(data["entries"]):

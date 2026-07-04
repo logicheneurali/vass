@@ -195,18 +195,6 @@ class MemoryEditor(QMainWindow):
         self._scroll_y = self.browser.page().scrollPosition().y()
 
         entries = self._data.get("entries", [])
-        dirty = False
-        clean_entries = []
-        for entry in entries:
-            content, _role = _load_entry_content(entry.get("id", "?"))
-            if content == "(not available)":
-                dirty = True
-                continue
-            clean_entries.append(entry)
-        if dirty:
-            self._data["entries"] = clean_entries
-            _save_tags_data(self._data)
-            entries = clean_entries
         if not entries:
             self.browser.setHtml(f'<div style="color:#888; text-align:center; padding:40px;">'
                                  f'{self._escape_html(self._tl("memory_editor.no_entries"))}</div>',
@@ -227,17 +215,24 @@ class MemoryEditor(QMainWindow):
                  '</style></head>',
                  f'<body style="background-color:{BG}; color:{FG}; font-family:Segoe UI; font-size:13px;">']
 
+        _src_icons = {"chat": "\U0001F4AC", "email": "\U0001F4E7",
+                       "calendar": "\U0001F4C5", "events": "\U0001F4CC", "timers": "\u23F0"}
+
         for i, entry in enumerate(entries):
             date_str = entry.get("ts", "?")
             tags = entry.get("tags", [])
             relevance = entry.get("relevance", 0)
+            src = entry.get("source", "chat")
+            src_icon = _src_icons.get(src, "\U0001F4AC")
             content, _role = _load_entry_content(entry.get("id", "?"))
+            if content == "(not available)":
+                content = entry.get("content", "(nessun contenuto)")
             safe_content = self._escape_html(content[:600])
 
             lines.append(f'<div class="entry-card">')
             lines.append(f'<div style="margin-bottom:8px;">')
             lines.append(f'<span style="color:#888; font-size:11px;">[{date_str}]</span> ')
-            lines.append(f'<span style="color:#aaa; font-size:11px;">{self._tl("memory_editor.relevance_label")}: {relevance}</span>')
+            lines.append(f'<span style="color:#aaa; font-size:11px;">{src_icon} {self._tl("memory_editor.relevance_label")}: {relevance}</span>')
             lines.append(f'</div>')
             lines.append(f'<div style="white-space:pre-wrap; margin-bottom:14px; font-size:12px;">{safe_content}</div>')
             lines.append(f'<div class="flex-row" style="margin-top:8px;">')
@@ -637,8 +632,10 @@ draw();
             entry_tags = entry.get("tags", [])
             relevance = entry.get("relevance", 0)
             src = entry.get("source", "chat")
-            icon = source_icons.get(src, "\\ud83d\\udcac")
+            icon = source_icons.get(src, "\U0001F4AC")
             content, _role = _load_entry_content(entry.get("id", "?"))
+            if content == "(not available)":
+                content = entry.get("content", "(nessun contenuto)")
             safe_content = self._escape_html(content[:200])
             dot_color = "#27ae60" if relevance > 20 else ("#f1c40f" if relevance > 10 else "#888")
             tags_badges = " ".join(

@@ -342,9 +342,9 @@ def create_server(config: ServerConfig) -> FastMCP:
         return await _tool("langcheck", f"lang={lang} len={len(text)}", _check_language(text, lang), config)
 
     @mcp.tool()
-    async def savetags(tags: str, entry_id: str = "") -> str:
+    async def savetags(tags: str, entry_id: str = "", content: str = "", source: str = "chat") -> str:
         """Classify the user's message with comma-separated memory tags. Always call after responding. Example: savetags('food,health,pets')"""
-        return await _tool("savetags", f"tags={tags[:80]}", _save_tags(tags, config.allowed_root, entry_id), config)
+        return await _tool("savetags", f"tags={tags[:80]}", _save_tags(tags, config.allowed_root, entry_id, source=source, content=content), config)
 
     @mcp.tool()
     async def search_tags(tags: str) -> str:

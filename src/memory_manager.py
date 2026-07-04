@@ -538,7 +538,8 @@ class MemoryManager:
             if tags:
                 tags_str = ",".join(tags)
                 result = mcp.call_tool("savetags",
-                    {"tags": tags_str, "entry_id": entry_id, "source": source})
+                    {"tags": tags_str, "entry_id": entry_id, "source": source,
+                     "content": content[:300]})
                 content_out = result.get("content", [{}])[0].get("text", str(result))
                 print(f"[Classify] External tags: {tags} -> {content_out}")
             else:
@@ -546,7 +547,8 @@ class MemoryManager:
                 tags = self._classify_keyword_fallback(content, TAG_WEIGHTS)
                 if tags:
                     mcp.call_tool("savetags",
-                        {"tags": ",".join(tags), "entry_id": entry_id, "source": source})
+                        {"tags": ",".join(tags), "entry_id": entry_id, "source": source,
+                         "content": content[:300]})
         except Exception as e:
             print(f"[Classify] External error: {e}, fallback to keyword")
             try:
