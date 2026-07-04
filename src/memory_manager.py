@@ -334,12 +334,18 @@ class MemoryManager:
             mtime_before = os.path.getmtime(path)
 
             tagged_ids = set()
+            min_rel = 10
             if os.path.exists(tags_path):
                 try:
                     with open(tags_path, encoding="utf-8") as f:
                         tags_data = json.load(f)
+                    # Load actual min_relevance from tags_config.json
+                    cfg_path = os.path.join(allowed_root, "tags_config.json")
+                    if os.path.exists(cfg_path):
+                        with open(cfg_path, encoding="utf-8") as cf:
+                            min_rel = json.load(cf).get("min_relevance", 10)
                     tagged_ids = {e["id"] for e in tags_data.get("entries", [])
-                                  if e.get("relevance", 0) >= 10}
+                                  if e.get("relevance", 0) >= min_rel}
                 except Exception:
                     pass
 
