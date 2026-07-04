@@ -282,12 +282,6 @@ class VassApp:
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "transcription"
         self.memory_mode = "full"
         self._input_mode = False
-        from memory_manager import MemoryManager
-        self.memory = MemoryManager(
-            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root"),
-            self.openai_client, self.system_message, self.language,
-            self.memory_tokens, self.overflow_strategy, lock=self._ai_lock
-        )
         self._start_rss()
 
     def _start_rss(self):
