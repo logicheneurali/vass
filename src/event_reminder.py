@@ -508,14 +508,21 @@ class EventReminder:
             root = self._root_dir()
             tags_path = os.path.join(root, "Allowed_root", "memory_tags.json")
             tagged_ids = set()
+            stale_ids = set()
             if os.path.exists(tags_path):
                 with open(tags_path, encoding="utf-8") as f:
                     tags_data = json.load(f)
-                tagged_ids = {e["id"] for e in tags_data.get("entries", [])
-                              if e.get("source") == "events"}
+                for e in tags_data.get("entries", []):
+                    if e.get("source") != "events":
+                        continue
+                    eid = e.get("id", "")
+                    if e.get("relevance", 0) >= 10 and e.get("tags") != ["generic"]:
+                        tagged_ids.add(eid)
+                    else:
+                        stale_ids.add(eid)
             for ev in items:
                 eid = ev.get("id", "")
-                if not eid or eid in tagged_ids:
+                if not eid or (eid in tagged_ids and eid not in stale_ids):
                     continue
                 desc = ev.get("description", "")
                 date = ev.get("date", "")
