@@ -277,6 +277,9 @@ class VassApp:
         self.rss_reader = None
         self.context_notes = []
         self.conversation_history = []
+        self._pending_classify = []  # list of {content, entry_id, source}
+        self._memory_sources = {}
+        self._load_memory_sources()
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "transcription"
         self.memory_mode = "full"
         self._input_mode = False
@@ -576,6 +579,7 @@ class VassApp:
             threading.Thread(target=self._sync_calendar_loop, daemon=True).start()
         if self.settings.get("gmail_enabled", "false").lower() == "true":
             threading.Thread(target=self._sync_gmail_loop, daemon=True).start()
+        threading.Thread(target=self._classify_deferred_loop, daemon=True).start()
         self.gui.set_mode_display(self.mode)
         self.gui.update_memory_bar()
 
@@ -1184,6 +1188,7 @@ class VassApp:
         if not transcribed_text:
             print("Empty transcription.")
             return
+        self.gui._chat_input.add_to_history(transcribed_text)
         if self.mode == "transcription":
             print(f"[Mode] Transcription mode: pasting text")
             paste_text(transcribed_text)
@@ -1483,6 +1488,46 @@ class VassApp:
                 print(f"[Stream] Remaining enqueued: {len(remaining.split())} words, {len(remaining)} chars")
             elapsed = time.time() - _stream_start
             print(f"[Stream] Done: {len(full_content)} chars in {elapsed:.1f}s (CPS={CPS:.1f}), tool_calls={bool(tool_calls_acc)}, finish={finish_reason}")
+
+            if not finish_reason:
+                if not full_content:
+                    print(f"[Stream] WARNING: stream ended without finish_reason and empty content — retrying once")
+                    try:
+                        stream2 = call_with_retry(
+                            lambda: self.openai_client.chat.completions.create(**kwargs),
+                            log_prefix="[Stream Retry]")
+                        for chunk2 in stream2:
+                            if not chunk2.choices:
+                                continue
+                            d2 = chunk2.choices[0].delta
+                            if d2.content:
+                                full_content += d2.content
+                            if d2.tool_calls:
+                                for tc_delta in d2.tool_calls:
+                                    idx = tc_delta.index
+                                    if idx not in tool_calls_acc:
+                                        tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
+                                    acc = tool_calls_acc[idx]
+                                    if tc_delta.id:
+                                        acc["id"] += tc_delta.id
+                                    if tc_delta.function:
+                                        if tc_delta.function.name:
+                                            acc["name"] += tc_delta.function.name
+                                        if tc_delta.function.arguments:
+                                            acc["arguments"] += tc_delta.function.arguments
+                            fr2 = chunk2.choices[0].finish_reason
+                            if fr2:
+                                finish_reason = fr2
+                                break
+                        if full_content:
+                            self.tts.enqueue(full_content)
+                            print(f"[Stream] Retry succeeded: {len(full_content)} chars, finish={finish_reason}")
+                        else:
+                            print(f"[Stream] Retry also returned empty content")
+                    except Exception as e:
+                        print(f"[Stream] Retry failed: {e}")
+                else:
+                    print(f"[Stream] WARNING: stream ended without finish_reason but has {len(full_content)} chars — using partial content")
 
             # ── Handle tool calls ──────────────────────────────────────────
             script_called = False
@@ -2140,6 +2185,141 @@ class VassApp:
 
     def get_tts_position(self):
         return self.tts.get_position()
+
+    def _load_memory_sources(self):
+        """Load source toggle state from Allowed_root/memory_sources.json."""
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            "Allowed_root", "memory_sources.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                self._memory_sources = json.load(f)
+        except Exception:
+            self._memory_sources = {"email": False, "calendar": False,
+                                     "events": False, "timers": False}
+
+    def _is_source_enabled(self, source):
+        return self._memory_sources.get(source, False)
+
+    def _classify_deferred_loop(self):
+        """Process pending classify queue every 60s, only when AI is idle."""
+        import time as _time
+        _time.sleep(10)  # initial delay
+        while self.running:
+            _time.sleep(60)
+            if self._ai_lock.locked() or self.state == "waiting":
+                continue
+            if not self._pending_classify:
+                continue
+            batch = self._pending_classify[:5]
+            del self._pending_classify[:5]
+            for item in batch:
+                try:
+                    self._classify_external_entry(
+                        item["content"], item["entry_id"], item["source"])
+                except Exception as e:
+                    print(f"[Classify] Deferred error: {e}")
+
+    def _classify_external_entry(self, content, entry_id, source):
+        """Classify external content (email/event/timer) and save tags.
+        Falls back to keyword matching if AI unavailable."""
+        print(f"[Classify] External: source={source} id={entry_id} content_len={len(content)}")
+        try:
+            import sys as _sys, os as _os
+            _mcp_src = _os.path.join(_os.path.dirname(_os.path.dirname(
+                _os.path.abspath(__file__))), "mcp_server", "src")
+            if _mcp_src not in _sys.path:
+                _sys.path.insert(0, _mcp_src)
+            from mcpgoal.tools.memory_tags import TAG_WEIGHTS
+            from utils import init_mcp
+            mcp, _ = init_mcp(self.mcp_server_url, timeout=30)
+            if not mcp:
+                print("[Classify] MCP not available, using keyword fallback")
+                tags = self._classify_keyword_fallback(content, TAG_WEIGHTS)
+                if tags:
+                    mcp2, _ = init_mcp(self.mcp_server_url, timeout=10)
+                    if mcp2:
+                        mcp2.call_tool("savetags",
+                                       {"tags": ",".join(tags), "entry_id": entry_id,
+                                        "source": source})
+                return
+        except Exception as e:
+            print(f"[Classify] Init error: {e}")
+            return
+
+        tag_list = ", ".join(sorted(TAG_WEIGHTS.keys()))
+        classify_prompt = (
+            f"Classify this {source} content with 1-2 comma-separated tags ONLY from: {tag_list}\n\n"
+            f"Content: \"{content[:500]}\"\n\n"
+            f"Rules:\n"
+            f"- Return ONLY 1-2 most relevant tags, nothing else.\n"
+            f"- If content is generic/unclassifiable, return ONLY 'generic'.\n"
+            f"- Example: travel,personal_interests\n"
+            f"- Example: health\n"
+            f"- Example: generic"
+        )
+        try:
+            resp = self.openai_client.chat.completions.create(
+                model=self.ai_model,
+                messages=[{"role": "user", "content": classify_prompt}],
+                temperature=0.1,
+                max_tokens=50,
+                extra_body={"disable_thinking": True}
+            )
+            raw = (resp.choices[0].message.content or "").strip().lower()
+            tags = [t.strip() for t in raw.split(",")
+                    if t.strip() and t.strip() in TAG_WEIGHTS][:2]
+            if tags:
+                tags_str = ",".join(tags)
+                result = mcp.call_tool("savetags",
+                    {"tags": tags_str, "entry_id": entry_id, "source": source})
+                content_out = result.get("content", [{}])[0].get("text", str(result))
+                print(f"[Classify] External tags: {tags} -> {content_out}")
+            else:
+                print(f"[Classify] External: AI returned unusable: '{raw}', fallback to keyword")
+                tags = self._classify_keyword_fallback(content, TAG_WEIGHTS)
+                if tags:
+                    mcp.call_tool("savetags",
+                        {"tags": ",".join(tags), "entry_id": entry_id, "source": source})
+        except Exception as e:
+            print(f"[Classify] External error: {e}, fallback to keyword")
+            try:
+                import sys as _sys2, os as _os2
+                _mcp_src2 = _os2.path.join(_os2.path.dirname(_os2.path.dirname(
+                    _os2.path.abspath(__file__))), "mcp_server", "src")
+                if _mcp_src2 not in _sys2.path:
+                    _sys2.path.insert(0, _mcp_src2)
+                from mcpgoal.tools.memory_tags import TAG_WEIGHTS as TW2
+                tags = self._classify_keyword_fallback(content, TW2)
+                if tags:
+                    mcp2, _ = init_mcp(self.mcp_server_url, timeout=10)
+                    if mcp2:
+                        mcp2.call_tool("savetags",
+                            {"tags": ",".join(tags), "entry_id": entry_id, "source": source})
+            except Exception:
+                pass
+
+    def _classify_keyword_fallback(self, content, tag_weights):
+        """Keyword-based tag assignment when AI is unavailable."""
+        content_lower = content.lower()
+        matches = []
+        for tag, weight in tag_weights.items():
+            if tag == "generic":
+                continue
+            if tag in content_lower or tag.replace("_", " ") in content_lower:
+                matches.append((tag, weight))
+        if not matches:
+            return ["generic"]
+        matches.sort(key=lambda x: -x[1])
+        return [m[0] for m in matches[:2]]
+
+    def _enqueue_classify(self, content, entry_id, source):
+        """Add content to pending classify queue. Drops oldest if queue full."""
+        if not self._is_source_enabled(source):
+            return
+        if len(self._pending_classify) >= 100:
+            self._pending_classify.pop(0)
+        self._pending_classify.append(
+            {"content": content, "entry_id": entry_id, "source": source})
 
 def main():
         import argparse
