@@ -89,7 +89,7 @@ class MemoryManager:
                     cached = self._summary_cache.get(summary_id)
                     if cached:
                         summary_text = cached
-                    elif self._app._count_tokens(summary_text) > 500:
+                    elif self._app._count_tokens(summary_text) > 1000:
                         summary_text = self._compress_summary(summary_text, summary_id, mem_data)
                         if summary_text:
                             self._summary_cache[summary_id] = summary_text
@@ -175,7 +175,7 @@ class MemoryManager:
                 model=self._app.ai_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=500,
+                max_tokens=1000,
                 extra_body={"disable_thinking": True}
             ), log_prefix="[Summary]")
             compressed = (resp.choices[0].message.content or "").strip()
