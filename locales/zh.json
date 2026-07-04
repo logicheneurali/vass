@@ -503,7 +503,8 @@
     "sources_events": "应用程序事件",
     "sources_timers": "计时器",
     "sources_description": "来自已启用来源的信息将被标记并添加到永久记忆中。",
-    "sources_saved": "来源偏好已保存。"
+    "sources_saved": "来源偏好已保存。",
+    "map": "地图"
   },
   "tag_manager": {
     "title": "标签管理器",

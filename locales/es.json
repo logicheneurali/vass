@@ -502,7 +502,8 @@
     "sources_events": "Eventos de la aplicación",
     "sources_timers": "Temporizadores",
     "sources_description": "La información de las fuentes activadas se catalogará con etiquetas en la memoria permanente.",
-    "sources_saved": "Preferencias de fuentes guardadas."
+    "sources_saved": "Preferencias de fuentes guardadas.",
+    "map": "Mapa"
   },
   "tag_manager": {
     "title": "Gestor de Tags",

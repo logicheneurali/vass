@@ -502,7 +502,8 @@
     "sources_events": "Application Events",
     "sources_timers": "Timers",
     "sources_description": "Information from enabled sources will be tagged and added to permanent memory.",
-    "sources_saved": "Source preferences saved."
+    "sources_saved": "Source preferences saved.",
+    "map": "Map"
   },
   "tag_manager": {
     "title": "Tag Manager",

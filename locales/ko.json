@@ -503,7 +503,8 @@
     "sources_events": "애플리케이션 이벤트",
     "sources_timers": "타이머",
     "sources_description": "활성화된 소스의 정보는 태그와 함께 영구 메모리에 카탈로그화됩니다.",
-    "sources_saved": "소스 설정이 저장되었습니다."
+    "sources_saved": "소스 설정이 저장되었습니다.",
+    "map": "지도"
   },
   "tag_manager": {
     "title": "태그 관리자",

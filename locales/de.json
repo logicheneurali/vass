@@ -502,7 +502,8 @@
     "sources_events": "App-Ereignisse",
     "sources_timers": "Timer",
     "sources_description": "Informationen aus aktivierten Quellen werden mit Tags im permanenten Speicher katalogisiert.",
-    "sources_saved": "Quelleneinstellungen gespeichert."
+    "sources_saved": "Quelleneinstellungen gespeichert.",
+    "map": "Übersicht"
   },
   "tag_manager": {
     "title": "Tag-Verwaltung",

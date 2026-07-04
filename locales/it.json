@@ -502,7 +502,8 @@
     "sources_events": "Eventi dell'applicazione",
     "sources_timers": "Timer",
     "sources_description": "Le informazioni provenienti dalle fonti attivate verranno catalogate con tag nella memoria permanente.",
-    "sources_saved": "Preferenze fonti salvate."
+    "sources_saved": "Preferenze fonti salvate.",
+    "map": "Mappa"
   },
   "tag_manager": {
     "title": "Gestione Tags",

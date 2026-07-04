@@ -503,7 +503,8 @@
     "sources_events": "アプリケーションイベント",
     "sources_timers": "タイマー",
     "sources_description": "有効化されたソースからの情報は、タグ付きで永続メモリにカタログ化されます。",
-    "sources_saved": "ソース設定を保存しました。"
+    "sources_saved": "ソース設定を保存しました。",
+    "map": "マップ"
   },
   "tag_manager": {
     "title": "タグマネージャー",
