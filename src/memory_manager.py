@@ -319,6 +319,10 @@ class MemoryManager:
                 sf_path = os.path.join(mem_dir, f"{summary_id}.json")
                 if os.path.exists(sf_path):
                     total_size += os.path.getsize(sf_path)
+            allowed_root = os.path.join(root, "Allowed_root")
+            tags_path = os.path.join(allowed_root, "memory_tags.json")
+            if os.path.exists(tags_path):
+                total_size += os.path.getsize(tags_path)
 
             threshold = self._app.memory_tokens * 2
             if total_size < threshold and not force:
@@ -329,8 +333,6 @@ class MemoryManager:
                 print(f"[Memory] Total size {total_size} > threshold {threshold}, compressing...")
             mtime_before = os.path.getmtime(path)
 
-            allowed_root = os.path.join(root, "Allowed_root")
-            tags_path = os.path.join(allowed_root, "memory_tags.json")
             tagged_ids = set()
             if os.path.exists(tags_path):
                 try:
@@ -358,6 +360,7 @@ class MemoryManager:
                 return
 
             history_content = []
+            external_content = []
             for vid in tagged_ids_list[:100]:
                 entry_path = _find_entry(vid)
                 if entry_path:
@@ -367,8 +370,19 @@ class MemoryManager:
                         history_content.append(json.loads(entry))
                     except Exception:
                         pass
+                else:
+                    # External entry (email, event, timer) — use content from tags
+                    for te in tags_data.get("entries", []):
+                        if te.get("id") == vid and te.get("source", "chat") != "chat":
+                            content = te.get("content", "")
+                            if content:
+                                external_content.append(
+                                    {"role": te.get("source", "external"),
+                                     "content": content})
+                            break
+            all_content = history_content + external_content
 
-            if not history_content:
+            if not all_content:
                 return
 
             old_summary = ""
@@ -387,6 +401,8 @@ class MemoryManager:
             if old_summary:
                 prompt += "\n\nExisting summary to build upon:\n" + old_summary
             prompt += f"\n\nTagged conversations ({len(history_content)} entries):\n" + json.dumps(history_content, ensure_ascii=False)
+            if external_content:
+                prompt += f"\n\nTagged external data ({len(external_content)} entries):\n" + json.dumps(external_content, ensure_ascii=False)
             prompt += "\n\nReturn ONLY a JSON object with your summary. Example: {\"summary\": \"...\"}"
 
             print(f"[Memory] Summarization request -> prompt_len={len(prompt)}, entries={len(history_content)}")
@@ -464,6 +480,23 @@ class MemoryManager:
                                 print(f"[Memory] Cleaned old archive: {entry}")
                         except (ValueError, OSError):
                             pass
+
+            # Clean orphan tag entries pointing to archived/nonexistent files
+            if tags_data:
+                valid_entries = []
+                for te in tags_data.get("entries", []):
+                    tid = te.get("id", "")
+                    src = te.get("source", "chat")
+                    if src == "chat" and tid not in referenced:
+                        continue
+                    valid_entries.append(te)
+                removed = len(tags_data.get("entries", [])) - len(valid_entries)
+                if removed > 0:
+                    tags_data["entries"] = valid_entries
+                    tags_path2 = os.path.join(allowed_root, "memory_tags.json")
+                    with open(tags_path2, "w", encoding="utf-8") as f:
+                        json.dump(tags_data, f, ensure_ascii=False, indent=2)
+                    print(f"[Memory] Cleaned {removed} orphan tag entries")
 
             print(f"[Memory] Trimmed to {os.path.getsize(path)} bytes, {len(new_history_ids)} history entries kept")
         except Exception as e:
