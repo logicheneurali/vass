@@ -596,7 +596,7 @@ class VassApp:
                 frame = self.audio_handler.get_frame()
                 raw_rms = float(np.sqrt(np.mean(frame**2))) if frame is not None else 0.0
                 if frame is not None and self.noise_filter:
-                    frame = self.noise_filter.process(frame)
+                    frame = self.noise_filter.process(frame, raw_rms=raw_rms)
                 is_auto_paused = self.state_manager.is_auto_paused()
                 is_manual_paused = self.state_manager.is_manual_paused()
                 with self._state_vars_lock:

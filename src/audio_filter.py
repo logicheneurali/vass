@@ -32,8 +32,9 @@ class NoiseFilter:
         self.noise_profile = None
         self._last_update = 0
 
-    def process(self, frame):
-        """Main entry: returns filtered frame. Pass-through if not a numpy array."""
+    def process(self, frame, raw_rms=0.0):
+        """Main entry: returns filtered frame. Pass-through if not a numpy array.
+        raw_rms: pre-filter RMS energy for calibration gating (0 = unknown/force)."""
         if not self._enabled or not isinstance(frame, np.ndarray):
             return frame
 
@@ -45,9 +46,10 @@ class NoiseFilter:
         # Stage 1: High-pass filter
         frame, self._hp_z = _biquad(frame, self._hp_b, self._hp_a, self._hp_z)
 
-        # Calibration
+        # Calibration — only accumulate during likely silence (RMS < 10% of max)
         if self._calibrating:
-            self._calib_accum.append(frame.copy())
+            if raw_rms <= 0.0 or raw_rms < 0.03:  # silence gate: skip frames with speech
+                self._calib_accum.append(frame.copy())
             if len(self._calib_accum) >= self._calib_target:
                 self._finish_calibration()
                 self._calibrating = False
