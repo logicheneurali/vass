@@ -2226,7 +2226,12 @@ class VassGUI(QMainWindow):
         urls = re.findall(r'https?://[^\s<>"]+', text or "")
         clean = []
         for u in urls:
-            u = u.rstrip(".,;:!?)]}'\"")
+            # Remove trailing markdown/formatting artifacts only
+            # Preserve URL-safe chars like ) that may be legit (Wikipedia, etc.)
+            u = re.sub(r'[.,;:!?\]}>*_~`\']+$', '', u)
+            # Remove one closing paren only if URL has no opening paren
+            if u.endswith(')') and '(' not in u:
+                u = u[:-1]
             if u not in clean:
                 clean.append(u)
         if clean:
