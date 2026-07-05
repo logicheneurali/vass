@@ -279,6 +279,8 @@ class VassApp:
         from memory_manager import MemoryManager
         self.memory = MemoryManager(self)
         self.memory.load_sources()
+        from audio_filter import NoiseFilter
+        self.noise_filter = NoiseFilter()
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "transcription"
         self.memory_mode = "full"
         self._input_mode = False
@@ -347,6 +349,8 @@ class VassApp:
             with self._state_vars_lock:
                 self._noise_high_since = None
                 self._running_noise_floor = None
+        if self.state in ("paused", "loading") and new_state == "listening":
+            self.noise_filter.reset_calibration()
         self.state_manager.set_state(new_state, detail, silent_gui)
 
     def _update_gui_state(self, new_state, detail="", silent_gui=False):
@@ -590,6 +594,8 @@ class VassApp:
                     time.sleep(0.05)
                     continue
                 frame = self.audio_handler.get_frame()
+                if frame is not None and self.noise_filter:
+                    frame = self.noise_filter.process(frame)
                 is_auto_paused = self.state_manager.is_auto_paused()
                 is_manual_paused = self.state_manager.is_manual_paused()
                 with self._state_vars_lock:
@@ -717,6 +723,8 @@ class VassApp:
                                         self._noise_high_since = None
                                 else:
                                     self._noise_high_since = None
+                                    self.noise_filter.maybe_update_profile(
+                                        frame, is_silence=True, now=time.time())
 
                                 # GUI update every 50 frames (~1s)
                                 if self._nf_print_counter % 50 == 0:
