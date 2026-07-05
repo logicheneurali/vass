@@ -73,10 +73,10 @@ class AudioHandler:
     def stop_recording(self):
         self.is_recording = False
 
-    def process_recording(self, audio_data):
+    def process_recording(self, audio_data, vad_frame=None):
         if self.is_recording:
             self.recorded_buffer.append(audio_data)
-            if self._detect_silence(audio_data):
+            if self._detect_silence(vad_frame if vad_frame is not None else audio_data):
                 if self.silence_start is None:
                     self.silence_start = time.time()
                 elif (time.time() - self.silence_start) >= self.silence_threshold:

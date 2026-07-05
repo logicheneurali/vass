@@ -594,6 +594,7 @@ class VassApp:
                     time.sleep(0.05)
                     continue
                 frame = self.audio_handler.get_frame()
+                raw_frame = frame
                 raw_rms = float(np.sqrt(np.mean(frame**2))) if frame is not None else 0.0
                 if frame is not None and self.noise_filter:
                     frame = self.noise_filter.process(frame, raw_rms=raw_rms)
@@ -737,7 +738,7 @@ class VassApp:
                                     if nf > adaptive_threshold and self.debug_enabled:
                                         print(f"[NoiseFloor] {nf:.6f} (adaptive threshold: {adaptive_threshold:.6f})")
 
-                    self.audio_handler.process_recording(frame)
+                    self.audio_handler.process_recording(frame, vad_frame=raw_frame)
 
                     if not self.audio_handler.is_recording and len(self.audio_handler.recorded_buffer) > 0:
                         self.state_manager.set_state("listening")
