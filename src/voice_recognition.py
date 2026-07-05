@@ -158,14 +158,15 @@ class VoiceRecognition:
                 if self.debug_enabled:
                     print(f"[Audio] Clipping detected ({clip_ratio:.1%}), reducing gain to {self._input_volume:.3f}")
 
-    def detect_wake_word(self, audio_chunk):
+    def detect_wake_word(self, audio_chunk, raw_energy=None):
         if isinstance(audio_chunk, bytes):
             audio_chunk = np.frombuffer(audio_chunk, dtype=np.int16).astype(np.float32) / 32768.0
         if self._input_volume != 1.0:
             audio_chunk = audio_chunk * self._input_volume
 
-        energy = np.sqrt(np.mean(audio_chunk**2))
-        raw_energy = energy
+        if raw_energy is None:
+            raw_energy = np.sqrt(np.mean(audio_chunk**2))
+        energy = raw_energy
 
         with self._lock:
             self._update_statistics(raw_energy, audio_chunk)
