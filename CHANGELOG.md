@@ -4,6 +4,29 @@ Ultima compattazione: 2026-07-05, v0.6.0
 
 ---
 
+## Patch post-v0.6.0 (2026-07-05)
+
+### Cancellazione rumore DSP
+- **`NoiseFilter`** (`src/audio_filter.py`): modulo DSP real-time con high-pass 80Hz + spectral subtraction + soft clip. Calibrazione automatica (2s silenzio), aggiornamento continuo (EMA ogni 30s). <0.01% CPU.
+- **VAD su raw frame**: rilevazione silenzio su audio non filtrato — evita artefatti IFFT che confondevano `webrtcvad`.
+- **Noise floor su raw frame**: calcolato prima del filtro per soglie adattive realistiche.
+- **Reset noise tracking**: quando esce da `playing` → pulisce variabili per evitare auto-pausa su eco TTS.
+
+### Mappa memoria
+- **Sidebar tag scrollabile** a sinistra: lista ordinata per conteggio decrescente, cliccabile.
+- **Fix coordinate canvas**: `getBoundingClientRect()` per hover/click dopo aggiunta sidebar.
+- **Fix eliminazione entry**: usa ID invece di indice (bug con lista filtrata per `min_relevance`).
+- **InfoPanel**: tab label localizzati anche in `set_links` (auto-open).
+
+### File Chiave
+| File | Linee | Contenuto |
+|------|-------|-----------|
+| `src/audio_filter.py` | 130 | NoiseFilter DSP: high-pass, spectral subtraction, auto-calibration |
+| `src/memory_editor.py` | 920 | Sidebar tag list, fix coordinate/delete, InfoPanel fix |
+| `src/main.py` | 1993 | Integrazione NoiseFilter, raw frame per VAD/noise floor |
+
+---
+
 ## v0.6.0 (2026-07-05)
 
 ### Sistema memoria permanente — refactoring e tagging fonti esterne
