@@ -624,7 +624,8 @@ function draw() {{
 }}
 
 canvas.addEventListener("mousemove", (e) => {{
-    const mx = e.clientX, my = e.clientY;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
     let found = null;
     for (const b of bubbles) {{
         const dx = mx - b.x, dy = my - b.y;
@@ -635,8 +636,8 @@ canvas.addEventListener("mousemove", (e) => {{
         draw();
         if (found) {{
             tooltip.style.display = "block";
-            tooltip.style.left = (mx + 15) + "px";
-            tooltip.style.top = (my - 10) + "px";
+            tooltip.style.left = (e.clientX + 15) + "px";
+            tooltip.style.top = (e.clientY - 10) + "px";
             const icons = {{chat:"\\ud83d\\udcac", email:"\\ud83d\\udce7", calendar:"\\ud83d\\udcc5", events:"\\ud83d\\udccc", timers:"\\u23f0"}};
             const sources = [...found.sources].map(s => icons[s] || s).join(" ");
             tooltip.innerHTML = "<b>" + found.tag + "</b><br>" + found.count + " voci &middot; ril. media " + Math.round(found.avgRel) + "<br>" + sources;
