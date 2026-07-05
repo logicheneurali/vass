@@ -343,6 +343,10 @@ class VassApp:
         pause flag is still active, so operations that complete while paused
         automatically return to the paused state.
         """
+        if self.state == "playing" and new_state != "playing":
+            with self._state_vars_lock:
+                self._noise_high_since = None
+                self._running_noise_floor = None
         self.state_manager.set_state(new_state, detail, silent_gui)
 
     def _update_gui_state(self, new_state, detail="", silent_gui=False):
