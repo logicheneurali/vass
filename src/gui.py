@@ -640,6 +640,9 @@ class InfoPanel(QFrame):
         if not urls:
             return
         self._parent_window = parent_window
+        self._tab_links.setText(self._t("gui.links"))
+        self._tab_notif.setText(self._t("gui.notifications"))
+        self._mark_btn.setText(self._t("gui.mark_all_read"))
         self._switch_tab("links")
         self._position(parent_window)
         self.show()
