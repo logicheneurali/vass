@@ -234,7 +234,8 @@ class MemoryEditor(QMainWindow):
             relevance = entry.get("relevance", 0)
             src = entry.get("source", "chat")
             src_icon = _src_icons.get(src, "\U0001F4AC")
-            content, _role = _load_entry_content(entry.get("id", "?"))
+            eid = entry.get("id", "")
+            content, _role = _load_entry_content(eid)
             if content == "(not available)":
                 content = entry.get("content", "(nessun contenuto)")
             safe_content = self._escape_html(content[:600])
@@ -251,14 +252,14 @@ class MemoryEditor(QMainWindow):
                 weight = self._tag_weights.get(tag, "?")
                 known = tag in self._tag_weights
                 if known:
-                    lines.append(f'<a href="vass:rmtag:{i}:{tag}" style="display:inline-block; background:{TAG_BG}; border-radius:3px; padding:3px 8px; margin:2px; font-size:11px;">'
+                    lines.append(f'<a href="vass:rmtag:{eid}:{tag}" style="display:inline-block; background:{TAG_BG}; border-radius:3px; padding:3px 8px; margin:2px; font-size:11px;">'
                                  f'{tag} ({weight}) &times;</a>')
                 else:
                     lines.append(f'<span style="display:inline-block; background:#444; color:#888; border-radius:3px; padding:3px 8px; margin:2px; font-size:11px;">'
                                  f'{tag} ({weight})</span>')
-            lines.append(f'<a href="vass:addtag:{i}" style="display:inline-block; color:{ACCENT}; font-size:11px; margin:2px;">+ {self._tl("memory_editor.add_tag_button")}</a>')
+            lines.append(f'<a href="vass:addtag:{eid}" style="display:inline-block; color:{ACCENT}; font-size:11px; margin:2px;">+ {self._tl("memory_editor.add_tag_button")}</a>')
             lines.append(f'</div>')
-            lines.append(f'<a href="vass:delentry:{i}" style="color:#e74c3c; font-size:11px; white-space:nowrap;">{self._tl("memory_editor.delete_entry")}</a>')
+            lines.append(f'<a href="vass:delentry:{eid}" style="color:#e74c3c; font-size:11px; white-space:nowrap;">{self._tl("memory_editor.delete_entry")}</a>')
             lines.append(f'</div>')
             lines.append(f'</div>')
 
@@ -275,11 +276,11 @@ class MemoryEditor(QMainWindow):
         parts = rest.split(":", 2)
         action = parts[0]
         if action == "rmtag" and len(parts) >= 3:
-            self._remove_tag(int(parts[1]), parts[2])
+            self._remove_tag(parts[1], parts[2])
         elif action == "addtag" and len(parts) >= 2:
-            self._show_add_tag_menu(int(parts[1]))
+            self._show_add_tag_menu(parts[1])
         elif action == "delentry" and len(parts) >= 2:
-            self._delete_entry(int(parts[1]))
+            self._delete_entry(parts[1])
         elif action == "bubble" and len(parts) >= 2:
             from urllib.parse import unquote
             tag = unquote(parts[1])
@@ -287,11 +288,19 @@ class MemoryEditor(QMainWindow):
         elif action == "closepanel":
             self._show_bubble_map()
 
-    def _remove_tag(self, entry_idx, tag):
+    def _find_entry_idx(self, eid):
+        """Find entry index by ID. Returns None if not found."""
         entries = self._data.get("entries", [])
-        if entry_idx >= len(entries):
+        for i, e in enumerate(entries):
+            if e.get("id") == eid:
+                return i
+        return None
+
+    def _remove_tag(self, eid, tag):
+        idx = self._find_entry_idx(eid)
+        if idx is None:
             return
-        entry = entries[entry_idx]
+        entry = self._data["entries"][idx]
         tags = entry.get("tags", [])
         if tag in tags:
             tags.remove(tag)
@@ -302,24 +311,24 @@ class MemoryEditor(QMainWindow):
             self._mark_dirty()
             self._rebuild_content()
 
-    def _show_add_tag_menu(self, entry_idx):
-        menu = QMenu(self)
-        entries = self._data.get("entries", [])
-        if entry_idx >= len(entries):
+    def _show_add_tag_menu(self, eid):
+        idx = self._find_entry_idx(eid)
+        if idx is None:
             return
-        current_tags = set(entries[entry_idx].get("tags", []))
+        menu = QMenu(self)
+        current_tags = set(self._data["entries"][idx].get("tags", []))
         for tag, weight in sorted(self._tag_weights.items(), key=lambda x: -x[1]):
             if tag not in current_tags:
                 action = menu.addAction(f"{tag} ({weight})")
-                action.triggered.connect(lambda checked, t=tag, i=entry_idx: self._add_tag(i, t))
+                action.triggered.connect(lambda checked, t=tag, e=eid: self._add_tag(e, t))
         if menu.actions():
             menu.exec(self.mapToGlobal(self.rect().center()))
 
-    def _add_tag(self, entry_idx, tag):
-        entries = self._data.get("entries", [])
-        if entry_idx >= len(entries):
+    def _add_tag(self, eid, tag):
+        idx = self._find_entry_idx(eid)
+        if idx is None:
             return
-        entry = entries[entry_idx]
+        entry = self._data["entries"][idx]
         tags = entry.get("tags", [])
         if tag not in tags:
             tags.append(tag)
@@ -328,19 +337,21 @@ class MemoryEditor(QMainWindow):
             self._mark_dirty()
             self._rebuild_content()
 
-    def _delete_entry(self, entry_idx):
-        entries = self._data.get("entries", [])
-        if entry_idx >= len(entries):
+    def _delete_entry(self, eid):
+        idx = self._find_entry_idx(eid)
+        if idx is None:
             return
+        entry = self._data["entries"][idx]
+        desc = entry.get("content", entry.get("description", "?"))[:50]
         msg = QMessageBox(self)
         msg.setWindowTitle(self._tl("memory_editor.delete_entry"))
-        msg.setText(self._tl("memory_editor.delete_confirm"))
+        msg.setText(self._tl("memory_editor.delete_confirm").replace("{item}", desc))
         msg.setIcon(QMessageBox.Icon.Question)
         yes_btn = msg.addButton(self._tl("memory_editor.dialog_yes"), QMessageBox.ButtonRole.YesRole)
         msg.addButton(self._tl("memory_editor.dialog_no"), QMessageBox.ButtonRole.NoRole)
         msg.exec()
         if msg.clickedButton() == yes_btn:
-            del entries[entry_idx]
+            del self._data["entries"][idx]
             self._mark_dirty()
             self._rebuild_content()
 
