@@ -410,18 +410,50 @@ class MemoryEditor(QMainWindow):
         entries_json = _json.dumps(entries, ensure_ascii=False)
         weights_json = _json.dumps(self._tag_weights, ensure_ascii=False)
 
+        # Build sorted tag list for sidebar
+        tag_counts = {}
+        for e in entries:
+            for t in e.get("tags", []):
+                tag_counts[t] = tag_counts.get(t, 0) + 1
+        sorted_tags = sorted(tag_counts.items(), key=lambda x: (-x[1], x[0]))
+        tags_html = ""
+        for tag, count in sorted_tags:
+            tags_html += (
+                f'<div class="tag-row" onclick="window.location.href=\'vass:bubble:'
+                f'{self._escape_html(tag)}\'" title="{self._escape_html(tag)} ({count})">'
+                f'<span class="tag-name">{self._escape_html(tag)}</span>'
+                f'<span class="tag-count">{count}</span></div>')
+
         html = f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-::-webkit-scrollbar {{ width: 0; }}
+::-webkit-scrollbar {{ width: 6px; }}
+::-webkit-scrollbar-track {{ background: #1e1e1e; }}
+::-webkit-scrollbar-thumb {{ background: #3a3a3a; border-radius: 3px; }}
 body {{ margin: 0; overflow: hidden;
-       background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d1117 80%);
-       font-family: "Segoe UI", sans-serif; }}
+       background: #0d1117; font-family: "Segoe UI", sans-serif;
+       display: flex; height: 100vh; }}
+#sidebar {{ flex: 0 0 180px; background: #111122; border-right: 1px solid #1a1a3a;
+           overflow-y: auto; padding: 8px 0; }}
+#sidebar h4 {{ color: #888; font-size: 11px; margin: 0; padding: 8px 12px 4px 12px;
+              text-transform: uppercase; letter-spacing: 1px; }}
+.tag-row {{ display: flex; justify-content: space-between; align-items: center;
+           padding: 5px 12px; cursor: pointer; font-size: 12px;
+           color: #aaa; border-left: 3px solid transparent; }}
+.tag-row:hover {{ color: #e0e0e0; background: rgba(255,255,255,0.05);
+                 border-left-color: #0f3460; }}
+.tag-row.active {{ color: #e94560; background: rgba(233,69,96,0.1);
+                  border-left-color: #e94560; }}
+.tag-name {{ flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+.tag-count {{ color: #666; font-size: 10px; margin-left: 6px; }}
+#map-area {{ flex: 1; position: relative; overflow: hidden;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d1117 80%); }}
 canvas {{ display: block; }}
 #tooltip {{ position: fixed; pointer-events: none; display: none;
            background: #252525; color: #e0e0e0; padding: 8px 12px;
            border: 1px solid #3a3a3a; border-radius: 4px; font-size: 12px;
            z-index: 10; white-space: nowrap; }}
 </style></head><body>
-<canvas id="map"></canvas>
+<div id="sidebar"><h4>Tags</h4>{tags_html}</div>
+<div id="map-area"><canvas id="map"></canvas></div>
 <div id="tooltip"></div>
 <script>
 const entries = {entries_json};
@@ -429,6 +461,7 @@ const weights = {weights_json};
 const canvas = document.getElementById("map");
 const ctx = canvas.getContext("2d");
 const tooltip = document.getElementById("tooltip");
+const mapArea = document.getElementById("map-area");
 
 const tagData = {{}};
 for (const e of entries) {{
@@ -478,8 +511,8 @@ function getColor(avgRel) {{
 for (const b of bubbles) b.color = getColor(b.avgRel);
 
 function resize() {{
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = mapArea.clientWidth;
+    canvas.height = mapArea.clientHeight;
 }}
 resize();
 window.addEventListener("resize", () => {{ resize(); step(30); draw(); }});
@@ -639,6 +672,21 @@ draw();
         source_icons = {"chat": "\U0001F4AC", "email": "\U0001F4E7",
                         "calendar": "\U0001F4C5", "events": "\U0001F4CC", "timers": "\u23F0"}
 
+        # Build sorted tag list for sidebar
+        tag_counts = {}
+        for e in entries:
+            for t in e.get("tags", []):
+                tag_counts[t] = tag_counts.get(t, 0) + 1
+        sorted_tags = sorted(tag_counts.items(), key=lambda x: (-x[1], x[0]))
+        tags_html = ""
+        for tname, count in sorted_tags:
+            active_cls = " active" if tname == tag else ""
+            tags_html += (
+                f'<div class="tag-row{active_cls}" onclick="window.location.href=\'vass:bubble:'
+                f'{self._escape_html(tname)}\'" title="{self._escape_html(tname)} ({count})">'
+                f'<span class="tag-name">{self._escape_html(tname)}</span>'
+                f'<span class="tag-count">{count}</span></div>')
+
         cards_html = ""
         for entry in tagged:
             ts = entry.get("ts", "?")
@@ -667,7 +715,20 @@ draw();
 ::-webkit-scrollbar-thumb {{ background: #3a3a3a; border-radius: 4px; }}
 body {{ margin: 0; background: #0d1117; font-family: "Segoe UI", sans-serif;
        color: #e0e0e0; display: flex; height: 100vh; }}
-#map-area {{ flex: 0 0 60%; position: relative; overflow: hidden;
+#sidebar {{ flex: 0 0 160px; background: #111122; border-right: 1px solid #1a1a3a;
+           overflow-y: auto; padding: 8px 0; }}
+#sidebar h4 {{ color: #888; font-size: 11px; margin: 0; padding: 8px 12px 4px 12px;
+              text-transform: uppercase; letter-spacing: 1px; }}
+.tag-row {{ display: flex; justify-content: space-between; align-items: center;
+           padding: 4px 10px; cursor: pointer; font-size: 11px;
+           color: #aaa; border-left: 3px solid transparent; }}
+.tag-row:hover {{ color: #e0e0e0; background: rgba(255,255,255,0.05);
+                 border-left-color: #0f3460; }}
+.tag-row.active {{ color: #e94560; background: rgba(233,69,96,0.1);
+                  border-left-color: #e94560; }}
+.tag-name {{ flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+.tag-count {{ color: #666; font-size: 10px; margin-left: 6px; }}
+#map-area {{ flex: 0 0 50%; position: relative; overflow: hidden;
             background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d1117 80%); }}
 #panel {{ flex: 1; background: #1a1a2e; border-left: 1px solid #0f3460;
           overflow-y: auto; padding: 16px; }}
@@ -686,6 +747,7 @@ body {{ margin: 0; background: #0d1117; font-family: "Segoe UI", sans-serif;
 .relevance-dot {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%;
                  margin-right: 6px; }}
 </style></head><body>
+<div id="sidebar"><h4>Tags</h4>{tags_html}</div>
 <div id="map-area">
 <canvas id="map" style="width:100%;height:100%;"></canvas>
 </div>
