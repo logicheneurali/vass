@@ -594,8 +594,13 @@ class VassApp:
                     time.sleep(0.05)
                     continue
                 frame = self.audio_handler.get_frame()
-                if frame is not None and self.noise_filter:
-                    frame = self.noise_filter.process(frame)
+                raw_nf = None
+                raw_frame = None
+                if frame is not None:
+                    raw_frame = frame.copy()
+                    raw_nf = float(np.sqrt(np.mean(frame**2)))
+                    if self.noise_filter:
+                        frame = self.noise_filter.process(frame)
                 is_auto_paused = self.state_manager.is_auto_paused()
                 is_manual_paused = self.state_manager.is_manual_paused()
                 with self._state_vars_lock:
@@ -700,7 +705,7 @@ class VassApp:
 
                         if not wake and current_state == "listening":
                             with self._state_vars_lock:
-                                nf = float(np.sqrt(np.mean(frame**2)))
+                                nf = raw_nf if raw_nf is not None else 0.0
                                 adaptive_threshold = max(self.noise_pause_threshold,
                                                          self.voice_recognition.noise_floor * 2.0)
                                 if self._running_noise_floor is None:
@@ -723,8 +728,9 @@ class VassApp:
                                         self._noise_high_since = None
                                 else:
                                     self._noise_high_since = None
-                                    self.noise_filter.maybe_update_profile(
-                                        frame, is_silence=True, now=time.time())
+                                    if raw_frame is not None:
+                                        self.noise_filter.maybe_update_profile(
+                                            raw_frame, is_silence=True, now=time.time())
 
                                 # GUI update every 50 frames (~1s)
                                 if self._nf_print_counter % 50 == 0:
