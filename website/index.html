@@ -35,9 +35,18 @@ nav .links a:hover { color: #e0e0e0; }
   min-height: 100vh; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   text-align: center; padding: 120px 24px 80px;
+  position: relative; overflow: hidden;
   background: linear-gradient(rgba(13,17,23,0.7), rgba(26,26,46,0.8)), url('background_hero.jpg') no-repeat center center fixed;
   background-size: cover;
 }
+.hero::before {
+  content: '';
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle 300px at var(--mx, 50%) var(--my, 50%), rgba(13,115,119,0.25) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+  transition: opacity 0.3s;
+}
+.hero > * { position: relative; z-index: 1; }
 .hero svg { width: 320px; max-width: 90%; height: auto; margin-bottom: 32px; }
 .hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; margin-bottom: 12px; }
 .hero p { font-size: 18px; color: #aaa; max-width: 500px; margin-bottom: 36px; }
@@ -261,6 +270,20 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     if (t) t.scrollIntoView({ behavior: 'smooth' });
   });
 });
+
+// Mouse-follow glow on hero background
+const hero = document.querySelector('.hero');
+if (hero) {
+  hero.addEventListener('mousemove', e => {
+    const rect = hero.getBoundingClientRect();
+    hero.style.setProperty('--mx', ((e.clientX - rect.left) / rect.width * 100) + '%');
+    hero.style.setProperty('--my', ((e.clientY - rect.top) / rect.height * 100) + '%');
+  });
+  hero.addEventListener('mouseleave', () => {
+    hero.style.setProperty('--mx', '50%');
+    hero.style.setProperty('--my', '50%');
+  });
+}
 </script>
 </body>
 </html>
