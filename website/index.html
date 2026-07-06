@@ -127,6 +127,9 @@ footer a:hover { text-decoration: underline; }
 
 /* Screenshots */
 .screenshot-card { border-radius: 8px; overflow: hidden; }
+.screenshot-card img { width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid #0f3460; }
+.screenshot-card:hover img { border-color: #0d7377; }
+.screenshot-card p { text-align: center; margin-top: 8px; color: #aaa; font-size: 13px; }
 .screenshot-placeholder {
   aspect-ratio: 16/10; background: #1e1e1e;
   border: 1px solid #0f3460; border-radius: 8px;
@@ -198,16 +201,16 @@ footer a:hover { text-decoration: underline; }
   <h2>Screenshots</h2>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;max-width:1000px;margin:0 auto;">
     <div class="screenshot-card">
+      <img src="screenshots/vass_main.png" alt="VASS main interface" loading="lazy">
+      <p>Interfaccia principale &mdash; compatta, sempre visibile</p>
+    </div>
+    <div class="screenshot-card">
       <div class="screenshot-placeholder">Mappa Memoria</div>
-      <p style="text-align:center;margin-top:8px;color:#aaa;font-size:13px;">Bubble chart interattivo dei tag</p>
+      <p>Bubble chart interattivo dei tag</p>
     </div>
     <div class="screenshot-card">
       <div class="screenshot-placeholder">Info Panel</div>
-      <p style="text-align:center;margin-top:8px;color:#aaa;font-size:13px;">Links e notifiche</p>
-    </div>
-    <div class="screenshot-card">
-      <div class="screenshot-placeholder">Memory Editor</div>
-      <p style="text-align:center;margin-top:8px;color:#aaa;font-size:13px;">Gestione memoria permanente</p>
+      <p>Links e notifiche</p>
     </div>
   </div>
 </section>
