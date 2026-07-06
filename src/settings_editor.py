@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGridLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
     QGroupBox, QMessageBox, QComboBox, QSlider, QCheckBox, QListWidget,
+    QMenu,
 )
 from PySide6.QtGui import QKeySequence, QShortcut
 from i18n import t
