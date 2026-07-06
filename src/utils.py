@@ -254,7 +254,7 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             messages=messages,
             tools=tools,
             temperature=temperature,
-            extra_body={"disable_thinking": True}
+            extra_body={"disable_thinking": False}
         ), log_prefix=log_prefix)
         msg = resp.choices[0].message
         if not msg.tool_calls:
