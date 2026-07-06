@@ -224,6 +224,10 @@
       "llama_off": "無効",
       "restart_llama": "再起動"
     },
+    "model_menu_tooltip": "llama.cppから選択",
+    "model_menu_no_url": "llama.cpp URLが設定されていません",
+    "model_menu_empty": "モデルが見つかりません",
+    "model_menu_error": "エラー: {err}",
     "dialog": {
       "error": "エラー",
       "info": "情報",

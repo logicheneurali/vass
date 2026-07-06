@@ -224,6 +224,10 @@
       "llama_off": "Desligado",
       "restart_llama": "Reiniciar"
     },
+    "model_menu_tooltip": "Selecionar do llama.cpp",
+    "model_menu_no_url": "URL llama.cpp n\u00e3o configurado",
+    "model_menu_empty": "Nenhum modelo encontrado",
+    "model_menu_error": "Erro: {err}",
     "dialog": {
       "error": "Erro",
       "info": "Informação",

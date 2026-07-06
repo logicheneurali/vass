@@ -224,6 +224,10 @@
       "llama_off": "Off",
       "restart_llama": "Restart"
     },
+    "model_menu_tooltip": "Select from llama.cpp",
+    "model_menu_no_url": "llama.cpp URL not configured",
+    "model_menu_empty": "No models found",
+    "model_menu_error": "Error: {err}",
     "dialog": {
       "error": "Error",
       "info": "Information",

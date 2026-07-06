@@ -432,6 +432,20 @@ class SettingsEditor(QMainWindow):
                     )
                     entry.clicked.connect(self._launch_google_setup)
                     group_layout.addWidget(entry, row, 1)
+                elif section == "ai" and key == "model":
+                    entry = QLineEdit()
+                    entry.setText(self.config.get(section, key))
+                    model_btn = QPushButton("\u2630")  # \u2630
+                    model_btn.setFixedWidth(28)
+                    model_btn.setToolTip(t("settings_editor.model_menu_tooltip", self.lang))
+                    model_btn.clicked.connect(lambda checked, e=entry: self._show_model_menu(e))
+                    cw = QWidget()
+                    cw_layout = QHBoxLayout(cw)
+                    cw_layout.setContentsMargins(0, 0, 0, 0)
+                    cw_layout.setSpacing(4)
+                    cw_layout.addWidget(entry, 1)
+                    cw_layout.addWidget(model_btn)
+                    group_layout.addWidget(cw, row, 1)
                 else:
                     entry = QLineEdit()
                     entry.setText(self.config.get(section, key))
@@ -693,6 +707,28 @@ class SettingsEditor(QMainWindow):
         import subprocess, os
         path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "setup_google.py")
         subprocess.Popen([sys.executable, path, "--lang", self.lang])
+
+    def _show_model_menu(self, field):
+        menu = QMenu(self)
+        url_path = self._get_entry_text(("ai", "url"))
+        url = f"{url_path.rstrip('/')}/models" if url_path else ""
+        if not url or not url.startswith("http"):
+            menu.addAction(t("settings_editor.model_menu_no_url", self.lang)).setEnabled(False)
+        else:
+            try:
+                import urllib.request, json
+                with urllib.request.urlopen(url, timeout=5) as resp:
+                    models = json.loads(resp.read()).get("data", [])
+                if not models:
+                    menu.addAction(t("settings_editor.model_menu_empty", self.lang)).setEnabled(False)
+                else:
+                    for m in models:
+                        mid = m["id"]
+                        action = menu.addAction(mid)
+                        action.triggered.connect(lambda checked, v=mid: field.setText(v))
+            except Exception as e:
+                menu.addAction(t("settings_editor.model_menu_error", self.lang).replace("{err}", str(e))).setEnabled(False)
+        menu.exec(field.mapToGlobal(field.rect().topRight()))
 
     def _start_llama_server(self):
         from utils import start_llama_server, is_process_running

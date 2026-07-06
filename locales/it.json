@@ -258,6 +258,10 @@
       "llama_off": "Spento",
       "restart_llama": "Riavvia"
     },
+    "model_menu_tooltip": "Seleziona da llama.cpp",
+    "model_menu_no_url": "URL llama.cpp non configurato",
+    "model_menu_empty": "Nessun modello trovato",
+    "model_menu_error": "Errore: {err}",
     "dialog": {
       "error": "Errore",
       "info": "Informazione",

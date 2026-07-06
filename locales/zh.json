@@ -224,6 +224,10 @@
       "llama_off": "已禁用",
       "restart_llama": "重启"
     },
+    "model_menu_tooltip": "从 llama.cpp 选择",
+    "model_menu_no_url": "llama.cpp URL 未配置",
+    "model_menu_empty": "未找到模型",
+    "model_menu_error": "错误: {err}",
     "dialog": {
       "error": "错误",
       "info": "信息",

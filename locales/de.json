@@ -224,6 +224,10 @@
       "llama_off": "Aus",
       "restart_llama": "Neustart"
     },
+    "model_menu_tooltip": "Von llama.cpp ausw\u00e4hlen",
+    "model_menu_no_url": "llama.cpp URL nicht konfiguriert",
+    "model_menu_empty": "Keine Modelle gefunden",
+    "model_menu_error": "Fehler: {err}",
     "dialog": {
       "error": "Fehler",
       "info": "Information",

@@ -224,6 +224,10 @@
       "llama_off": "비활성",
       "restart_llama": "다시 시작"
     },
+    "model_menu_tooltip": "llama.cpp에서 선택",
+    "model_menu_no_url": "llama.cpp URL이 설정되지 않았습니다",
+    "model_menu_empty": "모델을 찾을 수 없습니다",
+    "model_menu_error": "오류: {err}",
     "dialog": {
       "error": "오류",
       "info": "정보",

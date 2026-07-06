@@ -224,6 +224,10 @@
       "llama_off": "Inactif",
       "restart_llama": "Redemarrer"
     },
+    "model_menu_tooltip": "S\u00e9lectionner depuis llama.cpp",
+    "model_menu_no_url": "URL llama.cpp non configur\u00e9e",
+    "model_menu_empty": "Aucun mod\u00e8le trouv\u00e9",
+    "model_menu_error": "Erreur: {err}",
     "dialog": {
       "error": "Erreur",
       "info": "Information",
