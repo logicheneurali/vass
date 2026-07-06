@@ -507,7 +507,12 @@
     "sources_timers": "Temporizadores",
     "sources_description": "As informações das fontes ativadas serão catalogadas com tags na memória permanente.",
     "sources_saved": "Preferências de fontes salvas.",
-    "map": "Mapa"
+    "map": "Mapa",
+    "map_title": "Mem\u00f3ria permanente \u2014 {total} entradas, {tags} tags",
+    "map_subtitle": "Clique em uma tag para ver detalhes",
+    "map_tooltip": "<b>{tag}</b><br>{count} entradas &middot; rel. m\u00e9dia {rel}",
+    "map_sidebar": "Tags",
+    "map_items": "{count} entradas"
   },
   "tag_manager": {
     "title": "Gerenciador de Tags",

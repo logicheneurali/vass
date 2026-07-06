@@ -507,7 +507,12 @@
     "sources_timers": "Timer",
     "sources_description": "Informationen aus aktivierten Quellen werden mit Tags im permanenten Speicher katalogisiert.",
     "sources_saved": "Quelleneinstellungen gespeichert.",
-    "map": "Übersicht"
+    "map": "Übersicht",
+    "map_title": "Permanenter Speicher \u2014 {total} Eintr\u00e4ge, {tags} Tags",
+    "map_subtitle": "Klicke auf einen Tag f\u00fcr Details",
+    "map_tooltip": "<b>{tag}</b><br>{count} Eintr\u00e4ge &middot; durchschn. Rel. {rel}",
+    "map_sidebar": "Tags",
+    "map_items": "{count} Eintr\u00e4ge"
   },
   "tag_manager": {
     "title": "Tag-Verwaltung",

@@ -508,7 +508,12 @@
     "sources_timers": "타이머",
     "sources_description": "활성화된 소스의 정보는 태그와 함께 영구 메모리에 카탈로그화됩니다.",
     "sources_saved": "소스 설정이 저장되었습니다.",
-    "map": "지도"
+    "map": "지도",
+    "map_title": "영구 메모리 — {total}개 항목, {tags}개 태그",
+    "map_subtitle": "태그를 클릭하여 세부 정보 보기",
+    "map_tooltip": "<b>{tag}</b><br>{count}개 항목 · 평균 관련성 {rel}",
+    "map_sidebar": "태그",
+    "map_items": "{count}개 항목"
   },
   "tag_manager": {
     "title": "태그 관리자",

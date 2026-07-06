@@ -435,6 +435,12 @@ class MemoryEditor(QMainWindow):
                 f'<span class="tag-name">{self._escape_html(tag)}</span>'
                 f'<span class="tag-count">{count}</span></div>')
 
+        # Localized strings for JS
+        map_title_fmt = _json.dumps(self._tl("memory_editor.map_title"))
+        map_subtitle = _json.dumps(self._tl("memory_editor.map_subtitle"))
+        map_tooltip_fmt = _json.dumps(self._tl("memory_editor.map_tooltip"))
+        sidebar_label = self._tl("memory_editor.map_sidebar")
+
         html = f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 ::-webkit-scrollbar {{ width: 6px; }}
 ::-webkit-scrollbar-track {{ background: #1e1e1e; }}
@@ -463,7 +469,7 @@ canvas {{ display: block; }}
            border: 1px solid #3a3a3a; border-radius: 4px; font-size: 12px;
            z-index: 10; white-space: nowrap; }}
 </style></head><body>
-<div id="sidebar"><h4>Tags</h4>{tags_html}</div>
+<div id="sidebar"><h4>{self._escape_html(sidebar_label)}</h4>{tags_html}</div>
 <div id="map-area"><canvas id="map"></canvas></div>
 <div id="tooltip"></div>
 <script>
@@ -585,10 +591,11 @@ function draw() {{
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#e0e0e0";
     ctx.font = "14px 'Segoe UI', sans-serif";
-    ctx.fillText("Memoria Permanente — " + totalEntries + " voci, " + uniqueTags + " tag", 16, 30);
+    const titleText = {map_title_fmt}.replace("{total}", totalEntries).replace("{tags}", uniqueTags);
+    ctx.fillText(titleText, 16, 30);
     ctx.fillStyle = "#888";
     ctx.font = "11px 'Segoe UI', sans-serif";
-    ctx.fillText("Clicca un tag per vedere i dettagli", 16, 48);
+    ctx.fillText({map_subtitle}, 16, 48);
 
     const sorted = [...bubbles].sort((a,b) => b.r - a.r);
     for (const b of sorted) {{
@@ -651,7 +658,8 @@ canvas.addEventListener("mousemove", (e) => {{
             tooltip.style.top = (e.clientY - 10) + "px";
             const icons = {{chat:"\\ud83d\\udcac", email:"\\ud83d\\udce7", calendar:"\\ud83d\\udcc5", events:"\\ud83d\\udccc", timers:"\\u23f0"}};
             const sources = [...found.sources].map(s => icons[s] || s).join(" ");
-            tooltip.innerHTML = "<b>" + found.tag + "</b><br>" + found.count + " voci &middot; ril. media " + Math.round(found.avgRel) + "<br>" + sources;
+            const tipText = {map_tooltip_fmt}.replace("{tag}", found.tag).replace("{count}", found.count).replace("{rel}", Math.round(found.avgRel));
+            tooltip.innerHTML = tipText + "<br>" + sources;
         }} else {{
             tooltip.style.display = "none";
         }}
@@ -698,6 +706,8 @@ draw();
                 f'{self._escape_html(tname)}\'" title="{self._escape_html(tname)} ({count})">'
                 f'<span class="tag-name">{self._escape_html(tname)}</span>'
                 f'<span class="tag-count">{count}</span></div>')
+
+        sidebar_label = self._tl("memory_editor.map_sidebar")
 
         cards_html = ""
         for entry in tagged:
@@ -759,7 +769,7 @@ body {{ margin: 0; background: #0d1117; font-family: "Segoe UI", sans-serif;
 .relevance-dot {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%;
                  margin-right: 6px; }}
 </style></head><body>
-<div id="sidebar"><h4>Tags</h4>{tags_html}</div>
+<div id="sidebar"><h4>{self._escape_html(sidebar_label)}</h4>{tags_html}</div>
 <div id="map-area">
 <canvas id="map" style="width:100%;height:100%;"></canvas>
 </div>
@@ -767,7 +777,7 @@ body {{ margin: 0; background: #0d1117; font-family: "Segoe UI", sans-serif;
 <div id="panel-header">
 <button class="close-btn" onclick="window.location.href='vass:closepanel'">&times;</button>
 <h3>{self._escape_html(tag)}</h3>
-<div class="meta">{len(tagged)} voci</div>
+<div class="meta">{self._tl("memory_editor.map_items").replace("{count}", str(len(tagged)))}</div>
 </div>
 <div id="entries">
 {cards_html}

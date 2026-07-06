@@ -507,7 +507,12 @@
     "sources_timers": "Minuteurs",
     "sources_description": "Les informations provenant des sources activées seront cataloguées avec des tags dans la mémoire permanente.",
     "sources_saved": "Préférences des sources enregistrées.",
-    "map": "Carte"
+    "map": "Carte",
+    "map_title": "M\u00e9moire permanente \u2014 {total} entr\u00e9es, {tags} tags",
+    "map_subtitle": "Cliquez sur un tag pour les d\u00e9tails",
+    "map_tooltip": "<b>{tag}</b><br>{count} entr\u00e9es &middot; rel. moyenne {rel}",
+    "map_sidebar": "Tags",
+    "map_items": "{count} entr\u00e9es"
   },
   "tag_manager": {
     "title": "Gestionnaire de tags",

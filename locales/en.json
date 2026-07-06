@@ -507,7 +507,12 @@
     "sources_timers": "Timers",
     "sources_description": "Information from enabled sources will be tagged and added to permanent memory.",
     "sources_saved": "Source preferences saved.",
-    "map": "Map"
+    "map": "Map",
+    "map_title": "Permanent Memory \u2014 {total} entries, {tags} tags",
+    "map_subtitle": "Click a tag to see details",
+    "map_tooltip": "<b>{tag}</b><br>{count} entries &middot; avg rel {rel}",
+    "map_sidebar": "Tags",
+    "map_items": "{count} entries"
   },
   "tag_manager": {
     "title": "Tag Manager",

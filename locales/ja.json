@@ -508,7 +508,12 @@
     "sources_timers": "タイマー",
     "sources_description": "有効化されたソースからの情報は、タグ付きで永続メモリにカタログ化されます。",
     "sources_saved": "ソース設定を保存しました。",
-    "map": "マップ"
+    "map": "マップ",
+    "map_title": "永続メモリ — {total}件、{tags}タグ",
+    "map_subtitle": "タグをクリックすると詳細が表示されます",
+    "map_tooltip": "<b>{tag}</b><br>{count}件 · 平均関連性 {rel}",
+    "map_sidebar": "タグ",
+    "map_items": "{count}件"
   },
   "tag_manager": {
     "title": "タグマネージャー",

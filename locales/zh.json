@@ -508,7 +508,12 @@
     "sources_timers": "计时器",
     "sources_description": "来自已启用来源的信息将被标记并添加到永久记忆中。",
     "sources_saved": "来源偏好已保存。",
-    "map": "地图"
+    "map": "地图",
+    "map_title": "永久记忆 — {total} 条目，{tags} 个标签",
+    "map_subtitle": "点击标签查看详情",
+    "map_tooltip": "<b>{tag}</b><br>{count} 条目 · 平均相关性 {rel}",
+    "map_sidebar": "标签",
+    "map_items": "{count} 条目"
   },
   "tag_manager": {
     "title": "标签管理器",
