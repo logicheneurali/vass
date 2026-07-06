@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VASS — Voice Assistant Software</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117;
+  color: #e0e0e0;
+  line-height: 1.6;
+}
+a { color: #0d7377; text-decoration: none; }
+a:hover { color: #0a5c5e; }
+
+/* Navbar */
+nav {
+  position: fixed; top: 0; z-index: 100;
+  width: 100%; padding: 16px 32px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(26, 26, 46, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #0f3460;
+}
+nav .logo { font-size: 20px; font-weight: 700; color: #0d7377; }
+nav .links { display: flex; gap: 24px; }
+nav .links a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+nav .links a:hover { color: #e0e0e0; }
+
+/* Hero */
+.hero {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 120px 24px 80px;
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d1117 80%);
+}
+.hero svg { width: 320px; max-width: 90%; height: auto; margin-bottom: 32px; }
+.hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; margin-bottom: 12px; }
+.hero p { font-size: 18px; color: #aaa; max-width: 500px; margin-bottom: 36px; }
+.btn-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+.btn {
+  display: inline-block; padding: 12px 28px; border-radius: 6px;
+  font-size: 15px; font-weight: 600; text-decoration: none;
+  transition: all 0.2s ease;
+}
+.btn-primary { background: #0d7377; color: #fff; }
+.btn-primary:hover { background: #0a5c5e; color: #fff; }
+.btn-outline { border: 2px solid #0f3460; color: #e0e0e0; }
+.btn-outline:hover { background: #0f3460; color: #e0e0e0; }
+
+/* Sections */
+.section { max-width: 1000px; margin: 0 auto; padding: 80px 24px; }
+.section h2 { font-size: 28px; margin-bottom: 48px; text-align: center; }
+
+/* Features grid */
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+.feature-card {
+  background: #1e1e1e; border: 1px solid #0f3460;
+  border-radius: 8px; padding: 28px; text-align: center;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.6s, transform 0.6s, border-color 0.2s;
+}
+.feature-card.visible { opacity: 1; transform: translateY(0); }
+.feature-card:hover { border-color: #0d7377; }
+.feature-card svg { width: 48px; height: 48px; margin-bottom: 16px; fill: #e0e0e0; }
+.feature-card h3 { font-size: 18px; margin-bottom: 8px; color: #e0e0e0; }
+.feature-card p { font-size: 14px; color: #aaa; }
+
+/* Download */
+.download-card {
+  background: #1e1e1e; border: 1px solid #0f3460;
+  border-radius: 8px; padding: 32px; text-align: center;
+  max-width: 500px; margin: 0 auto;
+}
+.download-card h3 { font-size: 20px; margin-bottom: 16px; }
+.download-card .info { font-size: 14px; color: #aaa; margin-bottom: 8px; }
+
+/* Docs */
+.docs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; }
+.doc-link {
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; border-radius: 6px; background: #1e1e1e;
+  border: 1px solid #0f3460; color: #e0e0e0;
+  text-decoration: none; font-size: 14px; transition: all 0.2s;
+}
+.doc-link:hover { border-color: #0d7377; color: #0d7377; }
+
+/* Footer */
+footer { text-align: center; padding: 40px 24px; font-size: 12px; color: #666; border-top: 1px solid #0f3460; }
+footer a { color: #0d7377; }
+footer a:hover { text-decoration: underline; }
+
+/* Hamburger */
+.hamburger { display: none; cursor: pointer; font-size: 22px; }
+@media (max-width: 640px) {
+  nav .links { display: none; }
+  nav .links.open { display: flex; flex-direction: column; position: absolute;
+    top: 60px; left: 0; width: 100%; background: #1a1a2e; padding: 16px; gap: 12px;
+    border-bottom: 1px solid #0f3460; }
+  .hamburger { display: block; }
+  .hero { min-height: auto; padding: 140px 24px 60px; }
+}
+
+/* Hero SVG animation */
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scaleY(1); }
+  50% { opacity: 0.8; transform: scaleY(2); }
+}
+.wave { animation: pulse 2s ease-in-out infinite; transform-origin: bottom; }
+.wave:nth-child(2) { animation-delay: 0.3s; }
+.wave:nth-child(3) { animation-delay: 0.6s; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">VASS</div>
+  <div class="hamburger" onclick="document.querySelector('.links').classList.toggle('open')">&#9776;</div>
+  <div class="links">
+    <a href="#features">Features</a>
+    <a href="docs/">Docs</a>
+    <a href="#download">Download</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <svg viewBox="0 0 320 80" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="20" width="320" height="40" rx="6" fill="#1a1a2e" stroke="#0f3460" stroke-width="1"/>
+    <rect x="140" y="24" width="40" height="32" rx="4" fill="#0d7377"/>
+    <!-- Volume bar -->
+    <polygon points="10,60 30,20 40,20 20,60" fill="#3c3c3c"/>
+    <!-- Memory bar -->
+    <polygon points="280,20 300,60 290,60 270,20" fill="#3c3c3c"/>
+    <!-- Sound waves -->
+    <rect class="wave" x="200" y="26" width="2" height="28" rx="1" fill="#4ec9b0"/>
+    <rect class="wave" x="208" y="30" width="2" height="20" rx="1" fill="#4ec9b0"/>
+    <rect class="wave" x="216" y="34" width="2" height="12" rx="1" fill="#4ec9b0"/>
+  </svg>
+  <h1>VASS — Voice Assistant Software</h1>
+  <p>Il tuo assistente vocale AI completamente locale e privato</p>
+  <div class="btn-row">
+    <a href="https://github.com/logicheneurali/vass/releases/latest" class="btn btn-primary">&#11015; Scarica v0.6.0</a>
+    <a href="docs/" class="btn btn-outline">&#128214; Documentazione</a>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <h2>Features</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+      <h3>Controllo Vocale</h3>
+      <p>Wake-word "Vass" sempre in ascolto, pausa automatica per rumore, modalit&agrave; trascrizione. Supporto multilingua.</p>
+    </div>
+    <div class="feature-card">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="12" cy="19" r="2"/><line x1="12" y1="7" x2="5" y2="10" stroke="#e0e0e0" stroke-width="1.5"/><line x1="12" y1="7" x2="19" y2="10" stroke="#e0e0e0" stroke-width="1.5"/><line x1="5" y1="14" x2="12" y2="17" stroke="#e0e0e0" stroke-width="1.5"/><line x1="19" y1="14" x2="12" y2="17" stroke="#e0e0e0" stroke-width="1.5"/></svg>
+      <h3>AI Locale</h3>
+      <p>Modello llama.cpp sul tuo hardware. Memoria permanente con tagging automatico. Nessun dato lascia il tuo PC.</p>
+    </div>
+    <div class="feature-card">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="#e0e0e0" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="#e0e0e0" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke="#e0e0e0" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke="#e0e0e0" stroke-width="2"/><circle cx="9" cy="15" r="1.5" fill="#e94560"/></svg>
+      <h3>Integrazione Google</h3>
+      <p>Sincronizza Calendar ed email Gmail. Eventi e operazioni pianificate. Supporto Google Home e Assistant.</p>
+    </div>
+    <div class="feature-card">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="#e0e0e0" stroke-width="2"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" stroke="#e0e0e0" stroke-width="2"/></svg>
+      <h3>Automazioni</h3>
+      <p>VASScript per automatizzare operazioni. OCR per leggere lo schermo, click e tastiera simulati. MCP tools.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="download">
+  <h2>Download</h2>
+  <div class="download-card">
+    <h3>&#x1F5AA; Windows x64</h3>
+    <p class="info">Installer grafico con setup guidato</p>
+    <a href="https://github.com/logicheneurali/vass/releases/latest" class="btn btn-primary">&#11015; Scarica VASS-Setup.exe (46 MB)</a>
+    <p class="info" style="margin-top:12px">Richiede Python 3.10+ (incluso nell'installer)</p>
+  </div>
+</section>
+
+<section class="section" id="docs">
+  <h2>Documentazione</h2>
+  <div class="docs-grid">
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_it.md" class="doc-link">&#x1F1EE;&#x1F1F9; Italiano</a>
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_en.md" class="doc-link">&#x1F1EC;&#x1F1E7; English</a>
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_de.md" class="doc-link">&#x1F1E9;&#x1F1EA; Deutsch</a>
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_fr.md" class="doc-link">&#x1F1EB;&#x1F1F7; Fran&ccedil;ais</a>
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_es.md" class="doc-link">&#x1F1EA;&#x1F1F8; Espa&ntilde;ol</a>
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_pt.md" class="doc-link">&#x1F1F5;&#x1F1F9; Portugu&ecirc;s</a>
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_ja.md" class="doc-link">&#x1F1EF;&#x1F1F5; &#x65E5;&#x672C;&#x8A9E;</a>
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_ko.md" class="doc-link">&#x1F1F0;&#x1F1F7; &#xD55C;&#xAD6D;&#xC5B4;</a>
+    <a href="https://github.com/logicheneurali/vass/blob/main/docs/README_zh.md" class="doc-link">&#x1F1E8;&#x1F1F3; &#x4E2D;&#x6587;</a>
+  </div>
+</section>
+
+<footer>
+  VASS v0.6.0 &middot; <a href="https://github.com/logicheneurali/vass">GitHub</a> &middot; MIT License
+</footer>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.feature-card').forEach(card => observer.observe(card));
+
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) t.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+</body>
+</html>
