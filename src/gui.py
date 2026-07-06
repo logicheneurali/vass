@@ -633,6 +633,7 @@ class InfoPanel(QFrame):
         self._switch_tab(tab)
         self._position(parent_window)
         self.show()
+        self.raise_()
         self._timer.start(30000)
 
     def set_links(self, urls, parent_window):
@@ -646,6 +647,7 @@ class InfoPanel(QFrame):
         self._switch_tab("links")
         self._position(parent_window)
         self.show()
+        self.raise_()
         self._timer.start(30000)
 
     def refresh_notifications(self, parent_window):
