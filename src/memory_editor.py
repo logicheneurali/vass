@@ -591,7 +591,7 @@ function draw() {{
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#e0e0e0";
     ctx.font = "14px 'Segoe UI', sans-serif";
-    const titleText = {map_title_fmt}.replace("{total}", totalEntries).replace("{tags}", uniqueTags);
+    const titleText = {map_title_fmt}.replace("{{total}}", totalEntries).replace("{{tags}}", uniqueTags);
     ctx.fillText(titleText, 16, 30);
     ctx.fillStyle = "#888";
     ctx.font = "11px 'Segoe UI', sans-serif";
@@ -658,7 +658,7 @@ canvas.addEventListener("mousemove", (e) => {{
             tooltip.style.top = (e.clientY - 10) + "px";
             const icons = {{chat:"\\ud83d\\udcac", email:"\\ud83d\\udce7", calendar:"\\ud83d\\udcc5", events:"\\ud83d\\udccc", timers:"\\u23f0"}};
             const sources = [...found.sources].map(s => icons[s] || s).join(" ");
-            const tipText = {map_tooltip_fmt}.replace("{tag}", found.tag).replace("{count}", found.count).replace("{rel}", Math.round(found.avgRel));
+            const tipText = {map_tooltip_fmt}.replace("{{tag}}", found.tag).replace("{{count}}", found.count).replace("{{rel}}", Math.round(found.avgRel));
             tooltip.innerHTML = tipText + "<br>" + sources;
         }} else {{
             tooltip.style.display = "none";
