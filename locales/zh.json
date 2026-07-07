@@ -389,7 +389,10 @@
       "arguments": "参数",
       "workingdir": "工作目录",
       "enabled": "启用",
-      "silent": "静默"
+      "silent": "静默",
+      "wait_for_completion": "等待完成",
+      "run_on_startup": "启动时运行",
+      "check_already_running": "检查是否已运行"
     },
     "buttons": {
       "add": "添加",

@@ -388,7 +388,10 @@
       "arguments": "Arguments",
       "workingdir": "Dossier travail",
       "enabled": "Activé",
-      "silent": "Silencieux"
+      "silent": "Silencieux",
+      "wait_for_completion": "Attendre la fin",
+      "run_on_startup": "Ex\u00e9cuter au d\u00e9marrage",
+      "check_already_running": "V\u00e9rifier si d\u00e9j\u00e0 actif"
     },
     "buttons": {
       "add": "Ajouter",

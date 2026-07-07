@@ -388,7 +388,10 @@
       "arguments": "Argomenti",
       "workingdir": "Cartella di lavoro",
       "enabled": "Abilitato",
-      "silent": "Silenzioso"
+      "silent": "Silenzioso",
+      "wait_for_completion": "Attendi fine esecuzione",
+      "run_on_startup": "Esegui all'avvio",
+      "check_already_running": "Controlla se già in esecuzione"
     },
     "buttons": {
       "add": "Aggiungi",

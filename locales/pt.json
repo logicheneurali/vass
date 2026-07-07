@@ -388,7 +388,10 @@
       "arguments": "Argumentos",
       "workingdir": "Pasta trabalho",
       "enabled": "Ativado",
-      "silent": "Silencioso"
+      "silent": "Silencioso",
+      "wait_for_completion": "Aguardar conclus\u00e3o",
+      "run_on_startup": "Executar ao iniciar",
+      "check_already_running": "Verificar se j\u00e1 ativo"
     },
     "buttons": {
       "add": "Adicionar",

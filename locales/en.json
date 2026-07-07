@@ -388,7 +388,10 @@
       "arguments": "Arguments",
       "workingdir": "Working dir",
       "enabled": "Enabled",
-      "silent": "Silent"
+      "silent": "Silent",
+      "wait_for_completion": "Wait for completion",
+      "run_on_startup": "Run at startup",
+      "check_already_running": "Check if already running"
     },
     "buttons": {
       "add": "Add",

@@ -126,6 +126,9 @@ class EventsEditor(QMainWindow):
         self.cmd_edit.clear()
         self.args_edit.clear()
         self.workdir_edit.clear()
+        self._wait_cb.setChecked(False)
+        self._run_on_startup_cb.setChecked(False)
+        self._check_running_cb.setChecked(False)
 
     def _build_ui(self):
         self.setWindowTitle(self._t("events_editor.title"))
@@ -203,6 +206,7 @@ class EventsEditor(QMainWindow):
         row_cmd.addWidget(self._cmd_label)
         self.cmd_edit = QLineEdit()
         self.cmd_edit.setPlaceholderText("python")
+        self.cmd_edit.textChanged.connect(self._on_cmd_changed)
         row_cmd.addWidget(self.cmd_edit)
         self._btn_cmd_browse = QPushButton("...")
         self._btn_cmd_browse.setFixedWidth(28)
@@ -240,6 +244,22 @@ class EventsEditor(QMainWindow):
         self._silent_cb = QCheckBox(self._t("events_editor.fields.silent"))
         self._silent_cb.setStyleSheet(f"color: {LABEL_FG};")
         row_recur.addWidget(self._silent_cb)
+
+        self._wait_cb = QCheckBox(self._t("events_editor.fields.wait_for_completion"))
+        self._wait_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._wait_cb.setEnabled(False)
+        row_recur.addWidget(self._wait_cb)
+
+        self._run_on_startup_cb = QCheckBox(self._t("events_editor.fields.run_on_startup"))
+        self._run_on_startup_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._run_on_startup_cb.setEnabled(False)
+        row_recur.addWidget(self._run_on_startup_cb)
+
+        self._check_running_cb = QCheckBox(self._t("events_editor.fields.check_already_running"))
+        self._check_running_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._check_running_cb.setEnabled(False)
+        row_recur.addWidget(self._check_running_cb)
+
         row_recur.addStretch()
         form_grid.addLayout(row_recur)
 
@@ -281,6 +301,23 @@ class EventsEditor(QMainWindow):
         self._workdir_label.setVisible(is_schedule)
         self.workdir_edit.setVisible(is_schedule)
         self._btn_wd_browse.setVisible(is_schedule)
+        self._wait_cb.setVisible(is_schedule)
+        self._run_on_startup_cb.setVisible(is_schedule)
+        self._check_running_cb.setVisible(is_schedule)
+        if not is_schedule:
+            self._wait_cb.setChecked(False)
+            self._run_on_startup_cb.setChecked(False)
+            self._check_running_cb.setChecked(False)
+
+    def _on_cmd_changed(self, text=""):
+        cmd = text or self.cmd_edit.text().strip()
+        is_exe = bool(cmd) and any(
+            cmd.lower().endswith(ext) for ext in (".exe", ".bat", ".ps1", ".cmd")
+        ) and (os.path.exists(cmd.split()[0]) if os.path.isabs(cmd.split()[0]) else bool(shutil.which(cmd.split()[0])))
+        for cb in [self._wait_cb, self._run_on_startup_cb, self._check_running_cb]:
+            cb.setEnabled(is_exe)
+            if not is_exe:
+                cb.setChecked(False)
 
     def _on_cat_change(self, idx):
         data = self.cat_combo.currentData()
@@ -328,6 +365,9 @@ class EventsEditor(QMainWindow):
         self._enabled_cb.setChecked(enabled.lower() != "false")
         silent = item.get("silent", "false")
         self._silent_cb.setChecked(silent.lower() == "true")
+        self._wait_cb.setChecked(item.get("wait_for_completion", "false").lower() == "true")
+        self._run_on_startup_cb.setChecked(item.get("run_on_startup", "false").lower() == "true")
+        self._check_running_cb.setChecked(item.get("check_already_running", "false").lower() == "true")
 
     def _validate(self):
         date = self.date_edit.text().strip()
@@ -430,6 +470,12 @@ class EventsEditor(QMainWindow):
             wd = self.workdir_edit.text().strip()
             if wd:
                 item["workingdir"] = wd
+            if self._wait_cb.isEnabled() and self._wait_cb.isChecked():
+                item["wait_for_completion"] = "true"
+            if self._run_on_startup_cb.isEnabled() and self._run_on_startup_cb.isChecked():
+                item["run_on_startup"] = "true"
+            if self._check_running_cb.isEnabled() and self._check_running_cb.isChecked():
+                item["check_already_running"] = "true"
         item["enabled"] = "true" if self._enabled_cb.isChecked() else "false"
         if self._silent_cb.isChecked():
             item["silent"] = "true"

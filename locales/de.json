@@ -388,7 +388,10 @@
       "arguments": "Argumente",
       "workingdir": "Arbeitsverzeichnis",
       "enabled": "Aktiviert",
-      "silent": "Lautlos"
+      "silent": "Lautlos",
+      "wait_for_completion": "Auf Abschluss warten",
+      "run_on_startup": "Beim Start ausf\u00fchren",
+      "check_already_running": "Pr\u00fcfen ob bereits aktiv"
     },
     "buttons": {
       "add": "Hinzufügen",

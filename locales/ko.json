@@ -389,7 +389,10 @@
       "arguments": "인수",
       "workingdir": "작업 폴더",
       "enabled": "활성화",
-      "silent": "무음"
+      "silent": "무음",
+      "wait_for_completion": "완료 대기",
+      "run_on_startup": "시작 시 실행",
+      "check_already_running": "실행 중 확인"
     },
     "buttons": {
       "add": "추가",

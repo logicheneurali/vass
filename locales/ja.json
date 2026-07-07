@@ -389,7 +389,10 @@
       "arguments": "引数",
       "workingdir": "作業ディレクトリ",
       "enabled": "有効",
-      "silent": "サイレント"
+      "silent": "サイレント",
+      "wait_for_completion": "完了を待つ",
+      "run_on_startup": "起動時に実行",
+      "check_already_running": "実行中か確認"
     },
     "buttons": {
       "add": "追加",

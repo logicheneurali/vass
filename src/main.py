@@ -573,6 +573,8 @@ class VassApp:
             threading.Thread(target=self._start_llamacpp, daemon=True).start()
         if self.event_reminder:
             threading.Thread(target=self.event_reminder.run, daemon=True).start()
+            # Run startup schedules after a short delay for services to initialize
+            threading.Thread(target=lambda: (time.sleep(3), self.event_reminder.run_startup_schedules()), daemon=True).start()
         threading.Thread(target=self._health_check_loop, daemon=True).start()
         threading.Thread(target=self._health_check_once, daemon=True).start()
         threading.Thread(target=self._mcp_health_check_loop, daemon=True).start()

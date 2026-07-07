@@ -420,6 +420,14 @@ class EventReminder:
             self._log(f"_execute_schedule_thread: end (invalid command) desc='{desc}' state={self.app.state}")
             return
 
+        # Check if already running
+        check_running = sc.get("check_already_running", "false").lower() == "true"
+        if check_running:
+            if self._is_already_running(command):
+                print(f"[Schedules] Skipped (already running): {desc}")
+                self._log(f"_execute_schedule_thread: end (already running) desc='{desc}' state={self.app.state}")
+                return
+
         try:
             cmd_parts = [command]
             if arguments:
@@ -434,21 +442,32 @@ class EventReminder:
             wd = sc.get("workingdir", "") or None
             if wd and not os.path.isdir(wd):
                 wd = None
-            r = subprocess.run(
-                cmd_parts,
-                capture_output=True, text=True,
-                creationflags=creationflags,
-                timeout=cmd_timeout,
-                cwd=wd,
-            )
-            if r.returncode == 0:
+
+            wait = sc.get("wait_for_completion", "false").lower() == "true"
+            if wait:
+                r = subprocess.run(
+                    cmd_parts,
+                    capture_output=True, text=True,
+                    creationflags=creationflags,
+                    timeout=cmd_timeout,
+                    cwd=wd,
+                )
+                ok = r.returncode == 0
+            else:
+                subprocess.Popen(
+                    cmd_parts,
+                    creationflags=creationflags,
+                    cwd=wd,
+                )
+                ok = True  # Popen returns immediately, consider it started successfully
+            if ok:
                 msg = t("events.schedule_done", self.lang).replace("{description}", desc)
             else:
                 msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
             if not silent:
                 self.app.tts.enqueue(msg)
             if hasattr(self.app, 'notification_manager'):
-                self.app.notification_manager.add(msg, priority=9 if r.returncode != 0 else 7, data={"type": "schedule"})
+                self.app.notification_manager.add(msg, priority=9 if not ok else 7, data={"type": "schedule"})
         except Exception:
             if not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
@@ -456,6 +475,33 @@ class EventReminder:
             if hasattr(self.app, 'notification_manager'):
                 self.app.notification_manager.add(failed_msg, priority=9, data={"type": "schedule"})
         self._log(f"_execute_schedule_thread: end desc='{desc}' state={self.app.state}")
+
+    def _is_already_running(self, exe_path):
+        """Check if a process with the given executable path is already running."""
+        try:
+            import psutil
+            name = os.path.basename(exe_path).lower()
+            for p in psutil.process_iter(['name']):
+                if p.info['name'] and p.info['name'].lower() == name:
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def run_startup_schedules(self):
+        """Execute schedules marked with run_on_startup flag."""
+        schedules_path = os.path.join(self._root_dir(), "Allowed_root", "schedules.json")
+        if not os.path.exists(schedules_path):
+            return
+        try:
+            with open(schedules_path, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            return
+        for sc in data.get("schedules", []):
+            if sc.get("run_on_startup", "false").lower() == "true":
+                print(f"[Schedules] Running startup schedule: {sc.get('description', sc.get('command', '?'))}")
+                self._execute_schedule(sc)
 
     # ── Main loop ─────────────────────────────────────────────────────────────
 
