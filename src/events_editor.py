@@ -15,8 +15,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QTextCharFormat, QColor, QFont
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
-                   SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG,
-                   DESCRIPTION_FG, BASE_STYLESHEET)
+                   SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
 
 STYLESHEET = BASE_STYLESHEET + f"""
 QSpinBox {{
@@ -236,11 +235,10 @@ class EventsEditor(QMainWindow):
         row_startup = QHBoxLayout()
         self._run_on_startup_cb = QCheckBox(self._t("events_editor.fields.run_on_startup"))
         self._run_on_startup_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._run_on_startup_cb.setToolTip(self._t("events_editor.descriptions.run_on_startup"))
         self._run_on_startup_cb.setEnabled(False)
         row_startup.addWidget(self._run_on_startup_cb)
-        startup_desc = QLabel(self._t("events_editor.descriptions.run_on_startup"))
-        startup_desc.setStyleSheet(f"color: {DESCRIPTION_FG}; font-size: 11px;")
-        row_startup.addWidget(startup_desc, 1)
+        row_startup.addStretch()
         form_grid.addLayout(row_startup)
 
         row_recur = QHBoxLayout()
@@ -252,35 +250,27 @@ class EventsEditor(QMainWindow):
         self._enabled_cb = QCheckBox(self._t("events_editor.fields.enabled"))
         self._enabled_cb.setChecked(True)
         self._enabled_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._enabled_cb.setToolTip(self._t("events_editor.descriptions.enabled"))
         row_recur.addWidget(self._enabled_cb)
-        enabled_desc = QLabel(self._t("events_editor.descriptions.enabled"))
-        enabled_desc.setStyleSheet(f"color: {DESCRIPTION_FG}; font-size: 11px;")
-        row_recur.addWidget(enabled_desc)
         self._silent_cb = QCheckBox(self._t("events_editor.fields.silent"))
         self._silent_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._silent_cb.setToolTip(self._t("events_editor.descriptions.silent"))
         row_recur.addWidget(self._silent_cb)
-        silent_desc = QLabel(self._t("events_editor.descriptions.silent"))
-        silent_desc.setStyleSheet(f"color: {DESCRIPTION_FG}; font-size: 11px;")
-        row_recur.addWidget(silent_desc)
         row_recur.addStretch()
         form_grid.addLayout(row_recur)
 
         row_flags = QHBoxLayout()
         self._wait_cb = QCheckBox(self._t("events_editor.fields.wait_for_completion"))
         self._wait_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._wait_cb.setToolTip(self._t("events_editor.descriptions.wait_for_completion"))
         self._wait_cb.setEnabled(False)
         row_flags.addWidget(self._wait_cb)
-        wait_desc = QLabel(self._t("events_editor.descriptions.wait_for_completion"))
-        wait_desc.setStyleSheet(f"color: {DESCRIPTION_FG}; font-size: 11px;")
-        row_flags.addWidget(wait_desc)
 
         self._check_running_cb = QCheckBox(self._t("events_editor.fields.check_already_running"))
         self._check_running_cb.setStyleSheet(f"color: {LABEL_FG};")
+        self._check_running_cb.setToolTip(self._t("events_editor.descriptions.check_already_running"))
         self._check_running_cb.setEnabled(False)
         row_flags.addWidget(self._check_running_cb)
-        check_desc = QLabel(self._t("events_editor.descriptions.check_already_running"))
-        check_desc.setStyleSheet(f"color: {DESCRIPTION_FG}; font-size: 11px;")
-        row_flags.addWidget(check_desc)
         row_flags.addStretch()
         form_grid.addLayout(row_flags)
 
