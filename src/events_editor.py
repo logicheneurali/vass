@@ -179,12 +179,16 @@ class EventsEditor(QMainWindow):
         form_group = QGroupBox(self._t("events_editor.form_label"))
         form_grid = QVBoxLayout(form_group)
 
-        row1 = QHBoxLayout()
+        row_enabled = QHBoxLayout()
         self._enabled_cb = QCheckBox(self._t("events_editor.fields.enabled"))
         self._enabled_cb.setChecked(True)
         self._enabled_cb.setStyleSheet(f"color: {LABEL_FG};")
         self._enabled_cb.setToolTip(self._t("events_editor.descriptions.enabled"))
-        row1.addWidget(self._enabled_cb)
+        row_enabled.addWidget(self._enabled_cb)
+        row_enabled.addStretch()
+        form_grid.addLayout(row_enabled)
+
+        row1 = QHBoxLayout()
         row1.addWidget(QLabel(self._t("events_editor.fields.date")))
         self.date_edit = QLineEdit()
         self.date_edit.setPlaceholderText("YYYY-MM-DD")
