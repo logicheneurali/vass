@@ -289,7 +289,8 @@ class MemoryManager:
 
     def _trim_memory_if_needed(self, force=False):
         if not self._trim_lock.acquire(blocking=False):
-            print("[Memory] Trim already in progress, skip")
+            print("[Memory] Trim skipped: previous trim in progress, retrying in 30s")
+            threading.Thread(target=lambda: (time.sleep(30), self._trim_memory_if_needed()), daemon=True).start()
             return
         try:
             from utils import call_with_retry
@@ -391,6 +392,7 @@ class MemoryManager:
             all_content = history_content + external_content
 
             if not all_content:
+                print(f"[Memory] Trim skipped: no content to summarize ({len(tagged_ids_list)} tagged, min_relevance={min_rel})")
                 return
 
             old_summary = ""
