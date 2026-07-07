@@ -15,7 +15,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QTextCharFormat, QColor, QFont
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
-                   SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
+                   SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG,
+                   DESCRIPTION_FG, BASE_STYLESHEET)
 
 STYLESHEET = BASE_STYLESHEET + f"""
 QSpinBox {{
