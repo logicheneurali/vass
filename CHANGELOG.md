@@ -1,6 +1,41 @@
 # VASS — Registro Modifiche (Compattazione)
 
-Ultima compattazione: 2026-07-05, v0.6.0
+Ultima compattazione: 2026-07-05, v0.6.1
+
+---
+
+## v0.6.1 (2026-07-05)
+
+### Schedule flags
+- **3 nuovi flag per operazioni pianificate**: `wait_for_completion` (subprocess.run bloccante), `run_on_startup` (esecuzione all'avvio), `check_already_running` (salta se già in esecuzione). Visibili e cliccabili solo per file .exe validi.
+- **`run_startup_schedules()`**: esegue le schedule marcate all'avvio di VASS.
+
+### Settings editor
+- **Hamburger menu selezione modello AI**: bottone ☰ accanto al campo model nell'AI Agent. Fetch da llama.cpp `/v1/models`, popola dropdown.
+
+### Localizzazione
+- **Bubble map**: titolo, sottotitolo, tooltip, sidebar e meta testo localizzati in 9 lingue.
+- **Schedule descriptions**: tooltip descrittivi per ogni checkbox in 9 lingue.
+
+### Fix
+- `QMenu` import mancante in settings_editor.
+- `DESCRIPTION_FG` import mancante in events_editor.
+- Eventi UI ora accodati per classificazione memoria (`_classify_new_events` in event_reminder).
+- Date weekday nel system prompt e tool `current_time` per prevenire allucinazioni AI.
+- `QMenu` import mancante in settings_editor.
+- InfoPanel `raise_()` dopo show per stare sopra altre finestre.
+- MemoryEditor: entry ID invece di indice per delete/rmtag (fix lista filtrata).
+- URL cleaning: preserva parentesi legittime, rimuove solo formattazione markdown.
+- Orchestratore: `disable_thinking: False` per chiamate tool multi-turn.
+
+### File Chiave
+| File | Linee | Contenuto |
+|------|-------|-----------|
+| `src/memory_editor.py` | 942 | Bubble map localizzata, fix ID delete |
+| `src/events_editor.py` | 621 | 3 nuovi flag schedule, layout riorganizzato |
+| `src/event_reminder.py` | 596 | `_is_already_running`, `run_startup_schedules` |
+| `src/settings_editor.py` | 782 | Hamburger menu selezione modello AI |
+| `VERSION` | 1 | Bump a 0.6.1 |
 
 ---
 
