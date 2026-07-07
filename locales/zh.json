@@ -394,6 +394,13 @@
       "run_on_startup": "启动时运行",
       "check_already_running": "检查是否已运行"
     },
+    "descriptions": {
+      "enabled": "启用或禁用此操作",
+      "silent": "执行时无语,音通知",
+      "run_on_startup": "VASS启动时自动运行",
+      "wait_for_completion": "阻止VASS直到完成（仅.exe输出）",
+      "check_already_running": "如果进程已激活则不启动（仅.exe）"
+    },
     "buttons": {
       "add": "添加",
       "update": "更新",

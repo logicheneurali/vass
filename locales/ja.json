@@ -394,6 +394,13 @@
       "run_on_startup": "起動時に実行",
       "check_already_running": "実行中か確認"
     },
+    "descriptions": {
+      "enabled": "この操作を有効または無効にする",
+      "silent": "実行時に音声通知なし",
+      "run_on_startup": "VASS起動時に自動実行",
+      "wait_for_completion": "完了までVASSをブロック（出力あり.exeのみ）",
+      "check_already_running": "プロセスが既にアクティブな場合は開始しない（.exeのみ）"
+    },
     "buttons": {
       "add": "追加",
       "update": "更新",

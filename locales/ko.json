@@ -394,6 +394,13 @@
       "run_on_startup": "시작 시 실행",
       "check_already_running": "실행 중 확인"
     },
+    "descriptions": {
+      "enabled": "이 작업을 활성화 또는 비활성화",
+      "silent": "실행 시 음성 알림 없음",
+      "run_on_startup": "VASS 시작 시 자동 실행",
+      "wait_for_completion": "완료까지 VASS 차단 (.exe 출력만)",
+      "check_already_running": "프로세스가 이미 활성화된 경우 시작하지 않음 (.exe만)"
+    },
     "buttons": {
       "add": "추가",
       "update": "업데이트",

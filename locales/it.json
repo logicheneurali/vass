@@ -393,6 +393,13 @@
       "run_on_startup": "Esegui all'avvio",
       "check_already_running": "Controlla se già in esecuzione"
     },
+    "descriptions": {
+      "enabled": "Attiva o disattiva questa operazione",
+      "silent": "Non produce notifiche vocali quando eseguita",
+      "run_on_startup": "L'operazione viene eseguita automaticamente all'avvio di VASS",
+      "wait_for_completion": "Blocca VASS fino al termine dell'esecuzione (solo .exe con output)",
+      "check_already_running": "Non avvia se il processo è già attivo (solo .exe)"
+    },
     "buttons": {
       "add": "Aggiungi",
       "update": "Aggiorna",

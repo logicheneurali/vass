@@ -393,6 +393,13 @@
       "run_on_startup": "Beim Start ausf\u00fchren",
       "check_already_running": "Pr\u00fcfen ob bereits aktiv"
     },
+    "descriptions": {
+      "enabled": "Aktiviert oder deaktiviert diesen Vorgang",
+      "silent": "Keine Sprachbenachrichtigung bei Ausf\u00fchrung",
+      "run_on_startup": "Diesen Vorgang automatisch beim Start von VASS ausf\u00fchren",
+      "wait_for_completion": "VASS blockieren bis zur Ausf\u00fchrung (.exe mit Ausgabe)",
+      "check_already_running": "Nicht starten, wenn Prozess bereits aktiv (.exe)"
+    },
     "buttons": {
       "add": "Hinzufügen",
       "update": "Aktualisieren",
