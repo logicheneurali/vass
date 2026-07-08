@@ -22,16 +22,33 @@ class FileScanner:
         self._running = False
 
     def run(self):
-        """Main scan loop. Reads config from disk each cycle for hot-reload."""
+        """Main scan loop. Hot-reloads config from disk each cycle. Idles when source is disabled."""
         self._running = True
-        time.sleep(10)  # initial delay
+        time.sleep(10)
         while self._running:
+            self._reload_config()
+            if not self._memory.is_source_enabled("files"):
+                time.sleep(30)
+                continue
             try:
                 self._scan()
             except Exception:
                 pass
             interval = self._config.get("interval_minutes", 60) * 60
             time.sleep(max(interval, 60))
+
+    def _reload_config(self):
+        """Reload config from disk (hot-reload on dialog save)."""
+        try:
+            with open(self._config_path(), encoding="utf-8") as f:
+                self._config = json.load(f)
+        except Exception:
+            pass
+
+    @staticmethod
+    def _config_path():
+        from utils import get_path
+        return get_path("Allowed_root", "memory_files_config.json")
 
     def _scan(self):
         folders = self._config.get("folders", [])
