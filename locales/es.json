@@ -513,7 +513,7 @@
         "dialog_cancel": "Cancelar",
         "dialog_yes": "Sí",
         "dialog_no": "No",
-        "sources": "Fuentes",
+        "sources": "Fuentes externas",
         "sources_title": "Fuentes de la memoria permanente",
         "sources_email": "Correo (Gmail)",
         "sources_calendar": "Google Calendar",
@@ -539,7 +539,9 @@
         "map_sidebar": "Etiquetas",
         "map_items": "{count} entradas",
         "files_max_per_cycle": "Máx archivos por ciclo:",
-        "files_max_per_cycle_unit": "archivos"
+        "files_max_per_cycle_unit": "archivos",
+        "sources_max_entries": "Máx entradas en contexto AI:",
+        "sources_max_entries_desc": "Solo se incluirán las más relevantes según las etiquetas"
     },
     "tag_manager": {
         "title": "Gestor de Tags",

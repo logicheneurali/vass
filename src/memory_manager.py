@@ -148,7 +148,8 @@ class MemoryManager:
             return ""
 
         matches.sort(key=lambda e: e.get("relevance", 0), reverse=True)
-        top = matches[:3]
+        max_entries = self._memory_sources.get("max_external_entries", 3)
+        top = matches[:max_entries]
         parts = []
         mem_dir = os.path.join(root, "Allowed_root", "memory")
         for entry in top:

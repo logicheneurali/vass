@@ -76,7 +76,7 @@ class SourcesDialog(QDialog):
         super().__init__(parent)
         self.lang = lang
         self.setWindowTitle(_t("memory_editor.sources_title", lang))
-        self.setFixedSize(380, 320)
+        self.setFixedSize(380, 440)
         self.setStyleSheet(f"QDialog {{ background-color: {BG}; }}")
 
         layout = QVBoxLayout(self)
@@ -119,6 +119,19 @@ class SourcesDialog(QDialog):
         desc.setStyleSheet("color: #888; font-size: 11px;")
         layout.addWidget(desc)
 
+        max_row = QHBoxLayout()
+        max_row.addWidget(QLabel(_t("memory_editor.sources_max_entries", lang)))
+        self._max_entries_spin = QSpinBox()
+        self._max_entries_spin.setRange(1, 20)
+        self._max_entries_spin.setValue(self._sources.get("max_external_entries", 3))
+        max_row.addWidget(self._max_entries_spin)
+        max_row.addStretch()
+        layout.addLayout(max_row)
+        max_desc = QLabel(_t("memory_editor.sources_max_entries_desc", lang))
+        max_desc.setWordWrap(True)
+        max_desc.setStyleSheet("color: #888; font-size: 11px;")
+        layout.addWidget(max_desc)
+
         layout.addStretch()
         btn_row = QHBoxLayout()
         cancel_btn = QPushButton(_t("memory_editor.dialog_cancel", lang))
@@ -135,6 +148,7 @@ class SourcesDialog(QDialog):
         sources_path = os.path.join(ALLOWED, "memory_sources.json")
         for key, cb in self._checkboxes.items():
             self._sources[key] = cb.isChecked()
+        self._sources["max_external_entries"] = self._max_entries_spin.value()
         os.makedirs(ALLOWED, exist_ok=True)
         with open(sources_path, "w", encoding="utf-8") as f:
             json.dump(self._sources, f, ensure_ascii=False, indent=2)

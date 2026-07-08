@@ -514,7 +514,7 @@
         "dialog_cancel": "取消",
         "dialog_yes": "是",
         "dialog_no": "否",
-        "sources": "来源",
+        "sources": "外部来源",
         "sources_title": "永久记忆来源",
         "sources_email": "电子邮件 (Gmail)",
         "sources_calendar": "Google日历",
@@ -540,7 +540,9 @@
         "map_sidebar": "标签",
         "map_items": "{count} 条目",
         "files_max_per_cycle": "每周期最大文件数：",
-        "files_max_per_cycle_unit": "文件"
+        "files_max_per_cycle_unit": "文件",
+        "sources_max_entries": "AI上下文最大条目：",
+        "sources_max_entries_desc": "仅包含基于标签的最相关条目"
     },
     "tag_manager": {
         "title": "标签管理器",

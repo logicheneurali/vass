@@ -513,7 +513,7 @@
         "dialog_cancel": "Abbrechen",
         "dialog_yes": "Ja",
         "dialog_no": "Nein",
-        "sources": "Quellen",
+        "sources": "Externe Quellen",
         "sources_title": "Quellen des permanenten Speichers",
         "sources_email": "E-Mail (Gmail)",
         "sources_calendar": "Google Kalender",
@@ -539,7 +539,9 @@
         "map_sidebar": "Tags",
         "map_items": "{count} Einträge",
         "files_max_per_cycle": "Max Dateien pro Zyklus:",
-        "files_max_per_cycle_unit": "Dateien"
+        "files_max_per_cycle_unit": "Dateien",
+        "sources_max_entries": "Max Einträge im AI-Kontext:",
+        "sources_max_entries_desc": "Nur die relevantesten werden basierend auf Tags einbezogen"
     },
     "tag_manager": {
         "title": "Tag-Verwaltung",

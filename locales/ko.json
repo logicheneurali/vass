@@ -514,7 +514,7 @@
         "dialog_cancel": "취소",
         "dialog_yes": "예",
         "dialog_no": "아니요",
-        "sources": "소스",
+        "sources": "외부 소스",
         "sources_title": "영구 메모리 소스",
         "sources_email": "이메일 (Gmail)",
         "sources_calendar": "Google 캘린더",
@@ -540,7 +540,9 @@
         "map_sidebar": "태그",
         "map_items": "{count}개 항목",
         "files_max_per_cycle": "주기당 최대 파일:",
-        "files_max_per_cycle_unit": "파일"
+        "files_max_per_cycle_unit": "파일",
+        "sources_max_entries": "AI 컨텍스트 최대 항목:",
+        "sources_max_entries_desc": "태그에 따라 가장 관련성 높은 항목만 포함됩니다"
     },
     "tag_manager": {
         "title": "태그 관리자",

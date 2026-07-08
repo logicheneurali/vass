@@ -514,7 +514,7 @@
         "dialog_cancel": "キャンセル",
         "dialog_yes": "はい",
         "dialog_no": "いいえ",
-        "sources": "ソース",
+        "sources": "外部ソース",
         "sources_title": "永続メモリのソース",
         "sources_email": "メール (Gmail)",
         "sources_calendar": "Googleカレンダー",
@@ -540,7 +540,9 @@
         "map_sidebar": "タグ",
         "map_items": "{count}件",
         "files_max_per_cycle": "サイクル当たりの最大ファイル数：",
-        "files_max_per_cycle_unit": "ファイル"
+        "files_max_per_cycle_unit": "ファイル",
+        "sources_max_entries": "AIコンテキストの最大エントリ数：",
+        "sources_max_entries_desc": "タグに基づいて最も関連性の高いもののみが含まれます"
     },
     "tag_manager": {
         "title": "タグマネージャー",
