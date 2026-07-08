@@ -4,7 +4,8 @@ from utils import get_project_root, get_path
 from PySide6.QtCore import Qt, QUrl, QTimer
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                 QHBoxLayout, QLabel, QPushButton, QCheckBox,
-                                QMessageBox, QMenu, QDialog)
+                                QMessageBox, QMenu, QDialog, QFileDialog,
+                                QSpinBox, QListWidget)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEnginePage
 
@@ -75,7 +76,7 @@ class SourcesDialog(QDialog):
         super().__init__(parent)
         self.lang = lang
         self.setWindowTitle(_t("memory_editor.sources_title", lang))
-        self.setFixedSize(350, 240)
+        self.setFixedSize(380, 320)
         self.setStyleSheet(f"QDialog {{ background-color: {BG}; }}")
 
         layout = QVBoxLayout(self)
@@ -88,7 +89,7 @@ class SourcesDialog(QDialog):
                 self._sources = json.load(f)
         except Exception:
             self._sources = {"email": False, "calendar": False,
-                             "events": False, "timers": False}
+                             "events": False, "timers": False, "files": False}
 
         self._checkboxes = {}
         for key, label_key in [("email", "sources_email"), ("calendar", "sources_calendar"),
@@ -98,6 +99,20 @@ class SourcesDialog(QDialog):
             cb.setStyleSheet(f"color: {FG}; spacing: 8px;")
             self._checkboxes[key] = cb
             layout.addWidget(cb)
+
+        # Files checkbox with config button
+        files_row = QHBoxLayout()
+        files_cb = QCheckBox(_t("memory_editor.sources_files", lang))
+        files_cb.setChecked(self._sources.get("files", False))
+        files_cb.setStyleSheet(f"color: {FG}; spacing: 8px;")
+        self._checkboxes["files"] = files_cb
+        files_row.addWidget(files_cb)
+        files_btn = QPushButton(_t("memory_editor.sources_files_config", lang))
+        files_btn.clicked.connect(self._open_files_dialog)
+        files_btn.setStyleSheet(f"padding: 2px 6px; font-size: 11px;")
+        files_row.addWidget(files_btn)
+        files_row.addStretch()
+        layout.addLayout(files_row)
 
         desc = QLabel(_t("memory_editor.sources_description", lang))
         desc.setWordWrap(True)
@@ -125,6 +140,99 @@ class SourcesDialog(QDialog):
             json.dump(self._sources, f, ensure_ascii=False, indent=2)
         print(f"[MemoryEditor] Sources saved: {self._sources}")
         QMessageBox.information(self, _t("memory_editor.sources_title", self.lang),
+                                _t("memory_editor.sources_saved", self.lang))
+        self.accept()
+
+    def _open_files_dialog(self):
+        dlg = FilesFoldersDialog(self, self.lang)
+        dlg.exec()
+
+
+class FilesFoldersDialog(QDialog):
+    def __init__(self, parent=None, lang="en"):
+        super().__init__(parent)
+        self.lang = lang
+        self.setWindowTitle(_t("memory_editor.files_folders_title", lang))
+        self.setFixedSize(450, 380)
+        self.setStyleSheet(f"QDialog {{ background-color: {BG}; }}")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+
+        config_path = os.path.join(ALLOWED, "memory_files_config.json")
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                self._config = json.load(f)
+        except Exception:
+            self._config = {"folders": [], "interval_minutes": 60, "max_file_size_kb": 500}
+
+        layout.addWidget(QLabel(_t("memory_editor.files_folders_label", lang)))
+        self._folder_list = QListWidget()
+        self._folder_list.addItems(self._config.get("folders", []))
+        layout.addWidget(self._folder_list)
+
+        btn_row = QHBoxLayout()
+        add_btn = QPushButton(_t("memory_editor.files_add_folder", lang))
+        add_btn.clicked.connect(self._add_folder)
+        btn_row.addWidget(add_btn)
+        rm_btn = QPushButton(_t("memory_editor.files_remove_folder", lang))
+        rm_btn.clicked.connect(self._remove_folder)
+        btn_row.addWidget(rm_btn)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+
+        int_row = QHBoxLayout()
+        int_row.addWidget(QLabel(_t("memory_editor.files_interval", lang)))
+        self._interval_spin = QSpinBox()
+        self._interval_spin.setRange(1, 1440)
+        self._interval_spin.setValue(self._config.get("interval_minutes", 60))
+        int_row.addWidget(self._interval_spin)
+        int_row.addWidget(QLabel(_t("memory_editor.files_interval_unit", lang)))
+        int_row.addStretch()
+        layout.addLayout(int_row)
+
+        size_row = QHBoxLayout()
+        size_row.addWidget(QLabel(_t("memory_editor.files_max_size", lang)))
+        self._size_spin = QSpinBox()
+        self._size_spin.setRange(10, 10000)
+        self._size_spin.setValue(self._config.get("max_file_size_kb", 500))
+        size_row.addWidget(self._size_spin)
+        size_row.addWidget(QLabel(_t("memory_editor.files_max_size_unit", lang)))
+        size_row.addStretch()
+        layout.addLayout(size_row)
+
+        layout.addStretch()
+        act_row = QHBoxLayout()
+        cancel_btn = QPushButton(_t("memory_editor.dialog_cancel", lang))
+        cancel_btn.clicked.connect(self.reject)
+        save_btn = QPushButton(_t("memory_editor.dialog_save", lang))
+        save_btn.setStyleSheet(f"background-color: {ACCENT}; font-weight: bold;")
+        save_btn.clicked.connect(self._save)
+        act_row.addStretch()
+        act_row.addWidget(cancel_btn)
+        act_row.addWidget(save_btn)
+        layout.addLayout(act_row)
+
+    def _add_folder(self):
+        path = QFileDialog.getExistingDirectory(self, _t("memory_editor.files_select_folder", self.lang))
+        if path:
+            self._folder_list.addItem(path)
+
+    def _remove_folder(self):
+        row = self._folder_list.currentRow()
+        if row >= 0:
+            self._folder_list.takeItem(row)
+
+    def _save(self):
+        self._config["folders"] = [self._folder_list.item(i).text() for i in range(self._folder_list.count())]
+        self._config["interval_minutes"] = self._interval_spin.value()
+        self._config["max_file_size_kb"] = self._size_spin.value()
+        config_path = os.path.join(ALLOWED, "memory_files_config.json")
+        os.makedirs(ALLOWED, exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(self._config, f, ensure_ascii=False, indent=2)
+        QMessageBox.information(self, _t("memory_editor.files_folders_title", self.lang),
                                 _t("memory_editor.sources_saved", self.lang))
         self.accept()
 

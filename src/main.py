@@ -563,7 +563,9 @@ class VassApp:
         self.running = True
         self.audio_handler.start_stream()
         from utils import get_project_root, list_audio_devices
-        list_audio_devices()
+        inp = self.audio_handler.input_device
+        out = self.tts.output_device
+        list_audio_devices(resolved_inp=inp, resolved_out=out)
         threading.Thread(target=self._watch_commands_file, daemon=True).start()
         threading.Thread(target=self._watch_settings_file, daemon=True).start()
         threading.Thread(target=self.script_runner.watch_queue, daemon=True).start()
@@ -583,6 +585,10 @@ class VassApp:
         if self.settings.get("gmail_enabled", "false").lower() == "true":
             threading.Thread(target=self._sync_gmail_loop, daemon=True).start()
         self.memory.start_deferred_loop()
+        if self.memory.is_source_enabled("files"):
+            from memory_files_scanner import FileScanner
+            self._file_scanner = FileScanner(self.memory._files_config, self.memory)
+            threading.Thread(target=self._file_scanner.run, daemon=True).start()
         self.gui.set_mode_display(self.mode)
         self.gui.update_memory_bar()
 
@@ -1317,16 +1323,33 @@ class VassApp:
         if self.debug_enabled:
             print(f"[Delayed] _process_delayed_command: end state={self.state}")
 
-    def _handle_ai_fallback(self, prompt):
+    def _handle_ai_fallback(self, prompt_original):
         self.set_state("waiting")
         if self.blacklist:
-            lowered = prompt.lower()
-            found = [w for w in self.blacklist if w in lowered]
-            if found:
-                print(f"[Blacklist] Bloccato: parole {found} in '{prompt}'")
+            words, phrases = self.blacklist
+            lowered = prompt_original.lower()
+            clean = lowered
+
+            for phrase in phrases:
+                clean = clean.replace(phrase, "")
+
+            for word in words:
+                clean = re.sub(r'\b' + re.escape(word) + r'\b', '', clean)
+
+            clean = clean.strip()
+            if not clean:
+                print(f"[Blacklist] Testo vuoto dopo filtro: '{prompt_original}'")
                 self.tts.enqueue(t("ai.blacklisted", self.language))
                 self.set_state("listening")
                 return
+
+            if clean != lowered:
+                print(f"[Blacklist] Filtrato: '{prompt_original}' -> '{clean}'")
+                prompt = clean
+            else:
+                prompt = prompt_original
+        else:
+            prompt = prompt_original
 
         if is_local_url(self.ai_url):
             from resource_monitor import wait_for_resources
@@ -1458,7 +1481,6 @@ class VassApp:
                 if delta.content:
                     content_buffer += delta.content
                     full_content += delta.content
-                    import re
                     buf_words = len(re.sub(r'\s+', ' ', content_buffer.strip()).split())
                     if buf_words >= MIN_TTS_WORDS:
                         n = 0

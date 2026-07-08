@@ -19,7 +19,7 @@ class MemoryManager:
         return self._app._ai_lock
 
     def load_sources(self):
-        """Load source toggle state from Allowed_root/memory_sources.json."""
+        """Load source toggle state and files config."""
         path = get_path("Allowed_root", "memory_sources.json")
         try:
             with open(path, encoding="utf-8") as f:
@@ -27,6 +27,16 @@ class MemoryManager:
         except Exception:
             self._memory_sources = {"email": False, "calendar": False,
                                      "events": False, "timers": False}
+        self._load_files_config()
+
+    def _load_files_config(self):
+        """Load files folder list and scan settings."""
+        path = get_path("Allowed_root", "memory_files_config.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                self._files_config = json.load(f)
+        except Exception:
+            self._files_config = {"folders": [], "interval_minutes": 60, "max_file_size_kb": 500}
 
     def is_source_enabled(self, source):
         return self._memory_sources.get(source, False)
