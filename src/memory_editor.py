@@ -202,6 +202,16 @@ class FilesFoldersDialog(QDialog):
         size_row.addStretch()
         layout.addLayout(size_row)
 
+        count_row = QHBoxLayout()
+        count_row.addWidget(QLabel(_t("memory_editor.files_max_per_cycle", lang)))
+        self._count_spin = QSpinBox()
+        self._count_spin.setRange(1, 200)
+        self._count_spin.setValue(self._config.get("max_files_per_cycle", 20))
+        count_row.addWidget(self._count_spin)
+        count_row.addWidget(QLabel(_t("memory_editor.files_max_per_cycle_unit", lang)))
+        count_row.addStretch()
+        layout.addLayout(count_row)
+
         layout.addStretch()
         act_row = QHBoxLayout()
         cancel_btn = QPushButton(_t("memory_editor.dialog_cancel", lang))
@@ -228,6 +238,7 @@ class FilesFoldersDialog(QDialog):
         self._config["folders"] = [self._folder_list.item(i).text() for i in range(self._folder_list.count())]
         self._config["interval_minutes"] = self._interval_spin.value()
         self._config["max_file_size_kb"] = self._size_spin.value()
+        self._config["max_files_per_cycle"] = self._count_spin.value()
         config_path = os.path.join(ALLOWED, "memory_files_config.json")
         os.makedirs(ALLOWED, exist_ok=True)
         with open(config_path, "w", encoding="utf-8") as f:

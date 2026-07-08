@@ -533,6 +533,8 @@
     "files_interval_unit": "minuti",
     "files_max_size": "Dimensione max file:",
     "files_max_size_unit": "KB",
+    "files_max_per_cycle": "Max file per ciclo:",
+    "files_max_per_cycle_unit": "file",
     "map_title": "Memoria Permanente \u2014 {total} voci, {tags} tag",
     "map_subtitle": "Clicca un tag per vedere i dettagli",
     "map_tooltip": "<b>{tag}</b><br>{count} voci &middot; ril. media {rel}",

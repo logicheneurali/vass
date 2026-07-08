@@ -533,6 +533,8 @@
     "files_interval_unit": "minutes",
     "files_max_size": "Max file size:",
     "files_max_size_unit": "KB",
+    "files_max_per_cycle": "Max files per cycle:",
+    "files_max_per_cycle_unit": "files",
     "map_title": "Permanent Memory \u2014 {total} entries, {tags} tags",
     "map_subtitle": "Click a tag to see details",
     "map_tooltip": "<b>{tag}</b><br>{count} entries &middot; avg rel {rel}",

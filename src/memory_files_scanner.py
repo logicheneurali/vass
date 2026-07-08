@@ -55,14 +55,22 @@ class FileScanner:
         if not folders:
             return
         max_size = self._config.get("max_file_size_kb", 500) * 1024
+        max_per_cycle = self._config.get("max_files_per_cycle", 20)
         tracker = self._load_tracker()
         updated = False
+        queued = 0
+
+        # Check queue size to avoid overloading
+        if len(self._memory._pending_classify) >= 80:
+            return
 
         for folder in folders:
             if not os.path.isdir(folder):
                 continue
             for root, dirs, files in os.walk(folder, followlinks=False):
                 for fname in files:
+                    if queued >= max_per_cycle:
+                        break
                     fpath = os.path.join(root, fname)
                     try:
                         stat = os.stat(fpath)
@@ -81,7 +89,13 @@ class FileScanner:
                     self._memory.enqueue_external(content, eid, "files")
                     tracker[key] = {"mtime": stat.st_mtime, "size": fsize}
                     updated = True
+                    queued += 1
                     print(f"[FileScanner] Queued: {fpath} ({fsize} bytes)")
+
+                if queued >= max_per_cycle:
+                    break
+            if queued >= max_per_cycle:
+                break
 
         # Remove deleted files from tracker
         to_delete = []
