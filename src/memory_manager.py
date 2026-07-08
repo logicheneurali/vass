@@ -3,7 +3,7 @@ import json
 import os
 import threading
 import time
-from utils import get_project_root, get_path
+from utils import get_project_root, get_path, log_exc
 
 
 class MemoryManager:
@@ -76,7 +76,7 @@ class MemoryManager:
                         with open(sf_path, encoding="utf-8") as sf:
                             summary_text = json.load(sf).get("info", "")
                     except Exception:
-                        pass
+                        log_exc()
                 if summary_text and summary_text != "No Info":
                     if summary_text.startswith("writeinfo("):
                         try:
@@ -85,7 +85,7 @@ class MemoryManager:
                                 inner = inner[1:-2]
                             summary_text = json.loads(inner).get("summary", summary_text)
                         except Exception:
-                            pass
+                            log_exc()
                     cached = self._summary_cache.get(summary_id)
                     if cached:
                         summary_text = cached
@@ -104,7 +104,7 @@ class MemoryManager:
                     role = "user" if entry_data.get("role") == "user" else "assistant"
                     parts.append(f"{role}: {entry_data['content']}")
                 except Exception:
-                    pass
+                    log_exc()
         if parts:
             return "\n\nPrevious conversations:\n" + "\n".join(parts)
         return ""
@@ -150,7 +150,7 @@ class MemoryManager:
                         info = json.loads(json.load(hf).get("info", "{}"))
                     content = info.get("content", "")
                 except Exception:
-                    pass
+                    log_exc()
             if not content:
                 continue
             content = content[:200].strip()
@@ -232,11 +232,11 @@ class MemoryManager:
                             if info.get("role") == "assistant":
                                 assistant_text = info.get("content", "")
                         except Exception:
-                            pass
+                            log_exc()
             elif history:
                 entry_id = history[-1]
         except Exception:
-            pass
+            log_exc()
 
         tag_list = ", ".join(sorted(TAG_WEIGHTS.keys()))
         if assistant_text:
@@ -347,7 +347,7 @@ class MemoryManager:
                     tagged_ids = {e["id"] for e in tags_data.get("entries", [])
                                   if e.get("relevance", 0) >= min_rel}
                 except Exception:
-                    pass
+                    log_exc()
 
             def _find_entry(vid):
                 hf_path = os.path.join(mem_dir, f"{vid}.json")
@@ -377,7 +377,7 @@ class MemoryManager:
                             entry = json.load(hf).get("info", "")
                         history_content.append(json.loads(entry))
                     except Exception:
-                        pass
+                        log_exc()
                 else:
                     # External entry (email, event, timer) — use content from tags
                     for te in tags_data.get("entries", []):
@@ -403,7 +403,7 @@ class MemoryManager:
                         with open(sf_path, encoding="utf-8") as sf:
                             old_summary = json.load(sf).get("info", "")
                     except Exception:
-                        pass
+                        log_exc()
 
             from prompts import MEMORY_SUMMARIZATION_PROMPT
             prompt = MEMORY_SUMMARIZATION_PROMPT
@@ -431,7 +431,7 @@ class MemoryManager:
                         inner = inner[1:-2]
                     summary_text = inner
                 except Exception:
-                    pass
+                    log_exc()
             try:
                 parsed = json.loads(summary_text)
                 if isinstance(parsed, dict) and "summary" in parsed:
@@ -609,7 +609,7 @@ class MemoryManager:
                         mcp2.call_tool("savetags",
                             {"tags": ",".join(tags), "entry_id": entry_id, "source": source})
             except Exception:
-                pass
+                log_exc()
 
     def _classify_keyword_fallback(self, content, tag_weights):
         """Keyword-based tag assignment when AI is unavailable."""

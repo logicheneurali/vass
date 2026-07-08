@@ -8,7 +8,7 @@ import time
 
 
 import shutil
-from utils import get_project_root, get_path
+from utils import get_project_root, get_path, log_exc
 
 _SAFE_CMD_RE = re.compile(r'^[a-zA-Z0-9_\-.:\\/ ]+\.(exe|bat|ps1|py|cmd|vbs|vass)$')
 
@@ -88,7 +88,7 @@ class EventReminder:
                 if parsed:
                     return parsed.timestamp()
             except Exception:
-                pass
+                log_exc()
         return None
 
     # ── Events ────────────────────────────────────────────────────────────────
@@ -332,7 +332,7 @@ class EventReminder:
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
             except Exception:
-                pass
+                log_exc()
 
     # ── Schedule execution ────────────────────────────────────────────────────
 
@@ -374,7 +374,7 @@ class EventReminder:
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
             except Exception:
-                pass
+                log_exc()
 
     def _execute_schedule(self, sc):
         threading.Thread(target=self._execute_schedule_thread, args=(sc,), daemon=True).start()
@@ -486,7 +486,7 @@ class EventReminder:
                 if p.info['name'] and p.info['name'].lower() == name:
                     return True
         except Exception:
-            pass
+            log_exc()
         return False
 
     def run_startup_schedules(self):
@@ -535,7 +535,7 @@ class EventReminder:
                 self._process_schedules()
 
             except Exception:
-                pass
+                log_exc()
 
             time.sleep(30)
 

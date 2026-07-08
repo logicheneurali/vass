@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 
-from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, fuzzy_ratio
+from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, fuzzy_ratio, log_exc
 
 
 _SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "launch_app", "close", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "form", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal"}
@@ -1153,7 +1153,7 @@ class VASScript:
                     TAG_WEIGHTS = cfg.get("tags", DEFAULT_TAGS)
                     MIN_RELEVANCE = cfg.get("min_relevance", 10)
             except Exception:
-                pass
+                log_exc()
 
         tag_list = [t.strip().lower() for t in tags.split(",") if t.strip()]
         if not tag_list:
@@ -1254,7 +1254,7 @@ class VASScript:
                     if parsed:
                         normalized_date = parsed.strftime("%Y-%m-%d")
                 except Exception:
-                    pass
+                    log_exc()
             if normalized_date is None:
                 return f"error: invalid date format '{start_date}'. Use YYYY-MM-DD."
             # Verify day-of-week matches if description mentions a day name

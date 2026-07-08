@@ -35,7 +35,7 @@ except ImportError:
                 import subprocess
                 subprocess.run(["notify-send", "VASS - Errore", msg], timeout=5)
     except Exception:
-        pass
+        log_exc()
     print(msg)
     sys.exit(1)
 
@@ -56,7 +56,7 @@ from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts
+from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts, log_exc
 from gui import VassGUI
 from i18n import t
 from script_engine import VASScript
@@ -77,11 +77,11 @@ def _ts_print(*args, **kwargs):
             _debug_log_file.write(msg + "\n")
             _debug_log_file.flush()
         except Exception:
-            pass
+            log_exc()
     try:
         _original_print(msg, **kwargs)
     except Exception:
-        pass
+        log_exc()
 _builtins.print = _ts_print
 
 
@@ -99,7 +99,7 @@ def _rotate_debug_log(path, max_bytes):
         with open(path, "w", encoding="utf-8") as f:
             f.writelines(lines)
     except Exception:
-        pass
+        log_exc()
 
 
 def _load_version():
@@ -324,7 +324,7 @@ class VassApp:
             with open(path, "w", encoding="utf-8") as f:
                 cfg.write(f)
         except Exception:
-            pass
+            log_exc()
 
     def set_memory_mode(self, mode):
         self.memory_mode = mode
@@ -371,7 +371,7 @@ class VassApp:
             elif not expected_listening and stream_active:
                 print(f"[StateInvariant] Expected paused but stream is still active (state={self.state})")
         except Exception:
-            pass
+            log_exc()
 
     def handle_button_press(self):
         try:
@@ -548,7 +548,7 @@ class VassApp:
                 except OSError:
                     pass
         except Exception:
-            pass
+            log_exc()
 
         if self.settings.get("debug_enabled", False):
             os.makedirs("log", exist_ok=True)
@@ -968,7 +968,7 @@ class VassApp:
                 if models:
                     return True
             except Exception:
-                pass
+                log_exc()
             time.sleep(0.5)
         return False
 
@@ -1000,7 +1000,7 @@ class VassApp:
         try:
             _faulthandler_file.close()
         except Exception:
-            pass
+            log_exc()
         global _debug_log_file
         if _debug_log_file is not None:
             _debug_log_file.close()
@@ -1029,7 +1029,7 @@ class VassApp:
             try:
                 return len(tok.encode(text))
             except Exception:
-                pass
+                log_exc()
         return len(text) // 2
 
     def _estimate_tokens(self, text):
@@ -1279,7 +1279,7 @@ class VassApp:
             if secs > 10:
                 return secs
         except Exception:
-            pass
+            log_exc()
         try:
             lang = getattr(self, "language", "en")
             prompt = (
@@ -1650,7 +1650,7 @@ class VassApp:
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(clean_text)
             except Exception:
-                pass
+                log_exc()
             done = threading.Event()
             if response_from_tool_calls and clean_text:
                 self.tts.enqueue(clean_text)
@@ -1763,7 +1763,7 @@ class VassApp:
                         ctx = int(args[i+1])
                         break
             except Exception:
-                pass
+                log_exc()
             if ctx > 0:
                 self.context_length = ctx
                 print(f"[Settings] Context length detected from llama arguments: {ctx} tokens")
@@ -1936,7 +1936,7 @@ def main():
                 winreg.SetValueEx(key, "IconUri", 0, winreg.REG_EXPAND_SZ, ico_path)
                 winreg.CloseKey(key)
             except Exception:
-                pass
+                log_exc()
         ico_path = os.path.join(get_project_root(), "vass.ico")
         if os.path.exists(ico_path):
             qapp.setWindowIcon(QIcon(ico_path))
