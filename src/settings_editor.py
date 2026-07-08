@@ -13,6 +13,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from i18n import t
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, DESCRIPTION_FG, FRAME_BORDER, BASE_STYLESHEET)
+from utils import get_project_root
 
 STYLESHEET = BASE_STYLESHEET + f"""
 QScrollArea {{ border: none; }}

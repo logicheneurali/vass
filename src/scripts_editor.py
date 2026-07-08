@@ -2,6 +2,7 @@ import os
 import sys
 
 import configparser
+from utils import get_project_root
 from PySide6.QtCore import Qt, QFileSystemWatcher
 from PySide6.QtGui import QKeySequence, QShortcut
 from code_editor import CodeEditor
