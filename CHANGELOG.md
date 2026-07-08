@@ -1,6 +1,30 @@
 # VASS — Registro Modifiche (Compattazione)
 
-Ultima compattazione: 2026-07-05, v0.6.1
+Ultima compattazione: 2026-07-08, v0.6.2
+
+---
+
+## v0.6.2 (2026-07-08)
+
+### Fix
+- **InfoPanel**: chiusura automatica dopo "Segna tutto come letto".
+- **Trim memoria**: diagnostica lock skip con retry automatico dopo 30s; log empty content con conteggio entry.
+- **Path refactoring**: `get_project_root()` e `get_path()` in `utils.py`; 39 ripetizioni `os.path.dirname(...)` sostituite.
+- **`log_exc()`**: 32 `except Exception: pass` sostituiti con `log_exc()` in `main.py`, `memory_manager.py`, `script_engine.py`, `event_reminder.py` — errori ora scritti in `log/crash.log`.
+- **Import mancanti**: `get_project_root` aggiunto a `settings_editor.py` e `scripts_editor.py`.
+- **`disable_thinking: False`** per chiamate tool MCP multi-turn.
+- **Weekday** in system prompt (`%A`) e tool `current_time`.
+- **Validazione giorno/data** in `addevent`.
+- **`QMenu` import** mancante in settings_editor.
+- **URL cleaning** InfoPanel: preserva parentesi legittime, rimuove solo markdown.
+
+### File Chiave
+| File | Linee | Contenuto |
+|------|-------|-----------|
+| `src/utils.py` | 455 | `get_project_root()`, `get_path()`, `log_exc()` |
+| `src/gui.py` | 2310 | InfoPanel mark-all-read auto-close |
+| `src/memory_manager.py` | 634 | Trim diagnostics: retry, log empty content |
+| `VERSION` | 1 | Bump a 0.6.2 |
 
 ---
 
