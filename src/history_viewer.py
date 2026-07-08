@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from utils import get_project_root, get_path
 from datetime import datetime
 
 from PySide6.QtCore import QUrl
@@ -10,7 +11,7 @@ from PySide6.QtWidgets import (
     QTextBrowser, QMessageBox,
 )
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = get_project_root()
 
 from theme import BG, FG, BASE_STYLESHEET
 

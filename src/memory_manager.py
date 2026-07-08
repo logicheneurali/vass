@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+from utils import get_project_root, get_path
 
 
 class MemoryManager:
@@ -19,8 +20,7 @@ class MemoryManager:
 
     def load_sources(self):
         """Load source toggle state from Allowed_root/memory_sources.json."""
-        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                            "Allowed_root", "memory_sources.json")
+        path = get_path("Allowed_root", "memory_sources.json")
         try:
             with open(path, encoding="utf-8") as f:
                 self._memory_sources = json.load(f)
@@ -56,7 +56,7 @@ class MemoryManager:
     def _build_memory_content(self, mcp=None, tools=None):
         if self._app.memory_mode == "none":
             return ""
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root = get_project_root()
         mem_path = os.path.join(root, "Allowed_root", "memory.json")
         if not os.path.exists(mem_path):
             return ""
@@ -111,7 +111,7 @@ class MemoryManager:
 
     def _build_external_memory_content(self, prompt):
         """Return tagged entries from active external sources matching prompt keywords."""
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root = get_project_root()
         tags_path = os.path.join(root, "Allowed_root", "memory_tags.json")
         if not os.path.exists(tags_path):
             return ""
@@ -181,7 +181,7 @@ class MemoryManager:
             compressed = (resp.choices[0].message.content or "").strip()
             if compressed:
                 print(f"[Summary] Compressed {len(summary_text)} -> {len(compressed)} chars")
-                root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                root = get_project_root()
                 mem_dir = os.path.join(root, "Allowed_root", "memory")
                 sf_path = os.path.join(mem_dir, f"{summary_id}.json")
                 with open(sf_path, "w", encoding="utf-8") as sf:
@@ -195,12 +195,11 @@ class MemoryManager:
         print(f"[Classify] Starting classification for: {user_message[:80]}...")
         try:
             import sys as _sys
-            _mcp_src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                     "mcp_server", "src")
+            _mcp_src = get_path("mcp_server", "src")
             if _mcp_src not in _sys.path:
                 _sys.path.insert(0, _mcp_src)
             from mcpgoal.tools.memory_tags import _refresh_weights, TAG_WEIGHTS
-            root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            root = get_project_root()
             _refresh_weights(os.path.join(root, "Allowed_root"))
             from utils import init_mcp
             mcp, _ = init_mcp(self._app.mcp_server_url, timeout=30)
@@ -214,7 +213,7 @@ class MemoryManager:
         entry_id = ""
         assistant_text = ""
         history = []
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root = get_project_root()
         mem_path = os.path.join(root, "Allowed_root", "memory.json")
         mem_dir = os.path.join(root, "Allowed_root", "memory")
         try:
@@ -294,7 +293,7 @@ class MemoryManager:
             return
         try:
             from utils import call_with_retry
-            root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            root = get_project_root()
             path = os.path.join(root, "Allowed_root", "memory.json")
             mem_dir = os.path.join(root, "Allowed_root", "memory")
             if not os.path.exists(path):

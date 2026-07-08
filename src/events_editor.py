@@ -5,6 +5,7 @@ import re
 import shutil
 import sys
 import uuid
+from utils import get_project_root, get_path
 
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtWidgets import (
@@ -25,7 +26,7 @@ QSpinBox {{
 }}
 """
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = get_project_root()
 ALLOWED = os.path.join(BASE, "Allowed_root")
 
 CATEGORIES = ["events", "schedules"]
@@ -420,7 +421,7 @@ class EventsEditor(QMainWindow):
             exe = cmd.split()[0]
             if not shutil.which(exe) and not os.path.exists(exe):
                 # Allow .vass scripts as commands
-                vass_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", f"{exe}.vass")
+                vass_path = os.path.join(get_project_root(), "scripts", f"{exe}.vass")
                 if not os.path.exists(vass_path) and not cmd.lower().endswith(".vass"):
                     QMessageBox.warning(self, self._t("events_editor.dialog.error"),
                         self._t("events_editor.errors.command_not_found").replace("{cmd}", exe))

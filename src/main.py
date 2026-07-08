@@ -56,7 +56,7 @@ from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts
+from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts
 from gui import VassGUI
 from i18n import t
 from script_engine import VASScript
@@ -104,7 +104,7 @@ def _rotate_debug_log(path, max_bytes):
 
 def _load_version():
     try:
-        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "VERSION")) as f:
+        with open(os.path.join(get_project_root(), "VERSION")) as f:
             return f.read().strip()
     except Exception:
         return "0.0.0"
@@ -288,8 +288,8 @@ class VassApp:
 
     def _start_rss(self):
         try:
-            feeds_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "rss_feeds.json")
-            cache_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "rss_cache.json")
+            feeds_path = os.path.join(get_project_root(), "Allowed_root", "rss_feeds.json")
+            cache_path = os.path.join(get_project_root(), "Allowed_root", "rss_cache.json")
             from rss_reader import RssReader
             self.rss_reader = RssReader(feeds_path, cache_path, notification_manager=self.notification_manager)
             self.rss_reader.start_polling()
@@ -315,7 +315,7 @@ class VassApp:
         import configparser
         try:
             cfg = configparser.ConfigParser()
-            path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "settings.ini")
+            path = os.path.join(get_project_root(), "config", "settings.ini")
             cfg.read(path, encoding="utf-8")
             if not cfg.has_section(section):
                 cfg.add_section(section)
@@ -562,12 +562,12 @@ class VassApp:
         self.set_state("listening")
         self.running = True
         self.audio_handler.start_stream()
-        from utils import list_audio_devices
+        from utils import get_project_root, list_audio_devices
         list_audio_devices()
         threading.Thread(target=self._watch_commands_file, daemon=True).start()
         threading.Thread(target=self._watch_settings_file, daemon=True).start()
         threading.Thread(target=self.script_runner.watch_queue, daemon=True).start()
-        if self.mcp_server_url and os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mcp_server", "run_server.py")):
+        if self.mcp_server_url and os.path.exists(os.path.join(get_project_root(), "mcp_server", "run_server.py")):
             threading.Thread(target=self._start_mcp_server, daemon=True).start()
         if self.llama_server_path.strip() and self.llama_autostart:
             threading.Thread(target=self._start_llamacpp, daemon=True).start()
@@ -859,7 +859,7 @@ class VassApp:
         gcal = GoogleCalendar()
         minutes = int(self.settings.get("calendar_sync_minutes", 30))
         days = int(self.settings.get("calendar_sync_days", 7))
-        events_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "events.json")
+        events_path = os.path.join(get_project_root(), "Allowed_root", "events.json")
         try:
             new_or_changed = gcal.sync_to_vass(events_path, days=days) or []
             if new_or_changed and self.memory.is_source_enabled("calendar"):
@@ -891,7 +891,7 @@ class VassApp:
         gmail = GmailHandler()
         minutes = int(self.settings.get("gmail_sync_minutes", 5))
         max_results = int(self.settings.get("gmail_max_results", 10))
-        seen_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "gmail_seen.json")
+        seen_path = os.path.join(get_project_root(), "Allowed_root", "gmail_seen.json")
         print(f"[Gmail] Sync started (every {minutes}m, max {max_results} msgs)")
         try:
             new = gmail.check_new(seen_path, max_results=max_results)
@@ -1306,7 +1306,7 @@ class VassApp:
     def _process_delayed_command(self, text):
         if self.debug_enabled:
             print(f"[Delayed] _process_delayed_command: start text='{text}' state={self.state}")
-        from utils import is_script_command, strip_script_prefix
+        from utils import get_project_root, is_script_command, strip_script_prefix
         cmd, vars = self.command_executor.find_matching_command(text)
         if self.debug_enabled:
             print(f"[Delayed] _process_delayed_command: matched='{cmd}' is_script={is_script_command(cmd) if cmd else False} state={self.state}")
@@ -1605,8 +1605,8 @@ class VassApp:
             if total > self.memory_tokens * 4:
                 self.conversation_history = self.conversation_history[-10:]
 
-            mem_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory.json")
-            mem_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "memory")
+            mem_path = os.path.join(get_project_root(), "Allowed_root", "memory.json")
+            mem_dir = os.path.join(get_project_root(), "Allowed_root", "memory")
             os.makedirs(mem_dir, exist_ok=True)
             try:
                 with self._state_vars_lock:
@@ -1646,7 +1646,7 @@ class VassApp:
 
             clean_text = strip_markdown(ai_response)
             try:
-                path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "last_response.txt")
+                path = os.path.join(get_project_root(), "Allowed_root", "last_response.txt")
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(clean_text)
             except Exception:
@@ -1696,7 +1696,7 @@ class VassApp:
 
     def inject_memory(self, text):
         import json, time as _time
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root = get_project_root()
         mem_dir = os.path.join(root, "Allowed_root", "memory")
         os.makedirs(mem_dir, exist_ok=True)
         vid = str(int(_time.time() * 1000))
@@ -1937,7 +1937,7 @@ def main():
                 winreg.CloseKey(key)
             except Exception:
                 pass
-        ico_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vass.ico")
+        ico_path = os.path.join(get_project_root(), "vass.ico")
         if os.path.exists(ico_path):
             qapp.setWindowIcon(QIcon(ico_path))
     

@@ -81,7 +81,7 @@ class SettingsEditor(QMainWindow):
         super().__init__()
         self.lang = language
         if settings_file is None:
-            self.settings_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "settings.ini")
+            self.settings_file = os.path.join(get_project_root(), "config", "settings.ini")
         else:
             self.settings_file = settings_file
         self.config = configparser.ConfigParser()
@@ -96,7 +96,7 @@ class SettingsEditor(QMainWindow):
 
     def _get_supported_languages(self):
         supported = []
-        locales_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "locales")
+        locales_dir = os.path.join(get_project_root(), "locales")
         if os.path.isdir(locales_dir):
             for fname in os.listdir(locales_dir):
                 if fname.endswith(".json"):
@@ -162,7 +162,7 @@ class SettingsEditor(QMainWindow):
                     self.config.set(section, key, default)
                     changed = True
         if changed:
-            from utils import list_audio_devices
+            from utils import get_project_root, list_audio_devices
             list_audio_devices()
             with open(self.settings_file, "w", encoding="utf-8") as f:
                 self.config.write(f)
@@ -672,7 +672,7 @@ class SettingsEditor(QMainWindow):
             else:
                 self.config.set(section, key, value)
 
-        from utils import list_audio_devices
+        from utils import get_project_root, list_audio_devices
         list_audio_devices()
         with open(self.settings_file, "w", encoding="utf-8") as f:
             self.config.write(f)
@@ -690,7 +690,7 @@ class SettingsEditor(QMainWindow):
     def _update_llama_start_btn(self):
         if not hasattr(self, '_llama_start_btn'):
             return
-        from utils import is_process_running
+        from utils import get_project_root, is_process_running
         if is_process_running("llama-server"):
             self._llama_start_btn.setText(t("settings_editor.buttons.restart_llama", self.lang))
         else:
@@ -706,7 +706,7 @@ class SettingsEditor(QMainWindow):
 
     def _launch_google_setup(self):
         import subprocess, os
-        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "setup_google.py")
+        path = os.path.join(get_project_root(), "src", "setup_google.py")
         subprocess.Popen([sys.executable, path, "--lang", self.lang])
 
     def _show_model_menu(self, field):
@@ -732,7 +732,7 @@ class SettingsEditor(QMainWindow):
         menu.exec(field.mapToGlobal(field.rect().topRight()))
 
     def _start_llama_server(self):
-        from utils import start_llama_server, is_process_running
+        from utils import get_project_root, start_llama_server, is_process_running
         import subprocess, sys, time as _time
         path = self._get_entry_text(("llamacpp", "llama_server_path"))
         if not path:

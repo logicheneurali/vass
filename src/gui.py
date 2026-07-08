@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import time
+from utils import get_project_root, get_path
 
 from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal
 from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath, QPen
@@ -17,7 +18,7 @@ from PySide6.QtCore import QUrl
 
 from theme import BG, FG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, SECTION_FG, FRAME_BORDER, BASE_STYLESHEET, ENTRY_BG
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = get_project_root()
 SRC = os.path.join(BASE, "src")
 
 
@@ -1866,7 +1867,7 @@ class VassGUI(QMainWindow):
             y = int(y / scale)
             w = int(w / scale)
             h = int(h / scale)
-            script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "highlight_toast.ps1")
+            script = os.path.join(get_project_root(), "highlight_toast.ps1")
             subprocess.Popen(
                 ["powershell", "-NoProfile", "-File", script,
                  "-x", str(x), "-y", str(y), "-w", str(w), "-h", str(h), "-dur", str(duration)],

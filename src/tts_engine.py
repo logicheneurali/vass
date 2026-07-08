@@ -5,7 +5,7 @@ import threading
 import subprocess
 import numpy as np
 from collections import deque
-from utils import strip_markdown
+from utils import get_project_root, strip_markdown
 
 _KOKORO_LANGS = {
     "it": ("i", "if_sara"),
@@ -327,7 +327,7 @@ class TtsEngine:
     @staticmethod
     def _cleanup_orphan_wavs():
         import glob
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root = get_project_root()
         for f in glob.glob(os.path.join(root, "tts_output_*.wav")):
             try:
                 os.remove(f)
@@ -379,7 +379,7 @@ class TtsEngine:
         if result is not None:
             audio_data, sr = result
             import uuid
-            wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
+            wav_path = os.path.join(get_project_root(), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             import soundfile as sf
             sf.write(wav_path, audio_data, sr)
             self._tts_wav_path = wav_path
@@ -400,7 +400,7 @@ class TtsEngine:
         try:
             from kokoro import KPipeline
             pipeline = KPipeline(lang_code=lang_code)
-            wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
+            wav_path = os.path.join(get_project_root(), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             generator = pipeline(text, voice=voice, speed=speed,
                                   split_pattern=r'(?<=[.!?])\s+|\n+')
             all_audio = []

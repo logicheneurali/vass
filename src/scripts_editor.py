@@ -16,7 +16,7 @@ from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
 
 STYLESHEET = BASE_STYLESHEET
 
-SCRIPT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
+SCRIPT_DIR = os.path.join(get_project_root(), "scripts")
 
 TEMPLATES = {
     "add": 'add($a, $b)',
@@ -138,7 +138,7 @@ class ScriptsEditor(QMainWindow):
         return t(path, self.lang)
 
     def _settings_path(self):
-        return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "settings.ini")
+        return os.path.join(get_project_root(), "config", "settings.ini")
 
     def _load_allow_ai_setting(self):
         try:
@@ -334,7 +334,7 @@ class ScriptsEditor(QMainWindow):
     def _load_func_reference(self):
         import re, os
         self._func_ref = {}
-        ref_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Allowed_root", "VASCRIPT_REFERENCE.md")
+        ref_path = os.path.join(get_project_root(), "Allowed_root", "VASCRIPT_REFERENCE.md")
         if not os.path.exists(ref_path):
             return
         with open(ref_path, encoding="utf-8") as f:
@@ -367,7 +367,7 @@ class ScriptsEditor(QMainWindow):
             return
 
         from openai import OpenAI
-        from utils import call_with_retry
+        from utils import get_project_root, call_with_retry
 
         cfg = configparser.ConfigParser()
         cfg.read(self._settings_path(), encoding="utf-8")
@@ -381,7 +381,7 @@ class ScriptsEditor(QMainWindow):
             QMessageBox.critical(self, "AI Error", f"Failed to create AI client:\n{e}")
             return
 
-        ref_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        ref_path = os.path.join(get_project_root(),
                                  "Allowed_root", "VASCRIPT_REFERENCE.md")
         reference_text = ""
         try:

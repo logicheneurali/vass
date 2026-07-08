@@ -8,8 +8,9 @@ Usage: python src/setup_google.py              (GUI wizard)
 """
 
 import sys, os, json, base64, hashlib, getpass, argparse
+from utils import get_project_root, get_path
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = get_project_root()
 CRED_DIR = os.path.join(BASE, "credentials")
 CLIENT_SECRET_PATH = os.path.join(CRED_DIR, "google_client_secret.json")
 KEYRING_SERVICE = "vass"

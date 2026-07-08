@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 import unicodedata
 from difflib import SequenceMatcher
 from openai import APIConnectionError
@@ -11,6 +12,36 @@ from urllib.parse import urlparse
 
 SCRIPT_PREFIXES = ("vasscript:", "script:")
 
+# ── Project path utilities ────────────────────────────────────────────────────
+
+_PROJECT_ROOT = None
+
+
+def get_project_root():
+    """Return the VASS project root directory (cached)."""
+    global _PROJECT_ROOT
+    if _PROJECT_ROOT is None:
+        _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return _PROJECT_ROOT
+
+
+def get_path(*parts):
+    """Return path relative to project root. E.g. get_path('config', 'settings.ini')."""
+    return os.path.join(get_project_root(), *parts)
+
+
+def log_exc(msg=""):
+    """Log exception with timestamp and traceback to log/crash.log."""
+    try:
+        ts = time.strftime("[%Y-%m-%d %H:%M:%S]")
+        os.makedirs(os.path.join(get_project_root(), "log"), exist_ok=True)
+        path = os.path.join(get_project_root(), "log", "crash.log")
+        with open(path, "a", encoding="utf-8") as f:
+            if msg:
+                f.write(f"\n{ts} {msg}\n")
+            traceback.print_exc(file=f)
+    except Exception:
+        pass  # can't log if logging fails
 
 # ── System / process utilities ───────────────────────────────────────────────
 

@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 
-from utils import call_with_retry, execute_mcp_tool_calls, init_mcp, fuzzy_ratio
+from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, fuzzy_ratio
 
 
 _SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "launch_app", "close", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "form", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal"}
@@ -1405,7 +1405,7 @@ class VASScript:
             ts, cached_result = cache[cache_key]
             if now - ts < ttl:
                 return cached_result
-        from utils import init_mcp
+        from utils import get_project_root, init_mcp
         mcp, _ = init_mcp(self.app.mcp_server_url, timeout=60)
         if not mcp:
             return "error: MCP not available"
@@ -1607,7 +1607,7 @@ class VASScript:
         if cls._geonames_loaded:
             return
         import os
-        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "cities500.txt")
+        path = os.path.join(get_project_root(), "config", "cities500.txt")
         if not os.path.exists(path):
             if not cls._download_geonames() or not os.path.exists(path):
                 cls._geonames_loaded = True

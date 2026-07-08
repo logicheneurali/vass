@@ -1,5 +1,6 @@
 """Permanent memory viewer/editor for VASS — manage tagged conversation entries."""
 import sys, os, json
+from utils import get_project_root, get_path
 from PySide6.QtCore import Qt, QUrl, QTimer
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                 QHBoxLayout, QLabel, QPushButton, QCheckBox,
@@ -7,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEnginePage
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = get_project_root()
 ALLOWED = os.path.join(BASE, "Allowed_root")
 TAGS_PATH = os.path.join(ALLOWED, "memory_tags.json")
 MEM_DIR = os.path.join(ALLOWED, "memory")

@@ -8,6 +8,7 @@ import time
 
 
 import shutil
+from utils import get_project_root, get_path
 
 _SAFE_CMD_RE = re.compile(r'^[a-zA-Z0-9_\-.:\\/ ]+\.(exe|bat|ps1|py|cmd|vbs|vass)$')
 
@@ -45,7 +46,7 @@ class EventReminder:
             print(f"[EventReminder] {msg}")
 
     def _root_dir(self):
-        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return get_project_root()
 
     def _events_path(self):
         return os.path.join(self._root_dir(), "Allowed_root", "events.json")
