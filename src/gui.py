@@ -754,7 +754,9 @@ class InfoPanel(QFrame):
     def _mark_all_read(self):
         if hasattr(self, '_nm') and self._nm is not None:
             self._nm.mark_all_read()
-            self._build_notifications()
+            if hasattr(self, '_update_bell_cb') and self._update_bell_cb:
+                self._update_bell_cb()
+            self.hide()
 
     def _position(self, parent):
         geo = parent.geometry()
