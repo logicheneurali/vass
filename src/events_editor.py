@@ -7,14 +7,14 @@ import sys
 import uuid
 from utils import get_project_root, get_path
 
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtCore import Qt, QDate, QRectF
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QGroupBox,
     QLineEdit, QMessageBox, QComboBox, QSpinBox, QFileDialog, QCheckBox,
     QCalendarWidget, QListWidgetItem,
 )
-from PySide6.QtGui import QTextCharFormat, QColor, QFont
+from PySide6.QtGui import QTextCharFormat, QColor, QFont, QPen
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
 
@@ -49,6 +49,51 @@ def _save(path, items, key):
     with open(path, "w", encoding="utf-8") as f:
         json.dump({key: items}, f, ensure_ascii=False, indent=2)
         f.write("\n")
+
+
+class CalendarWidget(QCalendarWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._event_dates = {}  # date_str -> count
+
+    def set_event_dates(self, dates):
+        self._event_dates = dates
+        self.updateCells()
+
+    def paintCell(self, painter, rect, date):
+        super().paintCell(painter, rect, date)
+        # Current day: red border
+        if date == QDate.currentDate():
+            painter.save()
+            pen = QPen(QColor("#e94560"), 2)
+            painter.setPen(pen)
+            painter.drawRect(QRectF(rect).adjusted(1.5, 1.5, -1.5, -1.5))
+            painter.restore()
+        # Event dots
+        dkey = date.toString("yyyy-MM-dd")
+        count = self._event_dates.get(dkey, 0)
+        if count > 0:
+            max_cols = 5
+            max_rows = 4
+            max_visible = max_cols * max_rows
+            ds = 4  # dot size
+            gap = 2
+            start_x = rect.right() - (max_cols * (ds + gap)) + gap - 2
+            start_y = rect.bottom() - (max_rows * (ds + gap)) + gap - 3
+            painter.save()
+            for i in range(min(count, max_visible)):
+                col = i % max_cols
+                row = i // max_cols
+                x = start_x + col * (ds + gap)
+                y = start_y + row * (ds + gap)
+                painter.fillRect(QRectF(x, y, ds, ds), QColor("#e94560"))
+            if count > max_visible:
+                painter.setPen(QColor("#e94560"))
+                painter.setFont(QFont(painter.font().family(), 6))
+                px = start_x + (max_cols - 1) * (ds + gap) + ds + 2
+                py = start_y + (max_rows - 1) * (ds + gap) + ds
+                painter.drawText(QRectF(px - 8, py - 8, 14, 10), Qt.AlignCenter, "+")
+            painter.restore()
 
 
 class EventsEditor(QMainWindow):
@@ -112,11 +157,15 @@ class EventsEditor(QMainWindow):
         days_in = QDate(year, month, 1).daysInMonth()
         for day in range(1, days_in + 1):
             self.calendar.setDateTextFormat(QDate(year, month, day), QTextCharFormat())
+        event_counts = {}
         for item in self._current_items:
             date_str = item.get("date", "")
             if DATE_RE.match(date_str):
                 y, m, d = map(int, date_str.split("-"))
-                self.calendar.setDateTextFormat(QDate(y, m, d), event_fmt)
+                qd = QDate(y, m, d)
+                self.calendar.setDateTextFormat(qd, event_fmt)
+                event_counts[date_str] = event_counts.get(date_str, 0) + 1
+        self.calendar.set_event_dates(event_counts)
 
     def _clear_form(self):
         self.date_edit.clear()
@@ -158,7 +207,7 @@ class EventsEditor(QMainWindow):
 
         calendar_group = QGroupBox()
         cal_layout = QVBoxLayout(calendar_group)
-        self.calendar = QCalendarWidget()
+        self.calendar = CalendarWidget()
         self.calendar.setFixedWidth(280)
         self.calendar.clicked.connect(self._on_date_clicked)
         self.calendar.currentPageChanged.connect(lambda y, m: self._highlight_calendar())
