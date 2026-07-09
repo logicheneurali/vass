@@ -134,7 +134,7 @@ class MemoryManager:
         if not active:
             return ""
 
-        prompt_lower = prompt.lower()
+        ai_tags = self._classify_prompt_tags(prompt)
         tagged_entries = tags_data.get("entries", [])
         matches = []
         for entry in tagged_entries:
@@ -142,8 +142,13 @@ class MemoryManager:
             if src == "chat" or src not in active:
                 continue
             entry_tags = entry.get("tags", [])
-            if any(t in prompt_lower or t.replace("_", " ") in prompt_lower for t in entry_tags):
-                matches.append(entry)
+            if ai_tags:
+                if any(t in ai_tags for t in entry_tags):
+                    matches.append(entry)
+            else:
+                prompt_lower = prompt.lower()
+                if any(t in prompt_lower or t.replace("_", " ") in prompt_lower for t in entry_tags):
+                    matches.append(entry)
         if not matches:
             return ""
 
@@ -172,6 +177,40 @@ class MemoryManager:
             return "\n\nRelevant stored information (use if helpful):\n" + "\n".join(parts)
         return ""
 
+    def _classify_prompt_tags(self, prompt):
+        """Use AI to identify relevant memory tags from user prompt.
+        Returns set of tag names, or empty set if AI unavailable."""
+        try:
+            import sys as _sys
+            _mcp_src = get_path("mcp_server", "src")
+            if _mcp_src not in _sys.path:
+                _sys.path.insert(0, _mcp_src)
+            from mcpgoal.tools.memory_tags import TAG_WEIGHTS
+            tag_list = ", ".join(sorted(TAG_WEIGHTS.keys()))
+            classify_prompt = (
+                f"Classify this user request with 1-3 comma-separated tags ONLY from: {tag_list}\n\n"
+                f"Request: \"{prompt[:500]}\"\n\n"
+                f"Return ONLY 1-3 most relevant tags, nothing else.\n"
+                f"Example: I have a headache -> health\n"
+                f"Example: what did I spend on Amazon? -> finance,purchases\n"
+                f"Example: tell me a story -> generic"
+            )
+            resp = self._app.openai_client.chat.completions.create(
+                model=self._app.ai_model,
+                messages=[{"role": "user", "content": classify_prompt}],
+                temperature=0.1,
+                max_tokens=50,
+                extra_body={"disable_thinking": True}
+            )
+            raw = (resp.choices[0].message.content or "").strip().lower()
+            tags = {t.strip() for t in raw.split(",") if t.strip() and t.strip() in TAG_WEIGHTS}
+            if tags:
+                print(f"[Memory] Prompt tags classified: {tags}")
+            return tags
+        except Exception as e:
+            print(f"[Memory] Prompt tag classification failed: {e}")
+            return set()
+
     def _compress_summary(self, summary_text, summary_id, mem_data):
         import json as _json
         from utils import call_with_retry
@@ -182,11 +221,13 @@ class MemoryManager:
                 "Output ONLY the condensed text, no JSON, no commentary.\n\n"
                 f"{summary_text}"
             )
+            timeout = max(20, len(summary_text) // 25)
             resp = call_with_retry(lambda: self._app.openai_client.chat.completions.create(
                 model=self._app.ai_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
                 max_tokens=1000,
+                timeout=timeout,
                 extra_body={"disable_thinking": True}
             ), log_prefix="[Summary]")
             compressed = (resp.choices[0].message.content or "").strip()
