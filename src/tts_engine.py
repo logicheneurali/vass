@@ -46,6 +46,8 @@ class TtsEngine:
 
         self._speak_queue = deque()
         self._speak_lock = threading.Lock()
+        self._deferred_queue = []   # TTS deferred while AI is busy
+        self._deferred_lock = threading.Lock()
         self._speaker_running = True
         self._sd_abort = threading.Event()
         self._wav_to_clean = ""
@@ -74,14 +76,32 @@ class TtsEngine:
     def speak_nowait(self, text, speed=0.9):
         self._speak_kokoro(text, speed)
 
-    def enqueue(self, text, speed=0.9, on_done=None):
+    def enqueue(self, text, speed=0.9, on_done=None, defer_if_busy=False):
         text = strip_markdown(str(text))
+        if defer_if_busy and self._get_state() == "waiting":
+            with self._deferred_lock:
+                self._deferred_queue.append((text, speed, on_done))
+            self._log(f"enqueue: DEFERRED (AI busy) text='{text[:60]}' deferred={len(self._deferred_queue)}")
+            return
         with self._speak_lock:
             self._speak_queue.append((text, speed, on_done))
             speak_len = len(self._speak_queue)
         self._log(f"enqueue: text='{text[:60]}' speak_queue={speak_len} on_done={on_done is not None}")
         if text:
             print(f"[TTS] Enqueued: {text[:60]}")
+
+    def _flush_deferred(self):
+        """Move deferred TTS messages to speak queue when AI is no longer busy."""
+        with self._deferred_lock:
+            if not self._deferred_queue:
+                return
+            count = len(self._deferred_queue)
+            with self._speak_lock:
+                for item in self._deferred_queue:
+                    self._speak_queue.append(item)
+                speak_len = len(self._speak_queue)
+            self._deferred_queue.clear()
+        self._log(f"_flush_deferred: moved {count} deferred messages, speak_queue={speak_len}")
 
     def _gen_worker(self):
         while self._speaker_running:

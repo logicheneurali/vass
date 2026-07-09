@@ -351,6 +351,8 @@ class VassApp:
                 self._running_noise_floor = None
         if self.state in ("paused", "loading") and new_state == "listening":
             self.noise_filter.reset_calibration()
+        if self.state == "waiting" and new_state != "waiting" and hasattr(self, 'tts'):
+            self.tts._flush_deferred()
         self.state_manager.set_state(new_state, detail, silent_gui)
 
     def _update_gui_state(self, new_state, detail="", silent_gui=False):
@@ -946,7 +948,7 @@ class VassApp:
             snip = clean_for_tts(em['snippet'], 200, " " + t("notifications.email_truncated", self.language))
             date_str = self._format_email_ago(em.get('sent_date', ''), self.language)
             text = f"Nuova email da {from_parts} ({date_str}). Oggetto: {subj}. {snip}"
-            self.tts.enqueue(text)
+            self.tts.enqueue(text, defer_if_busy=True)
             notif = t("notifications.new_email", self.language)\
                 .replace("{from}", from_parts)\
                 .replace("{date}", date_str)\

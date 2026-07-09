@@ -119,7 +119,7 @@ class TimerManager:
                 print(f"[Timer] Alert abandoned after 60s: state={state}")
                 return
         self._play_alert(2)
-        self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2))
+        self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2), defer_if_busy=True)
 
     def _play_alert(self, count=1):
         try:

@@ -396,7 +396,7 @@ class EventReminder:
 
         if not silent:
             started_msg = t("events.schedule_started", self.lang).replace("{description}", desc)
-            self.app.tts.enqueue(started_msg)
+            self.app.tts.enqueue(started_msg, defer_if_busy=True)
         print(f"[Schedules] Started: {desc} -> {command} {arguments}")
 
         # Check if command is a .vass script
@@ -412,14 +412,14 @@ class EventReminder:
                 self.app.script_runner.enqueue(script_name, silent=silent)
             elif not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-                self.app.tts.enqueue(failed_msg)
+                self.app.tts.enqueue(failed_msg, defer_if_busy=True)
             self._log(f"_execute_schedule_thread: end (script enqueue) desc='{desc}' state={self.app.state}")
             return
 
         if not _validate_command(command, arguments):
             if not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-                self.app.tts.enqueue(failed_msg)
+                self.app.tts.enqueue(failed_msg, defer_if_busy=True)
             self._log(f"_execute_schedule_thread: end (invalid command) desc='{desc}' state={self.app.state}")
             return
 
@@ -468,13 +468,13 @@ class EventReminder:
             else:
                 msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
             if not silent:
-                self.app.tts.enqueue(msg)
+                self.app.tts.enqueue(msg, defer_if_busy=True)
             if hasattr(self.app, 'notification_manager'):
                 self.app.notification_manager.add(msg, priority=9 if not ok else 7, data={"type": "schedule"})
         except Exception:
             if not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-                self.app.tts.enqueue(failed_msg)
+                self.app.tts.enqueue(failed_msg, defer_if_busy=True)
             if hasattr(self.app, 'notification_manager'):
                 self.app.notification_manager.add(failed_msg, priority=9, data={"type": "schedule"})
         self._log(f"_execute_schedule_thread: end desc='{desc}' state={self.app.state}")
@@ -599,7 +599,7 @@ class EventReminder:
             time.sleep(2)
             if not self._running:
                 return
-        self.app.tts.enqueue(msg)
+        self.app.tts.enqueue(msg, defer_if_busy=True)
         if hasattr(self.app, 'notification_manager'):
             self.app.notification_manager.add(msg, priority=7, data={"type": "event"})
         print(f"[Events] Fired: {msg}")
