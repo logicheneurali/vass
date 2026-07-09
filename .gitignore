@@ -123,3 +123,4 @@ config/cities500.txt
 # VASS - unit tests (run manually during dev)
 tests/
 website/
+.scripts/
