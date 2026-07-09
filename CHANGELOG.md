@@ -1,6 +1,39 @@
 # VASS — Registro Modifiche (Compattazione)
 
-Ultima compattazione: 2026-07-08, v0.6.2
+Ultima compattazione: 2026-07-09, v0.6.3
+
+---
+
+## v0.6.3 (2026-07-09)
+
+### Fonte Files nella memoria permanente
+- **`FileScanner`** (`src/memory_files_scanner.py`): scansione periodica cartelle configurabili, estrazione testo (percorso + prime 2KB), dedup via mtime, classificazione AI tramite coda differita.
+- **Dialog "Configura cartelle"** (`FilesFoldersDialog`): aggiungi/rimuovi cartelle, intervallo scansione, dimensione max file, max file per ciclo.
+- **Toggle "Files"** nel Fonti dialog con pulsante configurazione.
+- **Limite `max_files_per_cycle`** (default 20) e queue guard (≥80 elementi in coda → skip ciclo).
+- **Idle automatico**: scanner in pausa quando fonte disattivata, hot-reload config a ogni ciclo.
+
+### Fonti esterne e contesto AI
+- **Bottone rinominato**: "Fonti" → "Fonti esterne" (9 lingue).
+- **`max_external_entries` configurabile** (QSpinBox 1-20, default 3): quante entry iniettare nel contesto AI per richiesta. Salvato in `memory_sources.json`.
+
+### Fix
+- **Eventi disabilitati**: `_calculate_next_alert` ora salta correttamente anche gli "start alerts". `run_startup_schedules` salta schedule con `enabled: false`.
+- **`disable_thinking: False`** per chiamate tool MCP multi-turn.
+- **Weekday** nel system prompt e tool `current_time`.
+- **InfoPanel**: chiusura dopo "Segna tutto come letto", `raise_()` dopo show.
+- **URL cleaning**: preserva parentesi legittime, rimuove solo markdown.
+- **`get_project_root()`/`get_path()`** in `utils.py`: 39 ripetizioni path sostituite.
+- **`log_exc()`**: 32 `except Exception: pass` sostituiti.
+
+### File Chiave
+| File | Linee | Contenuto |
+|------|-------|-----------|
+| `src/memory_files_scanner.py` | 145 | FileScanner: scansione cartelle, estrazione testo, dedup mtime |
+| `src/memory_editor.py` | 1075 | Fonti esterne, FilesFoldersDialog, max_external_entries |
+| `src/memory_manager.py` | 645 | `_load_files_config()`, `max_external_entries` configurable |
+| `src/event_reminder.py` | 628 | Fix enabled check, disable_thinking |
+| `VERSION` | 1 | Bump a 0.6.3 |
 
 ---
 
