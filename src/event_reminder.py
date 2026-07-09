@@ -134,6 +134,8 @@ class EventReminder:
 
         # ── Start alerts (at event start time) ────────────────────────────────
         for ev in events:
+            if ev.get("enabled", "true").lower() == "false":
+                continue
             event_ts = self._parse_ts(ev)
             if event_ts is None:
                 continue
@@ -500,6 +502,8 @@ class EventReminder:
         except Exception:
             return
         for sc in data.get("schedules", []):
+            if sc.get("enabled", "true").lower() == "false":
+                continue
             if sc.get("run_on_startup", "false").lower() == "true":
                 print(f"[Schedules] Running startup schedule: {sc.get('description', sc.get('command', '?'))}")
                 self._execute_schedule(sc)
