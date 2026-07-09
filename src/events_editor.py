@@ -73,13 +73,14 @@ class CalendarWidget(QCalendarWidget):
         dkey = date.toString("yyyy-MM-dd")
         count = self._event_dates.get(dkey, 0)
         if count > 0:
-            max_cols = 5
-            max_rows = 4
+            max_cols = 6
+            max_rows = 3
             max_visible = max_cols * max_rows
-            ds = 4  # dot size
-            gap = 2
-            start_x = rect.right() - (max_cols * (ds + gap)) + gap - 2
-            start_y = rect.bottom() - (max_rows * (ds + gap)) + gap - 3
+            ds = 3
+            gap = 1
+            step = ds + gap
+            start_x = int(rect.right()) - max_cols * step - 2
+            start_y = int(rect.bottom()) - max_rows * step - 3
             painter.save()
             for i in range(min(count, max_visible)):
                 col = i % max_cols
