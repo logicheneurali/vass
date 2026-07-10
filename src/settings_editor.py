@@ -74,6 +74,13 @@ _SECTION_DEFAULTS = {
         "calendar_setup": "start",
     },
     "debug": {"debug_enabled": "false", "debug_log_max_kb": "1024"},
+    "events": {
+        "reminder_advance": "3600",
+        "work_start_hour": "8",
+        "work_end_hour": "19",
+        "lunch_start": "13:00",
+        "lunch_end": "14:30",
+    },
 }
 
 
