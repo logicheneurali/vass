@@ -155,7 +155,7 @@ class EventsEditor(QMainWindow):
         selected_date = self.calendar.selectedDate().toString("yyyy-MM-dd")
         lines = []  # (time_str_for_sort, line, idx, is_future, is_disabled)
         for i, item in enumerate(self._current_items):
-            is_disabled = item.get("enabled", "true").lower() == "false"
+            is_disabled = str(item.get("enabled", "true")).lower() == "false"
             if item.get("date") == selected_date:
                 time_str = item.get("time", "")
                 desc = item.get("description", "")
@@ -210,7 +210,7 @@ class EventsEditor(QMainWindow):
         month_end = QDate(year, month, days_in).toString("yyyy-MM-dd")
         for item in self._current_items:
             date_str = item.get("date", "")
-            is_active = item.get("enabled", "true").lower() != "false"
+            is_active = str(item.get("enabled", "true")).lower() != "false"
             target = active_counts if is_active else inactive_counts
             if DATE_RE.match(date_str):
                 y, m, d = map(int, date_str.split("-"))
@@ -482,13 +482,13 @@ class EventsEditor(QMainWindow):
         self.cmd_edit.setText(item.get("command", ""))
         self.args_edit.setText(item.get("arguments", ""))
         self.workdir_edit.setText(item.get("workingdir", ""))
-        enabled = item.get("enabled", "true")
+        enabled = str(item.get("enabled", "true"))
         self._enabled_cb.setChecked(enabled.lower() != "false")
-        silent = item.get("silent", "false")
+        silent = str(item.get("silent", "false"))
         self._silent_cb.setChecked(silent.lower() == "true")
-        self._wait_cb.setChecked(item.get("wait_for_completion", "false").lower() == "true")
-        self._run_on_startup_cb.setChecked(item.get("run_on_startup", "false").lower() == "true")
-        self._check_running_cb.setChecked(item.get("check_already_running", "false").lower() == "true")
+        self._wait_cb.setChecked(str(item.get("wait_for_completion", "false")).lower() == "true")
+        self._run_on_startup_cb.setChecked(str(item.get("run_on_startup", "false")).lower() == "true")
+        self._check_running_cb.setChecked(str(item.get("check_already_running", "false")).lower() == "true")
 
     def _validate(self):
         date = self.date_edit.text().strip()
