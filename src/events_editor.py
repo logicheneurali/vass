@@ -7,7 +7,7 @@ import sys
 import uuid
 from utils import get_project_root, get_path
 
-from PySide6.QtCore import Qt, QDate, QRectF
+from PySide6.QtCore import Qt, QDate, QRectF, QPoint
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QGroupBox,
@@ -62,10 +62,21 @@ class CalendarWidget(QCalendarWidget):
 
     def paintCell(self, painter, rect, date):
         super().paintCell(painter, rect, date)
-        # Current day: red border
+        # Current day: small red triangle bottom-right
         if date == QDate.currentDate():
             painter.save()
-            pen = QPen(QColor("#e94560"), 2)
+            painter.setBrush(QColor("#e94560"))
+            painter.setPen(Qt.NoPen)
+            tri_size = 8
+            x = rect.right() - tri_size
+            y = rect.bottom() - tri_size
+            triangle = [QPoint(x, rect.bottom()), QPoint(rect.right(), y), QPoint(rect.right(), rect.bottom())]
+            painter.drawPolygon(triangle)
+            painter.restore()
+        # Selected day: white border
+        if date == self.selectedDate():
+            painter.save()
+            pen = QPen(QColor("#ffffff"), 2)
             painter.setPen(pen)
             painter.drawRect(QRectF(rect).adjusted(1.5, 1.5, -1.5, -1.5))
             painter.restore()
