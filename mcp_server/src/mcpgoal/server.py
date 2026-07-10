@@ -165,6 +165,12 @@ async def _find_free_slot(date, duration, description, start_hour, end_hour, all
             continue
     day_events.sort()
 
+    # Lunch break: 13:00-14:30 (780-870 minutes)
+    lunch_start = 13 * 60
+    lunch_end = 14 * 60 + 30
+    day_events.append((lunch_start, lunch_end))
+    day_events.sort()
+
     start_day = start_hour * 60
     end_day = end_hour * 60
     cursor = start_day
@@ -321,8 +327,8 @@ def create_server(config: ServerConfig) -> FastMCP:
         return await _tool("addevent", f"desc={description[:40]}", _add_event(date, time, duration, description, recur, config.allowed_root), config)
 
     @mcp.tool()
-    async def find_free_slot(date: str, duration: str, description: str, start_hour: int = 8, end_hour: int = 22) -> str:
-        """Find the first free time slot on a date and add an event there. date='YYYY-MM-DD', duration=minutes, start_hour/end_hour=working hours (default 8-22). Use when the user wants to schedule something without specifying an exact time. Example: find_free_slot('2026-07-15', '60', 'Team lunch')"""
+    async def find_free_slot(date: str, duration: str, description: str, start_hour: int = 8, end_hour: int = 19) -> str:
+        """Find the first free time slot on a date and add an event there. date='YYYY-MM-DD', duration=minutes, start_hour/end_hour=working hours (default 8-19, lunch break 13:00-14:30 excluded). Use when the user wants to schedule something without specifying an exact time. Example: find_free_slot('2026-07-15', '60', 'Team lunch')"""
         return await _tool("find_free_slot", f"desc={description[:40]}", _find_free_slot(date, int(duration), description, start_hour, end_hour, config.allowed_root), config)
 
     @mcp.tool()
