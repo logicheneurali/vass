@@ -122,7 +122,7 @@ class SourcesDialog(QDialog):
         max_row = QHBoxLayout()
         max_row.addWidget(QLabel(_t("memory_editor.sources_max_entries", lang)))
         self._max_entries_spin = QSpinBox()
-        self._max_entries_spin.setRange(1, 20)
+        self._max_entries_spin.setRange(1, 999)
         self._max_entries_spin.setValue(self._sources.get("max_external_entries", 3))
         max_row.addWidget(self._max_entries_spin)
         max_row.addStretch()
