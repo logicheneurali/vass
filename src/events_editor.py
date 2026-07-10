@@ -153,15 +153,16 @@ class EventsEditor(QMainWindow):
         self.day_list.blockSignals(True)
         self.day_list.clear()
         selected_date = self.calendar.selectedDate().toString("yyyy-MM-dd")
-        lines = []  # (time_str_for_sort, row_items...)
+        lines = []  # (time_str_for_sort, line, idx, is_future, is_disabled)
         for i, item in enumerate(self._current_items):
+            is_disabled = item.get("enabled", "true").lower() == "false"
             if item.get("date") == selected_date:
                 time_str = item.get("time", "")
                 desc = item.get("description", "")
                 line = f"{time_str}  \u2014  {desc}"
                 if self._current_category == "events" and item.get("recur"):
                     line += f" [\u21bb {item['recur']}]"
-                lines.append((time_str, line, i, False))
+                lines.append((time_str, line, i, False, is_disabled))
             # Future recurrences
             recur = item.get("recur", "")
             if recur and self._current_category == "events" and item.get("date", "") <= selected_date and item.get("date") != selected_date:
@@ -169,15 +170,18 @@ class EventsEditor(QMainWindow):
                 for fd, ft in generate_recurrences(item.get("date", ""), item.get("time", "00:00"), recur, selected_date):
                     if fd == selected_date:
                         desc = item.get("description", "")
-                        line = f"\u21bb [futuro] {ft}  \u2014  {desc} [{recur}]"
-                        lines.append((ft, line, -1, True))
+                        line = f"\u21bb {ft}  \u2014  {desc} [\u21bb {recur}]"
+                        lines.append((ft, line, -1, True, is_disabled))
                         break
         lines.sort(key=lambda x: x[0])
-        for time_sort, line, idx, is_future in lines:
+        for time_sort, line, idx, is_future, is_disabled in lines:
             li = QListWidgetItem(line)
             li.setData(Qt.UserRole, idx)
+            if is_disabled:
+                li.setForeground(QColor("#e67e22"))
             if is_future:
-                li.setForeground(QColor("#666666"))
+                if not is_disabled:
+                    li.setForeground(QColor("#666666"))
                 font = li.font()
                 font.setItalic(True)
                 li.setFont(font)
