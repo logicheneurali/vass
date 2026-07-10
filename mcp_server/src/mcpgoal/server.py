@@ -170,6 +170,8 @@ async def _find_free_slot(date, duration, description, start_hour, end_hour, all
 
     day_events = []
     for ev in events:
+        if ev.get("enabled", "true").lower() == "false":
+            continue
         if ev.get("date") == date:
             time_str = ev.get("time", "")
             dur = int(ev.get("duration", 60) or 60)

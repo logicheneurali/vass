@@ -54,10 +54,12 @@ def _save(path, items, key):
 class CalendarWidget(QCalendarWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._event_dates = {}  # date_str -> count
+        self._event_dates = {}      # date_str -> count (active)
+        self._inactive_dates = {}   # date_str -> count (disabled)
 
-    def set_event_dates(self, dates):
+    def set_event_dates(self, dates, inactive=None):
         self._event_dates = dates
+        self._inactive_dates = inactive or {}
         self.updateCells()
 
     def paintCell(self, painter, rect, date):
@@ -82,28 +84,39 @@ class CalendarWidget(QCalendarWidget):
             painter.restore()
         # Event dots
         dkey = date.toString("yyyy-MM-dd")
-        count = self._event_dates.get(dkey, 0)
-        if count > 0:
+        inactive_count = self._inactive_dates.get(dkey, 0)
+        active_count = self._event_dates.get(dkey, 0)
+        if inactive_count > 0 or active_count > 0:
             max_cols = 6
             max_rows = 3
-            max_visible = max_cols * max_rows
             ds = 3
             gap = 1
             step = ds + gap
-            start_x = int(rect.right()) - max_cols * step - 2
-            start_y = int(rect.bottom()) - max_rows * step - 3
             painter.save()
-            for i in range(min(count, max_visible)):
+            # Gray dots (inactive) — right side
+            for i in range(min(inactive_count, max_cols * max_rows)):
                 col = i % max_cols
                 row = i // max_cols
-                x = start_x + col * (ds + gap)
-                y = start_y + row * (ds + gap)
+                x = int(rect.right()) - (col + 1) * step - 2
+                y = int(rect.bottom()) - (max_rows - row) * step + gap - 2
+                painter.fillRect(QRectF(x, y, ds, ds), QColor("#666666"))
+            # Red dots (active) — left of gray, or right-aligned if no gray
+            offset = min(inactive_count, max_cols * max_rows)
+            total_active = min(active_count, max_cols * max_rows)
+            for i in range(total_active):
+                idx = offset + i
+                col = idx % max_cols
+                row = idx // max_cols
+                if row >= max_rows:
+                    break
+                x = int(rect.right()) - (col + 1) * step - 2
+                y = int(rect.bottom()) - (max_rows - row) * step + gap - 2
                 painter.fillRect(QRectF(x, y, ds, ds), QColor("#e94560"))
-            if count > max_visible:
+            if active_count + inactive_count > max_cols * max_rows:
                 painter.setPen(QColor("#e94560"))
                 painter.setFont(QFont(painter.font().family(), 6))
-                px = start_x + (max_cols - 1) * (ds + gap) + ds + 2
-                py = start_y + (max_rows - 1) * (ds + gap) + ds
+                px = int(rect.right()) - 10
+                py = int(rect.bottom()) - 6
                 painter.drawText(QRectF(px - 8, py - 8, 14, 10), Qt.AlignCenter, "+")
             painter.restore()
 
@@ -187,23 +200,26 @@ class EventsEditor(QMainWindow):
         days_in = QDate(year, month, 1).daysInMonth()
         for day in range(1, days_in + 1):
             self.calendar.setDateTextFormat(QDate(year, month, day), QTextCharFormat())
-        event_counts = {}
+        active_counts = {}
+        inactive_counts = {}
         month_start = QDate(year, month, 1).toString("yyyy-MM-dd")
         month_end = QDate(year, month, days_in).toString("yyyy-MM-dd")
         for item in self._current_items:
             date_str = item.get("date", "")
+            is_active = item.get("enabled", "true").lower() != "false"
+            target = active_counts if is_active else inactive_counts
             if DATE_RE.match(date_str):
                 y, m, d = map(int, date_str.split("-"))
                 qd = QDate(y, m, d)
                 self.calendar.setDateTextFormat(qd, event_fmt)
-                event_counts[date_str] = event_counts.get(date_str, 0) + 1
+                target[date_str] = target.get(date_str, 0) + 1
             recur = item.get("recur", "")
             if recur and date_str:
                 from utils import generate_recurrences
                 for fd, _ in generate_recurrences(date_str, item.get("time", "00:00"), recur, month_end):
                     if fd >= month_start:
-                        event_counts[fd] = event_counts.get(fd, 0) + 1
-        self.calendar.set_event_dates(event_counts)
+                        target[fd] = target.get(fd, 0) + 1
+        self.calendar.set_event_dates(active_counts, inactive_counts)
 
     def _clear_form(self):
         self.date_edit.clear()
