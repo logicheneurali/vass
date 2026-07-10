@@ -129,18 +129,15 @@ class EventsEditor(QMainWindow):
         self.day_list.blockSignals(True)
         self.day_list.clear()
         selected_date = self.calendar.selectedDate().toString("yyyy-MM-dd")
-        has_items = False
+        lines = []  # (time_str_for_sort, row_items...)
         for i, item in enumerate(self._current_items):
             if item.get("date") == selected_date:
-                has_items = True
                 time_str = item.get("time", "")
                 desc = item.get("description", "")
                 line = f"{time_str}  \u2014  {desc}"
                 if self._current_category == "events" and item.get("recur"):
                     line += f" [\u21bb {item['recur']}]"
-                li = QListWidgetItem(line)
-                li.setData(Qt.UserRole, i)
-                self.day_list.addItem(li)
+                lines.append((time_str, line, i, False))
             # Future recurrences
             recur = item.get("recur", "")
             if recur and self._current_category == "events" and item.get("date", "") <= selected_date and item.get("date") != selected_date:
@@ -149,17 +146,21 @@ class EventsEditor(QMainWindow):
                     if fd == selected_date:
                         desc = item.get("description", "")
                         line = f"\u21bb [futuro] {ft}  \u2014  {desc} [{recur}]"
-                        fli = QListWidgetItem(line)
-                        fli.setData(Qt.UserRole, -1)
-                        fli.setForeground(QColor("#666666"))
-                        font = fli.font()
-                        font.setItalic(True)
-                        fli.setFont(font)
-                        fli.setFlags(Qt.ItemNeverHasChildren)
-                        self.day_list.addItem(fli)
+                        lines.append((ft, line, -1, True))
                         break
+        lines.sort(key=lambda x: x[0])
+        for time_sort, line, idx, is_future in lines:
+            li = QListWidgetItem(line)
+            li.setData(Qt.UserRole, idx)
+            if is_future:
+                li.setForeground(QColor("#666666"))
+                font = li.font()
+                font.setItalic(True)
+                li.setFont(font)
+                li.setFlags(Qt.ItemNeverHasChildren)
+            self.day_list.addItem(li)
         self.day_list.blockSignals(False)
-        if has_items:
+        if lines:
             self.day_list.setCurrentRow(0)
         else:
             self._clear_form()
