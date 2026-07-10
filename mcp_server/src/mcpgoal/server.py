@@ -151,6 +151,23 @@ async def _find_free_slot(date, duration, description, start_hour, end_hour, all
         data = {"events": []}
     events = data.get("events", [])
 
+    # Read working hours from settings.ini (fallback to defaults)
+    try:
+        import configparser
+        cp = configparser.ConfigParser()
+        cp.read(str(Path(allowed_root).resolve().parent / "config" / "settings.ini"), encoding="utf-8")
+        start_hour = cp.getint("events", "work_start_hour", fallback=start_hour)
+        end_hour = cp.getint("events", "work_end_hour", fallback=end_hour)
+        ls = cp.get("events", "lunch_start", fallback="13:00")
+        le = cp.get("events", "lunch_end", fallback="14:30")
+        lh, lm = map(int, ls.split(":"))
+        eh, em = map(int, le.split(":"))
+        lunch_start = lh * 60 + lm
+        lunch_end = eh * 60 + em
+    except Exception:
+        lunch_start = 13 * 60
+        lunch_end = 14 * 60 + 30
+
     day_events = []
     for ev in events:
         if ev.get("date") != date:
@@ -165,11 +182,10 @@ async def _find_free_slot(date, duration, description, start_hour, end_hour, all
             continue
     day_events.sort()
 
-    # Lunch break: 13:00-14:30 (780-870 minutes)
-    lunch_start = 13 * 60
-    lunch_end = 14 * 60 + 30
-    day_events.append((lunch_start, lunch_end))
-    day_events.sort()
+    # Lunch break as blocked slot
+    if lunch_end > lunch_start:
+        day_events.append((lunch_start, lunch_end))
+        day_events.sort()
 
     start_day = start_hour * 60
     end_day = end_hour * 60

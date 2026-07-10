@@ -138,7 +138,11 @@
             "compress_context": "Kontextkomprimierung (EXPERIMENTELL)",
             "auto_context_selection": "Automatische Kontextauswahl",
             "paused_opacity": "Pause-Deckkraft",
-            "compact_mode": "Kompakter Modus"
+            "compact_mode": "Kompakter Modus",
+            "work_start_hour": "Start Arbeitszeit (Stunde)",
+            "work_end_hour": "Ende Arbeitszeit (Stunde)",
+            "lunch_start": "Mittagspause Beginn (HH:MM)",
+            "lunch_end": "Mittagspause Ende (HH:MM)"
         },
         "field_descriptions": {
             "x": "Bildschirm X-Position",

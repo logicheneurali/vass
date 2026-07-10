@@ -138,7 +138,11 @@
             "compress_context": "Compresion de contexto (EXPERIMENTAL)",
             "auto_context_selection": "Selección automática de contexto",
             "paused_opacity": "Opacidad pausa",
-            "compact_mode": "Modo compacto"
+            "compact_mode": "Modo compacto",
+            "work_start_hour": "Inicio horario laboral (hora)",
+            "work_end_hour": "Fin horario laboral (hora)",
+            "lunch_start": "Inicio pausa almuerzo (HH:MM)",
+            "lunch_end": "Fin pausa almuerzo (HH:MM)"
         },
         "field_descriptions": {
             "x": "Posición X en pantalla",

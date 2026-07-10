@@ -232,7 +232,11 @@
       "debug_log_max_kb": "Dimensione massima del file di debug in KB (default 1024)",
       "compress_context": "Rimuove articoli, preposizioni e congiunzioni dal testo inviato all'AI per ridurre il numero di token.",
       "auto_context_selection": "Salta l'iniezione della memoria quando la richiesta non necessita del contesto (es. calcoli, ora, traduzioni).",
-      "compact_mode": "Riduce la finestra a 36x36 pixel con cerchi concentrici e sfondo trasparente"
+      "compact_mode": "Riduce la finestra a 36x36 pixel con cerchi concentrici e sfondo trasparente",
+      "work_start_hour": "Inizio orario lavorativo (ora)",
+      "work_end_hour": "Fine orario lavorativo (ora)",
+      "lunch_start": "Inizio pausa pranzo (HH:MM)",
+      "lunch_end": "Fine pausa pranzo (HH:MM)"
     },
     "section_labels": {
       "gui": "Finestra",

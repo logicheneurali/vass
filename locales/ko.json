@@ -138,7 +138,11 @@
             "compress_context": "컨텍스트 압축 (실험적)",
             "auto_context_selection": "컨텍스트 자동 선택",
             "paused_opacity": "일시정지 불투명도",
-            "compact_mode": "컴팩트 모드"
+            "compact_mode": "컴팩트 모드",
+            "work_start_hour": "근무 시작 시간 (시)",
+            "work_end_hour": "근무 종료 시간 (시)",
+            "lunch_start": "점심 시작 (HH:MM)",
+            "lunch_end": "점심 종료 (HH:MM)"
         },
         "field_descriptions": {
             "x": "화면 X 위치",

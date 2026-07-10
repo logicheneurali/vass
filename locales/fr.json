@@ -138,7 +138,11 @@
             "compress_context": "Compression du contexte (EXPERIMENTAL)",
             "auto_context_selection": "Sélection automatique du contexte",
             "paused_opacity": "Opacité pause",
-            "compact_mode": "Mode compact"
+            "compact_mode": "Mode compact",
+            "work_start_hour": "Début horaire travail (heure)",
+            "work_end_hour": "Fin horaire travail (heure)",
+            "lunch_start": "Début pause déjeuner (HH:MM)",
+            "lunch_end": "Fin pause déjeuner (HH:MM)"
         },
         "field_descriptions": {
             "x": "Position X à l'écran",

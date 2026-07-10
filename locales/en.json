@@ -198,7 +198,11 @@
       "debug_log_max_kb": "Maximum debug log file size in KB (default 1024)",
       "compress_context": "Removes articles, prepositions and conjunctions from text sent to the AI to reduce token count.",
       "auto_context_selection": "Skip memory injection when the request does not need context (e.g. calculations, time, translations).",
-      "compact_mode": "Reduces the window to 36x36 pixels with concentric circles and transparent background"
+      "compact_mode": "Reduces the window to 36x36 pixels with concentric circles and transparent background",
+      "work_start_hour": "Work start hour",
+      "work_end_hour": "Work end hour",
+      "lunch_start": "Lunch break start (HH:MM)",
+      "lunch_end": "Lunch break end (HH:MM)"
     },
     "section_labels": {
       "gui": "Window",

@@ -138,7 +138,11 @@
             "compress_context": "上下文压缩（实验性）",
             "auto_context_selection": "自动上下文选择",
             "paused_opacity": "暂停不透明度",
-            "compact_mode": "紧凑模式"
+            "compact_mode": "紧凑模式",
+            "work_start_hour": "工作开始时间（小时）",
+            "work_end_hour": "工作结束时间（小时）",
+            "lunch_start": "午休开始 (HH:MM)",
+            "lunch_end": "午休结束 (HH:MM)"
         },
         "field_descriptions": {
             "x": "屏幕 X 位置",
