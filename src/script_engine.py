@@ -63,6 +63,7 @@ class VASScript:
     _search_cache = {}
     _search_cache_ttl = 600
     _state = {}
+    _state_lock = threading.Lock()
 
     def __init__(self, app, script_name="inline", auth_callback=None, line_callback=None, silent=False):
         self.app = app
@@ -749,7 +750,8 @@ class VASScript:
 
         if name in ("readstate", "read_state"):
             key = evaluated[0] if evaluated else ""
-            val = VASScript._state.get(key, "")
+            with VASScript._state_lock:
+                val = VASScript._state.get(key, "")
             if getattr(self.app, 'debug_enabled', False):
                 print(f"[VASScript] readstate({key!r}) -> {val!r}")
             return val
@@ -758,7 +760,8 @@ class VASScript:
             key = evaluated[0] if evaluated else ""
             val = evaluated[1] if len(evaluated) > 1 else ""
             if key:
-                VASScript._state[key] = val
+                with VASScript._state_lock:
+                    VASScript._state[key] = val
                 if getattr(self.app, 'debug_enabled', False):
                     print(f"[VASScript] writestate({key!r}, {val!r}) -> ok")
                 return "ok"

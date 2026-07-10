@@ -820,7 +820,7 @@ class VassApp:
                 ok = False
                 if self.debug_enabled:
                     print(f"[Health] {health_url} unreachable: {e}")
-        self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
+            self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
 
     def _mcp_health_check_loop(self):
         """Periodically check if the MCP server is reachable."""

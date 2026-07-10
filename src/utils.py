@@ -121,7 +121,20 @@ def paste_text(text):
 # ── String / text utilities ──────────────────────────────────────────────────
 
 def parse_blacklist(raw):
-    return set(w.strip().lower() for w in raw.split(",") if w.strip())
+    """Parse blacklist. Quoted items are literal phrases, unquoted are single words.
+    Returns (words, phrases) where both are sets of lowercased strings.
+    """
+    words = set()
+    phrases = set()
+    for item in raw.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        if item.startswith('"') and item.endswith('"'):
+            phrases.add(item[1:-1].lower())
+        else:
+            words.add(item.lower())
+    return words, phrases
 
 
 def is_local_url(url):
@@ -409,6 +422,7 @@ def decrypt_fields(entry):
                 out[k] = v
         else:
             out[k] = v
+    return out
 
 
 # ── Fuzzy matching utilities ──────────────────────────────────────────────────
@@ -430,7 +444,7 @@ def fuzzy_match_word(prompt, keywords, threshold=0.75, min_len=4):
     return False
 
 
-def list_audio_devices():
+def list_audio_devices(resolved_inp=None, resolved_out=None):
     try:
         import sounddevice as sd
         import configparser
@@ -448,9 +462,17 @@ def list_audio_devices():
                     print(f"  [{d['index']:2d}] {d['name'][:49]:50s} api={ha:20s} ch={d['max_input_channels'] if kind=='Input' else d['max_output_channels']}")
                     return
             print(f"  [{idx:2d}] (non trovato)")
-        print(f"Input device (settings: {inp}):")
-        _print_dev("Input", inp if inp >= 0 else sd.default.device[0])
-        print(f"Output device (settings: {out}):")
-        _print_dev("Output", out if out >= 0 else sd.default.device[1])
+        actual_inp = resolved_inp if resolved_inp is not None else inp
+        actual_out = resolved_out if resolved_out is not None else out
+        label_in = f"Input device (settings: {inp}"
+        label_in += f", resolved: {actual_inp}" if resolved_inp is not None else ""
+        label_in += "):"
+        print(label_in)
+        _print_dev("Input", actual_inp if actual_inp >= 0 else sd.default.device[0])
+        label_out = f"Output device (settings: {out}"
+        label_out += f", resolved: {actual_out}" if resolved_out is not None else ""
+        label_out += "):"
+        print(label_out)
+        _print_dev("Output", actual_out if actual_out >= 0 else sd.default.device[1])
     except Exception:
         pass
