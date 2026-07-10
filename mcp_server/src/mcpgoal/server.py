@@ -141,6 +141,50 @@ async def _add_event(date, time, duration, description, recur, allowed_root):
     return f"Event added: '{description}' on {date} at {time} ({duration}min)"
 
 
+async def _find_free_slot(date, duration, description, start_hour, end_hour, allowed_root):
+    """Find the first free time slot on a date and add an event."""
+    import json
+    try:
+        raw = await filesystem.read_file("events.json", allowed_root)
+        data = json.loads(raw)
+    except Exception:
+        data = {"events": []}
+    events = data.get("events", [])
+
+    day_events = []
+    for ev in events:
+        if ev.get("date") != date:
+            continue
+        time_str = ev.get("time", "")
+        dur = int(ev.get("duration", 60) or 60)
+        try:
+            h, m = map(int, time_str.split(":"))
+            start_min = h * 60 + m
+            day_events.append((start_min, start_min + dur))
+        except (ValueError, TypeError):
+            continue
+    day_events.sort()
+
+    start_day = start_hour * 60
+    end_day = end_hour * 60
+    cursor = start_day
+
+    for ev_start, ev_end in day_events:
+        if ev_start > cursor and ev_start - cursor >= duration:
+            hh = cursor // 60
+            mm = cursor % 60
+            return await _add_event(date, f"{hh:02d}:{mm:02d}", str(duration), description, "", allowed_root)
+        cursor = max(cursor, ev_end)
+
+    if end_day - cursor >= duration:
+        hh = cursor // 60
+        mm = cursor % 60
+        return await _add_event(date, f"{hh:02d}:{mm:02d}", str(duration), description, "", allowed_root)
+
+    busy = ", ".join(f"{s//60:02d}:{s%60:02d}-{e//60:02d}:{e%60:02d}" for s, e in day_events)
+    return f"error: no free slot of {duration} minutes on {date}. Busy slots: {busy}"
+
+
 async def _del_event(description, date, time, allowed_root):
     import json
     import difflib
@@ -275,6 +319,11 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def addevent(date: str, time: str, duration: str, description: str, recur: str = "") -> str:
         """Add an event to events.json. date='YYYY-MM-DD', time='HH:MM', duration=minutes (integer), recur='1d'/'7d'/'1m'/'2h' (optional). IMPORTANT: Always verify the date matches the requested day of week (e.g., if user says 'monday', check the date IS actually a Monday). Example: addevent('2026-06-15', '14:00', '60', 'Team meeting', '1d')"""
         return await _tool("addevent", f"desc={description[:40]}", _add_event(date, time, duration, description, recur, config.allowed_root), config)
+
+    @mcp.tool()
+    async def find_free_slot(date: str, duration: str, description: str, start_hour: int = 8, end_hour: int = 22) -> str:
+        """Find the first free time slot on a date and add an event there. date='YYYY-MM-DD', duration=minutes, start_hour/end_hour=working hours (default 8-22). Use when the user wants to schedule something without specifying an exact time. Example: find_free_slot('2026-07-15', '60', 'Team lunch')"""
+        return await _tool("find_free_slot", f"desc={description[:40]}", _find_free_slot(date, int(duration), description, start_hour, end_hour, config.allowed_root), config)
 
     @mcp.tool()
     async def delevent(description: str, date: str = "", time: str = "") -> str:

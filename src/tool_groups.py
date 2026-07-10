@@ -20,7 +20,7 @@ TOOL_GROUPS = {
     "web":       ["browse", "webfetch", "websearch"],
     "calendar":  ["calendar_add", "calendar_list", "calendar_search"],
     "files":     ["read_file", "write_file", "readinfo", "writeinfo"],
-    "events":    ["addevent", "delevent", "listevents", "nextevent"],
+    "events":    ["addevent", "delevent", "listevents", "nextevent", "find_free_slot"],
     "clipboard": ["clipboardget", "clipboardset"],
     "time":      ["current_time", "to_timestamp"],
     "compute":   ["calculate"],

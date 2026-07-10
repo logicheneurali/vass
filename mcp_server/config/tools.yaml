@@ -1,73 +1,149 @@
 tools:
   browse:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   read_file:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   write_file:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   current_time:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   to_timestamp:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   calculate:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   execute:
     whitelist: []
-    blacklist: ["*"]
+    blacklist:
+    - '*'
   script:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   interact:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   readinfo:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   writeinfo:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   clipboardget:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   clipboardset:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   websearch:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   webfetch:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   langcheck:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   addevent:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   delevent:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   listevents:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   savetags:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   calendar_list:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   calendar_add:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   calendar_search:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
   getidle:
-    whitelist: ["127.0.0.1", "::1", "localhost"]
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
     blacklist: []
+find_free_slot:
+  whitelist:
+  - 127.0.0.1
+  - ::1
+  - localhost
+  blacklist: []
