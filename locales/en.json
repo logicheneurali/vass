@@ -138,7 +138,11 @@
       "compress_context": "Context compression (EXPERIMENTAL)",
       "auto_context_selection": "Auto context selection",
       "paused_opacity": "Pause opacity",
-      "compact_mode": "Compact Mode"
+      "compact_mode": "Compact Mode",
+      "work_start_hour": "Work start",
+      "work_end_hour": "Work end",
+      "lunch_start": "Lunch break start",
+      "lunch_end": "Lunch break end"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -198,11 +202,7 @@
       "debug_log_max_kb": "Maximum debug log file size in KB (default 1024)",
       "compress_context": "Removes articles, prepositions and conjunctions from text sent to the AI to reduce token count.",
       "auto_context_selection": "Skip memory injection when the request does not need context (e.g. calculations, time, translations).",
-      "compact_mode": "Reduces the window to 36x36 pixels with concentric circles and transparent background",
-      "work_start_hour": "Work start",
-      "work_end_hour": "Work end",
-      "lunch_start": "Lunch break start",
-      "lunch_end": "Lunch break end"
+      "compact_mode": "Reduces the window to 36x36 pixels with concentric circles and transparent background"
     },
     "section_labels": {
       "gui": "Window",
