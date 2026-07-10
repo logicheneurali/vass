@@ -248,7 +248,9 @@
             "llama_already_running": "llama-serverはすでに実行中です。",
             "llama_no_path": "llama-serverのパスがsettings.iniで設定されていません。",
             "llama_not_found": "llama-server.exeが{path}に見つかりません。",
-            "llama_started": "llama.cppサーバーが起動しました！"
+            "llama_started": "llama.cppサーバーが起動しました！",
+            "invalid_time": "“{key}”の時刻形式が無効です: “{val}”。HH:MMを使用してください（例: 08:00）。",
+            "invalid_url": "“{key}”のURLが無効です: “{val}”。http://またはhttps://で始める必要があります。"
         },
         "warnings": {
             "google_not_configured": "⚠ Google認証情報が設定されていません。Calendar、Gmail、Google Homeサービスを有効にするには設定を実行してください。"

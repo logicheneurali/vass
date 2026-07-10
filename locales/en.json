@@ -241,6 +241,8 @@
       "width_range": "Window width must be between 200 and 400.",
       "height_range": "Window height must be between 32 and 64.",
       "positive_number": "Value must be a positive number.",
+      "invalid_time": "Invalid time format for '{key}': '{val}'. Use HH:MM (e.g. 08:00).",
+      "invalid_url": "Invalid URL for '{key}': '{val}'. Must start with http:// or https://.",
       "pct_range": "{key} must be between 0 and 100.",
       "invalid_number": "The value entered is not a valid number.",
       "restart_required": "Restart the application for the wakeword change to take effect.",

@@ -248,7 +248,9 @@
             "llama_already_running": "llama-server est deja en cours d execution.",
             "llama_no_path": "Chemin llama-server non configure dans settings.ini.",
             "llama_not_found": "llama-server.exe introuvable dans {path}.",
-            "llama_started": "Serveur llama.cpp demarre !"
+            "llama_started": "Serveur llama.cpp demarre !",
+            "invalid_time": "Format horaire invalide pour “{key}” : “{val}”. Utilisez HH:MM (ex. 08:00).",
+            "invalid_url": "URL invalide pour “{key}” : “{val}”. Doit commencer par http:// ou https://."
         },
         "warnings": {
             "google_not_configured": "⚠ Identifiants Google non configurés. Lancez le setup pour activer les services Calendar, Gmail et Google Home."

@@ -248,7 +248,9 @@
             "llama_already_running": "llama-server ya esta en ejecucion.",
             "llama_no_path": "Ruta de llama-server no configurada en settings.ini.",
             "llama_not_found": "llama-server.exe no encontrado en {path}.",
-            "llama_started": "Servidor llama.cpp iniciado!"
+            "llama_started": "Servidor llama.cpp iniciado!",
+            "invalid_time": "Formato de hora inválido para “{key}”: “{val}”. Use HH:MM (ej. 08:00).",
+            "invalid_url": "URL inválida para “{key}”: “{val}”. Debe comenzar con http:// o https://."
         },
         "warnings": {
             "google_not_configured": "⚠ Credenciales de Google no configuradas. Ejecute el setup para activar los servicios Calendar, Gmail y Google Home."

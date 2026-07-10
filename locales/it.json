@@ -275,6 +275,8 @@
       "width_range": "Larghezza finestra deve essere tra 200 e 400.",
       "height_range": "Altezza finestra deve essere tra 32 e 64.",
       "positive_number": "Il valore deve essere un numero positivo.",
+      "invalid_time": "Formato orario non valido per '{key}': '{val}'. Usa HH:MM (es. 08:00).",
+      "invalid_url": "URL non valida per '{key}': '{val}'. Deve iniziare con http:// o https://.",
       "pct_range": "{key} deve essere compreso tra 0 e 100.",
       "invalid_number": "Il valore inserito non e' un numero valido.",
       "restart_required": "Riavvia l'applicazione affinché la wakeword abbia effetto.",

@@ -630,6 +630,38 @@ class SettingsEditor(QMainWindow):
         if wakeword_entry:
             old_wakeword = self.config.get("wakeword", "wakeword", fallback=None)
 
+        # Validate HH:MM and integer fields before saving
+        _INT_KEYS = {"memory_tokens", "context_length", "calendar_sync_minutes",
+                     "calendar_sync_days", "gmail_sync_minutes", "gmail_max_results",
+                     "debug_log_max_kb"}
+        _URL_KEYS = {"url", "mcp_server_url"}
+        _TIME_KEYS = {"work_start_hour", "work_end_hour", "lunch_start", "lunch_end"}
+        for (section, key), entry in self.entries.items():
+            val = entry.text().strip() if isinstance(entry, QLineEdit) else ""
+            if key in _TIME_KEYS and val:
+                if not re.match(r'^\d{1,2}:\d{2}$', val):
+                    QMessageBox.critical(self, err_title,
+                        self._t("settings_editor.errors.invalid_time").replace("{key}", key).replace("{val}", val))
+                    return
+                h, m = map(int, val.split(":"))
+                if h > 23 or m > 59:
+                    QMessageBox.critical(self, err_title,
+                        self._t("settings_editor.errors.invalid_time").replace("{key}", key).replace("{val}", val))
+                    return
+            if key in _INT_KEYS and val:
+                try:
+                    if int(val) < 0:
+                        raise ValueError
+                except ValueError:
+                    QMessageBox.critical(self, err_title,
+                        self._t("settings_editor.errors.positive_number"))
+                    return
+            if key in _URL_KEYS and val:
+                if not val.startswith(("http://", "https://")):
+                    QMessageBox.critical(self, err_title,
+                        self._t("settings_editor.errors.invalid_url").replace("{key}", key).replace("{val}", val))
+                    return
+
         for (section, key), entry in self.entries.items():
             if self._google_disabled and section == "google" and key in {"calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled"}:
                 value = "false"

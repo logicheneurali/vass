@@ -248,7 +248,9 @@
             "llama_already_running": "llama-server已在运行。",
             "llama_no_path": "settings.ini中未配置llama-server路径。",
             "llama_not_found": "在{path}中找不到llama-server.exe。",
-            "llama_started": "llama.cpp服务器已启动！"
+            "llama_started": "llama.cpp服务器已启动！",
+            "invalid_time": "“{key}”的时间格式无效: “{val}”。请使用HH:MM（例如08:00）。",
+            "invalid_url": "“{key}”的URL无效: “{val}”。必须以http://或https://开头。"
         },
         "warnings": {
             "google_not_configured": "⚠ Google凭据未配置。请运行设置以启用Calendar、Gmail和Google Home服务。"
