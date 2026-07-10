@@ -76,8 +76,8 @@ _SECTION_DEFAULTS = {
     "debug": {"debug_enabled": "false", "debug_log_max_kb": "1024"},
     "events": {
         "reminder_advance": "3600",
-        "work_start_hour": "8",
-        "work_end_hour": "19",
+        "work_start_hour": "08:00",
+        "work_end_hour": "19:00",
         "lunch_start": "13:00",
         "lunch_end": "14:30",
     },
@@ -455,15 +455,11 @@ class SettingsEditor(QMainWindow):
                     cw_layout.addWidget(entry, 1)
                     cw_layout.addWidget(model_btn)
                     group_layout.addWidget(cw, row, 1)
-                elif key in ("work_start_hour", "work_end_hour"):
-                    entry = QSpinBox()
-                    entry.setRange(0, 23)
-                    entry.setValue(int(self.config.get(section, key, fallback="8" if key == "work_start_hour" else "19")))
-                    group_layout.addWidget(entry, row, 1)
-                elif key in ("lunch_start", "lunch_end"):
+                elif key in ("work_start_hour", "work_end_hour", "lunch_start", "lunch_end"):
                     entry = QLineEdit()
-                    current = self.config.get(section, key, fallback="13:00" if key == "lunch_start" else "14:30")
-                    entry.setText(current)
+                    defaults = {"work_start_hour": "08:00", "work_end_hour": "19:00",
+                                "lunch_start": "13:00", "lunch_end": "14:30"}
+                    entry.setText(self.config.get(section, key, fallback=defaults.get(key, "")))
                     entry.setPlaceholderText("HH:MM")
                     group_layout.addWidget(entry, row, 1)
                 else:

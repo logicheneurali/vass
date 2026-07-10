@@ -139,10 +139,10 @@
             "auto_context_selection": "Selección automática de contexto",
             "paused_opacity": "Opacidad pausa",
             "compact_mode": "Modo compacto",
-            "work_start_hour": "Inicio horario laboral (hora)",
-            "work_end_hour": "Fin horario laboral (hora)",
-            "lunch_start": "Inicio pausa almuerzo (HH:MM)",
-            "lunch_end": "Fin pausa almuerzo (HH:MM)"
+            "work_start_hour": "Inicio trabajo",
+            "work_end_hour": "Fin trabajo",
+            "lunch_start": "Inicio almuerzo",
+            "lunch_end": "Fin almuerzo"
         },
         "field_descriptions": {
             "x": "Posición X en pantalla",

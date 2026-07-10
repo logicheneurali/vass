@@ -156,8 +156,8 @@ async def _find_free_slot(date, duration, description, start_hour, end_hour, all
         import configparser
         cp = configparser.ConfigParser()
         cp.read(str(Path(allowed_root).resolve().parent / "config" / "settings.ini"), encoding="utf-8")
-        start_hour = cp.getint("events", "work_start_hour", fallback=start_hour)
-        end_hour = cp.getint("events", "work_end_hour", fallback=end_hour)
+        start_hour = int(cp.get("events", "work_start_hour", fallback=str(start_hour)).split(":")[0])
+        end_hour = int(cp.get("events", "work_end_hour", fallback=str(end_hour)).split(":")[0])
         ls = cp.get("events", "lunch_start", fallback="13:00")
         le = cp.get("events", "lunch_end", fallback="14:30")
         lh, lm = map(int, ls.split(":"))

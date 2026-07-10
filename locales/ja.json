@@ -139,10 +139,10 @@
             "auto_context_selection": "コンテキスト自動選択",
             "paused_opacity": "一時停止の不透明度",
             "compact_mode": "コンパクトモード",
-            "work_start_hour": "勤務開始時間（時）",
-            "work_end_hour": "勤務終了時間（時）",
-            "lunch_start": "昼休み開始（HH:MM）",
-            "lunch_end": "昼休み終了（HH:MM）"
+            "work_start_hour": "勤務開始",
+            "work_end_hour": "勤務終了",
+            "lunch_start": "昼休み開始",
+            "lunch_end": "昼休み終了"
         },
         "field_descriptions": {
             "x": "画面上のX位置",
