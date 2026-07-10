@@ -137,6 +137,46 @@ def parse_blacklist(raw):
     return words, phrases
 
 
+def generate_recurrences(date_str, time_str, recur, until_date_str, max_iter=366):
+    """Generate future recurrence dates for a recurring event.
+    Returns list of (date_str, time_str) tuples from the base date up to until_date.
+    """
+    import datetime
+    results = []
+    if not recur:
+        return results
+    m = re.match(r"^(\d+)([mhdwM])$", recur)
+    if not m:
+        return results
+    num, unit = int(m.group(1)), m.group(2)
+    try:
+        dt = datetime.datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        return results
+    until = datetime.datetime.strptime(f"{until_date_str} 23:59", "%Y-%m-%d %H:%M")
+    for _ in range(max_iter):
+        if unit == "m":
+            dt += datetime.timedelta(minutes=num)
+        elif unit == "h":
+            dt += datetime.timedelta(hours=num)
+        elif unit == "d":
+            dt += datetime.timedelta(days=num)
+        elif unit == "w":
+            dt += datetime.timedelta(weeks=num)
+        elif unit == "M":
+            month = dt.month + num - 1
+            year = dt.year + month // 12
+            month = month % 12 + 1
+            day = min(dt.day, 28)
+            dt = dt.replace(year=year, month=month, day=day)
+        else:
+            break
+        if dt > until:
+            break
+        results.append((dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M")))
+    return results
+
+
 def is_local_url(url):
     host = (urlparse(url).hostname or "").lower()
     return host in ("127.0.0.1", "localhost", "::1") or host.startswith("127.")

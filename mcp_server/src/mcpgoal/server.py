@@ -170,16 +170,27 @@ async def _find_free_slot(date, duration, description, start_hour, end_hour, all
 
     day_events = []
     for ev in events:
-        if ev.get("date") != date:
-            continue
-        time_str = ev.get("time", "")
-        dur = int(ev.get("duration", 60) or 60)
-        try:
-            h, m = map(int, time_str.split(":"))
-            start_min = h * 60 + m
-            day_events.append((start_min, start_min + dur))
-        except (ValueError, TypeError):
-            continue
+        if ev.get("date") == date:
+            time_str = ev.get("time", "")
+            dur = int(ev.get("duration", 60) or 60)
+            try:
+                h, m = map(int, time_str.split(":"))
+                start_min = h * 60 + m
+                day_events.append((start_min, start_min + dur))
+            except (ValueError, TypeError):
+                continue
+        recur = ev.get("recur", "")
+        if recur and ev.get("date", "") <= date:
+            try:
+                from utils import generate_recurrences
+                for fd, ft in generate_recurrences(ev.get("date", ""), ev.get("time", "00:00"), recur, date):
+                    if fd == date:
+                        dur = int(ev.get("duration", 60) or 60)
+                        h, m = map(int, ft.split(":"))
+                        start_min = h * 60 + m
+                        day_events.append((start_min, start_min + dur))
+            except Exception:
+                pass
     day_events.sort()
 
     # Lunch break as blocked slot

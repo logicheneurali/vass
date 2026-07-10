@@ -159,6 +159,8 @@ class EventsEditor(QMainWindow):
         for day in range(1, days_in + 1):
             self.calendar.setDateTextFormat(QDate(year, month, day), QTextCharFormat())
         event_counts = {}
+        month_start = QDate(year, month, 1).toString("yyyy-MM-dd")
+        month_end = QDate(year, month, days_in).toString("yyyy-MM-dd")
         for item in self._current_items:
             date_str = item.get("date", "")
             if DATE_RE.match(date_str):
@@ -166,6 +168,12 @@ class EventsEditor(QMainWindow):
                 qd = QDate(y, m, d)
                 self.calendar.setDateTextFormat(qd, event_fmt)
                 event_counts[date_str] = event_counts.get(date_str, 0) + 1
+            recur = item.get("recur", "")
+            if recur and date_str:
+                from utils import generate_recurrences
+                for fd, _ in generate_recurrences(date_str, item.get("time", "00:00"), recur, month_end):
+                    if fd >= month_start:
+                        event_counts[fd] = event_counts.get(fd, 0) + 1
         self.calendar.set_event_dates(event_counts)
 
     def _clear_form(self):
