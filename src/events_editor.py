@@ -135,12 +135,29 @@ class EventsEditor(QMainWindow):
                 has_items = True
                 time_str = item.get("time", "")
                 desc = item.get("description", "")
-                line = f"{time_str}  —  {desc}"
+                line = f"{time_str}  \u2014  {desc}"
                 if self._current_category == "events" and item.get("recur"):
-                    line += f" [{item['recur']}]"
+                    line += f" [\u21bb {item['recur']}]"
                 li = QListWidgetItem(line)
                 li.setData(Qt.UserRole, i)
                 self.day_list.addItem(li)
+            # Future recurrences
+            recur = item.get("recur", "")
+            if recur and self._current_category == "events" and item.get("date", "") <= selected_date and item.get("date") != selected_date:
+                from utils import generate_recurrences
+                for fd, ft in generate_recurrences(item.get("date", ""), item.get("time", "00:00"), recur, selected_date):
+                    if fd == selected_date:
+                        desc = item.get("description", "")
+                        line = f"\u21bb [futuro] {ft}  \u2014  {desc} [{recur}]"
+                        fli = QListWidgetItem(line)
+                        fli.setData(Qt.UserRole, -1)
+                        fli.setForeground(QColor("#666666"))
+                        font = fli.font()
+                        font.setItalic(True)
+                        fli.setFont(font)
+                        fli.setFlags(Qt.ItemNeverHasChildren)
+                        self.day_list.addItem(fli)
+                        break
         self.day_list.blockSignals(False)
         if has_items:
             self.day_list.setCurrentRow(0)
@@ -418,7 +435,10 @@ class EventsEditor(QMainWindow):
             return
         actual_idx = item_widget.data(Qt.UserRole)
         if actual_idx is None or actual_idx < 0 or actual_idx >= len(self._current_items):
-            self._selected_idx = None
+            if actual_idx == -1:
+                self._selected_idx = None
+            else:
+                self._selected_idx = None
             return
         self._selected_idx = actual_idx
         item = self._current_items[actual_idx]
