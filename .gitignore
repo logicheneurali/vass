@@ -74,6 +74,8 @@ highlight_toast.ps1
 **/bk_memory.json
 **/last_response.txt
 **/gmail_seen.json
+**/memory_files_tracker.json
+**/memory_files_config.json
 **/word_weights.json
 **/tags_config.json
 test_wake_*.wav

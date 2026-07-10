@@ -1,5 +1,7 @@
-"""Real-time DSP noise cancellation for the VASS audio pipeline.
-Targets constant ambient noise (fans, AC, hum) with <0.01% CPU impact.
+"""Real-time noise cancellation for VASS.
+MCRA noise estimation + Decision-Directed Wiener filter.
+Handles non-stationary ambient noise (outdoor, traffic, wind).
+Pure numpy, no external dependencies.
 """
 import numpy as np
 
@@ -8,102 +10,130 @@ class NoiseFilter:
     def __init__(self, sample_rate=16000, frame_size=320):
         self.sample_rate = sample_rate
         self.frame_size = frame_size
-        self.noise_profile = None       # float64[n_fft//2+1] magnitude spectrum
         self._enabled = True
-        self._calibrating = True
-        self._calib_accum = []          # list of float64[frame_size]
-        self._calib_target = 100        # ~2 seconds at 50fps
-        self._last_update = 0
 
-        # Biquad IIR high-pass filter, Butterworth 2nd order, 80Hz @ 16000Hz
-        # Coefficients computed via scipy.signal.butter(2, 80/8000, 'high')
+        # Biquad high-pass 80Hz @ 16000Hz (Butterworth 2nd order)
         self._hp_b = np.array([0.96508099, -1.93016197, 0.96508099])
         self._hp_a = np.array([1.0, -1.92935037, 0.93148062])
-        self._hp_z = np.zeros((2,))  # filter state [z1, z2]
+        self._hp_z = np.zeros((2,))
+
+        # MCRA noise estimation state
+        self._noise = None
+        self._smooth = None
+        self._min_buf = None
+        self._min_pos = 0
+        self._frame_count = 0
+
+        # Wiener filter state (Decision-Directed approach)
+        self._prev_gamma = None
+        self._prev_gain = None
+
+        # Parameters
+        self._alpha_s = 0.7          # periodogram smoothing
+        self._alpha_d = 0.95         # noise update slow factor
+        self._delta = 2.0            # VAD threshold
+        self._beta = 0.01            # min speech presence probability
+        self._alpha_snr = 0.98       # a priori SNR smoothing
+        self._n_fft = 512
+        self._min_window = 100       # ~2 seconds minima tracking
+
+        # Per-band suppression floor (replaces spectral floor + oversubtract)
+        freqs = np.fft.rfftfreq(self._n_fft, 1.0 / sample_rate)
+        self._floor = np.where(
+            freqs < 300, 0.04,
+            np.where(freqs > 4000, 0.06, 0.10)
+        )
 
     @property
     def calibrated(self):
-        return self.noise_profile is not None
+        return self._min_buf is not None and self._frame_count >= self._min_window
 
     def reset_calibration(self):
-        """Restart noise profile calibration (on device change, resume from pause)."""
-        self._calibrating = True
-        self._calib_accum = []
-        self.noise_profile = None
-        self._last_update = 0
+        self._noise = None
+        self._smooth = None
+        self._min_buf = None
+        self._min_pos = 0
+        self._frame_count = 0
+        self._prev_gamma = None
+        self._prev_gain = None
+        self._hp_z = np.zeros((2,))
 
     def process(self, frame, raw_rms=0.0):
-        """Main entry: returns filtered frame. Pass-through if not a numpy array.
-        raw_rms: pre-filter RMS energy for calibration gating (0 = unknown/force)."""
         if not self._enabled or not isinstance(frame, np.ndarray):
             return frame
 
-        # Ensure float64 for processing
-        frame = frame.astype(np.float64, copy=False)
-        # Store original dtype for output
-        out_dtype = frame.dtype
+        frame = np.asarray(frame, dtype=np.float64)
 
         # Stage 1: High-pass filter
         frame, self._hp_z = _biquad(frame, self._hp_b, self._hp_a, self._hp_z)
 
-        # Calibration — only accumulate during likely silence (RMS < 10% of max)
-        if self._calibrating:
-            if raw_rms <= 0.0 or raw_rms < 0.03:  # silence gate: skip frames with speech
-                self._calib_accum.append(frame.copy())
-            if len(self._calib_accum) >= self._calib_target:
-                self._finish_calibration()
-                self._calibrating = False
-            return frame.astype(out_dtype)
+        # Stage 2: MCRA + Wiener filter
+        clean = self._filter_frame(frame)
+        return clean if clean is not None else frame.astype(np.float32)
 
-        # Stage 2: Spectral subtraction
-        if self.noise_profile is not None:
-            frame = _spectral_subtract(frame, self.noise_profile)
+    def _filter_frame(self, frame):
+        n = self._n_fft
+        spec = np.fft.rfft(frame, n=n)
+        mag = np.abs(spec)
+        phase = np.angle(spec)
+        mag2 = mag * mag
+        eps = 1e-12
 
-        # Stage 3: Soft clip
-        frame = np.clip(frame, -0.95, 0.95)
+        # Initialize on first frame
+        if self._smooth is None:
+            self._smooth = mag.copy()
+            self._noise = mag.copy()
+            self._min_buf = np.tile(mag.copy(), (self._min_window, 1))
+            self._min_pos = 1
+            self._prev_gamma = np.ones_like(mag)
+            self._prev_gain = np.ones_like(mag)
+            return None
 
-        return frame.astype(out_dtype)
+        self._frame_count += 1
 
-    def _finish_calibration(self):
-        """Compute average noise spectrum from accumulated frames."""
-        n_fft = 512
-        profile = np.zeros(n_fft // 2 + 1)
-        for f in self._calib_accum:
-            spec = np.abs(np.fft.rfft(f, n=n_fft))
-            profile += spec
-        profile /= len(self._calib_accum)
-        self.noise_profile = profile
-        self._calib_accum = []
-        print(f"[NoiseFilter] Calibrated: noise profile rms_mag={np.sqrt(np.mean(profile**2)):.6f}")
+        # MCRA: smoothed periodogram
+        self._smooth = self._alpha_s * self._smooth + (1 - self._alpha_s) * mag
+
+        # MCRA: minima tracking via circular buffer
+        self._min_buf[self._min_pos] = self._smooth.copy()
+        self._min_pos = (self._min_pos + 1) % self._min_window
+        min_smooth = np.min(self._min_buf, axis=0)
+
+        # MCRA: speech presence probability
+        ratio = self._smooth / (min_smooth + eps)
+        p = np.where(ratio > self._delta, self._beta, 1.0)
+
+        # MCRA: adaptive noise estimate
+        alpha_d = self._alpha_d * p + (1.0 - p)
+        self._noise = alpha_d * self._noise + (1.0 - alpha_d) * mag
+
+        # Decision-Directed Wiener filter
+        noise2 = self._noise * self._noise + eps
+        gamma = mag2 / noise2
+
+        xi = self._alpha_snr * (self._prev_gamma * self._prev_gain ** 2) \
+             + (1 - self._alpha_snr) * np.maximum(0.0, gamma - 1.0)
+
+        gain = xi / (1.0 + xi)
+        gain = np.maximum(gain, self._floor)
+
+        self._prev_gamma = gamma
+        self._prev_gain = gain
+
+        # Apply gain and reconstruct
+        clean_mag = gain * mag
+        clean_spec = clean_mag * np.exp(1j * phase)
+        clean = np.fft.irfft(clean_spec, n=n)
+        clean = clean[:self.frame_size]
+        clean = np.clip(clean, -0.95, 0.95)
+        return clean.astype(np.float32)
 
     def maybe_update_profile(self, frame, is_silence=False, now=0):
-        """Update noise profile via EMA if in silence state.
-        Args:
-            frame: current audio frame
-            is_silence: True if current frame is below speech threshold
-            now: current time.time() value
-        """
-        if not self.calibrated:
-            return
-        if not is_silence:
-            self._last_update = now
-            return
-        if now - self._last_update < 2.0:  # need 2s of silence first
-            return
-        # Exponential moving average update every ~30s
-        if now - self._last_update >= 30.0:
-            spec = np.abs(np.fft.rfft(frame.astype(np.float64), n=512))
-            self.noise_profile = 0.9 * self.noise_profile + 0.1 * spec
-            self._last_update = now
+        pass
 
 
 def _biquad(signal, b, a, z):
-    """Apply biquad IIR filter with direct form II transposed.
-    b: numerator coefficients (len 3)
-    a: denominator coefficients (len 3, a[0]=1)
-    z: filter state (len 2)
-    Returns: filtered signal, updated state
-    """
+    """Biquad IIR filter, direct form II transposed."""
     y = np.zeros_like(signal)
     b0, b1, b2 = b[0], b[1], b[2]
     a1, a2 = a[1], a[2]
@@ -114,19 +144,3 @@ def _biquad(signal, b, a, z):
         z1 = b1 * x - a1 * y[i] + z2
         z2 = b2 * x - a2 * y[i]
     return y, np.array([z1, z2])
-
-
-def _spectral_subtract(frame, noise_profile, oversubtract=1.2):
-    """Subtract noise spectrum from frame using magnitude spectral subtraction."""
-    n_fft = 512
-    # FFT
-    spec = np.fft.rfft(frame, n=n_fft)
-    phase = np.angle(spec)
-    mag = np.abs(spec)
-    # Subtract
-    clean_mag = np.maximum(0.0, mag - noise_profile * oversubtract)
-    # Reconstruct
-    clean_spec = clean_mag * np.exp(1j * phase)
-    clean = np.fft.irfft(clean_spec, n=n_fft)
-    # Trim to original frame size
-    return clean[:len(frame)]
