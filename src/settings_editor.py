@@ -694,7 +694,6 @@ class SettingsEditor(QMainWindow):
                         self.config.remove_option(section, name_key)
                 else:
                     try:
-                        import re
                         txt = entry.currentText() if isinstance(entry, QComboBox) else ""
                         name = re.sub(r'^\d+:\s*', '', txt).strip()
                         if name:
