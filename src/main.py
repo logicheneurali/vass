@@ -110,7 +110,7 @@ def _load_version():
         return "0.0.0"
 
 from prompts import (MCP_PROMPT, VASSCRIPT_TOOLS_PROMPT, MEMORY_SUMMARIZATION_PROMPT,
-                     SAVETAGS_PROMPT, _STOPWORDS, _compress_heuristic, _load_vascript_reference,
+                     _STOPWORDS, _compress_heuristic, _load_vascript_reference,
                      append_tool_descriptions)
 
 __version__ = _load_version()
@@ -202,7 +202,7 @@ class VassApp:
         self.gui.volume_top_bar.set_volume(self.app_volume)
         self.mcp_server_url = self.settings["mcp_server_url"]
         self.mcp_process = None
-        self.memory_tokens = self.settings.get("memory_tokens", 2000)
+        self.memory_tokens = self.settings.get("memory_tokens", 5000)
         self.blacklist = parse_blacklist(self.settings.get("blacklist", ""))
         self.llama_server_path = self.settings.get("llama_server_path", "")
         self.llama_server_working_directory = self.settings.get("llama_server_working_directory", "")
@@ -473,7 +473,7 @@ class VassApp:
                         if self.ai_url != old_url:
                             self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
                         self.mcp_server_url = self.settings["mcp_server_url"]
-                        self.memory_tokens = self.settings.get("memory_tokens", 2000)
+                        self.memory_tokens = self.settings.get("memory_tokens", 5000)
                         self.blacklist = parse_blacklist(self.settings.get("blacklist", ""))
                         self.llama_server_path = self.settings.get("llama_server_path", "")
                         self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
@@ -705,6 +705,7 @@ class VassApp:
                                 with open("log/crash.log", "a") as f:
                                     f.write(f"Beep error: {ex}\n")
                             self.audio_handler.clear_queue()
+                            self.stop_playback()
                             self.audio_handler.start_recording()
                             self.voice_recognition.reset_model()
                             self.state_manager.set_state("recording")
@@ -1416,7 +1417,7 @@ class VassApp:
                 model=self.ai_model,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - (self._count_tokens(json.dumps(tools)) if tools else 0) - 256, 4096)),
+                max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - (self._count_tokens(json.dumps(tools)) if tools else 0) - 256, max(1024, (self.context_length or 4096) // 2))),
                 extra_body={"disable_thinking": True}
             )
 
@@ -1625,6 +1626,10 @@ class VassApp:
             if not script_called:
                 self.conversation_history.append({"role": "user", "content": prompt})
                 self.conversation_history.append({"role": "assistant", "content": ai_response})
+
+            if ai_response and self.gui:
+                self.gui.schedule_signal.emit(
+                    lambda: self.gui.show_ai_responses())
             total = sum(len(json.dumps(m, ensure_ascii=False)) for m in self.conversation_history)
             if total > self.memory_tokens * 4:
                 self.conversation_history = self.conversation_history[-10:]
@@ -1927,7 +1932,7 @@ def main():
             ai_url = config.get("ai", "url", fallback="http://127.0.0.1:8080/v1")
             ai_model = config.get("ai", "model", fallback="gemma-4-E2B-it-Q8_0")
             client = OpenAI(base_url=ai_url, api_key="not-needed")
-            mem_tokens = config.getint("ai", "memory_tokens", fallback=2000)
+            mem_tokens = config.getint("ai", "memory_tokens", fallback=5000)
             app = VassApp.__new__(VassApp)
             app.openai_client = client
             app.ai_model = ai_model
@@ -1951,6 +1956,7 @@ def main():
         from PySide6.QtCore import QTimer
     
         qapp = QApplication(sys.argv)
+        ico_path = os.path.join(get_project_root(), "vass.ico")
         if sys.platform == "win32":
             try:
                 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("logicheneurali.vass.app")
@@ -1961,7 +1967,6 @@ def main():
                 winreg.CloseKey(key)
             except Exception:
                 log_exc()
-        ico_path = os.path.join(get_project_root(), "vass.ico")
         if os.path.exists(ico_path):
             qapp.setWindowIcon(QIcon(ico_path))
     

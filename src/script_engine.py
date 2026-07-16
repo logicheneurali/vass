@@ -10,7 +10,7 @@ import time
 from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, fuzzy_ratio, log_exc
 
 
-_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "launch_app", "close", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "form", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal"}
+_SIDE_EFFECT_FUNCTIONS = {"ai", "say", "run", "launch_app", "close", "screen_search", "screen_click", "screen_highlight", "listen", "sendtext", "send_text", "setactivewindow", "set_active_window", "addevent", "add_event", "listevents", "list_events", "removeevent", "delevent", "remove_event", "delete_event", "readinfo", "read_info", "writeinfo", "write_info", "clipboardget", "clipboard_get", "clipboardset", "clipboard_set", "savetags", "save_tags", "timer_start", "timer_list", "timer_cancel", "notify", "form", "inject", "inject_memory", "compress_memory", "fetch_text", "fetch_json", "search_web", "gcal_today", "gcal_tomorrow", "gcal_add", "gcal_search", "google_home_command", "google_home_ask", "get_weather", "getidle", "get_idle", "rss_fetch", "readfile", "read_file", "writefile", "write_file", "readstate", "read_state", "writestate", "write_state", "prettyevents", "pretty_events", "getdatetime", "get_datetime", "tonum", "to_num", "ifcontains", "if_contains", "ifempty", "if_empty", "ifequals", "if_equals", "ifgreater", "if_greater", "ifless", "if_less", "ifgreaterequal", "if_greater_equal", "iflessequal", "if_less_equal", "foreach"}
 
 
 def _is_int_str(s):
@@ -117,8 +117,9 @@ class VASScript:
                 self.line_callback(i + 1, total)
             result = self._execute_line(line)
             if line.strip() and not line.strip().startswith("#"):
-                rstr = str(result) if result else "(empty)"
-                print(f"[VASScript] {line.strip()} -> {rstr}")
+                if getattr(self.app, 'debug_enabled', False):
+                    rstr = str(result) if result else "(empty)"
+                    print(f"[VASScript] {line.strip()} -> {rstr}")
 
     def execute_file(self, path):
         with open(path, encoding="utf-8") as f:
@@ -324,6 +325,44 @@ class VASScript:
             if not cond and len(args) > 3:
                 return self._evaluate(args[3])
             return ""
+
+        if name == "foreach":
+            data_str = self._evaluate(args[0]) if args else "[]"
+            json_path = self._evaluate(args[1]) if len(args) > 1 else ""
+            var_name = self._evaluate(args[2]) if len(args) > 2 else "item"
+            try:
+                data = json.loads(data_str)
+            except Exception:
+                return "error: invalid JSON in foreach"
+            if json_path:
+                for part in json_path.split("."):
+                    if isinstance(data, dict):
+                        data = data.get(part, [])
+                    else:
+                        data = []
+                        break
+            if isinstance(data, dict):
+                data = data.get("data", data) if "data" in data else [data]
+            if isinstance(data, dict):
+                data = [data]
+            if not isinstance(data, list):
+                return f"error: path '{json_path}' does not resolve to an array in foreach"
+            saved = self.vars.get(var_name)
+            results = []
+            for item in data:
+                item_str = json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else str(item)
+                self.vars[var_name] = item_str
+                if len(args) > 3:
+                    result = self._evaluate(args[3])
+                    if result:
+                        results.append(str(result))
+                if not self._running:
+                    break
+            if saved is not None:
+                self.vars[var_name] = saved
+            elif var_name in self.vars:
+                del self.vars[var_name]
+            return "\n".join(results) if results else ""
 
         evaluated = _eval_all(args)
 
@@ -548,13 +587,15 @@ class VASScript:
                         ["powershell", "-NoProfile", "-Command", cmd],
                         capture_output=True, text=True, encoding="utf-8", errors="replace",
                         creationflags=subprocess.CREATE_NO_WINDOW,
-                        timeout=30
+                        timeout=30,
+                        cwd=os.path.join(get_project_root(), "Allowed_root")
                     )
                 else:
                     result = subprocess.run(
                         cmd, shell=True,
                         capture_output=True, text=True, encoding="utf-8", errors="replace",
-                        timeout=30
+                        timeout=30,
+                        cwd=os.path.join(get_project_root(), "Allowed_root")
                     )
                 output = (result.stdout or "").strip()
                 if result.stderr:
@@ -1110,6 +1151,24 @@ class VASScript:
             try:
                 with open(p, encoding="utf-8") as f:
                     return f.read()
+            except Exception as e:
+                return f"error: {e}"
+
+        if name in ("writefile", "write_file"):
+            filepath = evaluated[0] if evaluated else ""
+            content = evaluated[1] if len(evaluated) > 1 else ""
+            if not filepath:
+                return "error: path required"
+            import os as _os
+            base = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "Allowed_root")
+            p = _os.path.normpath(_os.path.join(base, filepath))
+            if not p.startswith(_os.path.normpath(base)):
+                return "error: access denied"
+            try:
+                _os.makedirs(_os.path.dirname(p), exist_ok=True)
+                with open(p, "w", encoding="utf-8") as f:
+                    f.write(content)
+                return f"ok: wrote {len(content)} bytes to {filepath}"
             except Exception as e:
                 return f"error: {e}"
 

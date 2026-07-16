@@ -74,6 +74,9 @@
     "no_notifications": "Nessuna notifica",
     "mcp_down_tooltip": "Server MCP non disponibile",
     "links": "Link",
+    "ai_responses": "AI",
+    "ai_no_responses": "Nessuna risposta AI",
+    "click_to_copy": "Clicca per copiare",
     "mark_all_read": "Segna tutto come letto",
     "transcription_mode": "Modalità trascrizione — tool non disponibili"
   },
@@ -427,6 +430,7 @@
       "workingdir_system": "La cartella '{dir}' è di sistema. Non consentita."
     },
     "saved": "File salvato.",
+    "go_to_date": "Vai alla data originale",
     "form_label": "Dettagli",
     "delete_confirm_title": "Conferma eliminazione",
     "delete_confirm_text": "Eliminare '{item}'? L'operazione non può essere annullata.",
@@ -543,6 +547,7 @@
     "files_max_size_unit": "KB",
     "files_max_per_cycle": "Max file per ciclo:",
     "files_max_per_cycle_unit": "file",
+    "files_blacklist": "Escludi percorsi contenenti (separati da virgola, supporta wildcard):",
     "map_title": "Memoria Permanente \u2014 {total} voci, {tags} tag",
     "map_subtitle": "Clicca un tag per vedere i dettagli",
     "map_tooltip": "<b>{tag}</b><br>{count} voci &middot; ril. media {rel}",

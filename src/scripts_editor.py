@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QLineEdit, QGroupBox,
     QMessageBox, QInputDialog, QMenu,
-    QDialog, QCheckBox,
+    QDialog, QCheckBox, QScrollArea,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
@@ -40,6 +40,9 @@ TEMPLATES = {
     "filter_json": '$lista = filter_json($dati, "- {titolo} ({anno})")',
     "filter_json con filtro": '$filtro = filter_json($dati, "{nome}: {email}", "citta=Roma")',
     "filter_json con filtro numerico": '$risultati = filter_json($dati, "{nome}", "eta>=18")',
+    "foreach": '$data = fetch_json("https://api.example.com/data")\nforeach($data, "items", "item", notify($item.title))',
+    "read_file": '$contenuto = read_file("file.txt")\nsay($contenuto)',
+    "write_file": 'write_file("file.txt", "Hello world")',
     "form": 'form("Titolo", "nome: text: Mario", "età: number: 30", "paese: select: Italia,Francia,Spagna", "attivo: checkbox: true", "note: textarea")',
     "gcal_add": 'gcal_add("Riunione", "2026-06-15T14:00:00", "2026-06-15T15:00:00", "Sala A")',
     "gcal_search": '$eventi = gcal_search("dentista")\nsay($eventi)',
@@ -314,17 +317,23 @@ class ScriptsEditor(QMainWindow):
         help_layout = QVBoxLayout(help_group)
 
         self.func_list = QListWidget()
+        self.func_list.setMinimumHeight(120)
         func_names = sorted(k for k in TEMPLATES.keys() if "→" not in k)
         self.func_list.addItems(func_names)
         self.func_list.currentTextChanged.connect(self._on_func_select)
         self.func_list.itemDoubleClicked.connect(self._insert_func)
-        help_layout.addWidget(self.func_list)
+        help_layout.addWidget(self.func_list, 1)
 
+        self.func_scroll = QScrollArea()
+        self.func_scroll.setWidgetResizable(True)
+        self.func_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.func_scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         self.func_help = QLabel(self._t("scripts_editor.select_function"))
         self.func_help.setStyleSheet(f"color: {LABEL_FG}; font-size: 11px;")
         self.func_help.setWordWrap(True)
         self.func_help.setAlignment(Qt.AlignmentFlag.AlignTop)
-        help_layout.addWidget(self.func_help)
+        self.func_scroll.setWidget(self.func_help)
+        help_layout.addWidget(self.func_scroll, 3)
 
         layout.addWidget(help_group)
 

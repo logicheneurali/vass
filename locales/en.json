@@ -74,6 +74,9 @@
     "no_notifications": "No notifications",
     "mcp_down_tooltip": "MCP server unavailable",
     "links": "Links",
+    "ai_responses": "AI",
+    "ai_no_responses": "No AI responses",
+    "click_to_copy": "Click to copy",
     "mark_all_read": "Mark All Read",
     "transcription_mode": "Transcription mode — tools not available"
   },
@@ -427,6 +430,7 @@
       "workingdir_system": "Directory '{dir}' is a system directory. Not allowed."
     },
     "saved": "File saved.",
+    "go_to_date": "Go to original date",
     "form_label": "Details",
     "delete_confirm_title": "Confirm deletion",
     "delete_confirm_text": "Delete '{item}'? This cannot be undone.",
@@ -543,6 +547,7 @@
     "files_max_size_unit": "KB",
     "files_max_per_cycle": "Max files per cycle:",
     "files_max_per_cycle_unit": "files",
+    "files_blacklist": "Exclude paths containing (comma-separated, supports wildcards):",
     "map_title": "Permanent Memory \u2014 {total} entries, {tags} tags",
     "map_subtitle": "Click a tag to see details",
     "map_tooltip": "<b>{tag}</b><br>{count} entries &middot; avg rel {rel}",

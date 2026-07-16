@@ -154,7 +154,7 @@ class MemoryManager:
 
         matches.sort(key=lambda e: e.get("relevance", 0), reverse=True)
         max_entries = self._memory_sources.get("max_external_entries", 3)
-        top = matches[:max_entries]
+        top = self._hybrid_rank(matches, prompt, max_entries)
         parts = []
         mem_dir = os.path.join(root, "Allowed_root", "memory")
         for entry in top:
@@ -162,11 +162,13 @@ class MemoryManager:
             hf = os.path.join(mem_dir, f"{entry.get('id', '')}.json")
             if os.path.exists(hf):
                 try:
-                    with open(hf, encoding="utf-8") as hf:
-                        info = json.loads(json.load(hf).get("info", "{}"))
+                    with open(hf, encoding="utf-8") as hfp:
+                        info = json.loads(json.load(hfp).get("info", "{}"))
                     content = info.get("content", "")
                 except Exception:
                     log_exc()
+            if not content:
+                content = entry.get("content", "")
             if not content:
                 continue
             content = content[:200].strip()
@@ -210,6 +212,35 @@ class MemoryManager:
         except Exception as e:
             print(f"[Memory] Prompt tag classification failed: {e}")
             return set()
+
+    @staticmethod
+    def _hybrid_rank(matches, prompt, max_entries):
+        import datetime
+        prompt_words = set(prompt.lower().split())
+        if not prompt_words:
+            return matches[:max_entries]
+
+        today = datetime.date.today()
+        scored = []
+        for entry in matches:
+            tag_score = entry.get("relevance", 0)
+
+            ts = entry.get("ts", "")
+            try:
+                days = (today - datetime.datetime.strptime(ts, "%Y-%m-%d %H:%M").date()).days
+            except Exception:
+                days = 90
+            recency = 1.0 + (0.5 * max(0, 1.0 - days / 365.0))
+
+            content = (entry.get("content", "") or "").lower()
+            kw_overlap = len(prompt_words & set(content.split()))
+            kw_score = min(kw_overlap * 1.5, 15)
+
+            final = tag_score * recency + kw_score
+            scored.append((entry, final))
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [entry for entry, _ in scored[:max_entries]]
 
     def _compress_summary(self, summary_text, summary_id, mem_data):
         import json as _json
@@ -590,7 +621,7 @@ class MemoryManager:
                 _os.path.abspath(__file__))), "mcp_server", "src")
             if _mcp_src not in _sys.path:
                 _sys.path.insert(0, _mcp_src)
-            from mcpgoal.tools.memory_tags import _refresh_weights, TAG_WEIGHTS
+            from mcpgoal.tools.memory_tags import _refresh_weights, TAG_WEIGHTS, MIN_RELEVANCE
             root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
             _refresh_weights(_os.path.join(root, "Allowed_root"))
             from utils import init_mcp
@@ -633,9 +664,15 @@ class MemoryManager:
                     if t.strip() and t.strip() in TAG_WEIGHTS][:2]
             if tags:
                 tags_str = ",".join(tags)
+                relevance = sum(TAG_WEIGHTS.get(t, 0) for t in tags)
+                if relevance >= MIN_RELEVANCE:
+                    summary = self._summarize_external(content, source)
+                else:
+                    summary = content[:300]
+                    print(f"[Classify] Summary skipped: relevance {relevance} < {MIN_RELEVANCE}")
                 result = mcp.call_tool("savetags",
                     {"tags": tags_str, "entry_id": entry_id, "source": source,
-                     "content": content[:300]})
+                     "content": summary[:300]})
                 content_out = result.get("content", [{}])[0].get("text", str(result))
                 print(f"[Classify] External tags: {tags} -> {content_out}")
             else:
@@ -662,6 +699,32 @@ class MemoryManager:
                             {"tags": ",".join(tags), "entry_id": entry_id, "source": source})
             except Exception:
                 log_exc()
+
+    def _summarize_external(self, content, source):
+        """Generate a concise 1-2 sentence summary with key facts from external content."""
+        try:
+            source_label = {"email": "email", "events": "event", "calendar": "calendar event",
+                            "files": "file", "timers": "timer"}.get(source, source)
+            summary_prompt = (
+                f"Summarize this {source_label} in 1-2 sentences. "
+                f"Extract key facts: dates (in YYYY-MM-DD format), amounts, names, actions, decisions. "
+                f"Be specific with numbers and dates. No fluff, no commentary. "
+                f"Output ONLY the summary, nothing else.\n\n{content[:2000]}"
+            )
+            resp = self._app.openai_client.chat.completions.create(
+                model=self._app.ai_model,
+                messages=[{"role": "user", "content": summary_prompt}],
+                temperature=0.1,
+                max_tokens=200,
+                extra_body={"disable_thinking": True}
+            )
+            summary = (resp.choices[0].message.content or "").strip()
+            if summary:
+                print(f"[Classify] Summary ({len(summary)} chars): {summary[:120]}...")
+                return summary
+        except Exception as e:
+            print(f"[Classify] Summary failed: {e}")
+        return content[:300]
 
     def _classify_keyword_fallback(self, content, tag_weights):
         """Keyword-based tag assignment when AI is unavailable."""

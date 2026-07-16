@@ -7,7 +7,6 @@ import time
 import traceback
 import unicodedata
 from difflib import SequenceMatcher
-from openai import APIConnectionError
 from urllib.parse import urlparse
 
 SCRIPT_PREFIXES = ("vasscript:", "script:")
@@ -232,8 +231,15 @@ def start_llama_server(path, working_directory="", arguments="", skip_if_running
     cmd = [exe] + (args.split() if args else [])
     print(f"[llama.cpp] Starting: {' '.join(cmd)} (cwd={cwd})")
     creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+    log_dir = os.path.join(get_project_root(), "log")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "llamacpp.log")
+    log_file = open(log_path, "w", encoding="utf-8")
+    log_file.write(f"--- llama.cpp started at {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+    log_file.write(f"Command: {' '.join(cmd)}\nWorking dir: {cwd}\n\n")
+    log_file.flush()
     proc = subprocess.Popen(cmd, cwd=cwd, creationflags=creationflags,
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            stdout=log_file, stderr=subprocess.STDOUT)
     return proc, "started"
 
 
@@ -278,6 +284,7 @@ def cleanup_orphan_files(mem_dir, history_ids, summary_id):
 # ── AI utilities ─────────────────────────────────────────────────────────────
 
 def call_with_retry(fn, retries=4, delays=(1, 2, 4, 8), log_prefix="[AI]"):
+    from openai import APIConnectionError
     for attempt in range(retries):
         try:
             return fn()

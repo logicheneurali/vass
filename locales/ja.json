@@ -74,6 +74,9 @@
         "no_notifications": "通知なし",
         "mcp_down_tooltip": "MCPサーバーが利用できません",
         "links": "リンク",
+        "ai_responses": "AI",
+        "ai_no_responses": "AI応答なし",
+        "click_to_copy": "クリックしてコピー",
         "mark_all_read": "全て既読にする",
         "transcription_mode": "文字起こしモード — ツールは利用できません"
     },
@@ -428,6 +431,7 @@
             "workingdir_system": "ディレクトリ '{dir}' はシステムディレクトリです。許可されていません。"
         },
         "saved": "ファイルを保存しました。",
+        "go_to_date": "元の日付へ移動",
         "form_label": "詳細",
         "delete_confirm_title": "削除の確認",
         "delete_confirm_text": "'{item}'を削除しますか？この操作は元に戻せません。",
@@ -547,6 +551,7 @@
         "map_items": "{count}件",
         "files_max_per_cycle": "サイクル当たりの最大ファイル数：",
         "files_max_per_cycle_unit": "ファイル",
+        "files_blacklist": "次の文字列を含むパスを除外（カンマ区切り、ワイルドカード対応）：",
         "sources_max_entries": "AIコンテキストの最大エントリ数：",
         "sources_max_entries_desc": "タグに基づいて最も関連性の高いもののみが含まれます"
     },

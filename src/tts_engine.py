@@ -172,10 +172,14 @@ class TtsEngine:
                     self._audio_ready.clear()
                 continue
             self._log(f"_play_worker: popped audio, audio_queue_remaining={audio_len} state={current_state}")
+            if not self._save_state_and_set_playing():
+                with self._audio_lock:
+                    self._audio_queue.appendleft((audio_data, sr, on_done))
+                time.sleep(0.1)
+                continue
             print(f"[TTS] Playing audio")
             duration = len(audio_data) / max(sr or 24000, 1)
             timeout = max(60, duration * 1.5 + 5)
-            self._save_state_and_set_playing()
             self._play_audio_data(audio_data, sr)
             if not self._tts_done.wait(timeout=timeout):
                 print(f"[TTS] WARNING: Player timeout after {timeout:.0f}s, forcing")
@@ -207,7 +211,11 @@ class TtsEngine:
         threading.Thread(target=_load, daemon=True).start()
 
     def _save_state_and_set_playing(self):
-        self._state_before_tts = self._get_state()
+        current = self._get_state()
+        if current == "recording":
+            self._log(f"_save_state_and_set_playing: refusing to set playing, state={current}")
+            return False
+        self._state_before_tts = current
         self.tts_playing = True
         with self._speak_lock:
             speak_len = len(self._speak_queue)
@@ -217,6 +225,7 @@ class TtsEngine:
                   f"tts_playing=True speak_queue={speak_len} audio_queue={audio_len}")
         self._set_state("playing")
         print(f"[TTS] Playback started (prev_state={self._state_before_tts})")
+        return True
 
     def _play_wav(self, wav_path, speed=1.0):
         self._log(f"_play_wav: starting path={wav_path} speed={speed}")

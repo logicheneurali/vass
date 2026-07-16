@@ -74,6 +74,9 @@
         "no_notifications": "Sem notificacoes",
         "mcp_down_tooltip": "Servidor MCP indisponivel",
         "links": "Links",
+        "ai_responses": "AI",
+        "ai_no_responses": "Sem respostas AI",
+        "click_to_copy": "Clique para copiar",
         "mark_all_read": "Marcar tudo lido",
         "transcription_mode": "Modo transcrição — ferramentas não disponíveis"
     },
@@ -427,6 +430,7 @@
             "workingdir_system": "A pasta '{dir}' é do sistema. Não permitida."
         },
         "saved": "Arquivo salvo.",
+        "go_to_date": "Ir para a data original",
         "form_label": "Detalhes",
         "delete_confirm_title": "Confirmar exclusão",
         "delete_confirm_text": "Excluir '{item}'? Esta ação não pode ser desfeita.",
@@ -546,6 +550,7 @@
         "map_items": "{count} entradas",
         "files_max_per_cycle": "Máx arquivos por ciclo:",
         "files_max_per_cycle_unit": "arquivos",
+        "files_blacklist": "Excluir caminhos contendo (separados por vírgula, suporta wildcards):",
         "sources_max_entries": "Máx entradas no contexto AI:",
         "sources_max_entries_desc": "Apenas as mais relevantes serão incluídas com base nas tags"
     },

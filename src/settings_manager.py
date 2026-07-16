@@ -68,7 +68,7 @@ def load_settings(settings_file):
                 config.write(f)
         result["app_volume"] = max(0.0, min(1.0, app_volume))
         result["mcp_server_url"] = config.get("ai", "mcp_server_url", fallback="http://localhost:9988")
-        result["memory_tokens"] = config.getint("ai", "memory_tokens", fallback=2000)
+        result["memory_tokens"] = config.getint("ai", "memory_tokens", fallback=5000)
         result["blacklist"] = config.get("ai", "blacklist", fallback="")
         result["llama_server_path"] = config.get("llamacpp", "llama_server_path", fallback="")
         result["llama_server_working_directory"] = config.get("llamacpp", "llama_server_working_directory", fallback="")
@@ -139,7 +139,7 @@ def load_settings(settings_file):
         result["app_volume"] = 1.0
         result["kokoro_voice"] = _KOKORO_DEFAULT_VOICE.get(lang, "af_heart")
         result["mcp_server_url"] = "http://localhost:9988"
-        result["memory_tokens"] = 2000
+        result["memory_tokens"] = 5000
         result["blacklist"] = ""
         result["llama_server_path"] = ""
         result["llama_server_working_directory"] = ""
@@ -194,7 +194,7 @@ def load_settings(settings_file):
             "system_message": "You are a helpful and concise voice assistant.",
             "mcp_server_url": "http://localhost:9988",
             "blacklist": "",
-            "memory_tokens": "2000",
+            "memory_tokens": "5000",
             "allow_ai_scripts": "false",
             "auto_context_selection": "false",
             "context_length": "0",

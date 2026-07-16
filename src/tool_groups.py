@@ -79,9 +79,10 @@ def _default_keywords():
 
 
 # ── Memory classification ────────────────────────────────────────
-# Keywords for anaphora/context detection per language.
+# Keywords that always trigger memory inclusion — evaluated before
+# standalone groups. A single match forces full context injection.
 # These are NOT tool groups — they only live here, not in locale JSONs.
-_ANAPHORA_KEYWORDS = {
+_MEMORY_ACTIVATION_KEYWORDS = {
     "it": {"lui","lei","loro","ne","stesso","stessa","stessi","stesse",
            "tale","tali","suddetto","menzionato","continuare","prosegui",
            "riprendi","ripeti","precedente","scorso","altra","altro",
@@ -91,7 +92,15 @@ _ANAPHORA_KEYWORDS = {
            "ieri",
            "quel","quello","quella","quei","quegli",
            "prima","allora",
-           "discussione","discussioni","discorso"},
+           "discussione","discussioni","discorso",
+           "ho speso","ho comprato","ho pagato","ho fatto","ho detto",
+           "spese","spesa","comprato","comprata","pagato","pagata",
+           "acquisto","acquisti","costo","costato","prezzo","prezzi",
+           "bolletta","bollette","resoconto","riepilogo","storico",
+           "bilancio","totale","quanto mi","quanto ho","che hai",
+           "transazione","transazioni","abbonamento","abbonamenti",
+           "fattura","dottore","medico","mi hai detto","appuntamento",
+           "preferito","preferita","preferenze","preferiti"},
     "en": {"he","him","she","her","they","them","continue","proceed",
            "repeat","resume","previous","earlier","above","aforementioned",
            "mentioned","another",
@@ -101,7 +110,14 @@ _ANAPHORA_KEYWORDS = {
            "yesterday",
            "that","those",
            "before","then",
-           "discussion","discussions","discourse"},
+           "discussion","discussions","discourse",
+           "spent","spending","bought","purchased","paid","payment",
+           "cost","price","prices","bill","bills","invoice",
+           "expense","expenses","summary","report","balance",
+           "how much","how many","did i","have i","transaction",
+           "subscription","subscriptions","receipt",
+           "doctor","appointment","favorite","preferences",
+           "you told me","you said","last week","remind me","my data"},
     "de": {"er","ihn","ihm","sie","ihr","fortsetzen","weiter","wiederholen",
            "vorherige","vorher","erwähnt","besagt","obig","letzte","gestrig",
            "mein","meine","dein","deine","sein","seine",
@@ -109,7 +125,12 @@ _ANAPHORA_KEYWORDS = {
            "erinnere",
            "jener","jene",
            "damals",
-           "Diskussion","Diskussionen","Diskurs"},
+           "Diskussion","Diskussionen","Diskurs",
+           "ausgegeben","gekauft","bezahlt","kosten","preis","rechnung",
+           "ausgaben","zusammenfassung","bericht","bilanz","wie viel",
+           "habe ich","transaktion","abonnement","verlauf","beleg",
+           "quittung","zahlung","arzt","termin","letztes mal",
+           "letzte woche","mein konto","meine daten"},
     "fr": {"il","lui","elle","ils","elles","continuer","répéter","poursuivre",
            "reprendre","précédent","mentionné","susdit","autre","hier",
            "mon","ma","mes","ton","ta","tes","son","sa","ses",
@@ -117,7 +138,13 @@ _ANAPHORA_KEYWORDS = {
            "souviens",
            "ce","cet","cette",
            "avant","alors",
-           "discussion","discussions","discours"},
+           "discussion","discussions","discours",
+           "dépensé","acheté","payé","coût","prix","facture","factures",
+           "dépenses","résumé","rapport","bilan","combien","ai-je",
+           "transaction","abonnement","historique","reçu","paiement",
+           "achat","achats","médecin","rendez-vous","préférences",
+           "tu m'as dit","la dernière fois","la semaine dernière",
+           "rappelle-moi","mon compte","mes données"},
     "es": {"él","ella","ellos","ellas","continuar","repetir","proseguir",
            "retomar","anterior","mencionado","dicho","ayer","otro","otra",
            "mi","mis","tu","tus","su","sus",
@@ -125,7 +152,13 @@ _ANAPHORA_KEYWORDS = {
            "recuerdas",
            "ese","esa","esos","esas",
            "antes","entonces",
-           "discusión","discusiones","discurso"},
+           "discusión","discusiones","discurso",
+           "gastado","comprado","pagado","coste","costo","precio",
+           "factura","facturas","gastos","resumen","informe",
+           "balance","cuánto","cuanto","transacción","suscripción",
+           "historial","recibo","pago","médico","cita",
+           "me dijiste","la última vez","la semana pasada",
+           "recuérdame","mi cuenta","mis datos"},
     "pt": {"ele","ela","eles","elas","continuar","repetir","prosseguir",
            "retomar","anterior","mencionado","dito","ontem","outro","outra",
            "meu","minha","meus","minhas","teu","tua","seu","sua",
@@ -133,7 +166,13 @@ _ANAPHORA_KEYWORDS = {
            "lembra",
            "esse","essa","esses","essas",
            "antes","então",
-           "discussão","discussões","discurso"},
+           "discussão","discussões","discurso",
+           "gasto","gastos","comprado","comprou","pagou","pago",
+           "custo","preço","fatura","faturas","resumo","relatório",
+           "saldo","quanto","transação","assinatura","histórico",
+           "recibo","pagamento","despesa","médico","consulta",
+           "você me disse","última vez","semana passada",
+           "minha conta","meus dados"},
     "ja": {"彼","彼女","続ける","繰り返す","最初から","もう一度","前の","昨日",
            "前述","上記",
            "私の","あなたの",
@@ -141,7 +180,11 @@ _ANAPHORA_KEYWORDS = {
            "覚えて",
            "その",
            "前に",
-           "議論","話し合い","談話"},
+           "議論","話し合い","談話",
+           "使った","買った","支払った","費用","価格","請求書",
+           "支出","概要","レポート","残高","いくら","取引",
+           "サブスクリプション","履歴","領収書","支払い","購入",
+           "医者","予約","前回","先週","データ"},
     "ko": {"그","그녀","계속하다","반복하다","다시","이전","어제","앞서",
            "위","앞의",
            "내","나의","너의",
@@ -149,14 +192,22 @@ _ANAPHORA_KEYWORDS = {
            "기억해",
            "그",
            "전에",
-           "논의","토론","담화"},
+           "논의","토론","담화",
+           "썼다","샀다","지불했다","비용","가격","청구서",
+           "지출","요약","보고서","잔액","얼마","거래",
+           "구독","기록","영수증","지불","구매","의사",
+           "예약","지난번","지난주","데이터"},
     "zh": {"他","她","继续","重复","再来","之前的","昨天","上述","前面",
            "我的","你的",
            "下一个",
            "记得",
            "那个",
            "之前",
-           "讨论","谈话","话题"},
+           "讨论","谈话","话题",
+           "花了","买了","支付了","费用","价格","账单",
+           "支出","摘要","报告","余额","多少","交易",
+           "订阅","历史","收据","付款","购买","医生",
+           "预约","上次","上周","数据"},
 }
 
 
@@ -170,8 +221,8 @@ def needs_memory(prompt, lang="it"):
     keywords = load_keywords(lang)
     prompt_lower = prompt.lower()
 
-    # 1. Anaphora/context keywords → SI memory needed (prevale su standalone)
-    ctx = _ANAPHORA_KEYWORDS.get(lang, _ANAPHORA_KEYWORDS["en"])
+    # 1. Memory activation keywords → SI memory needed (prevale su standalone)
+    ctx = _MEMORY_ACTIVATION_KEYWORDS.get(lang, _MEMORY_ACTIVATION_KEYWORDS["en"])
     if any(w in prompt_lower for w in ctx) or fuzzy_match_word(prompt_lower, ctx):
         return True
 

@@ -74,6 +74,9 @@
         "no_notifications": "Keine Benachrichtigungen",
         "mcp_down_tooltip": "MCP-Server nicht verfuegbar",
         "links": "Links",
+        "ai_responses": "AI",
+        "ai_no_responses": "Keine KI-Antworten",
+        "click_to_copy": "Zum Kopieren klicken",
         "mark_all_read": "Alle als gelesen markieren",
         "transcription_mode": "Transkriptionsmodus — Tools nicht verfügbar"
     },
@@ -427,6 +430,7 @@
             "workingdir_system": "Verzeichnis '{dir}' ist ein Systemverzeichnis. Nicht erlaubt."
         },
         "saved": "Datei gespeichert.",
+        "go_to_date": "Zum ursprünglichen Datum",
         "form_label": "Details",
         "delete_confirm_title": "Löschung bestätigen",
         "delete_confirm_text": "'{item}' löschen? Dies kann nicht rückgängig gemacht werden.",
@@ -546,6 +550,7 @@
         "map_items": "{count} Einträge",
         "files_max_per_cycle": "Max Dateien pro Zyklus:",
         "files_max_per_cycle_unit": "Dateien",
+        "files_blacklist": "Pfade ausschließen die enthalten (durch Komma getrennt, Platzhalter erlaubt):",
         "sources_max_entries": "Max Einträge im AI-Kontext:",
         "sources_max_entries_desc": "Nur die relevantesten werden basierend auf Tags einbezogen"
     },

@@ -6,26 +6,32 @@ import re
 MEMORY_SUMMARIZATION_PROMPT = (
     "Summarize these conversations concisely. "
     "All entries contain personal user data — extract and merge the key facts. "
+    "Include dates in YYYY-MM-DD format for all events, purchases, payments, and deadlines. "
+    "Be specific with amounts, names, and dates. No fluff. "
     "Output only a short JSON summary with key 'summary'."
 )
 
 MCP_PROMPT = (
-    "\n\nYou have MCP tools. Use them automatically for these tasks:"
-    "\n- When the user asks to visit, open, download, or read a web page or URL, call browse(url) or webfetch(url)"
-    "\n- When the user asks to search the web, call websearch(query)"
-    "\n- browse(url): reads text from any web page (fast)"
-    "\n- webfetch(url): reads JavaScript pages using a full browser (slower)"
-    "\n- websearch(query): searches DuckDuckGo, returns JSON with title, url, snippet for each result"
-    "\n\nWEB SEARCH STRATEGY (follow these rules when searching the web):"
-    "\n1. If results are inconsistent or insufficient, try 1-2 alternative queries with different keywords"
-    "\n2. For the most promising results, call webfetch(url) to get full page content before answering"
-    "\n3. If the first search does not answer the question, search again with refined terms"
-    "\n4. Compose: search -> evaluate -> fetch best pages -> answer"
-    "\n- read_file(path): reads files from user storage"
-    "\n- write_file(path, content): writes files to user storage"
-    "\n- current_time(): gets current date and time"
-    "\n\nIMPORTANT: You CAN access the internet. When asked to get web content, "
-    "call the tool immediately. Never reply that you cannot access websites."
+    "\n\nYou have tools available for web and file access — see the attached tool list below."
+    "\n\nHOW TO SEARCH (decision tree — choose the right path):"
+    "\n1. USER GAVE A URL: call webfetch(url) or browse(url) directly. Do NOT search first."
+    "\n2. USER NAMED A SITE + wants specific info: use websearch with 'site:domain.com' operator."
+    "\n   Example: user says 'find me a 4K monitor on asus.com' -> websearch('site:asus.com 4K monitor')"
+    "\n   Example: user says 'check prices on amazon.it' -> websearch('site:amazon.it product name')"
+    "\n3. USER WANTS TO BROWSE A CATALOG: call webfetch(site_homepage) first, "
+    "\n   extract product links, then webfetch each product page. Chain calls."
+    "\n4. GENERIC WEB SEARCH (no site mentioned): websearch(query) -> evaluate results -> "
+    "\n   webfetch the 2-3 most promising URLs -> compose answer from full pages."
+    "\n\nFILE TOOLS:"
+    "\n- read_file(path): reads any file from the user's storage"
+    "\n- write_file(path, content): writes content to a file. Use this to save search results, notes, or data."
+    "\n  Always call write_file when the user asks you to save, store, or write data to a file."
+    "\n\nCRITICAL RULES:"
+    "\n- NEVER answer from search snippets alone. Always webfetch the best results first."
+    "\n- When a user mentions a specific website, ALWAYS use 'site:domain.com' in the search query."
+    "\n- If the first search is insufficient, try alternative keywords or broader queries."
+    "\n- You CAN access the internet. Call tools immediately. Never say you cannot browse websites."
+    "\n- When asked to write/save/store data, ALWAYS use write_file. Do not just describe the data — write it."
 )
 
 VASSCRIPT_TOOLS_PROMPT = (
@@ -134,16 +140,6 @@ def _compress_heuristic(text, lang="en"):
         or w.lower().strip("',.!?;:()[]\"") in protected)
 
 
-SAVETAGS_PROMPT = (
-    "IMPORTANT: After every response, you MUST call savetags() to classify "
-    "the user's message with tags from this list ONLY: "
-    "personal_data, health, finance, family, pets, contacts, "
-    "preferences, personal_interests, purchases, orders, bills, invoices, "
-    "work, education, favorite_music, food, home, "
-    "personal_means_of_transport, deliveries, travel, tech, events, sales, generic. "
-    "Pass them as comma-separated string: savetags('food,health')\n\n"
-    "CRITICAL : select ONLY the two most relevant accordingly to the message"
-)
 
 
 def _load_vascript_reference():

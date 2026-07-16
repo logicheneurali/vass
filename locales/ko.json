@@ -74,6 +74,9 @@
         "no_notifications": "알림 없음",
         "mcp_down_tooltip": "MCP 서버를 사용할 수 없음",
         "links": "링크",
+        "ai_responses": "AI",
+        "ai_no_responses": "AI 응답 없음",
+        "click_to_copy": "클릭하여 복사",
         "mark_all_read": "모두 읽음으로 표시",
         "transcription_mode": "필사 모드 — 도구를 사용할 수 없음"
     },
@@ -428,6 +431,7 @@
             "workingdir_system": "'{dir}' 폴더는 시스템 폴더입니다. 허용되지 않습니다."
         },
         "saved": "파일이 저장되었습니다.",
+        "go_to_date": "원래 날짜로 이동",
         "form_label": "세부 정보",
         "delete_confirm_title": "삭제 확인",
         "delete_confirm_text": "'{item}'을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
@@ -547,6 +551,7 @@
         "map_items": "{count}개 항목",
         "files_max_per_cycle": "주기당 최대 파일:",
         "files_max_per_cycle_unit": "파일",
+        "files_blacklist": "경로에 포함된 경우 제외（쉼표로 구분, 와일드카드 지원）：",
         "sources_max_entries": "AI 컨텍스트 최대 항목:",
         "sources_max_entries_desc": "태그에 따라 가장 관련성 높은 항목만 포함됩니다"
     },

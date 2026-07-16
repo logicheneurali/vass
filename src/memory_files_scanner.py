@@ -2,6 +2,7 @@
 Walks configured folders, extracts text content, and enqueues
 new/modified files for AI classification via the deferred queue.
 """
+import fnmatch
 import os
 import json
 import time
@@ -72,6 +73,8 @@ class FileScanner:
                     if queued >= max_per_cycle:
                         break
                     fpath = os.path.join(root, fname)
+                    if self._is_blacklisted(fpath):
+                        continue
                     try:
                         stat = os.stat(fpath)
                     except OSError:
@@ -144,3 +147,16 @@ class FileScanner:
 
     def stop(self):
         self._running = False
+
+    def _is_blacklisted(self, fpath):
+        blacklist = self._config.get("path_blacklist", "")
+        if not blacklist:
+            return False
+        fpath_lower = fpath.lower().replace("\\", "/")
+        for pattern in blacklist.split(","):
+            pattern = pattern.strip()
+            if not pattern:
+                continue
+            if fnmatch.fnmatch(fpath_lower, pattern if "*" in pattern else f"*{pattern}*"):
+                return True
+        return False

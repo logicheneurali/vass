@@ -4,8 +4,8 @@ import sys
 import time
 from utils import get_project_root, get_path
 
-from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal
-from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath, QPen
+from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal, QPoint
+from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
@@ -538,6 +538,7 @@ class InfoPanel(QFrame):
             "border-radius: 6px; }"
         )
         self._links = []
+        self._ai_responses = []
         self._tab = "links"
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
@@ -550,14 +551,17 @@ class InfoPanel(QFrame):
 
         tab_row = QHBoxLayout()
         self._tab_links = QPushButton(self._t("gui.links"))
+        self._tab_ai = QPushButton(self._t("gui.ai_responses"))
         self._tab_notif = QPushButton(self._t("gui.notifications"))
-        for btn, tab in [(self._tab_links, "links"), (self._tab_notif, "notifications")]:
+        for btn, tab in [(self._tab_links, "links"), (self._tab_ai, "ai"), (self._tab_notif, "notifications")]:
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.clicked.connect(lambda checked=None, t=tab: self._switch_tab(t))
         self._tab_links.setStyleSheet(self._tab_style(True))
+        self._tab_ai.setStyleSheet(self._tab_style(False))
         self._tab_notif.setStyleSheet(self._tab_style(False))
         tab_row.addWidget(self._tab_links)
+        tab_row.addWidget(self._tab_ai)
         tab_row.addWidget(self._tab_notif)
         tab_row.addStretch()
         close_btn = QPushButton("x")
@@ -607,10 +611,13 @@ class InfoPanel(QFrame):
     def _switch_tab(self, tab):
         self._tab = tab
         self._tab_links.setStyleSheet(self._tab_style(tab == "links"))
+        self._tab_ai.setStyleSheet(self._tab_style(tab == "ai"))
         self._tab_notif.setStyleSheet(self._tab_style(tab == "notifications"))
         self._mark_btn.setVisible(tab == "notifications")
         if tab == "links":
             self._build_links()
+        elif tab == "ai":
+            self._build_ai_responses()
         else:
             self._build_notifications()
 
@@ -629,6 +636,7 @@ class InfoPanel(QFrame):
     def show_panel(self, tab, parent_window):
         self._parent_window = parent_window
         self._tab_links.setText(self._t("gui.links"))
+        self._tab_ai.setText(self._t("gui.ai_responses"))
         self._tab_notif.setText(self._t("gui.notifications"))
         self._mark_btn.setText(self._t("gui.mark_all_read"))
         self._switch_tab(tab)
@@ -643,6 +651,7 @@ class InfoPanel(QFrame):
             return
         self._parent_window = parent_window
         self._tab_links.setText(self._t("gui.links"))
+        self._tab_ai.setText(self._t("gui.ai_responses"))
         self._tab_notif.setText(self._t("gui.notifications"))
         self._mark_btn.setText(self._t("gui.mark_all_read"))
         self._switch_tab("links")
@@ -654,6 +663,22 @@ class InfoPanel(QFrame):
     def refresh_notifications(self, parent_window):
         if self.isVisible() and self._tab == "notifications":
             self._build_notifications()
+
+    def set_ai_responses(self, responses, parent_window):
+        self._ai_responses = responses
+        self._parent_window = parent_window
+        self._tab_links.setText(self._t("gui.links"))
+        self._tab_ai.setText(self._t("gui.ai_responses"))
+        self._tab_notif.setText(self._t("gui.notifications"))
+        self._mark_btn.setText(self._t("gui.mark_all_read"))
+        if self.isVisible() and self._tab == "ai":
+            self._build_ai_responses()
+        else:
+            self._switch_tab("ai")
+        self._position(parent_window)
+        self.show()
+        self.raise_()
+        self._timer.start(30000)
 
     def _clear_scroll(self):
         while self._scroll_layout.count():
@@ -758,17 +783,57 @@ class InfoPanel(QFrame):
                 self._update_bell_cb()
             self.hide()
 
+    def _build_ai_responses(self):
+        self._clear_scroll()
+        assistant_msgs = [r for r in self._ai_responses if r.get("role") == "assistant"]
+        if not assistant_msgs:
+            lbl = QLabel(self._t("gui.ai_no_responses"))
+            lbl.setStyleSheet("color: #888; font-size: 11px; padding: 8px;")
+            self._scroll_layout.addWidget(lbl)
+            return
+        last = None
+        for msg in assistant_msgs[-10:]:
+            text = msg.get("content", "")
+            container = QWidget()
+            container.setStyleSheet("background: transparent;")
+            c_layout = QVBoxLayout(container)
+            c_layout.setContentsMargins(4, 3, 4, 3)
+            c_layout.setSpacing(1)
+            text_lbl = QLabel(text)
+            text_lbl.setWordWrap(True)
+            text_lbl.setStyleSheet("color: #aaa; font-size: 11px; background: transparent;"
+                                   "padding: 4px; border: 1px solid #16213e; border-radius: 3px;")
+            text_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+            text_lbl.setToolTip(self._t("gui.click_to_copy"))
+            text_lbl.mousePressEvent = lambda e, t=text: (self._reset_timer(), self._copy_text(t))
+            c_layout.addWidget(text_lbl)
+            self._scroll_layout.addWidget(container)
+            last = container
+        self._scroll_layout.addStretch()
+        if last:
+            QTimer.singleShot(0, lambda c=last: self._scroll.verticalScrollBar().setValue(
+                c.mapTo(self._scroll_widget, QPoint(0, 0)).y()))
+
+    def _copy_text(self, text):
+        QApplication.clipboard().setText(text)
+
     def _position(self, parent):
         geo = parent.geometry()
         screen = QApplication.primaryScreen().availableGeometry()
-        mid_y = screen.top() + screen.height() // 2
-        above = geo.center().y() < mid_y
 
-        panel_w = geo.width()
-        count = len(self._links) if self._tab == "links" else 5
-        panel_h = min(count * 38 + 52, 280)
-        px = geo.left()
-        py = geo.bottom() + 8 if above else geo.top() - panel_h - 8
+        panel_w = int(geo.width() * 1.25)
+        if self._tab == "links":
+            count = len(self._links)
+            panel_h = min(count * 38 + 52, 280)
+        elif self._tab == "ai":
+            count = len([r for r in self._ai_responses if r.get("role") == "assistant"])
+            panel_h = min(count * 120 + 52, 500)
+        else:
+            count = 5
+            panel_h = min(count * 38 + 52, 280)
+        px = geo.center().x() - panel_w // 2
+        py = geo.top() - panel_h - 8
+        px = max(screen.left(), min(px, screen.right() - panel_w))
         py = max(screen.top(), min(py, screen.bottom() - panel_h))
         self.setGeometry(px, py, panel_w, panel_h)
 
@@ -828,6 +893,7 @@ class VassGUI(QMainWindow):
         ico_path = os.path.join(BASE, "vass.ico")
         if os.path.exists(ico_path):
             self.setWindowIcon(QIcon(ico_path))
+            QApplication.setWindowIcon(QIcon(ico_path))
 
         self._font_family = font_family
         self._font_size = font_size
@@ -1073,6 +1139,10 @@ class VassGUI(QMainWindow):
 
         self._link_panel = InfoPanel()
 
+        self._on_top_timer = QTimer(self)
+        self._on_top_timer.timeout.connect(self._enforce_always_on_top)
+        self._on_top_timer.start(30000)
+
         self.show()
         self._clamp_to_screen()
 
@@ -1083,16 +1153,17 @@ class VassGUI(QMainWindow):
                 import ctypes
                 hwnd = int(self.winId())
                 GWL_EXSTYLE = -20
-                #WS_EX_APPWINDOW = 0x00040000
-                WS_EX_APPWINDOW = 0x00000080
+                WS_EX_APPWINDOW = 0x00040000
                 ex = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
                 ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, ex | WS_EX_APPWINDOW)
                 ico_path = os.path.join(BASE, "vass.ico")
-                hicon = ctypes.windll.user32.LoadImageW(
-                    None, ico_path, 1, 0, 0, 0x00000010)
-                if hicon:
-                    ctypes.windll.user32.SendMessageW(hwnd, 0x80, 1, hicon)
-                    ctypes.windll.user32.SendMessageW(hwnd, 0x80, 0, hicon)
+                if os.path.exists(ico_path):
+                    hicon = ctypes.windll.user32.LoadImageW(None, ico_path, 1, 0, 0, 0x00000010)
+                    if hicon:
+                        GCL_HICON = -14
+                        GCL_HICONSM = -34
+                        ctypes.windll.user32.SetClassLongPtrW(hwnd, GCL_HICON, hicon)
+                        ctypes.windll.user32.SetClassLongPtrW(hwnd, GCL_HICONSM, hicon)
             except Exception:
                 pass
 
@@ -1118,6 +1189,17 @@ class VassGUI(QMainWindow):
             y = geo.top()
 
         self.setGeometry(x, y, w, h)
+
+    def _enforce_always_on_top(self):
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                hwnd = int(self.winId())
+                ctypes.windll.user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0010)
+            except Exception:
+                pass
+        else:
+            self.raise_()
 
     def _switch_mode(self, mode):
         self._mode_chat.setChecked(mode == "chat")
@@ -1611,9 +1693,23 @@ class VassGUI(QMainWindow):
                     total += os.path.getsize(path)
                 if os.path.exists(tags_path):
                     total += os.path.getsize(tags_path)
+                referenced = set()
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        mem_data = json.load(f)
+                    for vid in mem_data.get("history", []):
+                        referenced.add(vid)
+                    sid = mem_data.get("summary_id", "")
+                    if sid:
+                        referenced.add(sid)
+                except Exception:
+                    pass
                 if os.path.isdir(mem_dir):
                     for fname in os.listdir(mem_dir):
                         if fname.endswith(".json"):
+                            fid = fname[:-5]
+                            if fid not in referenced:
+                                continue
                             try:
                                 total += os.path.getsize(os.path.join(mem_dir, fname))
                             except OSError:
@@ -2245,6 +2341,13 @@ class VassGUI(QMainWindow):
 
     def hide_link_panel(self):
         self.schedule_signal.emit(lambda: self._link_panel.hide())
+
+    def show_ai_responses(self):
+        if not self.app:
+            return
+        history = self.app.conversation_history
+        self._link_panel._t = self._t
+        self._link_panel.set_ai_responses(list(history), self)
 
     def _show_info_panel(self, tab="notifications"):
         if not self.app:

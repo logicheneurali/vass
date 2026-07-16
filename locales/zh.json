@@ -74,6 +74,9 @@
         "no_notifications": "无通知",
         "mcp_down_tooltip": "MCP服务器不可用",
         "links": "链接",
+        "ai_responses": "AI",
+        "ai_no_responses": "无AI响应",
+        "click_to_copy": "点击复制",
         "mark_all_read": "全部标记已读",
         "transcription_mode": "转录模式 — 工具不可用"
     },
@@ -428,6 +431,7 @@
             "workingdir_system": "目录 '{dir}' 是系统目录。不允许。"
         },
         "saved": "文件已保存。",
+        "go_to_date": "转到原始日期",
         "form_label": "详细信息",
         "delete_confirm_title": "确认删除",
         "delete_confirm_text": "删除 '{item}'？此操作无法撤销。",
@@ -547,6 +551,7 @@
         "map_items": "{count} 条目",
         "files_max_per_cycle": "每周期最大文件数：",
         "files_max_per_cycle_unit": "文件",
+        "files_blacklist": "排除包含以下内容的路径（逗号分隔，支持通配符）：",
         "sources_max_entries": "AI上下文最大条目：",
         "sources_max_entries_desc": "仅包含基于标签的最相关条目"
     },

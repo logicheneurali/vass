@@ -269,6 +269,8 @@ class EventReminder:
                     item["name"] = f"{item['description']}_{d}_{t}".replace(" ", "_").lower()
                     if "notify" in item:
                         del item["notify"]
+                    if "classified_at" in item:
+                        del item["classified_at"]
                     with open(path, "w", encoding="utf-8") as f:
                         json.dump(data, f, ensure_ascii=False, indent=2)
                     return
@@ -544,7 +546,8 @@ class EventReminder:
             time.sleep(30)
 
     def _classify_new_events(self):
-        """Enqueue new/modified events from events.json for memory tagging."""
+        """Enqueue unclassified events from events.json for memory tagging.
+        Marks events with classified_at after enqueuing to prevent re-processing."""
         try:
             events_path = self._events_path()
             if not os.path.exists(events_path):
@@ -552,35 +555,26 @@ class EventReminder:
             with open(events_path, encoding="utf-8") as f:
                 data = json.load(f)
             items = data.get("events", [])
-            if not items:
+            if not items or not hasattr(self.app, 'memory'):
                 return
-            if not hasattr(self.app, 'memory'):
-                return
-            root = self._root_dir()
-            tags_path = os.path.join(root, "Allowed_root", "memory_tags.json")
-            tagged_ids = set()
-            stale_ids = set()
-            if os.path.exists(tags_path):
-                with open(tags_path, encoding="utf-8") as f:
-                    tags_data = json.load(f)
-                for e in tags_data.get("entries", []):
-                    if e.get("source") != "events":
-                        continue
-                    eid = e.get("id", "")
-                    if e.get("relevance", 0) >= 10 and e.get("tags") != ["generic"]:
-                        tagged_ids.add(eid)
-                    else:
-                        stale_ids.add(eid)
+
+            modified = False
             for ev in items:
                 eid = ev.get("id", "")
-                if not eid or (eid in tagged_ids and eid not in stale_ids):
+                if not eid or ev.get("classified_at"):
                     continue
                 desc = ev.get("description", "")
                 date = ev.get("date", "")
                 time_str = ev.get("time", "")
                 content = f"Event: {desc} | Date: {date} {time_str}"
                 self.app.memory.enqueue_external(content, eid, "events")
-                tagged_ids.add(eid)
+                ev["classified_at"] = time.strftime("%Y-%m-%dT%H:%M")
+                modified = True
+                print(f"[EventReminder] Classifying event: {desc} ({date})")
+
+            if modified:
+                with open(events_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"[EventReminder] classify_new_events error: {e}")
 

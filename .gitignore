@@ -86,6 +86,7 @@ Allowed_root/news.json
 Allowed_root/.history_view.json
 Allowed_root/rss_cache.json
 Allowed_root/rss_feeds.json
+Allowed_root/private_*
 
 # VASS - user config (use config/settings.example.ini as template)
 config/settings.ini
@@ -126,3 +127,4 @@ config/cities500.txt
 tests/
 website/
 .scripts/
+genvideo/

@@ -2,7 +2,7 @@ import configparser
 import os
 import sys
 import re
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGridLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
@@ -100,7 +100,7 @@ class SettingsEditor(QMainWindow):
         self._original_api_key = self._load_original_api_key()
         self._google_disabled = False
         self.build_ui()
-        self._update_llama_start_btn()
+        QTimer.singleShot(0, self._update_llama_start_btn)
 
     def _get_supported_languages(self):
         supported = []
@@ -365,71 +365,8 @@ class SettingsEditor(QMainWindow):
                 elif key in ("input_device", "output_device"):
                     entry = QComboBox()
                     entry.addItem(t("settings_editor.audio_default_device", self.lang), -1)
-                    try:
-                        import sounddevice as sd
-                        kind = "input" if key == "input_device" else "output"
-                        seen = set()
-                        for d in sd.query_devices():
-                            ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
-                            if ch > 0:
-                                name = d['name']
-                                base = re.sub(r'\s*[\(\[][^\)\]]*[\)\]]?\s*$', '', name).strip()
-                                if base in seen:
-                                    continue
-                                seen.add(base)
-                                entry.addItem(f"{d['index']}: {name}", d['index'])
-                    except Exception:
-                        pass
-                    current_val = self.config.getint(section, key)
-                    saved_name = self.config.get(section, f"{key}_name", fallback="")
-                    idx = -1
-                    # If the saved value is the default device (-1), always select it.
-                    # Do not fall back to a stale saved name.
-                    if current_val < 0:
-                        idx = entry.findData(-1)
-                    else:
-                        # Validate the saved ID against the saved name: IDs are not stable,
-                        # so a stale ID must be ignored in favor of the stable name.
-                        if saved_name:
-                            try:
-                                import sounddevice as sd
-                                kind = "input" if key == "input_device" else "output"
-                                for d in sd.query_devices():
-                                    if d["index"] == current_val:
-                                        ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
-                                        if ch > 0 and d.get("name", "") == saved_name:
-                                            idx = entry.findData(current_val)
-                                        break
-                            except Exception:
-                                pass
-                        # If ID validation failed, look up by name.
-                        if idx < 0 and saved_name:
-                            for i in range(entry.count()):
-                                if saved_name in entry.itemText(i):
-                                    idx = i
-                                    break
-                        if idx < 0 and saved_name:
-                            try:
-                                import sounddevice as sd
-                                kind = "input" if key == "input_device" else "output"
-                                for d in sd.query_devices():
-                                    ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
-                                    if ch > 0 and d.get("name", "") == saved_name:
-                                        new_idx = d["index"]
-                                        idx = entry.findData(new_idx)
-                                        if idx < 0:
-                                            for i in range(entry.count()):
-                                                if entry.itemData(i) == new_idx:
-                                                    idx = i
-                                                    break
-                                        break
-                            except Exception:
-                                pass
-                    # If name resolution failed, the saved ID is stale: fall back to default.
-                    if idx < 0:
-                        idx = entry.findData(-1)
-                    if idx >= 0:
-                        entry.setCurrentIndex(idx)
+                    group_layout.addWidget(entry, row, 1)
+                    QTimer.singleShot(0, lambda e=entry, k=key, s=section: self._fill_audio_combo(e, k, s))
                     group_layout.addWidget(entry, row, 1)
                 elif key == "calendar_setup":
                     entry = QPushButton(t(f"settings_editor.field_labels.{key}", self.lang))
@@ -546,6 +483,67 @@ class SettingsEditor(QMainWindow):
         main_layout.addLayout(right_panel)
 
         QShortcut(QKeySequence("Ctrl+S"), self, self.save)
+
+    def _fill_audio_combo(self, entry, key, section):
+        try:
+            import sounddevice as sd
+            kind = "input" if key == "input_device" else "output"
+            seen = set()
+            for d in sd.query_devices():
+                ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
+                if ch > 0:
+                    name = d['name']
+                    base = re.sub(r'\s*[\(\[][^\)\]]*[\)\]]?\s*$', '', name).strip()
+                    if base in seen:
+                        continue
+                    seen.add(base)
+                    entry.addItem(f"{d['index']}: {name}", d['index'])
+        except Exception:
+            pass
+        current_val = self.config.getint(section, key)
+        saved_name = self.config.get(section, f"{key}_name", fallback="")
+        idx = -1
+        if current_val < 0:
+            idx = entry.findData(-1)
+        else:
+            if saved_name:
+                try:
+                    import sounddevice as sd
+                    kind = "input" if key == "input_device" else "output"
+                    for d in sd.query_devices():
+                        if d["index"] == current_val:
+                            ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
+                            if ch > 0 and d.get("name", "") == saved_name:
+                                idx = entry.findData(current_val)
+                            break
+                except Exception:
+                    pass
+            if idx < 0 and saved_name:
+                for i in range(entry.count()):
+                    if saved_name in entry.itemText(i):
+                        idx = i
+                        break
+            if idx < 0 and saved_name:
+                try:
+                    import sounddevice as sd
+                    kind = "input" if key == "input_device" else "output"
+                    for d in sd.query_devices():
+                        ch = d.get("max_input_channels" if kind == "input" else "max_output_channels", 0)
+                        if ch > 0 and d.get("name", "") == saved_name:
+                            new_idx = d["index"]
+                            idx = entry.findData(new_idx)
+                            if idx < 0:
+                                for i in range(entry.count()):
+                                    if entry.itemData(i) == new_idx:
+                                        idx = i
+                                        break
+                            break
+                except Exception:
+                    pass
+        if idx < 0:
+            idx = entry.findData(-1)
+        if idx >= 0:
+            entry.setCurrentIndex(idx)
 
     def _on_section_selected(self, row):
         if row < 0:

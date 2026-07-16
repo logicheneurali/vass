@@ -34,7 +34,7 @@ class ScriptQueue:
             self._queue.append(item)
             qlen = len(self._queue)
         _sr_log(self.app, f"enqueue: name={name_or_code or 'inline'} silent={silent} queue_len={qlen} state={self.app.state}")
-        if qlen == 1:
+        if qlen == 1 and not silent:
             self.app.set_state("running_script", silent_gui=silent)
         elif qlen > 1:
             print(f"[ScriptQueue] Queued {source or 'script'} (position {qlen})")
@@ -230,8 +230,9 @@ class ScriptRunner:
         if code is not None:
             code_text = code.replace('\u2018', "'").replace('\u2019', "'").replace('\u201c', '"').replace('\u201d', '"')
             print(f"[VASScript] Esecuzione inline ({len(code_text)} chars):")
-            for line in code_text.strip().split("\n"):
-                print(f"  {line}")
+            if getattr(app, 'debug_enabled', False):
+                for line in code_text.strip().split("\n"):
+                    print(f"  {line}")
         elif is_file:
             with open(script_path, encoding="utf-8") as f:
                 code_text = f.read()
@@ -244,13 +245,14 @@ class ScriptRunner:
             else:
                 app.tts.enqueue(err_msg)
             with queue._lock:
-                if len(queue._queue) == 0:
+                if len(queue._queue) == 0 and not silent:
                     app.set_state("listening", silent_gui=silent)
             return
 
         if code_text:
             from script_engine import VASScript
-            app.set_state("running_script", silent_gui=silent)
+            if not silent:
+                app.set_state("running_script", silent_gui=silent)
             _sr_log(app, f"_execute_script_impl: starting script={script_name} silent={silent} state={app.state}")
             script_error = None
             engine = None
@@ -258,7 +260,7 @@ class ScriptRunner:
                 engine = VASScript(
                     app, script_name=script_name, silent=silent, auth_callback=_auth_callback,
                     line_callback=lambda c, t: [
-                        app.set_state("running_script", f"{c}/{t}", silent_gui=silent),
+                        (None if silent else app.set_state("running_script", f"{c}/{t}", silent_gui=silent)),
                         (None if silent else app.gui.memory_bar.set_value(c, 1, t))
                     ]
                 )
@@ -278,7 +280,7 @@ class ScriptRunner:
                 queue._active_engine = None
                 with queue._lock:
                     queue_len = len(queue._queue)
-                    if queue_len == 0:
+                    if queue_len == 0 and not silent:
                         app.set_state("listening", silent_gui=silent)
                 _sr_log(app, f"_execute_script_impl: finished script={script_name} silent={silent} state={app.state} queue_remaining={queue_len}")
 

@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QLineEdit, QMessageBox, QComboBox, QSpinBox, QFileDialog, QCheckBox,
     QCalendarWidget, QListWidgetItem,
 )
-from PySide6.QtGui import QTextCharFormat, QColor, QFont, QPen
+from PySide6.QtGui import QTextCharFormat, QColor, QFont, QPen, QPalette
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
 
@@ -56,6 +56,10 @@ class CalendarWidget(QCalendarWidget):
         super().__init__(parent)
         self._event_dates = {}      # date_str -> count (active)
         self._inactive_dates = {}   # date_str -> count (disabled)
+        pal = self.palette()
+        pal.setColor(QPalette.Highlight, QColor(0, 0, 0, 0))
+        pal.setColor(QPalette.HighlightedText, QColor("#ffffff"))
+        self.setPalette(pal)
 
     def set_event_dates(self, dates, inactive=None):
         self._event_dates = dates
@@ -64,6 +68,22 @@ class CalendarWidget(QCalendarWidget):
 
     def paintCell(self, painter, rect, date):
         super().paintCell(painter, rect, date)
+        dkey = date.toString("yyyy-MM-dd")
+        active_count = self._event_dates.get(dkey, 0)
+        inactive_count = self._inactive_dates.get(dkey, 0)
+
+        if active_count > 0 or inactive_count > 0:
+            painter.save()
+            painter.setPen(Qt.NoPen)
+            tri_size = 8
+            x = rect.left()
+            y = rect.top()
+            color = QColor("#0d7377") if active_count > 0 else QColor("#666666")
+            painter.setBrush(color)
+            triangle = [QPoint(x, y), QPoint(x + tri_size, y), QPoint(x, y + tri_size)]
+            painter.drawPolygon(triangle)
+            painter.restore()
+
         # Current day: small red triangle bottom-right
         if date == QDate.currentDate():
             painter.save()
@@ -78,14 +98,11 @@ class CalendarWidget(QCalendarWidget):
         # Selected day: white border
         if date == self.selectedDate():
             painter.save()
-            pen = QPen(QColor("#ffffff"), 2)
+            pen = QPen(QColor("#ffffff"), 1)
             painter.setPen(pen)
             painter.drawRect(QRectF(rect).adjusted(1.5, 1.5, -1.5, -1.5))
             painter.restore()
         # Event dots
-        dkey = date.toString("yyyy-MM-dd")
-        inactive_count = self._inactive_dates.get(dkey, 0)
-        active_count = self._event_dates.get(dkey, 0)
         if inactive_count > 0 or active_count > 0:
             max_cols = 6
             max_rows = 3
@@ -153,40 +170,67 @@ class EventsEditor(QMainWindow):
         self.day_list.blockSignals(True)
         self.day_list.clear()
         selected_date = self.calendar.selectedDate().toString("yyyy-MM-dd")
-        lines = []  # (time_str_for_sort, line, idx, is_future, is_disabled)
+        lines = []  # (time_str_for_sort, line, idx, is_future, is_disabled, [orig_date_for_recurrence])
         for i, item in enumerate(self._current_items):
             is_disabled = str(item.get("enabled", "true")).lower() == "false"
             if item.get("date") == selected_date:
                 time_str = item.get("time", "")
                 desc = item.get("description", "")
                 line = f"{time_str}  \u2014  {desc}"
-                if self._current_category == "events" and item.get("recur"):
+                if item.get("recur"):
                     line += f" [\u21bb {item['recur']}]"
                 lines.append((time_str, line, i, False, is_disabled))
             # Future recurrences
             recur = item.get("recur", "")
-            if recur and self._current_category == "events" and item.get("date", "") <= selected_date and item.get("date") != selected_date:
+            if recur and item.get("date", "") <= selected_date and item.get("date") != selected_date:
                 from utils import generate_recurrences
                 for fd, ft in generate_recurrences(item.get("date", ""), item.get("time", "00:00"), recur, selected_date):
                     if fd == selected_date:
                         desc = item.get("description", "")
                         line = f"\u21bb {ft}  \u2014  {desc} [\u21bb {recur}]"
-                        lines.append((ft, line, -1, True, is_disabled))
+                        lines.append((ft, line, -1, True, is_disabled, item.get("date", "")))
                         break
         lines.sort(key=lambda x: x[0])
-        for time_sort, line, idx, is_future, is_disabled in lines:
-            li = QListWidgetItem(line)
+        for time_sort, line, idx, is_future, is_disabled, *rest in lines:
+            orig_date = rest[0] if rest else ""
+            li = QListWidgetItem()
             li.setData(Qt.UserRole, idx)
             if is_disabled:
                 li.setForeground(QColor("#e67e22"))
             if is_future:
                 if not is_disabled:
                     li.setForeground(QColor("#666666"))
-                font = li.font()
-                font.setItalic(True)
-                li.setFont(font)
                 li.setFlags(Qt.ItemNeverHasChildren)
-            self.day_list.addItem(li)
+                w = QWidget()
+                wr = QHBoxLayout(w)
+                wr.setContentsMargins(2, 1, 2, 1)
+                wr.setSpacing(4)
+                lbl = QLabel(line)
+                lbl.setStyleSheet("background:transparent;")
+                f = lbl.font()
+                f.setItalic(True)
+                lbl.setFont(f)
+                if is_disabled:
+                    lbl.setStyleSheet("color:#e67e22;background:transparent;")
+                elif orig_date:
+                    lbl.setStyleSheet("color:#666666;background:transparent;")
+                wr.addWidget(lbl)
+                wr.addStretch()
+                if orig_date:
+                    lnk = QPushButton("\u2197")
+                    lnk.setFixedSize(20, 18)
+                    lnk.setFlat(True)
+                    lnk.setCursor(Qt.CursorShape.PointingHandCursor)
+                    lnk.setStyleSheet("QPushButton{color:#0d7377;font-size:12px;padding:0;border:none;}QPushButton:hover{color:#e0e0e0;}")
+                    lnk.setToolTip(self._t("events_editor.go_to_date"))
+                    lnk.clicked.connect(lambda checked, d=orig_date: self._navigate_to_date(d))
+                    wr.addWidget(lnk)
+                li.setSizeHint(w.sizeHint())
+                self.day_list.addItem(li)
+                self.day_list.setItemWidget(li, w)
+            else:
+                li.setText(line)
+                self.day_list.addItem(li)
         self.day_list.blockSignals(False)
         if lines:
             self.day_list.setCurrentRow(0)
@@ -198,7 +242,6 @@ class EventsEditor(QMainWindow):
         event_fmt = QTextCharFormat()
         event_fmt.setFontWeight(QFont.Weight.Bold)
         event_fmt.setForeground(QColor("#ffffff"))
-        event_fmt.setBackground(QColor("#0d7377"))
         year = self.calendar.yearShown()
         month = self.calendar.monthShown()
         days_in = QDate(year, month, 1).daysInMonth()
@@ -267,6 +310,7 @@ class EventsEditor(QMainWindow):
         cal_layout = QVBoxLayout(calendar_group)
         self.calendar = CalendarWidget()
         self.calendar.setFixedWidth(280)
+        self.calendar.setStyleSheet("QAbstractItemView { selection-background-color: transparent; }")
         self.calendar.clicked.connect(self._on_date_clicked)
         self.calendar.currentPageChanged.connect(lambda y, m: self._highlight_calendar())
         cal_layout.addWidget(self.calendar)
@@ -489,6 +533,12 @@ class EventsEditor(QMainWindow):
         self._wait_cb.setChecked(str(item.get("wait_for_completion", "false")).lower() == "true")
         self._run_on_startup_cb.setChecked(str(item.get("run_on_startup", "false")).lower() == "true")
         self._check_running_cb.setChecked(str(item.get("check_already_running", "false")).lower() == "true")
+
+    def _navigate_to_date(self, date_str):
+        y, m, d = map(int, date_str.split("-"))
+        self.calendar.setSelectedDate(QDate(y, m, d))
+        self._selected_idx = None
+        self._refresh_list()
 
     def _validate(self):
         date = self.date_edit.text().strip()

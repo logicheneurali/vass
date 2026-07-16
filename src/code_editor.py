@@ -65,6 +65,7 @@ class VassScriptHighlighter(QSyntaxHighlighter):
             "read_file", "write_file", "delete_event",
             "google_home_command", "google_home_ask",
             "trim", "get", "len", "round", "randint",
+            "foreach",
         }
         fmt_func = QTextCharFormat()
         fmt_func.setForeground(QColor(FUNC_COLOR))

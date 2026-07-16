@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QUrl, QTimer
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                 QHBoxLayout, QLabel, QPushButton, QCheckBox,
                                 QMessageBox, QMenu, QDialog, QFileDialog,
-                                QSpinBox, QListWidget)
+                                QSpinBox, QListWidget, QLineEdit)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEnginePage
 
@@ -167,7 +167,7 @@ class FilesFoldersDialog(QDialog):
         super().__init__(parent)
         self.lang = lang
         self.setWindowTitle(_t("memory_editor.files_folders_title", lang))
-        self.setFixedSize(450, 380)
+        self.setFixedSize(450, 480)
         self.setStyleSheet(f"QDialog {{ background-color: {BG}; }}")
 
         layout = QVBoxLayout(self)
@@ -226,6 +226,12 @@ class FilesFoldersDialog(QDialog):
         count_row.addStretch()
         layout.addLayout(count_row)
 
+        layout.addWidget(QLabel(_t("memory_editor.files_blacklist", lang)))
+        self._blacklist_edit = QLineEdit()
+        self._blacklist_edit.setText(self._config.get("path_blacklist", ""))
+        self._blacklist_edit.setPlaceholderText("site-packages, node_modules, .git")
+        layout.addWidget(self._blacklist_edit)
+
         layout.addStretch()
         act_row = QHBoxLayout()
         cancel_btn = QPushButton(_t("memory_editor.dialog_cancel", lang))
@@ -253,6 +259,7 @@ class FilesFoldersDialog(QDialog):
         self._config["interval_minutes"] = self._interval_spin.value()
         self._config["max_file_size_kb"] = self._size_spin.value()
         self._config["max_files_per_cycle"] = self._count_spin.value()
+        self._config["path_blacklist"] = self._blacklist_edit.text().strip()
         config_path = os.path.join(ALLOWED, "memory_files_config.json")
         os.makedirs(ALLOWED, exist_ok=True)
         with open(config_path, "w", encoding="utf-8") as f:

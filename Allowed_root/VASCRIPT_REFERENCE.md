@@ -325,6 +325,18 @@ $risposta = google_home_ask("che ore sono?", false)
 ```
 
 
+### **`fetch_json(url)`**
+
+Fetches JSON data from a URL and returns it as a JSON string. Use with `$variable` and dot notation to access fields. No auth required.
+
+```
+$data = fetch_json("https://api.example.com/products")
+say("First product: {$data.0.name}")
+notice($data.products.0.title)
+foreach($data, "products", "p", say($p.name))
+```
+
+
 ### **`fetch_text(url)`**
 Downloads a web page and returns its text content. Uses headless Chromium via MCP. No auth required.
 
@@ -432,6 +444,25 @@ $list = filter_json($data, "{name} vive a {city}", "age>=25")
 # Oggetto singolo
 $meteo = filter_json('{"citta":"Torino","temp":18}', "{citta}: {temp}C", "temp<20")
 # → "Torino: 18C"
+```
+
+### **`foreach(json, path, var_name, operation)`**
+
+Iterates over each element of a JSON array and executes an operation for each item. No auth required.
+
+**Parameters:**
+| # | Name | Description |
+|---|---|---|
+| 1 | `json` | A JSON string (variable or inline) |
+| 2 | `path` | Dot-separated path to the array (e.g. `"items"`, `"data.products"`). Empty `""` if root is already an array. |
+| 3 | `var_name` | Variable name for the current item. Accessible as `$var_name.field` inside the operation. |
+| 4 | `operation` | Any VASScript function call, executed once per item. |
+
+```
+$data = fetch_json("https://api.example.com/products")
+foreach($data, "products", "p", say("Product: {$p.name}, Price: {$p.price}"))
+foreach($data, "products", "p", writestate($p.id, $p.price))
+foreach($data, "items", "i", notify($i.title))
 ```
 
 
@@ -617,6 +648,16 @@ Prints text to the VASS console/log. Useful for debugging scripts. No authorizat
 
 ```
 print("Debug: variabile X vale " . $x)
+```
+
+
+### **`write_file(path, content)`**
+
+Writes content to a file in Allowed_root. Creates parent directories if needed. Overwrites if file exists. (alias: `writefile`)
+
+```
+write_file("note.txt", "Hello world")
+write_file("data.json", '{"key": "value"}')
 ```
 
 

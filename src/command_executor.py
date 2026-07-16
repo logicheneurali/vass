@@ -378,17 +378,21 @@ class CommandExecutor:
         import sys
         try:
             print(f"[Security] execute_command() executing: {command[:200]}")
+            from utils import get_project_root
+            cwd = os.path.join(get_project_root(), "Allowed_root")
             if sys.platform == "win32":
                 subprocess.run(
                     ["powershell", "-NoProfile", "-WindowStyle", "Hidden",
                      "-Command", command],
-                    creationflags=subprocess.CREATE_NO_WINDOW
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                    cwd=cwd
                 )
             else:
                 import shlex
                 subprocess.run(
                     shlex.split(command), shell=False,
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    cwd=cwd
                 )
             print(f"Command started: {command}")
             return True
