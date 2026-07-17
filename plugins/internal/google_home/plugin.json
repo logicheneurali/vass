@@ -1,0 +1,26 @@
+{
+  "name": "google_home",
+  "version": "1.0.0",
+  "type": "internal",
+  "description": "Google Assistant SDK integration — voice commands via Google Home",
+  "author": "VASS",
+  "entry_point": "plugin.py",
+  "plugin_class": "GoogleHomePlugin",
+  "depends_on": [],
+  "provides": [
+    "google_home"
+  ],
+  "config_section": "[google]",
+  "settings_defaults": {
+    "google": {
+      "google_home_enabled": "false"
+    }
+  },
+  "threads": [],
+  "gui_windows": {},
+  "hooks": [
+    "on_load",
+    "on_unload"
+  ],
+  "min_app_version": "0.6.7"
+}

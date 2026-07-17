@@ -1,0 +1,27 @@
+{
+  "name": "user_profile",
+  "version": "1.0.0",
+  "type": "internal",
+  "description": "Aggregates permanent memory into a structured user profile",
+  "author": "VASS",
+  "entry_point": "plugin.py",
+  "plugin_class": "UserProfilePlugin",
+  "depends_on": [],
+  "provides": [
+    "user_profile"
+  ],
+  "config_section": "",
+  "settings_defaults": {},
+  "threads": [
+    {
+      "name": "profile_loop",
+      "method": "_profile_loop"
+    }
+  ],
+  "gui_windows": {},
+  "hooks": [
+    "on_load",
+    "on_unload"
+  ],
+  "min_app_version": "0.6.7"
+}

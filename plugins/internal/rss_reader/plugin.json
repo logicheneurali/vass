@@ -1,0 +1,30 @@
+{
+  "name": "rss_reader",
+  "version": "1.0.0",
+  "type": "internal",
+  "description": "RSS feed reader with background polling and notification delivery",
+  "author": "VASS",
+  "entry_point": "plugin.py",
+  "plugin_class": "RssReaderPlugin",
+  "depends_on": [],
+  "provides": [
+    "rss_reader"
+  ],
+  "config_section": "",
+  "settings_defaults": {},
+  "threads": [
+    {
+      "name": "polling",
+      "method": "_polling_thread"
+    }
+  ],
+  "gui_windows": {},
+  "config_widgets": [
+    "online_sources"
+  ],
+  "hooks": [
+    "on_load",
+    "on_unload"
+  ],
+  "min_app_version": "0.6.7"
+}

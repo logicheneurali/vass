@@ -540,6 +540,7 @@ class InfoPanel(QFrame):
         self._links = []
         self._ai_responses = []
         self._tab = "links"
+        self._expanded = False
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self.hide)
@@ -564,6 +565,16 @@ class InfoPanel(QFrame):
         tab_row.addWidget(self._tab_ai)
         tab_row.addWidget(self._tab_notif)
         tab_row.addStretch()
+        self._expand_btn = QPushButton("\u2194")
+        self._expand_btn.setFixedSize(20, 20)
+        self._expand_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #888; border: none; "
+            "font-size: 14px; font-weight: bold; }"
+            "QPushButton:hover { color: #e0e0e0; }"
+        )
+        self._expand_btn.setToolTip("Expand")
+        self._expand_btn.clicked.connect(self._toggle_expand)
+        tab_row.addWidget(self._expand_btn)
         close_btn = QPushButton("x")
         close_btn.setFixedSize(20, 20)
         close_btn.setStyleSheet(
@@ -686,6 +697,9 @@ class InfoPanel(QFrame):
             if item.widget():
                 item.widget().deleteLater()
 
+    def _fs(self, base):
+        return base + (2 if self._expanded else 0)
+
     def _build_links(self):
         self._clear_scroll()
         if not self._links:
@@ -696,10 +710,10 @@ class InfoPanel(QFrame):
             display = url if len(url) <= 50 else url[:47] + "..."
             btn = QPushButton(f"{domain}\n{display}")
             btn.setStyleSheet(
-                "QPushButton { background-color: #16213e; color: #aaaaaa; "
-                "border: none; border-radius: 3px; padding: 4px 8px; "
-                "text-align: left; font-size: 11px; }"
-                "QPushButton:hover { background-color: #1a5276; color: #e0e0e0; }"
+                f"QPushButton {{ background-color: #16213e; color: #aaaaaa; "
+                f"border: none; border-radius: 3px; padding: 4px 8px; "
+                f"text-align: left; font-size: {self._fs(11)}px; }}"
+                f"QPushButton:hover {{ background-color: #1a5276; color: #e0e0e0; }}"
             )
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setToolTip(url)
@@ -714,7 +728,7 @@ class InfoPanel(QFrame):
         notifs = self._nm.list_all()
         if not notifs:
             lbl = QLabel(self._t("gui.no_notifications"))
-            lbl.setStyleSheet("color: #888; font-size: 11px; padding: 8px;")
+            lbl.setStyleSheet(f"color: #888; font-size: {self._fs(11)}px; padding: 8px;")
             self._scroll_layout.addWidget(lbl)
             return
         for n in notifs:
@@ -731,20 +745,20 @@ class InfoPanel(QFrame):
             # Top row: dot, icon, timestamp
             top_row = QHBoxLayout()
             dot_lbl = QLabel(dot)
-            dot_lbl.setStyleSheet(f"color: {dot_color}; font-size: 10px; background: transparent;")
+            dot_lbl.setStyleSheet(f"color: {dot_color}; font-size: {self._fs(10)}px; background: transparent;")
             dot_lbl.setFixedWidth(14)
             top_row.addWidget(dot_lbl)
             icon_lbl = QLabel(icon)
-            icon_lbl.setStyleSheet("font-size: 12px; background: transparent;")
+            icon_lbl.setStyleSheet(f"font-size: {self._fs(12)}px; background: transparent;")
             icon_lbl.setFixedWidth(22)
             top_row.addWidget(icon_lbl)
             ts_lbl = QLabel(n.get("ts", ""))
-            ts_lbl.setStyleSheet("color: #666; font-size: 10px; background: transparent;")
+            ts_lbl.setStyleSheet(f"color: #666; font-size: {self._fs(10)}px; background: transparent;")
             top_row.addWidget(ts_lbl)
             top_row.addStretch()
             # Bottom row: full-width text
             text_lbl = QLabel(txt)
-            text_lbl.setStyleSheet("color: #aaa; font-size: 11px; background: transparent;")
+            text_lbl.setStyleSheet(f"color: #aaa; font-size: {self._fs(11)}px; background: transparent;")
             text_lbl.setWordWrap(True)
             # Container
             container = QWidget()
@@ -788,7 +802,7 @@ class InfoPanel(QFrame):
         assistant_msgs = [r for r in self._ai_responses if r.get("role") == "assistant"]
         if not assistant_msgs:
             lbl = QLabel(self._t("gui.ai_no_responses"))
-            lbl.setStyleSheet("color: #888; font-size: 11px; padding: 8px;")
+            lbl.setStyleSheet(f"color: #888; font-size: {self._fs(11)}px; padding: 8px;")
             self._scroll_layout.addWidget(lbl)
             return
         last = None
@@ -801,7 +815,7 @@ class InfoPanel(QFrame):
             c_layout.setSpacing(1)
             text_lbl = QLabel(text)
             text_lbl.setWordWrap(True)
-            text_lbl.setStyleSheet("color: #aaa; font-size: 11px; background: transparent;"
+            text_lbl.setStyleSheet(f"color: #aaa; font-size: {self._fs(11)}px; background: transparent;"
                                    "padding: 4px; border: 1px solid #16213e; border-radius: 3px;")
             text_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
             text_lbl.setToolTip(self._t("gui.click_to_copy"))
@@ -817,11 +831,37 @@ class InfoPanel(QFrame):
     def _copy_text(self, text):
         QApplication.clipboard().setText(text)
 
+    def _toggle_expand(self):
+        self._expanded = not self._expanded
+        self._expand_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #e94560; border: none; "
+            "font-size: 14px; font-weight: bold; }"
+            "QPushButton:hover { color: #e0e0e0; }"
+        ) if self._expanded else self._expand_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #888; border: none; "
+            "font-size: 14px; font-weight: bold; }"
+            "QPushButton:hover { color: #e0e0e0; }"
+        )
+        self._expand_btn.setToolTip("Reduce" if self._expanded else "Expand")
+        self._switch_tab(self._tab)
+        if self._parent_window:
+            self._position(self._parent_window)
+
     def _position(self, parent):
         geo = parent.geometry()
         screen = QApplication.primaryScreen().availableGeometry()
 
-        panel_w = int(geo.width() * 1.25)
+        if self._expanded:
+            panel_w = int(geo.width() * 3.0)
+            mid_x = screen.left() + screen.width() // 2
+            if geo.center().x() < mid_x:
+                px = geo.left()
+            else:
+                px = geo.right() - panel_w
+        else:
+            panel_w = int(geo.width() * 1.25)
+            px = geo.center().x() - panel_w // 2
+
         if self._tab == "links":
             count = len(self._links)
             panel_h = min(count * 38 + 52, 280)
@@ -831,8 +871,11 @@ class InfoPanel(QFrame):
         else:
             count = 5
             panel_h = min(count * 38 + 52, 280)
-        px = geo.center().x() - panel_w // 2
-        py = geo.top() - panel_h - 8
+        mid_y = screen.top() + screen.height() // 2
+        if geo.center().y() < mid_y:
+            py = geo.bottom() + 8
+        else:
+            py = geo.top() - panel_h - 8
         px = max(screen.left(), min(px, screen.right() - panel_w))
         py = max(screen.top(), min(py, screen.bottom() - panel_h))
         self.setGeometry(px, py, panel_w, panel_h)

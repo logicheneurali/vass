@@ -1,0 +1,33 @@
+{
+  "name": "calendar_sync",
+  "version": "1.0.0",
+  "type": "internal",
+  "description": "Google Calendar sync — imports events to VASS and enqueues for memory tagging",
+  "author": "VASS",
+  "entry_point": "plugin.py",
+  "plugin_class": "CalendarSyncPlugin",
+  "depends_on": [],
+  "provides": [
+    "calendar_sync"
+  ],
+  "config_section": "[google]",
+  "settings_defaults": {
+    "google": {
+      "calendar_sync_enabled": "false",
+      "calendar_sync_minutes": "30",
+      "calendar_sync_days": "7"
+    }
+  },
+  "threads": [
+    {
+      "name": "calendar_loop",
+      "method": "_calendar_loop"
+    }
+  ],
+  "gui_windows": {},
+  "hooks": [
+    "on_load",
+    "on_unload"
+  ],
+  "min_app_version": "0.6.7"
+}

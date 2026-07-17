@@ -1,0 +1,10 @@
+{
+  "rss_reader": true,
+  "user_profile": true,
+  "proactive_agent": true,
+  "gmail_sync": true,
+  "calendar_sync": true,
+  "google_home": true,
+  "noise_auto_pause": true,
+  "memory_files_scanner": true
+}

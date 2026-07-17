@@ -1,0 +1,24 @@
+{
+  "name": "proactive_agent",
+  "version": "1.0.0",
+  "type": "internal",
+  "description": "Analyzes user profile and performs background actions when idle",
+  "author": "VASS",
+  "entry_point": "plugin.py",
+  "plugin_class": "ProactiveAgentPlugin",
+  "depends_on": [
+    "user_profile"
+  ],
+  "provides": [
+    "proactive_agent"
+  ],
+  "config_section": "",
+  "settings_defaults": {},
+  "threads": [],
+  "gui_windows": {},
+  "hooks": [
+    "on_load",
+    "on_unload"
+  ],
+  "min_app_version": "0.6.7"
+}

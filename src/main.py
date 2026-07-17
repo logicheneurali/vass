@@ -213,10 +213,6 @@ class VassApp:
         self.noise_pause = self.settings.get("noise_pause", False)
         self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
         self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
-        self._noise_high_since = None  # timestamp when noise first exceeded threshold
-        self._nf_print_counter = 0
-        self._silent_frames = 0
-        self._running_noise_floor = None
         self._memory_cache = None
 
         # Audio diagnostics for wake-word issues
@@ -272,8 +268,6 @@ class VassApp:
         self.timer_manager = TimerManager(self)
         from notification_manager import NotificationManager
         self.notification_manager = NotificationManager()
-        from rss_reader import RssReader
-        self.rss_reader = None
         self.context_notes = []
         self.conversation_history = []
         from memory_manager import MemoryManager
@@ -284,19 +278,6 @@ class VassApp:
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "transcription"
         self.memory_mode = "full"
         self._input_mode = False
-        self._start_rss()
-
-    def _start_rss(self):
-        try:
-            feeds_path = os.path.join(get_project_root(), "Allowed_root", "rss_feeds.json")
-            cache_path = os.path.join(get_project_root(), "Allowed_root", "rss_cache.json")
-            from rss_reader import RssReader
-            self.rss_reader = RssReader(feeds_path, cache_path, notification_manager=self.notification_manager)
-            self.rss_reader.start_polling()
-            print("[RSS] Polling started")
-        except Exception as e:
-            print(f"[RSS] Failed to start: {e}")
-
 
     def _get_tokenizer(self):
         return self.memory._get_tokenizer()
@@ -346,9 +327,7 @@ class VassApp:
         automatically return to the paused state.
         """
         if self.state == "playing" and new_state != "playing":
-            with self._state_vars_lock:
-                self._noise_high_since = None
-                self._running_noise_floor = None
+            self._reset_noise_plugin()
         if self.state in ("paused", "loading") and new_state == "listening":
             self.noise_filter.reset_calibration()
         if self.state == "waiting" and new_state != "waiting" and hasattr(self, 'tts'):
@@ -391,9 +370,7 @@ class VassApp:
                 self.audio_handler.recorded_buffer.clear()
                 self.state_manager.set_manual_paused()
             elif current == "paused":
-                with self._state_vars_lock:
-                    self._noise_high_since = None
-                    self._running_noise_floor = None
+                self._reset_noise_plugin()
                 self.voice_recognition.reset_noise_floor()
                 self.voice_recognition.reset_model()
                 self.state_manager.resume_listening(force=True)
@@ -417,6 +394,10 @@ class VassApp:
             self.tts.stop()
         except Exception as e:
             print(f"[StopPlayback] Error: {e}")
+
+    def _reset_plugin_state(self):
+        for hook in self.plugin_manager.get_hooks("reset_state"):
+            hook()
 
     def _watch_commands_file(self):
         commands_path = self.command_executor.commands_file
@@ -484,9 +465,7 @@ class VassApp:
                         self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
                         self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
                         if not self.noise_pause and self.state_manager.is_auto_paused():
-                            with self._state_vars_lock:
-                                self._noise_high_since = None
-                                self._running_noise_floor = None
+                            self._reset_noise_plugin()
                             self.state_manager.exit_auto_pause()
                             print("[Noise] Auto-pause disabled via settings, resuming")
                         self.gui_x = self.settings["gui_x"]
@@ -507,8 +486,7 @@ class VassApp:
                             self.audio_handler.input_device = None if new_inp < 0 else new_inp
                             if was_streaming:
                                 self.audio_handler.start_stream()
-                            with self._state_vars_lock:
-                                self._running_noise_floor = None
+                            self._reset_noise_plugin()
                             self.voice_recognition.reset_noise_floor()
                             print(f"[Watch] Input device changed to: {new_inp}")
                         new_out = int(self.settings.get("output_device", -1))
@@ -568,6 +546,11 @@ class VassApp:
         inp = self.audio_handler.input_device
         out = self.tts.output_device
         list_audio_devices(resolved_inp=inp, resolved_out=out)
+
+        from plugins._base import PluginManager
+        self.plugin_manager = PluginManager()
+        self.plugin_manager.load_all(self)
+
         threading.Thread(target=self._watch_commands_file, daemon=True).start()
         threading.Thread(target=self._watch_settings_file, daemon=True).start()
         threading.Thread(target=self.script_runner.watch_queue, daemon=True).start()
@@ -582,15 +565,12 @@ class VassApp:
         threading.Thread(target=self._health_check_loop, daemon=True).start()
         threading.Thread(target=self._health_check_once, daemon=True).start()
         threading.Thread(target=self._mcp_health_check_loop, daemon=True).start()
-        if self.settings.get("calendar_sync_enabled", "false").lower() == "true":
-            threading.Thread(target=self._sync_calendar_loop, daemon=True).start()
-        if self.settings.get("gmail_enabled", "false").lower() == "true":
-            threading.Thread(target=self._sync_gmail_loop, daemon=True).start()
         self.memory.start_deferred_loop()
-        if self.memory.is_source_enabled("files"):
-            from memory_files_scanner import FileScanner
-            self._file_scanner = FileScanner(self.memory._files_config, self.memory)
-            threading.Thread(target=self._file_scanner.run, daemon=True).start()
+
+        for plugin in self.plugin_manager.get_active():
+            for target, args, kwargs in plugin.get_threads():
+                threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True).start()
+
         self.gui.set_mode_display(self.mode)
         self.gui.update_memory_bar()
 
@@ -626,40 +606,9 @@ class VassApp:
                         self._silent_frames = 0
 
                 if is_auto_paused:
-                    auto_paused_at = self.state_manager.get_auto_paused_at()
-                    elapsed = time.time() - auto_paused_at
-                    if elapsed >= self.noise_pause_duration:
-                        print(f"[Noise] Checking noise floor after {self.noise_pause_duration}s pause...")
-                        if self.audio_handler.stream is None:
-                            self.audio_handler.start_stream()
-                        # Non-blocking noise check: sample up to 20 frames or 0.5s
-                        nf_samples = []
-                        deadline = time.time() + 0.5
-                        while len(nf_samples) < 20 and time.time() < deadline:
-                            f = self.audio_handler.get_frame()
-                            if f is not None:
-                                nf_samples.append(float(np.sqrt(np.mean(f**2))))
-                            else:
-                                time.sleep(0.01)
-                        if nf_samples:
-                            current_nf = sum(nf_samples) / len(nf_samples)
-                            adaptive_threshold = max(self.noise_pause_threshold,
-                                                     self.voice_recognition.noise_floor * 2.0)
-                            print(f"[Noise] Current noise floor: {current_nf:.6f} (adaptive threshold: {adaptive_threshold:.6f})")
-                            if current_nf < adaptive_threshold:
-                                print(f"[Noise] Auto-resuming: noise floor dropped below threshold")
-                                with self._state_vars_lock:
-                                    self._noise_high_since = None
-                                    self._running_noise_floor = None
-                                self.voice_recognition.reset_noise_floor()
-                                self.state_manager.exit_auto_pause()
-                                continue
-                            else:
-                                print(f"[Noise] Still noisy, staying paused for another {self.noise_pause_duration}s")
-                                self.state_manager.extend_auto_pause()
-                        else:
-                            print(f"[Noise] Check: no audio samples captured, staying paused")
-                            self.state_manager.extend_auto_pause()
+                    for hook in self.plugin_manager.get_hooks("auto_pause_check"):
+                        if hook(self.audio_handler.get_frame, self.audio_handler.start_stream):
+                            continue
 
                 if frame is not None:
                     # Accumulate audio diagnostics
@@ -694,10 +643,8 @@ class VassApp:
                             print(f"[WakeWord] detect_wake_word error: {ex}")
                             wake = False
                         if wake and current_state == "listening":
-                            with self._state_vars_lock:
-                                self._noise_high_since = None
-                                self._nf_print_counter = 0
-                                self._running_noise_floor = None
+                            for hook in self.plugin_manager.get_hooks("reset_state"):
+                                hook()
                             print("Wake word detected! Switching to recording mode...")
                             try:
                                 beep(self.app_volume)
@@ -712,42 +659,11 @@ class VassApp:
                             continue
 
                         if not wake and current_state == "listening":
-                            with self._state_vars_lock:
-                                nf = float(np.sqrt(np.mean(frame**2)))
-                                adaptive_threshold = max(self.noise_pause_threshold,
-                                                         self.voice_recognition.noise_floor * 2.0)
-                                if self._running_noise_floor is None:
-                                    self._running_noise_floor = nf
-                                else:
-                                    self._running_noise_floor = 0.99 * self._running_noise_floor + 0.01 * nf
-                                nf = self._running_noise_floor
-                                self._nf_print_counter += 1
-
-                                # Track continuous high-noise duration using real time.
-                                # The main loop may be blocked by Whisper wake-word transcription,
-                                # so a frame counter is unreliable; elapsed time is robust.
-                                if self.noise_pause and nf > adaptive_threshold:
-                                    if self._noise_high_since is None:
-                                        self._noise_high_since = time.time()
-                                    elapsed_noisy = time.time() - self._noise_high_since
-                                    if elapsed_noisy >= self.noise_pause_duration:
-                                        print(f"[Noise] Auto-pausing: noise floor {nf:.4f} > {adaptive_threshold:.4f} for {self.noise_pause_duration}s")
-                                        self.state_manager.set_auto_paused()
-                                        self._noise_high_since = None
-                                else:
-                                    self._noise_high_since = None
-                                    self.noise_filter.maybe_update_profile(
-                                        frame, is_silence=True, now=time.time())
-
-                                # GUI update every 50 frames (~1s)
-                                if self._nf_print_counter % 50 == 0:
-                                    gain = self.voice_recognition.input_volume
-                                    nf_raw = min(1.0, nf * 50)  # normalize 0-0.02 range to 0-1
-                                    self.gui.noise_floor_signal.emit(gain, nf_raw)
-                                if self._nf_print_counter >= 250:
-                                    self._nf_print_counter = 0
-                                    if nf > adaptive_threshold and self.debug_enabled:
-                                        print(f"[NoiseFloor] {nf:.6f} (adaptive threshold: {adaptive_threshold:.6f})")
+                            for hook in self.plugin_manager.get_hooks("main_loop_frame"):
+                                hook(raw_frame, raw_rms)
+                            if not self.plugin_manager.get_hooks("main_loop_frame"):
+                                self.noise_filter.maybe_update_profile(
+                                    raw_frame, is_silence=True, now=time.time())
 
                     self.audio_handler.process_recording(frame, vad_frame=raw_frame)
 
@@ -862,108 +778,6 @@ class VassApp:
                 print(f"[Health] {health_url} unreachable: {e}")
         self.gui.schedule_signal.emit(lambda ok=ok: self.gui.set_health_status(ok))
 
-    def _sync_calendar_loop(self):
-        time.sleep(5)
-        from google_calendar import GoogleCalendar
-        gcal = GoogleCalendar()
-        minutes = int(self.settings.get("calendar_sync_minutes", 30))
-        days = int(self.settings.get("calendar_sync_days", 7))
-        events_path = os.path.join(get_project_root(), "Allowed_root", "events.json")
-        try:
-            new_or_changed = gcal.sync_to_vass(events_path, days=days) or []
-            if new_or_changed and self.memory.is_source_enabled("calendar"):
-                for ev in new_or_changed:
-                    classify_content = (
-                        f"Calendar event: {ev.get('summary', '')}\n"
-                        f"When: {ev.get('start', '')} -> {ev.get('end', '')}"
-                    )
-                    self.memory.enqueue_external(classify_content, ev["id"], "calendar")
-        except Exception as e:
-            print(f"[GCal] Sync error: {e}")
-        while self.running:
-            time.sleep(minutes * 60)
-            try:
-                new_or_changed = gcal.sync_to_vass(events_path, days=days) or []
-                if new_or_changed and self.memory.is_source_enabled("calendar"):
-                    for ev in new_or_changed:
-                        classify_content = (
-                            f"Calendar event: {ev.get('summary', '')}\n"
-                            f"When: {ev.get('start', '')} -> {ev.get('end', '')}"
-                        )
-                        self.memory.enqueue_external(classify_content, ev["id"], "calendar")
-            except Exception as e:
-                print(f"[GCal] Sync error: {e}")
-
-    def _sync_gmail_loop(self):
-        time.sleep(5)
-        from gmail_handler import GmailHandler
-        gmail = GmailHandler()
-        minutes = int(self.settings.get("gmail_sync_minutes", 5))
-        max_results = int(self.settings.get("gmail_max_results", 10))
-        seen_path = os.path.join(get_project_root(), "Allowed_root", "gmail_seen.json")
-        print(f"[Gmail] Sync started (every {minutes}m, max {max_results} msgs)")
-        try:
-            new = gmail.check_new(seen_path, max_results=max_results)
-            self._announce_emails(new)
-        except Exception as e:
-            print(f"[Gmail] Sync error: {e}")
-        while self.running:
-            time.sleep(minutes * 60)
-            try:
-                new = gmail.check_new(seen_path, max_results=max_results)
-                self._announce_emails(new)
-            except Exception as e:
-                print(f"[Gmail] Sync error: {e}")
-
-    def _format_email_ago(self, sent_date, lang):
-        from email.utils import parsedate_to_datetime
-        try:
-            dt = parsedate_to_datetime(sent_date)
-            if dt is None:
-                return sent_date
-        except Exception:
-            return sent_date
-        now = datetime.datetime.now(dt.tzinfo) if dt.tzinfo else datetime.datetime.now()
-        delta = now - dt
-        secs = int(delta.total_seconds())
-        if secs < 60:
-            return t("notifications.just_now", lang)
-        if secs < 3600:
-            return t("notifications.ago_minutes", lang).replace("{n}", str(secs // 60))
-        if secs < 86400:
-            return t("notifications.ago_hours", lang).replace("{n}", str(secs // 3600))
-        if secs < 604800:
-            return t("notifications.ago_days", lang).replace("{n}", str(secs // 86400))
-        if secs < 2419200:
-            return t("notifications.ago_weeks", lang).replace("{n}", str(secs // 604800))
-        if secs < 31536000:
-            return t("notifications.ago_months", lang).replace("{n}", str(secs // 2592000))
-        return t("notifications.on_date", lang).replace("{date}", dt.strftime("%Y-%m-%d"))
-
-    def _announce_emails(self, emails):
-        if not emails:
-            return
-        for em in emails:
-            from_parts = clean_for_tts(em['from'], 80)
-            subj = clean_for_tts(em['subject'], 120)
-            snip = clean_for_tts(em['snippet'], 200, " " + t("notifications.email_truncated", self.language))
-            date_str = self._format_email_ago(em.get('sent_date', ''), self.language)
-            text = f"Nuova email da {from_parts} ({date_str}). Oggetto: {subj}. {snip}"
-            self.tts.enqueue(text, defer_if_busy=True)
-            notif = t("notifications.new_email", self.language)\
-                .replace("{from}", from_parts)\
-                .replace("{date}", date_str)\
-                .replace("{subject}", subj)
-            priority = 7 if em.get("important") else 5
-            self.notification_manager.add(notif, priority=priority, data={"type": "mail", "link": f"https://mail.google.com/mail/u/0/#inbox/{em['id']}"})
-            if self.memory.is_source_enabled("email"):
-                classify_content = (
-                    f"From: {from_parts}\n"
-                    f"Subject: {subj}\n"
-                    f"Snippet: {snip}"
-                )
-                self.memory.enqueue_external(classify_content, em['id'], "email")
-
     def _wait_for_llamacpp_ready(self, timeout=60):
         """Poll /v1/models until llama-server responds or timeout expires."""
         import urllib.request
@@ -1003,9 +817,12 @@ class VassApp:
             print("[llama.cpp] Server did not become ready within 60s")
 
     def stop(self):
-        if self.rss_reader:
-            self.rss_reader.stop_polling()
         self.running = False
+        for plugin in self.plugin_manager.get_active():
+            try:
+                plugin.on_unload()
+            except Exception as e:
+                print(f"[PluginManager] Error unloading '{plugin.manifest.get('name', '?')}': {e}")
         try:
             _faulthandler_file.close()
         except Exception:
@@ -1949,7 +1766,7 @@ def main():
                 llama_proc.kill()
                 llama_proc.wait(timeout=5)
             sys.exit(0)
-    
+
         import ctypes
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QIcon

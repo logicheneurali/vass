@@ -121,6 +121,8 @@ class MemoryManager:
 
     def _build_external_memory_content(self, prompt):
         """Return tagged entries from active external sources matching prompt keywords."""
+        if not prompt or not prompt.strip():
+            return ""
         root = get_project_root()
         tags_path = os.path.join(root, "Allowed_root", "memory_tags.json")
         if not os.path.exists(tags_path):

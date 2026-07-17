@@ -1,0 +1,33 @@
+{
+  "name": "gmail_sync",
+  "version": "1.0.0",
+  "type": "internal",
+  "description": "Gmail inbox checker — announces new emails via TTS and notifications",
+  "author": "VASS",
+  "entry_point": "plugin.py",
+  "plugin_class": "GmailSyncPlugin",
+  "depends_on": [],
+  "provides": [
+    "gmail_sync"
+  ],
+  "config_section": "[google]",
+  "settings_defaults": {
+    "google": {
+      "gmail_enabled": "false",
+      "gmail_sync_minutes": "5",
+      "gmail_max_results": "10"
+    }
+  },
+  "threads": [
+    {
+      "name": "gmail_loop",
+      "method": "_gmail_loop"
+    }
+  ],
+  "gui_windows": {},
+  "hooks": [
+    "on_load",
+    "on_unload"
+  ],
+  "min_app_version": "0.6.7"
+}

@@ -128,3 +128,5 @@ tests/
 website/
 .scripts/
 genvideo/
+Allowed_root/private_profile.json
+Allowed_root/private_agent_actions.json
