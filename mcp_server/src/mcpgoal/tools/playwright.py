@@ -1,4 +1,5 @@
 import json
+import os
 
 from playwright.async_api import async_playwright
 
@@ -11,7 +12,7 @@ async def _get_browser():
     if _browser is None:
         _playwright = await async_playwright().start()
         _browser = await _playwright.chromium.launch(
-            headless=True,
+            headless=os.environ.get("VASS_DEBUG", "0") != "1",
             args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
         )
     return _browser

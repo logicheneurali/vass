@@ -24,7 +24,8 @@
       "help_commands": "Comandi",
       "help_vasscript": "VASScript",
       "memory_editor": "Memoria Permanente",
-      "compact_mode": "Modalità compatta"
+      "compact_mode": "Modalità compatta",
+      "plugins": "Plugins"
     },
     "dialog": {
       "exit_title": "Uscita",
@@ -78,7 +79,8 @@
     "ai_no_responses": "Nessuna risposta AI",
     "click_to_copy": "Clicca per copiare",
     "mark_all_read": "Segna tutto come letto",
-    "transcription_mode": "Modalità trascrizione — tool non disponibili"
+    "transcription_mode": "Modalità trascrizione — tool non disponibili",
+    "all_notifications": "Tutto"
   },
   "scripts_editor": {
     "title": "VASScript Editor",
@@ -548,7 +550,8 @@
     "files_max_per_cycle": "Max file per ciclo:",
     "files_max_per_cycle_unit": "file",
     "files_blacklist": "Escludi percorsi contenenti (separati da virgola, supporta wildcard):",
-    "map_title": "Memoria Permanente \u2014 {total} voci, {tags} tag",
+    "files_extensions": "Estensioni valide (separate da virgola, vuoto = tutte):",
+    "map_title": "Memoria Permanente — {total} voci, {tags} tag",
     "map_subtitle": "Clicca un tag per vedere i dettagli",
     "map_tooltip": "<b>{tag}</b><br>{count} voci &middot; ril. media {rel}",
     "map_sidebar": "Tags",
@@ -898,6 +901,10 @@
       "name": "Scrivi file",
       "desc": "Scrive file nello storage"
     },
+    "html_to_pdf": {
+      "name": "Crea PDF",
+      "desc": "Crea un PDF da contenuto HTML"
+    },
     "interact": {
       "name": "Interact",
       "desc": "Esegue codice VASScript"
@@ -975,5 +982,32 @@
       "desc": "Tempo di inattivita sistema"
     }
   },
-  "mcp_down_tooltip": "Server MCP non disponibile"
+  "mcp_down_tooltip": "Server MCP non disponibile",
+  "plugins": {
+    "title": "Gestione Plugin",
+    "refresh": "Aggiorna",
+    "enable": "Abilita",
+    "disabled": "Disabilitato",
+    "start": "Avvia",
+    "stop": "Arresta",
+    "disable": "Disabilita",
+    "running": "In esecuzione",
+    "stopped": "Fermo",
+    "starting": "Avvio in corso...",
+    "blocked": "Bloccato",
+    "error": "Errore",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "subtitle": "I plugin vengono caricati all'avvio successivo. Le modifiche sono immediate."
+  },
+  "notification_types": {
+    "rss": "RSS",
+    "mail": "Email",
+    "event": "Eventi",
+    "schedule": "Operazioni",
+    "timer": "Timer",
+    "agent": "Agente",
+    "auth": "Sistema",
+    "other": "Altro"
+  }
 }

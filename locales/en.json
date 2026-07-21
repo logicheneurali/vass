@@ -24,7 +24,8 @@
       "help_commands": "Commands",
       "help_vasscript": "VASScript",
       "memory_editor": "Permanent Memory",
-      "compact_mode": "Compact Mode"
+      "compact_mode": "Compact Mode",
+      "plugins": "Plugins"
     },
     "dialog": {
       "exit_title": "Exit",
@@ -78,7 +79,8 @@
     "ai_no_responses": "No AI responses",
     "click_to_copy": "Click to copy",
     "mark_all_read": "Mark All Read",
-    "transcription_mode": "Transcription mode — tools not available"
+    "transcription_mode": "Transcription mode — tools not available",
+    "all_notifications": "All"
   },
   "settings_editor": {
     "title": "VASS Settings",
@@ -548,7 +550,8 @@
     "files_max_per_cycle": "Max files per cycle:",
     "files_max_per_cycle_unit": "files",
     "files_blacklist": "Exclude paths containing (comma-separated, supports wildcards):",
-    "map_title": "Permanent Memory \u2014 {total} entries, {tags} tags",
+    "files_extensions": "Valid extensions (comma-separated, empty = all):",
+    "map_title": "Permanent Memory — {total} entries, {tags} tags",
     "map_subtitle": "Click a tag to see details",
     "map_tooltip": "<b>{tag}</b><br>{count} entries &middot; avg rel {rel}",
     "map_sidebar": "Tags",
@@ -877,7 +880,11 @@
     },
     "write_file": {
       "name": "Write file",
-      "desc": "Writes files to storage"
+      "desc": "Writes file to storage"
+    },
+    "html_to_pdf": {
+      "name": "Create PDF",
+      "desc": "Creates a PDF from HTML content"
     },
     "interact": {
       "name": "Interact",
@@ -956,5 +963,32 @@
       "desc": "System idle time"
     }
   },
-  "mcp_down_tooltip": "MCP server unavailable"
+  "mcp_down_tooltip": "MCP server unavailable",
+  "plugins": {
+    "title": "Plugin Manager",
+    "refresh": "Refresh",
+    "enable": "Enable",
+    "disabled": "Disabled",
+    "start": "Start",
+    "stop": "Stop",
+    "disable": "Disable",
+    "running": "Running",
+    "stopped": "Stopped",
+    "starting": "Starting...",
+    "blocked": "Blocked",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "subtitle": "Plugins are loaded on next startup. Changes are immediate."
+  },
+  "notification_types": {
+    "rss": "RSS",
+    "mail": "Email",
+    "event": "Events",
+    "schedule": "Schedules",
+    "timer": "Timers",
+    "agent": "Agent",
+    "auth": "System",
+    "other": "Other"
+  }
 }

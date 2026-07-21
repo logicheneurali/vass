@@ -29,16 +29,19 @@ def _setup_mcp_log():
 
 
 class McpServerThread(threading.Thread):
-    def __init__(self, mcp_port=9988, allow_scripts=False):
+    def __init__(self, mcp_port=9988, allow_scripts=False, debug=False):
         super().__init__(daemon=True, name="mcp-server")
         self._port = mcp_port
         self._allow_scripts = allow_scripts
+        self._debug = debug
 
     def run(self):
         _setup_mcp_log()
         _mcp_src = str(Path(__file__).resolve().parent.parent / "mcp_server" / "src")
         if _mcp_src not in sys.path:
             sys.path.insert(0, _mcp_src)
+        if self._debug:
+            os.environ["VASS_DEBUG"] = "1"
         try:
             from mcpgoal.config import load_config
             from mcpgoal.server import create_server

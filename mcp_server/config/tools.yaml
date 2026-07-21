@@ -153,3 +153,10 @@ tools:
     - ::1
     - localhost
     blacklist: []
+
+  html_to_pdf:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []

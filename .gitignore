@@ -128,3 +128,4 @@ tests/
 website/
 .scripts/
 genvideo/
+plugins/internal/proactive_agent/log.txt

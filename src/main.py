@@ -2,17 +2,12 @@ import json
 import subprocess
 import time
 import threading
-from collections import deque
 import re
 import datetime
 import warnings
 warnings.filterwarnings("ignore", message=".*dropout option.*")
 warnings.filterwarnings("ignore", message=".*num_layers.*")
 warnings.filterwarnings("ignore", message=".*weight_norm.*deprecated.*")
-try:
-    import winsound
-except ImportError:
-    pass
 import os
 import sys
 
@@ -56,7 +51,7 @@ from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, is_process_running, kill_port, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts, log_exc
+from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts, log_exc
 from gui import VassGUI
 from i18n import t
 from script_engine import VASScript
@@ -109,8 +104,8 @@ def _load_version():
     except Exception:
         return "0.0.0"
 
-from prompts import (MCP_PROMPT, VASSCRIPT_TOOLS_PROMPT, MEMORY_SUMMARIZATION_PROMPT,
-                     _STOPWORDS, _compress_heuristic, _load_vascript_reference,
+from prompts import (MCP_PROMPT, VASSCRIPT_TOOLS_PROMPT,
+                     _compress_heuristic, _load_vascript_reference,
                      append_tool_descriptions)
 
 __version__ = _load_version()
@@ -156,6 +151,7 @@ class VassApp:
         self.state_manager = StateManager(self)
         self._ai_lock = threading.Lock()
         self.settings_file = settings_file
+        self.app_version = __version__
         self.settings = self._load_settings()
         inp = int(self.settings.get("input_device", -1))
         inp_name = self.settings.get("input_device_name", "")
@@ -174,7 +170,6 @@ class VassApp:
         self.allow_ai_scripts = self.settings.get("allow_ai_scripts", False)
         self.context_length = self.settings.get("context_length", 0)
         self._tokenizer = None
-        self._summary_cache = {}
         self.debug_enabled = self.settings.get("debug_enabled", False)
         self.overflow_strategy = self.settings.get("overflow_strategy", "truncate")
         self.compress_context = self.settings.get("compress_context", "false").lower() == "true"
@@ -210,13 +205,8 @@ class VassApp:
         self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
         self.llama_process = None
 
-        self.noise_pause = self.settings.get("noise_pause", False)
-        self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
-        self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
-        self._noise_high_since = None  # timestamp when noise first exceeded threshold
-        self._nf_print_counter = 0
+
         self._silent_frames = 0
-        self._running_noise_floor = None
         self._memory_cache = None
 
         # Audio diagnostics for wake-word issues
@@ -272,8 +262,6 @@ class VassApp:
         self.timer_manager = TimerManager(self)
         from notification_manager import NotificationManager
         self.notification_manager = NotificationManager()
-        from rss_reader import RssReader
-        self.rss_reader = None
         self.context_notes = []
         self.conversation_history = []
         from memory_manager import MemoryManager
@@ -284,25 +272,7 @@ class VassApp:
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "transcription"
         self.memory_mode = "full"
         self._input_mode = False
-        self._start_rss()
 
-    def _start_rss(self):
-        try:
-            feeds_path = os.path.join(get_project_root(), "Allowed_root", "rss_feeds.json")
-            cache_path = os.path.join(get_project_root(), "Allowed_root", "rss_cache.json")
-            from rss_reader import RssReader
-            self.rss_reader = RssReader(feeds_path, cache_path, notification_manager=self.notification_manager)
-            self.rss_reader.start_polling()
-            print("[RSS] Polling started")
-        except Exception as e:
-            print(f"[RSS] Failed to start: {e}")
-
-
-    def _get_tokenizer(self):
-        return self.memory._get_tokenizer()
-
-    def _count_tokens(self, text):
-        return self.memory.count_tokens(text)
 
     def set_mode(self, mode):
         self.mode = mode
@@ -338,20 +308,16 @@ class VassApp:
     def state(self):
         return self.state_manager.state
 
-    def set_state(self, new_state, detail="", silent_gui=False):
+    def set_state(self, new_state, detail="", silent_gui=False, source=""):
         """Backward-compatible state setter. Delegates to StateManager.
 
         StateManager handles redirecting 'listening' back to 'paused' when a
         pause flag is still active, so operations that complete while paused
         automatically return to the paused state.
         """
-        if self.state == "playing" and new_state != "playing":
-            with self._state_vars_lock:
-                self._noise_high_since = None
-                self._running_noise_floor = None
         if self.state in ("paused", "loading") and new_state == "listening":
             self.noise_filter.reset_calibration()
-        if self.state == "waiting" and new_state != "waiting" and hasattr(self, 'tts'):
+        if self.state in ("waiting", "waiting_resources") and new_state not in ("waiting", "waiting_resources") and hasattr(self, 'tts'):
             self.tts._flush_deferred()
         self.state_manager.set_state(new_state, detail, silent_gui)
 
@@ -359,6 +325,10 @@ class VassApp:
         """Pure GUI update. Called by StateManager after internal state is set."""
         if not silent_gui:
             try:
+                if hasattr(self, '_plugin_server'):
+                    self._plugin_server.broadcast("state", {
+                        "state": new_state, "prev": self.state, "source": "",
+                    })
                 self.gui.set_state(new_state, detail)
             except Exception as e:
                 with open("log/crash.log", "a") as f:
@@ -391,9 +361,6 @@ class VassApp:
                 self.audio_handler.recorded_buffer.clear()
                 self.state_manager.set_manual_paused()
             elif current == "paused":
-                with self._state_vars_lock:
-                    self._noise_high_since = None
-                    self._running_noise_floor = None
                 self.voice_recognition.reset_noise_floor()
                 self.voice_recognition.reset_model()
                 self.state_manager.resume_listening(force=True)
@@ -480,15 +447,6 @@ class VassApp:
                         self.app_volume = self.settings.get("app_volume", 1.0)
                         self.tts.update_settings(self.app_volume)
                         self.gui.volume_top_bar.set_volume(self.app_volume)
-                        self.noise_pause = self.settings.get("noise_pause", False)
-                        self.noise_pause_threshold = self.settings.get("noise_pause_threshold", 0.002)
-                        self.noise_pause_duration = self.settings.get("noise_pause_duration", 30)
-                        if not self.noise_pause and self.state_manager.is_auto_paused():
-                            with self._state_vars_lock:
-                                self._noise_high_since = None
-                                self._running_noise_floor = None
-                            self.state_manager.exit_auto_pause()
-                            print("[Noise] Auto-pause disabled via settings, resuming")
                         self.gui_x = self.settings["gui_x"]
                         self.gui_y = self.settings["gui_y"]
                         self.gui_width = self.settings["gui_width"]
@@ -507,8 +465,6 @@ class VassApp:
                             self.audio_handler.input_device = None if new_inp < 0 else new_inp
                             if was_streaming:
                                 self.audio_handler.start_stream()
-                            with self._state_vars_lock:
-                                self._running_noise_floor = None
                             self.voice_recognition.reset_noise_floor()
                             print(f"[Watch] Input device changed to: {new_inp}")
                         new_out = int(self.settings.get("output_device", -1))
@@ -591,6 +547,11 @@ class VassApp:
             from memory_files_scanner import FileScanner
             self._file_scanner = FileScanner(self.memory._files_config, self.memory)
             threading.Thread(target=self._file_scanner.run, daemon=True).start()
+
+        from plugin_server import PluginServer
+        self._plugin_server = PluginServer(self, port=8765)
+        self._plugin_server.start()
+
         self.gui.set_mode_display(self.mode)
         self.gui.update_memory_bar()
 
@@ -608,12 +569,11 @@ class VassApp:
                 raw_rms = float(np.sqrt(np.mean(frame**2))) if frame is not None else 0.0
                 if frame is not None and self.noise_filter:
                     frame = self.noise_filter.process(frame, raw_rms=raw_rms)
-                is_auto_paused = self.state_manager.is_auto_paused()
                 is_manual_paused = self.state_manager.is_manual_paused()
                 with self._state_vars_lock:
                     if frame is None:
                         self._silent_frames += 1
-                        if self._silent_frames > 300 and not is_auto_paused and not is_manual_paused:
+                        if self._silent_frames > 300 and self.state != "paused" and not is_manual_paused:
                             with self.state_lock:
                                 cs = self.state
                             if cs == "listening":
@@ -625,42 +585,6 @@ class VassApp:
                     else:
                         self._silent_frames = 0
 
-                if is_auto_paused:
-                    auto_paused_at = self.state_manager.get_auto_paused_at()
-                    elapsed = time.time() - auto_paused_at
-                    if elapsed >= self.noise_pause_duration:
-                        print(f"[Noise] Checking noise floor after {self.noise_pause_duration}s pause...")
-                        if self.audio_handler.stream is None:
-                            self.audio_handler.start_stream()
-                        # Non-blocking noise check: sample up to 20 frames or 0.5s
-                        nf_samples = []
-                        deadline = time.time() + 0.5
-                        while len(nf_samples) < 20 and time.time() < deadline:
-                            f = self.audio_handler.get_frame()
-                            if f is not None:
-                                nf_samples.append(float(np.sqrt(np.mean(f**2))))
-                            else:
-                                time.sleep(0.01)
-                        if nf_samples:
-                            current_nf = sum(nf_samples) / len(nf_samples)
-                            adaptive_threshold = max(self.noise_pause_threshold,
-                                                     self.voice_recognition.noise_floor * 2.0)
-                            print(f"[Noise] Current noise floor: {current_nf:.6f} (adaptive threshold: {adaptive_threshold:.6f})")
-                            if current_nf < adaptive_threshold:
-                                print(f"[Noise] Auto-resuming: noise floor dropped below threshold")
-                                with self._state_vars_lock:
-                                    self._noise_high_since = None
-                                    self._running_noise_floor = None
-                                self.voice_recognition.reset_noise_floor()
-                                self.state_manager.exit_auto_pause()
-                                continue
-                            else:
-                                print(f"[Noise] Still noisy, staying paused for another {self.noise_pause_duration}s")
-                                self.state_manager.extend_auto_pause()
-                        else:
-                            print(f"[Noise] Check: no audio samples captured, staying paused")
-                            self.state_manager.extend_auto_pause()
-
                 if frame is not None:
                     # Accumulate audio diagnostics
                     frame_energy = float(np.sqrt(np.mean(frame**2)))
@@ -669,6 +593,18 @@ class VassApp:
                     self._audio_stats_energy_max = max(self._audio_stats_energy_max, frame_energy)
                     self._audio_stats_energy_min = min(self._audio_stats_energy_min, frame_energy)
                     self._audio_stats_count += 1
+
+                    # ── Plugin broadcast (before should_skip so plugins always receive data) ──
+                    if hasattr(self, '_plugin_server') and raw_frame is not None:
+                        try:
+                            nf = self.voice_recognition.noise_floor
+                        except Exception:
+                            nf = 0.0
+                        self._plugin_server.broadcast("audio", {
+                            "rms": raw_rms, "noise_floor": nf,
+                            "auto_paused": self.state == "paused",
+                            "listening": self.state == "listening",
+                        })
 
                     # Read state fresh under lock and decide whether to process this frame.
                     with self.state_lock:
@@ -694,10 +630,6 @@ class VassApp:
                             print(f"[WakeWord] detect_wake_word error: {ex}")
                             wake = False
                         if wake and current_state == "listening":
-                            with self._state_vars_lock:
-                                self._noise_high_since = None
-                                self._nf_print_counter = 0
-                                self._running_noise_floor = None
                             print("Wake word detected! Switching to recording mode...")
                             try:
                                 beep(self.app_volume)
@@ -710,44 +642,6 @@ class VassApp:
                             self.voice_recognition.reset_model()
                             self.state_manager.set_state("recording")
                             continue
-
-                        if not wake and current_state == "listening":
-                            with self._state_vars_lock:
-                                nf = float(np.sqrt(np.mean(frame**2)))
-                                adaptive_threshold = max(self.noise_pause_threshold,
-                                                         self.voice_recognition.noise_floor * 2.0)
-                                if self._running_noise_floor is None:
-                                    self._running_noise_floor = nf
-                                else:
-                                    self._running_noise_floor = 0.99 * self._running_noise_floor + 0.01 * nf
-                                nf = self._running_noise_floor
-                                self._nf_print_counter += 1
-
-                                # Track continuous high-noise duration using real time.
-                                # The main loop may be blocked by Whisper wake-word transcription,
-                                # so a frame counter is unreliable; elapsed time is robust.
-                                if self.noise_pause and nf > adaptive_threshold:
-                                    if self._noise_high_since is None:
-                                        self._noise_high_since = time.time()
-                                    elapsed_noisy = time.time() - self._noise_high_since
-                                    if elapsed_noisy >= self.noise_pause_duration:
-                                        print(f"[Noise] Auto-pausing: noise floor {nf:.4f} > {adaptive_threshold:.4f} for {self.noise_pause_duration}s")
-                                        self.state_manager.set_auto_paused()
-                                        self._noise_high_since = None
-                                else:
-                                    self._noise_high_since = None
-                                    self.noise_filter.maybe_update_profile(
-                                        frame, is_silence=True, now=time.time())
-
-                                # GUI update every 50 frames (~1s)
-                                if self._nf_print_counter % 50 == 0:
-                                    gain = self.voice_recognition.input_volume
-                                    nf_raw = min(1.0, nf * 50)  # normalize 0-0.02 range to 0-1
-                                    self.gui.noise_floor_signal.emit(gain, nf_raw)
-                                if self._nf_print_counter >= 250:
-                                    self._nf_print_counter = 0
-                                    if nf > adaptive_threshold and self.debug_enabled:
-                                        print(f"[NoiseFloor] {nf:.6f} (adaptive threshold: {adaptive_threshold:.6f})")
 
                     self.audio_handler.process_recording(frame, vad_frame=raw_frame)
 
@@ -801,7 +695,10 @@ class VassApp:
 
     def _start_mcp_server(self):
         from mcp_server import McpServerThread
-        self._mcp_thread = McpServerThread(allow_scripts=self.allow_ai_scripts)
+        self._mcp_thread = McpServerThread(
+            allow_scripts=self.allow_ai_scripts,
+            debug=getattr(self, 'debug_enabled', False),
+        )
         self._mcp_thread.start()
         time.sleep(2)
 
@@ -1003,8 +900,6 @@ class VassApp:
             print("[llama.cpp] Server did not become ready within 60s")
 
     def stop(self):
-        if self.rss_reader:
-            self.rss_reader.stop_polling()
         self.running = False
         try:
             _faulthandler_file.close()
@@ -1014,7 +909,6 @@ class VassApp:
         if _debug_log_file is not None:
             _debug_log_file.close()
             _debug_log_file = None
-        import subprocess as _sp
         if self.llama_process:
             kill_process(self.llama_process)
             self.llama_process = None
@@ -1040,9 +934,6 @@ class VassApp:
             except Exception:
                 log_exc()
         return len(text) // 2
-
-    def _estimate_tokens(self, text):
-        return self._count_tokens(text)
 
     def _estimate_system_overhead(self):
         overhead = self._count_tokens(self.system_message or "") + 50
@@ -1315,7 +1206,7 @@ class VassApp:
     def _process_delayed_command(self, text):
         if self.debug_enabled:
             print(f"[Delayed] _process_delayed_command: start text='{text}' state={self.state}")
-        from utils import get_project_root, is_script_command, strip_script_prefix
+        from utils import is_script_command, strip_script_prefix
         cmd, vars = self.command_executor.find_matching_command(text)
         if self.debug_enabled:
             print(f"[Delayed] _process_delayed_command: matched='{cmd}' is_script={is_script_command(cmd) if cmd else False} state={self.state}")

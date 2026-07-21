@@ -1,0 +1,17 @@
+{
+  "port": 8765,
+  "plugins": {
+    "noise_auto_pause": {
+      "enabled": true
+    },
+    "proactive_agent": {
+      "enabled": true
+    },
+    "user_profile": {
+      "enabled": true
+    },
+    "rss_reader": {
+      "enabled": true
+    }
+  }
+}

@@ -4,5 +4,5 @@
   "events": true,
   "timers": true,
   "files": true,
-  "max_external_entries": 20
+  "max_external_entries": 10
 }

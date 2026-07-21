@@ -80,9 +80,6 @@ def load_settings(settings_file):
         result["vram_max"] = config.getfloat("resources", "vram_max", fallback=99.0)
         result["resource_timeout"] = config.getint("resources", "resource_timeout", fallback=10)
         result["reminder_advance"] = config.getint("events", "reminder_advance", fallback=3600)
-        result["noise_pause"] = config.get("noise", "noise_pause", fallback="false").lower() == "true"
-        result["noise_pause_threshold"] = config.getfloat("noise", "noise_pause_threshold", fallback=0.002)
-        result["noise_pause_duration"] = config.getint("noise", "noise_pause_duration", fallback=30)
         result["input_device"] = config.getint("audio", "input_device", fallback=-1)
         result["output_device"] = config.getint("audio", "output_device", fallback=-1)
         result["input_device_name"] = config.get("audio", "input_device_name", fallback="")
@@ -151,9 +148,6 @@ def load_settings(settings_file):
         result["vram_max"] = 99.0
         result["resource_timeout"] = 10
         result["reminder_advance"] = 3600
-        result["noise_pause"] = False
-        result["noise_pause_threshold"] = 0.002
-        result["noise_pause_duration"] = 30
         result["input_device"] = -1
         result["output_device"] = -1
         result["input_device_name"] = ""
@@ -203,11 +197,6 @@ def load_settings(settings_file):
         }
         config["resources"] = {"cpu_max": "75", "ram_max": "99", "gpu_max": "75", "vram_max": "99", "resource_timeout": "10"}
         config["events"] = {"reminder_advance": "3600"}
-        config["noise"] = {
-            "noise_pause": "false",
-            "noise_pause_threshold": "0.002",
-            "noise_pause_duration": "30"
-        }
         config["audio"] = {"input_device": "-1", "output_device": "-1", "input_device_name": "", "output_device_name": "", "input_volume": "1.0", "app_volume": "1.0"}
         config["google"] = {
             "calendar_enabled": "false",

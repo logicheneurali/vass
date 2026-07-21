@@ -19,7 +19,7 @@ STANDALONE_GROUPS = {"compute", "time", "lang"}
 TOOL_GROUPS = {
     "web":       ["browse", "webfetch", "websearch"],
     "calendar":  ["calendar_add", "calendar_list", "calendar_search"],
-    "files":     ["read_file", "write_file", "readinfo", "writeinfo"],
+    "files":     ["read_file", "write_file", "readinfo", "writeinfo", "html_to_pdf"],
     "events":    ["addevent", "delevent", "listevents", "nextevent", "find_free_slot"],
     "clipboard": ["clipboardget", "clipboardset"],
     "time":      ["current_time", "to_timestamp"],
@@ -45,7 +45,8 @@ def _default_keywords():
                        "riunione", "scadenza", "promemoria"},
         "files":     {"file", "salva", "scrivi", "leggi", "documento",
                        "archivia", "registra", "appunto", "nota", "testo",
-                       "backup", "cartella", "export", "import", "salvataggio"},
+                       "backup", "cartella", "export", "import", "salvataggio",
+                       "pdf", "html", "stampa", "crea documento"},
         "events":    {"evento", "eventi", "promemoria", "sveglia", "notifica",
                        "programma", "avviso", "alert", "reminder", "scadenza",
                        "timer", "appuntamento", "orario", "data", "pianifica",

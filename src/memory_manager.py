@@ -36,7 +36,8 @@ class MemoryManager:
             with open(path, encoding="utf-8") as f:
                 self._files_config = json.load(f)
         except Exception:
-            self._files_config = {"folders": [], "interval_minutes": 60, "max_file_size_kb": 500}
+            self._files_config = {"folders": [], "interval_minutes": 60, "max_file_size_kb": 500,
+                                   "valid_extensions": ".txt,.md,.py,.json,.csv,.html,.log,.vass,.pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.odt,.ods,.rtf"}
 
     def is_source_enabled(self, source):
         return self._memory_sources.get(source, False)

@@ -61,6 +61,10 @@ class FileScanner:
         updated = False
         queued = 0
 
+        # Compute VASS project root to skip it
+        vass_root = os.path.normpath(os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
         # Check queue size to avoid overloading
         if len(self._memory._pending_classify) >= 80:
             return
@@ -73,7 +77,11 @@ class FileScanner:
                     if queued >= max_per_cycle:
                         break
                     fpath = os.path.join(root, fname)
+                    if os.path.normpath(fpath).startswith(vass_root):
+                        continue
                     if self._is_blacklisted(fpath):
+                        continue
+                    if not self._is_valid_extension(fpath):
                         continue
                     try:
                         stat = os.stat(fpath)
@@ -147,6 +155,15 @@ class FileScanner:
 
     def stop(self):
         self._running = False
+
+    def _is_valid_extension(self, fpath):
+        """Check if file extension is in the allowed list. Empty list = allow all."""
+        valid = self._config.get("valid_extensions", "")
+        if not valid or not valid.strip():
+            return True
+        ext = os.path.splitext(fpath)[1].lower()
+        allowed = {e.strip().lower() for e in valid.split(",") if e.strip()}
+        return ext in allowed
 
     def _is_blacklisted(self, fpath):
         blacklist = self._config.get("path_blacklist", "")

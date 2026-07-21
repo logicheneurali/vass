@@ -167,7 +167,7 @@ class FilesFoldersDialog(QDialog):
         super().__init__(parent)
         self.lang = lang
         self.setWindowTitle(_t("memory_editor.files_folders_title", lang))
-        self.setFixedSize(450, 480)
+        self.setFixedSize(450, 540)
         self.setStyleSheet(f"QDialog {{ background-color: {BG}; }}")
 
         layout = QVBoxLayout(self)
@@ -179,7 +179,8 @@ class FilesFoldersDialog(QDialog):
             with open(config_path, encoding="utf-8") as f:
                 self._config = json.load(f)
         except Exception:
-            self._config = {"folders": [], "interval_minutes": 60, "max_file_size_kb": 500}
+            self._config = {"folders": [], "interval_minutes": 60, "max_file_size_kb": 500,
+                            "valid_extensions": ".txt,.md,.py,.json,.csv,.html,.log,.vass,.pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.odt,.ods,.rtf"}
 
         layout.addWidget(QLabel(_t("memory_editor.files_folders_label", lang)))
         self._folder_list = QListWidget()
@@ -232,6 +233,12 @@ class FilesFoldersDialog(QDialog):
         self._blacklist_edit.setPlaceholderText("site-packages, node_modules, .git")
         layout.addWidget(self._blacklist_edit)
 
+        layout.addWidget(QLabel(_t("memory_editor.files_extensions", lang)))
+        self._extensions_edit = QLineEdit()
+        self._extensions_edit.setText(self._config.get("valid_extensions", ".txt,.md,.py,.json,.csv,.html,.log,.vass,.pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.odt,.ods,.rtf"))
+        self._extensions_edit.setPlaceholderText(".txt,.md,.py,.json,.csv,.html,.log,.vass,.pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.odt,.ods,.rtf")
+        layout.addWidget(self._extensions_edit)
+
         layout.addStretch()
         act_row = QHBoxLayout()
         cancel_btn = QPushButton(_t("memory_editor.dialog_cancel", lang))
@@ -260,6 +267,7 @@ class FilesFoldersDialog(QDialog):
         self._config["max_file_size_kb"] = self._size_spin.value()
         self._config["max_files_per_cycle"] = self._count_spin.value()
         self._config["path_blacklist"] = self._blacklist_edit.text().strip()
+        self._config["valid_extensions"] = self._extensions_edit.text().strip()
         config_path = os.path.join(ALLOWED, "memory_files_config.json")
         os.makedirs(ALLOWED, exist_ok=True)
         with open(config_path, "w", encoding="utf-8") as f:

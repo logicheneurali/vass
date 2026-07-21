@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import re
 import shlex
 import subprocess
@@ -380,9 +381,10 @@ class VASScript:
 
         if name == "ai":
             prompt = evaluated[0] if evaluated else ""
-            use_memory = len(evaluated) > 1 and evaluated[1].strip().lower() in ("true", "1", "yes", "memory")
+            explicit_memory = len(evaluated) > 1
+            use_memory = explicit_memory and evaluated[1].strip().lower() in ("true", "1", "yes", "memory")
 
-            if not use_memory and getattr(self.app, 'auto_context_selection', False):
+            if not explicit_memory and getattr(self.app, 'auto_context_selection', False):
                 import tool_groups
                 use_memory = tool_groups.needs_memory(prompt, self.app.language)
                 if getattr(self.app, 'debug_enabled', False):
@@ -602,7 +604,7 @@ class VASScript:
                     stderr = result.stderr.strip()
                     if stderr:
                         output = (output + "\n" + stderr).strip()
-                return output or f"exit code: {result.returncode}"
+                return output or ("ok" if result.returncode == 0 else f"error: exit code {result.returncode}")
             except Exception as e:
                 return f"error: {e}"
 
@@ -1173,20 +1175,7 @@ class VASScript:
                 return f"error: {e}"
 
         if name == "rss_fetch":
-            feed_name = evaluated[0] if evaluated else ""
-            if not self.app.rss_reader:
-                return "error: RSS reader not initialized"
-            feed_id = None
-            if feed_name:
-                feeds = self.app.rss_reader.get_feeds()
-                for f in feeds:
-                    if f.get("name", "").lower() == feed_name.lower():
-                        feed_id = f.get("id")
-                        break
-                if not feed_id:
-                    return f"error: feed '{feed_name}' not found"
-            items = self.app.rss_reader.fetch_now(feed_id)
-            return json.dumps(items, ensure_ascii=False)
+            return "error: rss_fetch is deprecated — RSS polling is now handled by the rss_reader plugin"
 
         raise ValueError(f"unknown function: {name}()")
 

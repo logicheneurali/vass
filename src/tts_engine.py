@@ -78,7 +78,7 @@ class TtsEngine:
 
     def enqueue(self, text, speed=0.9, on_done=None, defer_if_busy=False):
         text = strip_markdown(str(text))
-        if defer_if_busy and self._get_state() == "waiting":
+        if defer_if_busy and self._get_state() in ("waiting", "waiting_resources"):
             with self._deferred_lock:
                 self._deferred_queue.append((text, speed, on_done))
             self._log(f"enqueue: DEFERRED (AI busy) text='{text[:60]}' deferred={len(self._deferred_queue)}")

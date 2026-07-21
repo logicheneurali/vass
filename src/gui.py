@@ -2,21 +2,17 @@ import os
 import subprocess
 import sys
 import time
-from utils import get_project_root, get_path
+from utils import get_project_root
 
 from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal, QPoint
-from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
-    QLineEdit, QSpacerItem, QSizePolicy, QWidgetAction, QDialog,
-    QTextBrowser, QFrame, QScrollArea,
+    QLineEdit, QSpacerItem, QSizePolicy, QDialog,
+    QFrame, QScrollArea, QSlider, QCheckBox, QComboBox,
 )
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineProfile
-from PySide6.QtCore import QUrl
-
-from theme import BG, FG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, SECTION_FG, FRAME_BORDER, BASE_STYLESHEET, ENTRY_BG
+from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG
 
 BASE = get_project_root()
 SRC = os.path.join(BASE, "src")
@@ -236,122 +232,6 @@ class _ChatLineEdit(QLineEdit):
         super().keyPressEvent(event)
 
 
-class _RssRequestInterceptor(QWebEngineUrlRequestInterceptor):
-    def interceptRequest(self, info):
-        url = info.requestUrl().toString()
-        first_party = info.firstPartyUrl().toString()
-        if info.resourceType() == 0 and not first_party:
-            return
-        restype = info.resourceType()
-        if restype in (0, 1):
-            return
-        if first_party:
-            import urllib.parse
-            try:
-                dom1 = urllib.parse.urlparse(url).hostname
-                dom2 = urllib.parse.urlparse(first_party).hostname
-                if dom1 and dom2 and (dom1 == dom2 or dom1.endswith("." + dom2) or dom2.endswith("." + dom1)):
-                    return
-            except Exception:
-                pass
-        info.block(True)
-
-
-class HTMLViewer(QMainWindow):
-    def __init__(self, url="", parent=None):
-        super().__init__(parent)
-        self._url = url
-        self.setWindowTitle("HTML Viewer")
-        self.resize(800, 600)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.Window)
-        self.setStyleSheet(f"QMainWindow {{ background-color: {BG}; }}")
-
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        top_bar = QHBoxLayout()
-        top_bar.setContentsMargins(8, 4, 8, 4)
-        self._back_btn = QPushButton("<-")
-        self._back_btn.setFixedWidth(36)
-        self._back_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 4px 8px;")
-        self._back_btn.clicked.connect(self._go_back)
-        top_bar.addWidget(self._back_btn)
-
-        self._fwd_btn = QPushButton("->")
-        self._fwd_btn.setFixedWidth(36)
-        self._fwd_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 4px 8px;")
-        self._fwd_btn.clicked.connect(self._go_forward)
-        top_bar.addWidget(self._fwd_btn)
-
-        self._title_lbl = QLabel("")
-        self._title_lbl.setStyleSheet(f"color: {LABEL_FG}; margin-left: 6px;")
-        top_bar.addWidget(self._title_lbl, 1)
-
-        open_btn = QPushButton("Apri nel browser")
-        open_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG}; border: none; border-radius: 3px; padding: 4px 10px;")
-        open_btn.clicked.connect(self._open_external)
-        top_bar.addWidget(open_btn)
-
-        close_btn = QPushButton("x")
-        close_btn.setFixedWidth(30)
-        close_btn.setStyleSheet(f"background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG}; border: none; border-radius: 3px; padding: 4px 8px;")
-        close_btn.clicked.connect(self.close)
-        top_bar.addWidget(close_btn)
-
-        top_widget = QWidget()
-        top_widget.setLayout(top_bar)
-        top_widget.setStyleSheet(f"background-color: #252525;")
-        layout.addWidget(top_widget)
-
-        self._web = QWebEngineView()
-        profile = self._web.page().profile()
-        self._interceptor = _RssRequestInterceptor()
-        profile.setUrlRequestInterceptor(self._interceptor)
-        self._web.loadFinished.connect(self._on_load_finished)
-        layout.addWidget(self._web)
-
-        if url:
-            self._web.load(QUrl(url))
-
-    def load(self, url):
-        self._url = url
-        self._web.load(QUrl(url))
-
-    def _go_back(self):
-        self._web.back()
-
-    def _go_forward(self):
-        self._web.forward()
-
-    def _open_external(self):
-        import webbrowser
-        current = self._web.url().toString()
-        if current:
-            webbrowser.open(current)
-
-    def _on_load_finished(self, ok):
-        if not ok:
-            return
-        css = """
-        (function(){
-            var meta = document.createElement('meta');
-            meta.name = 'color-scheme';
-            meta.content = 'dark';
-            document.head.appendChild(meta);
-            var style = document.createElement('style');
-            style.textContent =
-                'body { background-color: #1e1e1e !important; color: #e0e0e0 !important; }' +
-                'a { color: #4ec9b0 !important; }' +
-                'img { max-width: 100% !important; }';
-            document.head.appendChild(style);
-        })();
-        """
-        self._web.page().runJavaScript(css)
-
-
 class _CompactWidget(QWidget):
     """Custom widget disegnato con QPainter: 3 cerchi concentrici + icona centrale."""
     def __init__(self, parent=None):
@@ -516,12 +396,12 @@ class _CompactWidget(QWidget):
 
 
 class InfoPanel(QFrame):
-    """Floating panel: tab Links (AI response URLs) + tab Notifications."""
+    """Floating panel: dynamic tabs for notifications by type, AI links, AI responses."""
 
     _TYPE_ICONS = {
         "rss": "\U0001f4f0", "timer": "\u23f0", "event": "\U0001f4c5",
         "schedule": "\U0001f4cb", "mail": "\U0001f4e7", "auth": "\U0001f511",
-        "script": "\U0001f4dc",
+        "script": "\U0001f4dc", "agent": "\U0001f916",
     }
 
     def __init__(self, parent=None):
@@ -539,8 +419,9 @@ class InfoPanel(QFrame):
         )
         self._links = []
         self._ai_responses = []
-        self._tab = "links"
+        self._tab = "all"
         self._expanded = False
+        self._user_opened = False
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self.hide)
@@ -550,21 +431,22 @@ class InfoPanel(QFrame):
         self._layout.setContentsMargins(4, 4, 4, 4)
         self._layout.setSpacing(2)
 
-        tab_row = QHBoxLayout()
-        self._tab_links = QPushButton(self._t("gui.links"))
-        self._tab_ai = QPushButton(self._t("gui.ai_responses"))
-        self._tab_notif = QPushButton(self._t("gui.notifications"))
-        for btn, tab in [(self._tab_links, "links"), (self._tab_ai, "ai"), (self._tab_notif, "notifications")]:
-            btn.setCheckable(True)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.clicked.connect(lambda checked=None, t=tab: self._switch_tab(t))
-        self._tab_links.setStyleSheet(self._tab_style(True))
-        self._tab_ai.setStyleSheet(self._tab_style(False))
-        self._tab_notif.setStyleSheet(self._tab_style(False))
-        tab_row.addWidget(self._tab_links)
-        tab_row.addWidget(self._tab_ai)
-        tab_row.addWidget(self._tab_notif)
-        tab_row.addStretch()
+        self._tab_row = QHBoxLayout()
+        self._tab_row.setSpacing(2)
+        self._tab_buttons = {}
+
+        self._overflow_menu = QMenu()
+        self._overflow_btn = QPushButton("+")
+        self._overflow_btn.setFixedSize(20, 20)
+        self._overflow_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #888; border: none; "
+            "font-size: 14px; font-weight: bold; }"
+            "QPushButton:hover { color: #e0e0e0; }")
+        self._overflow_btn.setMenu(self._overflow_menu)
+        self._overflow_btn.hide()
+        self._tab_row.addWidget(self._overflow_btn)
+
+        self._tab_row.addStretch()
         self._expand_btn = QPushButton("\u2194")
         self._expand_btn.setFixedSize(20, 20)
         self._expand_btn.setStyleSheet(
@@ -574,7 +456,7 @@ class InfoPanel(QFrame):
         )
         self._expand_btn.setToolTip("Expand")
         self._expand_btn.clicked.connect(self._toggle_expand)
-        tab_row.addWidget(self._expand_btn)
+        self._tab_row.addWidget(self._expand_btn)
         close_btn = QPushButton("x")
         close_btn.setFixedSize(20, 20)
         close_btn.setStyleSheet(
@@ -582,9 +464,9 @@ class InfoPanel(QFrame):
             "font-size: 14px; font-weight: bold; }"
             "QPushButton:hover { color: #e94560; }"
         )
-        close_btn.clicked.connect(self.hide)
-        tab_row.addWidget(close_btn)
-        self._layout.addLayout(tab_row)
+        close_btn.clicked.connect(self._close_panel)
+        self._tab_row.addWidget(close_btn)
+        self._layout.addLayout(self._tab_row)
 
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
@@ -615,26 +497,92 @@ class InfoPanel(QFrame):
         c = "#e94560" if active else "#888"
         return (
             f"QPushButton {{ background: transparent; color: {c}; border: none; "
-            f"font-size: 12px; font-weight: bold; padding: 2px 8px; }}"
+            f"font-size: 11px; font-weight: bold; padding: 2px 6px; }}"
             f"QPushButton:hover {{ color: #e94560; }}"
         )
 
+    def _build_toolbar(self, active_tab):
+        self._overflow_menu.clear()
+
+        # Remove old tab buttons but keep stretch, expand, close
+        for btn in list(self._tab_buttons.values()):
+            self._tab_row.removeWidget(btn)
+            btn.deleteLater()
+        self._tab_buttons.clear()
+
+        self._overflow_menu.clear()
+        self._overflow_btn.hide()
+
+        # Compute notification type counts (unread)
+        type_counts = {}
+        if hasattr(self, '_nm') and self._nm:
+            for n in self._nm.list_all():
+                t = n.get("data", {}).get("type", "other") or "other"
+                type_counts[t] = type_counts.get(t, 0) + (0 if n.get("read") else 1)
+
+        # Build ordered list: all first, then special tabs, then type tabs by unread count
+        ordered = [("all", "all", self._t("gui.all_notifications"))]
+
+        if self._links:
+            ordered.append(("links", "links", self._t("gui.links")))
+        if self._ai_responses:
+            ordered.append(("ai", "ai", self._t("gui.ai_responses")))
+
+        for t in sorted(type_counts, key=lambda t: -type_counts[t]):
+            icon = self._TYPE_ICONS.get(t, "\U0001f514")
+            count = type_counts[t]
+            label = self._t(f"notification_types.{t}") if t != "other" else t
+            badge = f"({count})" if count > 0 else ""
+            ordered.append((t, t, f"{icon} {label} {badge}".strip()))
+
+        # Calculate available width based on parent window geometry
+        if self._parent_window:
+            geo = self._parent_window.geometry()
+            panel_w = int(geo.width() * (3.0 if self._expanded else 1.25))
+        else:
+            panel_w = 275
+        available = panel_w - 60  # expand + close + overflow + margins
+
+        for t_id, t_type, label in ordered:
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setToolTip(label)
+            btn.clicked.connect(lambda checked=None, tab=t_type: self._switch_tab(tab))
+            btn.setStyleSheet(self._tab_style(t_type == active_tab))
+            btn_w = btn.sizeHint().width() + 8
+
+            # Always add the first tab (ALL), rest only if they fit
+            if len(self._tab_buttons) == 0 or available - btn_w >= 0:
+                available -= btn_w
+                self._tab_buttons[t_id] = btn
+                # Insert at position 0 (leftmost, before overflow/stretch/expand/close)
+                self._tab_row.insertWidget(0, btn)
+            else:
+                self._overflow_btn.show()
+                action = self._overflow_menu.addAction(label)
+                action.triggered.connect(lambda checked=None, tab=t_type: self._switch_tab(tab))
+
     def _switch_tab(self, tab):
         self._tab = tab
-        self._tab_links.setStyleSheet(self._tab_style(tab == "links"))
-        self._tab_ai.setStyleSheet(self._tab_style(tab == "ai"))
-        self._tab_notif.setStyleSheet(self._tab_style(tab == "notifications"))
-        self._mark_btn.setVisible(tab == "notifications")
+        self._build_toolbar(tab)
+        self._mark_btn.setVisible(tab in ("all", "notifications", "other") or tab not in ("links", "ai"))
         if tab == "links":
             self._build_links()
         elif tab == "ai":
             self._build_ai_responses()
         else:
-            self._build_notifications()
+            filter_type = "all" if tab in ("all", "notifications") else tab
+            self._build_notifications(filter_type)
+        self._scroll.verticalScrollBar().setValue(0)
 
     def _reset_timer(self):
-        if self.isVisible():
+        if self.isVisible() and not self._user_opened:
             self._timer.start(30000)
+
+    def _close_panel(self):
+        self._user_opened = False
+        self.hide()
 
     def mouseMoveEvent(self, event):
         self._reset_timer()
@@ -644,44 +592,31 @@ class InfoPanel(QFrame):
         self._reset_timer()
         super().mousePressEvent(event)
 
-    def show_panel(self, tab, parent_window):
+    def show_panel(self, tab, parent_window, user_opened=False):
         self._parent_window = parent_window
-        self._tab_links.setText(self._t("gui.links"))
-        self._tab_ai.setText(self._t("gui.ai_responses"))
-        self._tab_notif.setText(self._t("gui.notifications"))
+        self._user_opened = user_opened
         self._mark_btn.setText(self._t("gui.mark_all_read"))
         self._switch_tab(tab)
         self._position(parent_window)
         self.show()
         self.raise_()
-        self._timer.start(30000)
+        if not user_opened:
+            self._timer.start(30000)
 
     def set_links(self, urls, parent_window):
         self._links = urls
         if not urls:
             return
         self._parent_window = parent_window
-        self._tab_links.setText(self._t("gui.links"))
-        self._tab_ai.setText(self._t("gui.ai_responses"))
-        self._tab_notif.setText(self._t("gui.notifications"))
-        self._mark_btn.setText(self._t("gui.mark_all_read"))
         self._switch_tab("links")
         self._position(parent_window)
         self.show()
         self.raise_()
         self._timer.start(30000)
 
-    def refresh_notifications(self, parent_window):
-        if self.isVisible() and self._tab == "notifications":
-            self._build_notifications()
-
     def set_ai_responses(self, responses, parent_window):
         self._ai_responses = responses
         self._parent_window = parent_window
-        self._tab_links.setText(self._t("gui.links"))
-        self._tab_ai.setText(self._t("gui.ai_responses"))
-        self._tab_notif.setText(self._t("gui.notifications"))
-        self._mark_btn.setText(self._t("gui.mark_all_read"))
         if self.isVisible() and self._tab == "ai":
             self._build_ai_responses()
         else:
@@ -721,11 +656,13 @@ class InfoPanel(QFrame):
             self._scroll_layout.addWidget(btn)
         self._scroll_layout.addStretch()
 
-    def _build_notifications(self):
+    def _build_notifications(self, filter_type="all"):
         self._clear_scroll()
         if not hasattr(self, '_nm') or self._nm is None:
             return
         notifs = self._nm.list_all()
+        if filter_type != "all":
+            notifs = [n for n in notifs if (n.get("data", {}).get("type") or "other") == filter_type]
         if not notifs:
             lbl = QLabel(self._t("gui.no_notifications"))
             lbl.setStyleSheet(f"color: #888; font-size: {self._fs(11)}px; padding: 8px;")
@@ -741,7 +678,7 @@ class InfoPanel(QFrame):
                 dot_color = "#f1c40f"
             else:
                 dot_color = "#3498db"
-            txt = n.get("text", "")[:200]
+            txt = n.get("text", "")[:800]
             # Top row: dot, icon, timestamp
             top_row = QHBoxLayout()
             dot_lbl = QLabel(dot)
@@ -785,7 +722,10 @@ class InfoPanel(QFrame):
                     break
             if hasattr(self, '_update_bell_cb'):
                 self._update_bell_cb()
-            self._build_notifications()
+            filter_type = "all" if self._tab in ("all", "notifications") else self._tab
+            scroll_val = self._scroll.verticalScrollBar().value()
+            self._build_notifications(filter_type)
+            self._scroll.verticalScrollBar().setValue(scroll_val)
         if link:
             import webbrowser
             webbrowser.open(link)
@@ -844,8 +784,15 @@ class InfoPanel(QFrame):
         )
         self._expand_btn.setToolTip("Reduce" if self._expanded else "Expand")
         self._switch_tab(self._tab)
+        self._update_tooltips()
         if self._parent_window:
             self._position(self._parent_window)
+
+    def _update_tooltips(self):
+        for i in range(self._scroll_layout.count()):
+            w = self._scroll_layout.itemAt(i).widget()
+            if isinstance(w, QWidget) and w.toolTip():
+                w.setToolTip(w.toolTip() if not self._expanded else "")
 
     def _position(self, parent):
         geo = parent.geometry()
@@ -918,13 +865,11 @@ class VassGUI(QMainWindow):
         from i18n import t
         self._t = lambda path: t(path, self.language)
         self._health_ok = True
-        self._mcp_down = False
         self._current_bg = "#101010"
         self._current_state = "listening"
         self._current_detail = ""
         self._current_mode = "chat"
         self._compact_mode = False
-        self._html_viewers = []
 
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
@@ -992,7 +937,7 @@ class VassGUI(QMainWindow):
         )
         self._bell_btn.setFixedWidth(35)
         self._bell_btn.setToolTip(self._t("gui.notifications"))
-        self._bell_btn.clicked.connect(lambda: self._show_info_panel("notifications"))
+        self._bell_btn.clicked.connect(lambda: self._show_info_panel("all"))
         row.addWidget(self._bell_btn)
         self._left_side.append(self._bell_btn)
 
@@ -1044,6 +989,7 @@ class VassGUI(QMainWindow):
         self._menu.addAction(self._t("gui.menu.memory_editor"), self.open_memory_editor)
         self._menu.addAction(self._t("gui.menu.sources"), self.open_sources)
         self._menu.addAction(self._t("gui.menu.events"), self.open_events)
+        self._menu.addAction(self._t("gui.menu.plugins"), self.open_plugins)
         self._help_menu = self._menu.addMenu(self._t("gui.menu.help"))
         self._help_menu.addAction(self._t("gui.menu.help_usage"), self._open_help_usage)
         self._help_menu.addAction(self._t("gui.menu.help_commands"), self._open_help_commands)
@@ -1156,7 +1102,6 @@ class VassGUI(QMainWindow):
         self._pulse_anim.setKeyValueAt(0.0, 0.5)
         self._pulse_anim.setKeyValueAt(0.5, 1.0)
         self._pulse_anim.setKeyValueAt(1.0, 0.5)
-        self._opacity_current = 1.0
 
         # Auth dialog state (thread-safe via signal)
         self._auth_result = None
@@ -1380,6 +1325,7 @@ class VassGUI(QMainWindow):
             "QPushButton:hover { color: #27ae60; }"
         )
         self.btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
 
     def _btn_press(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:
@@ -1508,11 +1454,6 @@ class VassGUI(QMainWindow):
                 pass
             self._fade_opacity(target)
 
-    def eventFilter(self, obj, event):
-        if obj == self.stacked and event.type() == QEvent.Type.Resize:
-            self._elide_button_text()
-        return super().eventFilter(obj, event)
-
     def _elide_button_text(self):
         if not self._btn_full_text:
             return
@@ -1554,9 +1495,6 @@ class VassGUI(QMainWindow):
             self.tool_indicator_signal.emit("__transcription__", "")
         else:
             self.hide_tool_indicator()
-
-    def set_replay_visible(self, visible):
-        self.replay_btn.setVisible(visible)
 
     def update_button_tooltip(self):
         """Update the main button tooltip with currently used audio devices."""
@@ -2170,6 +2108,12 @@ class VassGUI(QMainWindow):
     def open_events(self):
         self._open_unique_window("events", os.path.join(SRC, "events_editor.py"), "--lang", self.language)
 
+    def open_plugins(self):
+        if not self.app or not hasattr(self.app, '_plugin_server'):
+            return
+        dlg = PluginManagerDialog(self.app._plugin_server, self._t, self.language, self)
+        dlg.exec()
+
     def _open_help_usage(self):
         import os
         readme = os.path.join(BASE, "docs", f"README_{self.language}.md")
@@ -2392,7 +2336,7 @@ class VassGUI(QMainWindow):
         self._link_panel._t = self._t
         self._link_panel.set_ai_responses(list(history), self)
 
-    def _show_info_panel(self, tab="notifications"):
+    def _show_info_panel(self, tab="all"):
         if not self.app:
             return
         if self._link_panel.isVisible() and self._link_panel._tab == tab:
@@ -2403,14 +2347,13 @@ class VassGUI(QMainWindow):
             setattr(self._link_panel, '_t', self._t),
             setattr(self._link_panel, '_nm', nm),
             setattr(self._link_panel, '_update_bell_cb', self._update_bell),
-            self._link_panel.show_panel(tab, self)
+            self._link_panel.show_panel(tab, self, user_opened=True)
         ))
 
     def set_mcp_status(self, ok):
         if ok:
             self.hide_tool_indicator()
         else:
-            self._mcp_down = True
             self.tool_indicator_signal.emit("__mcp_down__", "")
 
     def _on_tool_indicator(self, color, tooltip):
@@ -2442,6 +2385,8 @@ class VassGUI(QMainWindow):
             self._tool_indicator.setVisible(True)
 
     def eventFilter(self, obj, event):
+        if hasattr(self, 'stacked') and obj is self.stacked and event.type() == QEvent.Type.Resize:
+            self._elide_button_text()
         if (obj is self._central
                 and event.type() == QEvent.Type.MouseButtonDblClick
                 and event.button() == Qt.MouseButton.LeftButton
@@ -2454,5 +2399,313 @@ class VassGUI(QMainWindow):
         if event.button() == Qt.MouseButton.MiddleButton:
             self._exit_app()
         super().mousePressEvent(event)
+
+
+class PluginManagerDialog(QDialog):
+    STATUS_COLORS = {
+        "running": "#2ecc71",
+        "starting": "#f1c40f",
+        "stopped": "#e67e22",
+        "disabled": "#888888",
+        "blocked": "#e74c3c",
+        "error": "#e74c3c",
+    }
+
+    def __init__(self, plugin_server, t_func, lang, parent=None):
+        super().__init__(parent)
+        self._server = plugin_server
+        self._t = t_func
+        self._lang = lang
+        self.setWindowTitle(self._t("plugins.title"))
+        self.setMinimumSize(380, 160)
+        self.setStyleSheet("QDialog { background-color: #1e1e1e; color: #e0e0e0; }")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(6)
+
+        self._list = QWidget()
+        self._list_layout = QVBoxLayout(self._list)
+        self._list_layout.setContentsMargins(0, 0, 0, 0)
+        self._list_layout.setSpacing(2)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(self._list)
+        scroll.setStyleSheet("QScrollArea { border: 1px solid #333; border-radius: 4px; }")
+        layout.addWidget(scroll, 1)
+
+        btn_row = QHBoxLayout()
+        refresh_btn = QPushButton(self._t("plugins.refresh"))
+        refresh_btn.clicked.connect(self._refresh)
+        close_btn = QPushButton("Chiudi")
+        close_btn.clicked.connect(self.close)
+        btn_row.addWidget(refresh_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+
+        self._btn_width = max(
+            self._t("plugins.enable"), self._t("plugins.disable"), key=len)
+        self._btn_width = max(90, QFontMetrics(self.font()).horizontalAdvance(self._btn_width) + 20)
+
+        self._refresh()
+
+    def _refresh(self):
+        for i in reversed(range(self._list_layout.count())):
+            w = self._list_layout.itemAt(i).widget()
+            if w:
+                w.setParent(None)
+
+        try:
+            statuses = self._server.get_plugins_status(self._lang)
+        except Exception:
+            return
+
+        for p in statuses:
+            row = self._build_row(p)
+            self._list_layout.addWidget(row)
+
+        self._list_layout.addStretch()
+
+    def _build_row(self, p):
+        row = QFrame()
+        row.setStyleSheet("QFrame { background-color: #2a2a2a; border-radius: 4px; padding: 4px; }")
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(8, 3, 8, 3)
+        row_layout.setSpacing(8)
+
+        color = self.STATUS_COLORS.get(p["status"], "#888")
+
+        dot = QLabel()
+        dot.setFixedSize(8, 8)
+        dot.setStyleSheet(f"QLabel {{ background-color: {color}; border-radius: 4px; }}")
+        row_layout.addWidget(dot)
+
+        tooltip = f"{p['name']} v{p['version']}"
+        desc = p.get("description", "")
+        if desc:
+            tooltip += f"\n{desc}"
+        missing = p.get("missing_deps", [])
+        if missing:
+            dep_names = ", ".join(missing)
+            tooltip += f"\nRequires: {dep_names}"
+        name_lbl = QLabel(p["name"])
+        name_lbl.setStyleSheet("font-weight: bold; font-size: 12px;")
+        name_lbl.setToolTip(tooltip)
+        row_layout.addWidget(name_lbl, 1)
+
+        if p["status"] == "blocked" and missing:
+            dep_names = ", ".join(missing)
+            status_text = f"Dipende da: {dep_names}" if self._lang == "it" else f"Requires: {dep_names}"
+        else:
+            status_text = self._t(f"plugins.{p['status']}")
+        status_lbl = QLabel(status_text)
+        status_lbl.setStyleSheet(f"color: {color}; font-size: 11px;")
+        status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        row_layout.addWidget(status_lbl)
+
+        has_cfg = self._plugin_has_config(p["name"])
+
+        cfg_btn = QPushButton("\u2699")
+        cfg_btn.setFixedSize(28, 28)
+        cfg_btn.setToolTip(f"{p['name']} settings" if has_cfg else "No settings available")
+        if has_cfg:
+            cfg_btn.setStyleSheet(
+                "QPushButton { color: #ccc; background: transparent; border: none; font-size: 16px; }"
+                "QPushButton:hover { color: #fff; }")
+            cfg_btn.clicked.connect(lambda checked, n=p["name"]: self._open_settings(n))
+        else:
+            cfg_btn.setStyleSheet(
+                "QPushButton { color: #444; background: transparent; border: none; font-size: 16px; }")
+        cfg_btn.setEnabled(has_cfg)
+        row_layout.addWidget(cfg_btn)
+
+        if p["status"] in ("disabled", "blocked"):
+            btn = QPushButton(self._t("plugins.enable"))
+            btn.setFixedWidth(self._btn_width)
+            btn.setStyleSheet(
+                "QPushButton { background-color: #2ecc71; color: #fff; border-radius: 3px; "
+                "padding: 3px 10px; font-size: 11px; }"
+                "QPushButton:hover { background-color: #27ae60; }")
+            if p["status"] == "blocked":
+                btn.setEnabled(False)
+                dep_names = ", ".join(p.get("missing_deps", []))
+                btn.setToolTip(f"Requires: {dep_names}" if self._lang != "it" else f"Dipende da: {dep_names}")
+            else:
+                btn.clicked.connect(lambda checked, n=p["name"]: self._toggle_enabled(n))
+        else:
+            btn = QPushButton(self._t("plugins.disable"))
+            btn.setFixedWidth(self._btn_width)
+            btn.setStyleSheet(
+                "QPushButton { background-color: #c0392b; color: #fff; border-radius: 3px; "
+                "padding: 3px 10px; font-size: 11px; }"
+                "QPushButton:hover { background-color: #e74c3c; }")
+            btn.clicked.connect(lambda checked, n=p["name"]: self._toggle_enabled(n))
+        row_layout.addWidget(btn)
+
+        return row
+
+    def _toggle_enabled(self, name):
+        statuses = self._server.get_plugins_status(self._lang)
+        current = next((s for s in statuses if s["name"] == name), None)
+        if not current:
+            return
+        if current["status"] == "disabled":
+            self._server.enable_plugin(name)
+        else:
+            self._server.disable_plugin(name)
+        self._refresh()
+
+    def _plugin_has_config(self, name):
+        try:
+            cfg = self._server.get_plugin_config(name, self._lang)
+            return cfg is not None and len(cfg.get("fields", [])) > 0
+        except Exception:
+            return False
+
+    def _open_settings(self, name):
+        cfg = self._server.get_plugin_config(name, self._lang)
+        if not cfg or not cfg.get("fields"):
+            return
+        was_running = self._server.is_plugin_running(name)
+        dlg = PluginSettingsDialog(name, cfg, self._server, self._t, self._lang, self)
+        if dlg.exec() == QDialog.DialogCode.Accepted and was_running:
+            self._server.stop_plugin(name)
+            self._server.start_plugin(name)
+        self._refresh()
+
+
+class PluginSettingsDialog(QDialog):
+    def __init__(self, plugin_name, config, server, t_func, lang, parent=None):
+        super().__init__(parent)
+        self._name = plugin_name
+        self._config = config
+        self._server = server
+        self._t = t_func
+        self._lang = lang
+        self.setWindowTitle(f"{plugin_name} - Settings")
+        self.setMinimumWidth(380)
+        self.setStyleSheet("QDialog { background-color: #1e1e1e; color: #e0e0e0; }")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+
+        self._widgets = {}
+        fields = config.get("fields", [])
+        values = config.get("values", {})
+
+        for f in fields:
+            row = QHBoxLayout()
+            lbl = QLabel(f["label"])
+            lbl.setStyleSheet("font-size: 12px;")
+            lbl.setFixedWidth(160)
+            row.addWidget(lbl)
+
+            ft = f["type"]
+            section = f["section"]
+            key = f["key"]
+            current = values.get(section, {}).get(key, "")
+
+            if ft == "toggle":
+                w = QCheckBox()
+                try:
+                    w.setChecked(current.lower() in ("true", "1", "yes"))
+                except Exception:
+                    pass
+                row.addWidget(w)
+                row.addStretch()
+                self._widgets[f["key"]] = ("toggle", w)
+
+            elif ft == "slider":
+                min_v = f.get("min_value", 0)
+                max_v = f.get("max_value", 1)
+                step = f.get("step", 0.01)
+                decimals = f.get("decimals", 2)
+                try:
+                    cur_float = float(current)
+                except (ValueError, TypeError):
+                    cur_float = min_v
+
+                slider = QSlider(Qt.Orientation.Horizontal)
+                slider.setRange(int(min_v / step), int(max_v / step))
+                slider.setValue(int(cur_float / step))
+                slider.setStyleSheet(
+                    "QSlider::groove:horizontal { height: 4px; background: #444; border-radius: 2px; }"
+                    "QSlider::handle:horizontal { background: #2ecc71; width: 12px; "
+                    "margin: -4px 0; border-radius: 6px; }")
+                val_lbl = QLabel(f"{cur_float:.{decimals}f}")
+                val_lbl.setFixedWidth(50)
+                val_lbl.setStyleSheet("color: #aaa; font-size: 11px;")
+
+                slider.valueChanged.connect(
+                    lambda v, w=slider, l=val_lbl, s=step, d=decimals:
+                    l.setText(f"{v * s:.{d}f}"))
+                row.addWidget(slider)
+                row.addWidget(val_lbl)
+                self._widgets[f["key"]] = ("slider", slider, decimals, step)
+
+            elif ft == "dropdown":
+                w = QComboBox()
+                opts = f.get("options", [])
+                w.addItems(opts)
+                if current in opts:
+                    w.setCurrentText(current)
+                w.setStyleSheet(
+                    "QComboBox { background: #333; border: 1px solid #555; border-radius: 3px; "
+                    "padding: 3px 6px; }")
+                row.addWidget(w)
+                row.addStretch()
+                self._widgets[f["key"]] = ("dropdown", w)
+
+            else:
+                w = QLineEdit()
+                w.setText(str(current))
+                w.setStyleSheet(
+                    "QLineEdit { background: #333; border: 1px solid #555; border-radius: 3px; "
+                    "padding: 3px 6px; }")
+                row.addWidget(w)
+                self._widgets[f["key"]] = ("text", w)
+
+            layout.addLayout(row)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        cancel_btn = QPushButton(self._t("plugins.cancel"))
+        cancel_btn.clicked.connect(self.reject)
+        save_btn = QPushButton(self._t("plugins.save"))
+        save_btn.setDefault(True)
+        save_btn.clicked.connect(self._save)
+        save_btn.setStyleSheet(
+            "QPushButton { background-color: #2ecc71; color: #fff; border-radius: 3px; "
+            "padding: 6px 18px; font-weight: bold; }"
+            "QPushButton:hover { background-color: #27ae60; }")
+        btn_row.addWidget(cancel_btn)
+        btn_row.addWidget(save_btn)
+        layout.addLayout(btn_row)
+
+    def _save(self):
+        fields = self._config.get("fields", [])
+        for f in fields:
+            section = f["section"]
+            key = f["key"]
+            w_info = self._widgets.get(key)
+            if not w_info:
+                continue
+            ft = w_info[0]
+            w = w_info[1]
+            if ft == "toggle":
+                val = "true" if w.isChecked() else "false"
+            elif ft == "slider":
+                decimals = w_info[2]
+                step = w_info[3]
+                val = f"{w.value() * step:.{decimals}f}"
+            elif ft == "dropdown":
+                val = w.currentText()
+            else:
+                val = w.text()
+            self._server.set_plugin_value(self._name, section, key, val)
+        self.accept()
 
 

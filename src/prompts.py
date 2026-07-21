@@ -26,6 +26,8 @@ MCP_PROMPT = (
     "\n- read_file(path): reads any file from the user's storage"
     "\n- write_file(path, content): writes content to a file. Use this to save search results, notes, or data."
     "\n  Always call write_file when the user asks you to save, store, or write data to a file."
+    "\n- html_to_pdf(html, filename): creates a PDF from HTML content. Use when asked to create a document, report, or PDF."
+    "\n  The html must be a complete HTML document. The filename is without extension (auto-renames if exists)."
     "\n\nCRITICAL RULES:"
     "\n- NEVER answer from search snippets alone. Always webfetch the best results first."
     "\n- When a user mentions a specific website, ALWAYS use 'site:domain.com' in the search query."

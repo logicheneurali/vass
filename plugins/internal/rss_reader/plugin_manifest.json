@@ -1,0 +1,8 @@
+{
+  "name": "rss_reader",
+  "version": "1.0.0",
+  "min_app": "0.6.8",
+  "description": "Polls RSS feeds and sends desktop notifications for new items",
+  "description_it": "Controlla feed RSS e invia notifiche per nuovi articoli",
+  "subscriptions": []
+}

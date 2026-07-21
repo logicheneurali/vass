@@ -15,6 +15,7 @@ from mcpgoal.tools.vasscript import clipboard_get as _clip_get
 from mcpgoal.tools.vasscript import clipboard_set as _clip_set
 from mcpgoal.tools.playwright import search_web as _search_web
 from mcpgoal.tools.playwright import fetch_page as _fetch_page
+from mcpgoal.tools.documents import html_to_pdf as _html_to_pdf
 from mcpgoal.tools.langcheck import check_language as _check_language
 from mcpgoal.tools.memory_tags import save_tags as _save_tags, search_tags as _search_tags
 from mcpgoal.tools.calendar import calendar_list as _calendar_list
@@ -432,6 +433,11 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def webfetch(url: str) -> str:
         """Fetch a web page using headless Chromium (Playwright). Extracts rendered text content from JavaScript pages."""
         return await _tool("webfetch", f"url={url[:100]}", _fetch_page(url, timeout=90), config)
+
+    @mcp.tool()
+    async def html_to_pdf(html: str, filename: str) -> str:
+        """Generate a PDF from HTML content. Provide the full HTML document and a filename (without extension). Auto-renames if exists. Returns path to the generated PDF."""
+        return await _tool("html_to_pdf", f"file={filename[:60]}", _html_to_pdf(html, filename, config.allowed_root), config)
 
     @mcp.tool()
     async def langcheck(text: str, lang: str = "it") -> str:
