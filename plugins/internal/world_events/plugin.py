@@ -158,8 +158,11 @@ class WorldEventsPlugin:
 
         data = self._load_data()
 
+        # Enforce max RSS items per run to prevent AI timeout
+        max_rss = min(self._config.get("rss_limit", 10), 15)
         rss_items = self._fetch_rss_items()
         if rss_items:
+            rss_items = rss_items[:max_rss]
             new_items, _ = self._filter_new_items(rss_items, data)
             if not new_items:
                 _log(" No new RSS items today")
@@ -469,7 +472,7 @@ class WorldEventsPlugin:
 
     def _call_ai(self, data):
         _log(f" Calling AI with {len(data)} chars...")
-        return self._send_ai_query(data, temperature=0.2, max_tokens=99999)
+        return self._send_ai_query(data, temperature=0.2, max_tokens=4096)
 
     def _send_ai_query(self, prompt, temperature=0.1, max_tokens=300):
         rid = str(uuid.uuid4())
