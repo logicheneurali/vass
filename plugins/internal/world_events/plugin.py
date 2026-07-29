@@ -158,61 +158,63 @@ class WorldEventsPlugin:
 
         data = self._load_data()
 
-        # Enforce max RSS items per run to prevent AI timeout
-        max_rss = min(self._config.get("rss_limit", 10), 15)
         rss_items = self._fetch_rss_items()
         if rss_items:
-            rss_items = rss_items[:max_rss]
             new_items, _ = self._filter_new_items(rss_items, data)
-            if not new_items:
-                _log(" No new RSS items today")
+            if new_items:
+                _log(f" {len(new_items)} new RSS items today")
             else:
-                _log(f" Processing {len(new_items)} new RSS items")
+                new_items = []
+                _log(" No new RSS items today")
         else:
             new_items = []
 
         wiki_text = self._fetch_wikipedia_events()
         if wiki_text:
-            wiki_len = len(wiki_text)
-            _log(f" Wikipedia data: {wiki_len} chars")
-            # Deduplicate Wikipedia by hashing each section
             wiki_items = self._parse_wikipedia_events(wiki_text)
             wiki_new = self._filter_wiki_items(wiki_items, data)
             _log(f" Wikipedia new items: {len(wiki_new)}")
         else:
-            wiki_len = 0
             wiki_new = []
 
         if not new_items and not wiki_new:
             return "Skip: no new items to process"
 
-        # Build AI prompt
-        prompt = self._build_prompt(new_items, wiki_new)
-        if not prompt:
-            return "Skip: no data for AI prompt"
+        # Process RSS items in batches of 10
+        BATCH_SIZE = 10
+        batches = [new_items[i:i + BATCH_SIZE] for i in range(0, len(new_items), BATCH_SIZE)]
+        if not batches:
+            batches = [[]]
 
-        _log(f" Data collected: {len(prompt)} chars, calling AI...")
-        new_events = self._call_ai(prompt)
-        if not new_events:
-            return "Skip: AI returned no events (timeout/error/invalid JSON)"
+        all_new_events = None
+        for batch_num, batch in enumerate(batches):
+            prompt = self._build_prompt(batch, wiki_new if batch_num == 0 else None)
+            if not prompt:
+                continue
+            _log(f" Batch {batch_num + 1}/{len(batches)}: {len(prompt)} chars, calling AI...")
+            result = self._call_ai(prompt)
 
-        if isinstance(new_events, dict) and "error" in new_events:
-            _log(f" Skip: AI returned error: {new_events.get('error')}")
-            return None
+            if result and isinstance(result, dict) and "error" not in result:
+                if all_new_events is None:
+                    all_new_events = result
+                else:
+                    all_new_events = self._merge_batch_results(all_new_events, result)
+                _log(f" Batch {batch_num + 1}/{len(batches)}: OK")
+            elif result and isinstance(result, dict) and "error" in result:
+                _log(f" Batch {batch_num + 1}/{len(batches)}: AI error: {result.get('error')}")
+            else:
+                _log(f" Batch {batch_num + 1}/{len(batches)}: timeout/error, skipping")
+
+        if all_new_events is None:
+            return "Skip: all batches failed"
 
         # Merge into data
-        data = self._merge_events(data, new_events, today)
-
-        # Clean old events
+        data = self._merge_events(data, all_new_events, today)
         data = self._clean_old_events(data)
         data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
-
         self._save_data(data)
-
-        # Notify high significance events
         self._notify_significant(data, today)
         _log(" Events updated and saved")
-
         return None
 
     def _is_idle(self):
@@ -411,7 +413,7 @@ class WorldEventsPlugin:
         parts = []
         if rss_items:
             lines = []
-            for item in rss_items[:10]:
+            for item in rss_items:
                 source = item.get("source", "?")
                 title = item.get("title", "")
                 summary = item.get("summary", "")[:300]
@@ -576,6 +578,39 @@ class WorldEventsPlugin:
 
         data["events"] = events
         return data
+
+    def _merge_batch_results(self, base, incoming):
+        """Merge two AI response dicts from different batches."""
+        base_events = base.get("events", {})
+        inc_events = incoming.get("events", {})
+        for day_key, day_data in inc_events.items():
+            if day_key not in base_events:
+                base_events[day_key] = day_data
+                continue
+            bd = base_events[day_key]
+            existing_links = {a.get("link") for a in bd.get("articles", []) if a.get("link")}
+            for art in day_data.get("articles", []):
+                if art.get("link") and art["link"] in existing_links:
+                    continue
+                if art.get("link"):
+                    existing_links.add(art["link"])
+                bd.setdefault("articles", []).append(art)
+            all_cats = set(bd.get("categories", []))
+            for art in bd.get("articles", []):
+                cat = art.get("category", "")
+                if cat:
+                    all_cats.add(cat)
+            bd["categories"] = sorted(all_cats)
+            existing_hl = {h.get("link") for h in bd.get("top_headlines", []) if h.get("link")}
+            for hl in day_data.get("top_headlines", []):
+                if hl.get("link") and hl["link"] not in existing_hl:
+                    if hl.get("link"):
+                        existing_hl.add(hl["link"])
+                    bd.setdefault("top_headlines", []).append(hl)
+            if not bd.get("summary") and day_data.get("summary"):
+                bd["summary"] = day_data["summary"]
+        base["events"] = base_events
+        return base
 
     def _clean_old_events(self, data):
         max_age = self._config["max_age_days"]
