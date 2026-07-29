@@ -217,12 +217,14 @@ class WorldEventsPlugin:
         if all_new_events is None:
             return "Skip: all batches failed"
 
+        # Notify significant events from the newly processed batch only
+        self._notify_significant(all_new_events, today)
+
         # Merge into data
         data = self._merge_events(data, all_new_events, today)
         data = self._clean_old_events(data)
         data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
         self._save_data(data)
-        self._notify_significant(data, today)
         _log(" Events updated and saved")
         return None
 
@@ -483,7 +485,9 @@ class WorldEventsPlugin:
             "- Set significance: high=major world impact, medium=notable, low=minor.\n"
             "- top_headlines: the 5-10 most important stories as simple title/source/link.\n"
             "- summary: a 2-3 sentence overview of the day.\n"
-            "- Preserve ALL original links from the RSS items and Wikipedia sources.\n\n"
+            "- Preserve ALL original links from the RSS items and Wikipedia sources.\n"
+            "- Write ALL text (titles, summaries, categories) in the same language as the source articles.\n"
+            f"  Prefer {self._config['wikipedia_lang']} language when sources are mixed.\n\n"
             f"Data:\n{data[:12000]}"
         )
         return prompt
@@ -634,8 +638,9 @@ class WorldEventsPlugin:
                     if hl.get("link"):
                         existing_hl.add(hl["link"])
                     bd.setdefault("top_headlines", []).append(hl)
-            if not bd.get("summary") and day_data.get("summary"):
-                bd["summary"] = day_data["summary"]
+            if day_data.get("summary"):
+                existing = bd.get("summary", "")
+                bd["summary"] = (existing + "\n" + day_data["summary"]).strip() if existing else day_data["summary"]
         base["events"] = base_events
         return base
 
