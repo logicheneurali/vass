@@ -10,6 +10,7 @@ import time
 import uuid
 
 _LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log.txt")
+_MAX_LOG = 100_000
 
 
 def _log(msg):
@@ -17,6 +18,11 @@ def _log(msg):
     line = f"[{ts}] [UserProfile] {msg}"
     print(line)
     try:
+        if os.path.isfile(_LOG_PATH) and os.path.getsize(_LOG_PATH) > _MAX_LOG:
+            with open(_LOG_PATH, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+            with open(_LOG_PATH, "w", encoding="utf-8") as f:
+                f.writelines(lines[-len(lines)//2:])
         with open(_LOG_PATH, "a", encoding="utf-8") as f:
             f.write(line + "\n")
     except Exception:
