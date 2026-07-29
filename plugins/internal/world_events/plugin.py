@@ -188,7 +188,10 @@ class WorldEventsPlugin:
 
         all_new_events = None
         for batch_num, batch in enumerate(batches):
-            prompt = self._build_prompt(batch, wiki_new if batch_num == 0 else None)
+            # Pass accumulated summary to subsequent batches as context
+            existing_summary = self._extract_summary(all_new_events) if all_new_events else None
+            wiki_for_batch = wiki_new if batch_num == 0 else None
+            prompt = self._build_prompt(batch, wiki_for_batch, existing_summary=existing_summary)
             if not prompt:
                 continue
             _log(f" Batch {batch_num + 1}/{len(batches)}: {len(prompt)} chars, calling AI...")
@@ -409,8 +412,15 @@ class WorldEventsPlugin:
         return [item for item in wiki_items
                 if item.get("title", "").lower() not in seen_titles]
 
-    def _build_prompt(self, rss_items, wiki_items):
+    def _build_prompt(self, rss_items, wiki_items, existing_summary=None):
         parts = []
+        if existing_summary:
+            parts.append(
+                "=== Current Day Summary (already written) ===\n"
+                f"{existing_summary}\n\n"
+                "Add new articles below without duplicating events already covered above. "
+                "Update the summary to incorporate these new events alongside existing ones."
+            )
         if rss_items:
             lines = []
             for item in rss_items:
@@ -578,6 +588,17 @@ class WorldEventsPlugin:
 
         data["events"] = events
         return data
+
+    def _extract_summary(self, data):
+        if not data or not isinstance(data, dict):
+            return None
+        events = data.get("events", {})
+        if self._today_str in events:
+            return events[self._today_str].get("summary", "")
+        # If AI used a different date key, take the first one
+        for day_key in events:
+            return events[day_key].get("summary", "")
+        return None
 
     def _merge_batch_results(self, base, incoming):
         """Merge two AI response dicts from different batches."""
