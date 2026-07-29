@@ -29,10 +29,18 @@ class RssReaderPlugin:
         cfg = configparser.ConfigParser()
         ini_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "settings.ini")
+        if not os.path.exists(ini_path):
+            example = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "settings.example.ini")
+            if os.path.exists(example):
+                import shutil
+                shutil.copy(example, ini_path)
         if os.path.exists(ini_path):
             cfg.read(ini_path, encoding="utf-8")
         return {
             "enabled": cfg.getboolean("poll", "enabled", fallback=True),
+            "category_blacklist": cfg.get("poll", "category_blacklist", fallback=""),
+            "notify_enabled": cfg.getboolean("poll", "notify_enabled", fallback=True),
         }
 
     def _load_manifest(self) -> dict:
@@ -243,19 +251,32 @@ class RssReaderPlugin:
                 "summary": entry.get("summary", entry.get("description", "")),
                 "pubDate": pub_date,
                 "source": name,
+                "tags": [t.get("term", "") for t in entry.get("tags", []) if t.get("term")],
             })
         return items
 
     def _notify_new_items(self, items):
+        if not self._config.get("notify_enabled", True):
+            return
+        blacklist_raw = self._config.get("category_blacklist", "")
+        blacklist = {b.strip().lower() for b in blacklist_raw.split(",") if b.strip()} if blacklist_raw else set()
         for item in items:
+            tags = [t.lower() for t in item.get("tags", [])]
             source = item.get("source", "RSS")
             title = item.get("title", "")
+            summary = item.get("summary", "")
             link = item.get("link", "")
             guid = item.get("guid", "")
+            full_text = f"{source}: {title} {summary}"
+            if blacklist:
+                matches_tags = any(bl in t for t in tags for bl in blacklist)
+                matches_text = any(bl in full_text.lower() for bl in blacklist)
+                if matches_tags or matches_text:
+                    continue
             msg = f"{source}: {title}"
             self._send_cmd("notify", {
                 "text": msg, "priority": 5,
-                "data": {"type": "rss", "link": link, "guid": guid, "title": title, "source": source},
+                "data": {"type": "rss", "link": link, "guid": guid, "title": title, "source": source, "tags": tags},
             })
 
     def _send_cmd(self, cmd, params=None):

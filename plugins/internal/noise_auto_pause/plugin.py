@@ -26,6 +26,12 @@ class NoiseAutoPause:
         cfg = configparser.ConfigParser()
         ini_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "settings.ini")
+        if not os.path.exists(ini_path):
+            example = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "settings.example.ini")
+            if os.path.exists(example):
+                import shutil
+                shutil.copy(example, ini_path)
         if os.path.exists(ini_path):
             cfg.read(ini_path, encoding="utf-8")
         return {

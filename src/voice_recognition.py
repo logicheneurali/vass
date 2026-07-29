@@ -1,6 +1,7 @@
 import numpy as np
 from faster_whisper import WhisperModel
 import threading
+from activity_tracker import get_tracker
 
 _NEGATIVE_PROMPT = {
     "it": "musica, televisione, radio, rumore, traffico, vento, pioggia",
@@ -89,8 +90,8 @@ class VoiceRecognition:
 
     @property
     def _effective_threshold(self):
-        # Threshold is ambient noise plus the user-defined headroom from settings.ini
-        return self._noise_floor * 3.0 + max(0.001, self.energy_threshold)
+        multiplier = min(3.0, max(1.5, 1.0 + self._noise_floor * 200))
+        return self._noise_floor * multiplier + max(0.001, self.energy_threshold)
 
     def load_models(self):
         self.wakeword_model = WhisperModel("tiny", device="cpu", compute_type="int8")
@@ -212,18 +213,18 @@ class VoiceRecognition:
             print(f"[WakeWord Debug] samples={len(audio_data)} dur={dur_ms:.0f}ms energy={energy:.6f} peak={peak:.4f}")
 
         try:
-            negative = _NEGATIVE_PROMPT.get(self.whisper_language, _NEGATIVE_PROMPT["en"])
-            ignore = _IGNORE_WORD.get(self.whisper_language, "Ignore")
-            prompt = f"{self.wake_prompt}. {ignore}: {negative}"
             segments, _ = self.wakeword_model.transcribe(
                 audio_data,
                 language=self.whisper_language,
                 beam_size=1,
-                word_timestamps=False,
-                initial_prompt=prompt,
+                temperature=0.0,
+                best_of=1,
+                initial_prompt=self.wake_prompt,
                 condition_on_previous_text=False,
-                no_speech_threshold=0.5,
-                compression_ratio_threshold=None,
+                vad_filter=True,
+                no_speech_threshold=0.6,
+                log_prob_threshold=-1.0,
+                compression_ratio_threshold=2.4,
             )
             text = " ".join([seg.text for seg in segments]).lower().strip()
             if self.debug_enabled:
@@ -258,12 +259,16 @@ class VoiceRecognition:
             audio_data = audio_data * (0.5 / max_val)
             audio_data = np.clip(audio_data, -1.0, 1.0)
 
-        # Use large model for accurate command transcription
+        tracker = get_tracker(); tracker.start("Transcription", "stt")
         segments, info = self.whisper_model.transcribe(
             audio_data,
             language=self.whisper_language,
             beam_size=5,
-            initial_prompt=self.transcribe_prompt
+            initial_prompt=self.transcribe_prompt,
+            no_speech_threshold=0.6,
+            log_prob_threshold=-1.0,
+            compression_ratio_threshold=2.4,
         )
+        tracker.end("Transcription")
         transcription = " ".join([segment.text for segment in segments])
         return transcription.strip()

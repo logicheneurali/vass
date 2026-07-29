@@ -59,7 +59,8 @@
       "volume": "音量",
       "script": "脚本进度",
       "bytes": "字节",
-      "lines": "行"
+      "lines": "行",
+      "activity": "活动"
     },
     "memory_mode": {
       "full": "记忆: 完整",
@@ -308,7 +309,8 @@
       "add": "添加",
       "update": "更新",
       "delete": "删除",
-      "cancel": "取消"
+      "cancel": "取消",
+      "save": "保存"
     },
     "dialog": {
       "error": "错误"
@@ -615,7 +617,18 @@
       "查询",
       "资料",
       "网址",
-      "搜索"
+      "搜索",
+      "附近",
+      "地方",
+      "最近",
+      "哪里",
+      "地图",
+      "地址",
+      "街道",
+      "导航",
+      "方向",
+      "路线",
+      "指南"
     ],
     "calendar": [
       "日历",
@@ -696,7 +709,23 @@
       "聚会",
       "仪式",
       "纪念活动",
-      "庆典"
+      "庆典",
+      "今天",
+      "明天",
+      "昨天",
+      "后天",
+      "周",
+      "月",
+      "年",
+      "空闲时间",
+      "自由时间",
+      "何时有空",
+      "可用性",
+      "下一个事件",
+      "即将",
+      "我有什么安排",
+      "我的日程",
+      "即将到来"
     ],
     "time": [
       "时间",
@@ -869,6 +898,28 @@
       "标记",
       "分类",
       "整理"
+    ],
+    "news": [
+      "新闻",
+      "事件",
+      "世界",
+      "今天",
+      "昨天",
+      "周",
+      "头条",
+      "报道",
+      "快讯",
+      "时事",
+      "话题",
+      "给我新闻",
+      "总结",
+      "最新",
+      "更新",
+      "新鲜事",
+      "每日",
+      "报纸",
+      "通知我",
+      "新闻简报"
     ]
   },
   "tool_names": {
@@ -968,6 +1019,22 @@
       "name": "空闲时间",
       "desc": "系统空闲时间"
     },
+    "search_places": {
+      "name": "搜索地点",
+      "desc": "通过OpenStreetMap搜索地点"
+    },
+    "search_nearby": {
+      "name": "附近搜索",
+      "desc": "按类别搜索附近商家"
+    },
+    "read_news": {
+      "name": "阅读新闻",
+      "desc": "按日期获取全球事件"
+    },
+    "read_news_range": {
+      "name": "新闻范围",
+      "desc": "按日期范围获取全球事件"
+    },
     "html_to_pdf": {
       "name": "创建PDF",
       "desc": "从HTML内容创建PDF"
@@ -989,7 +1056,20 @@
     "save": "保存",
     "cancel": "取消",
     "subtitle": "插件在下次启动时加载。更改立即生效。",
-    "blocked": "已阻止"
+    "blocked": "已阻止",
+    "remove": "移除",
+    "remove_confirm": {
+      "title": "确认移除",
+      "text": "移除'{name}'？插件文件将被永久删除。",
+      "yes": "是的，移除",
+      "no": "取消"
+    },
+    "deps_warning": {
+      "title": "依赖关系",
+      "text": "'{name}'被{deps}依赖。禁用它也会阻止这些插件。",
+      "disable_anyway": "仍然禁用",
+      "cancel": "取消"
+    }
   },
   "notification_types": {
     "rss": "RSS",
@@ -999,6 +1079,36 @@
     "timer": "定时器",
     "agent": "代理",
     "auth": "系统",
+    "script": "脚本",
+    "profile": "资料",
+    "world_event": "世界",
     "other": "其他"
+  },
+  "sources_editor": {
+    "categories": "分类",
+    "language": "语言",
+    "sources": "来源",
+    "description": "描述",
+    "link": "链接",
+    "buttons": {
+      "add": "添加",
+      "save": "保存",
+      "delete": "删除",
+      "save_file": "保存文件"
+    },
+    "tab": {
+      "online": "在线来源",
+      "rss": "RSS订阅"
+    },
+    "feeds": "RSS订阅",
+    "name": "名称",
+    "url": "URL订阅",
+    "active": "启用",
+    "interval": "检查间隔",
+    "errors": {
+      "required": "所有字段都是必填的。",
+      "invalid_interval": "间隔必须为正整数。"
+    },
+    "saved": "文件已保存。"
   }
 }

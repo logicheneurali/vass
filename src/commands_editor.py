@@ -103,10 +103,10 @@ class CommandsEditor(QMainWindow):
         self.add_btn.clicked.connect(self.add_command)
         btn_row.addWidget(self.add_btn)
 
-        self.update_btn = QPushButton(self._t("commands_editor.buttons.update"))
-        self.update_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
-        self.update_btn.clicked.connect(self.update_command)
-        btn_row.addWidget(self.update_btn)
+        self.save_btn = QPushButton(self._t("commands_editor.buttons.save"))
+        self.save_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
+        self.save_btn.clicked.connect(self.save_command)
+        btn_row.addWidget(self.save_btn)
 
         self.delete_btn = QPushButton(self._t("commands_editor.buttons.delete"))
         self.delete_btn.setStyleSheet(f"background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG};")
@@ -167,48 +167,36 @@ class CommandsEditor(QMainWindow):
         return True
 
     def add_command(self):
+        self.clear_form()
+
+    def save_command(self):
+        err = self._t("commands_editor.dialog.error")
         if not self.validate():
             return
         keyword = self.keyword_entry.text().strip()
         command = self.command_entry.text().strip()
         section = self.section_combo.currentText()
 
-        for s, k, v in self.entries:
-            if k.lower() == keyword.lower():
-                msg = self._t("commands_editor.errors.keyword_exists").replace("{keyword}", keyword)
-                QMessageBox.critical(self, self._t("commands_editor.dialog.error"), msg)
-                return
-
-        if section not in self.config:
-            self.config[section] = {}
-        self.config.set(section, keyword, command)
-        self.rebuild_entries()
-        self.refresh_listbox()
-        self.clear_form()
-
-    def update_command(self):
-        err = self._t("commands_editor.dialog.error")
         if self.selected_index is None:
-            QMessageBox.critical(self, err, self._t("commands_editor.errors.select_first"))
-            return
-        if not self.validate():
-            return
-
-        old_section, old_keyword, old_value = self.entries[self.selected_index]
-        new_section = self.section_combo.currentText()
-        new_keyword = self.keyword_entry.text().strip()
-        new_command = self.command_entry.text().strip()
-
-        for idx, (s, k, v) in enumerate(self.entries):
-            if idx != self.selected_index and k.lower() == new_keyword.lower():
-                msg = self._t("commands_editor.errors.keyword_exists").replace("{keyword}", new_keyword)
-                QMessageBox.critical(self, err, msg)
-                return
-
-        self.config.remove_option(old_section, old_keyword)
-        if new_section not in self.config:
-            self.config[new_section] = {}
-        self.config.set(new_section, new_keyword, new_command)
+            for s, k, v in self.entries:
+                if k.lower() == keyword.lower():
+                    msg = self._t("commands_editor.errors.keyword_exists").replace("{keyword}", keyword)
+                    QMessageBox.critical(self, err, msg)
+                    return
+            if section not in self.config:
+                self.config[section] = {}
+            self.config.set(section, keyword, command)
+        else:
+            old_section, old_keyword, old_value = self.entries[self.selected_index]
+            for idx, (s, k, v) in enumerate(self.entries):
+                if idx != self.selected_index and k.lower() == keyword.lower():
+                    msg = self._t("commands_editor.errors.keyword_exists").replace("{keyword}", keyword)
+                    QMessageBox.critical(self, err, msg)
+                    return
+            self.config.remove_option(old_section, old_keyword)
+            if section not in self.config:
+                self.config[section] = {}
+            self.config.set(section, keyword, command)
         self.rebuild_entries()
         self.refresh_listbox()
         self.clear_form()

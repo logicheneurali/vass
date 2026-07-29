@@ -2,6 +2,7 @@
 Connects to VASS PluginServer for ai_query, notify, tts_enqueue, idle and resource checks.
 """
 import configparser
+import datetime
 import json
 import os
 import socket
@@ -29,6 +30,12 @@ class ProactiveAgentPlugin:
         cfg = configparser.ConfigParser()
         ini_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "settings.ini")
+        if not os.path.exists(ini_path):
+            example = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "settings.example.ini")
+            if os.path.exists(example):
+                import shutil
+                shutil.copy(example, ini_path)
         if os.path.exists(ini_path):
             cfg.read(ini_path, encoding="utf-8")
         action_types = cfg.get("agent", "action_types", fallback="notify,say")
@@ -46,6 +53,7 @@ class ProactiveAgentPlugin:
             "include_profile": cfg.getboolean("agent", "include_profile", fallback=True),
             "include_history": cfg.getboolean("agent", "include_history", fallback=True),
             "include_rss": cfg.getboolean("agent", "include_rss", fallback=True),
+            "include_world_events": cfg.getboolean("agent", "include_world_events", fallback=True),
         }
 
     def _load_manifest(self) -> dict:
@@ -135,7 +143,11 @@ class ProactiveAgentPlugin:
         if self._config.get("include_rss", True):
             rss_items = self._send_rss_check()
 
-        action = self._analyze(profile, history, rss_items, self._today_messages)
+        world_events = {}
+        if self._config.get("include_world_events", True):
+            world_events = self._load_world_events()
+
+        action = self._analyze(profile, history, rss_items, self._today_messages, world_events)
         if not action:
             return
 
@@ -196,6 +208,12 @@ class ProactiveAgentPlugin:
         try:
             with open(self._actions_path, encoding="utf-8") as f:
                 actions = json.load(f)
+            max_entries = self._config.get("max_actions_per_day", 5) * 3
+            if len(actions) > max_entries:
+                actions = actions[-max_entries:]
+                os.makedirs(os.path.dirname(self._actions_path), exist_ok=True)
+                with open(self._actions_path, "w", encoding="utf-8") as f:
+                    json.dump(actions, f, ensure_ascii=False, indent=2)
             today_actions = [a for a in actions if a.get("ts", "").startswith(today)]
             return len(today_actions), {a.get("message", "") for a in today_actions}
         except Exception:
@@ -242,7 +260,31 @@ class ProactiveAgentPlugin:
             ]
         return result
 
-    def _analyze(self, profile, history=None, rss_items=None, today_messages=None):
+    def _load_world_events(self):
+        path = os.path.join(self._resolve_root(), "Allowed_root", "private_world_events.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            return {}
+        today = datetime.date.today()
+        yesterday = today - datetime.timedelta(days=1)
+        events = {}
+        all_events = data.get("events", {})
+        for d in (yesterday.isoformat(), today.isoformat()):
+            if d in all_events:
+                day = all_events[d]
+                sig_items = [a for a in day.get("articles", [])
+                             if a.get("significance") in ("high", "medium")]
+                if sig_items or day.get("summary"):
+                    events[d] = {
+                        "summary": day.get("summary", ""),
+                        "articles": sig_items[:10],
+                        "categories": day.get("categories", []),
+                    }
+        return events
+
+    def _analyze(self, profile, history=None, rss_items=None, today_messages=None, world_events=None):
         today = time.strftime("%Y-%m-%d (%A) %H:%M")
         today_iso = time.strftime("%Y-%m-%d")
 
@@ -264,11 +306,26 @@ class ProactiveAgentPlugin:
 
         rss_section = ""
         if self._config.get("include_rss", True) and rss_items:
-            lines = [f"- {i['source']}: {i['title']}" for i in rss_items]
+            lines = [f"- {i['source']}: {i['title']}" + (f"  [{', '.join(i['tags'])}]" if i.get('tags') else "") for i in rss_items]
             rss_section = (
                 f"=== RECENT RSS ARTICLES ===\n"
                 + "\n".join(lines) + "\n\n"
             )
+
+        world_section = ""
+        if self._config.get("include_world_events", True) and world_events:
+            lines = []
+            for date_str in sorted(world_events):
+                day = world_events[date_str]
+                if day.get("summary"):
+                    lines.append(f"[{date_str}] {day['summary']}")
+                for a in day.get("articles", []):
+                    lines.append(f"- {a['title']} ({a.get('source', '?')}) [{a.get('significance', '?')}]")
+            if lines:
+                world_section = (
+                    f"=== WORLD EVENTS (high/medium significance) ===\n"
+                    + "\n".join(lines) + "\n\n"
+                )
 
         already_sent = ""
         if today_messages:
@@ -282,6 +339,7 @@ class ProactiveAgentPlugin:
         if profile_section: sections.append("USER PROFILE")
         if history_section: sections.append("RECENT CONVERSATIONS")
         if rss_section: sections.append("RSS ARTICLES")
+        if world_section: sections.append("WORLD EVENTS")
         sections.append("ALREADY SENT TODAY")
         considering = " and ".join(f'"{s}"' for s in sections)
 
@@ -301,7 +359,8 @@ class ProactiveAgentPlugin:
             f"- A recommendation based on tech/hobby interests\n"
             f"- An upcoming medical appointment\n"
             f"- A health insight based on conditions\n"
-            f"- A sleep reminder if user has early appointments tomorrow\n\n"
+            f"- A sleep reminder if user has early appointments tomorrow\n"
+            f"- A notification about important world events the user might care about\n\n"
             f"RULES:\n"
             f"- DO NOT repeat anything in ALREADY SENT TODAY\n"
             f"- ONLY use dates >= {today_iso} (past dates are ignored)\n"
@@ -314,6 +373,7 @@ class ProactiveAgentPlugin:
             f"{profile_section}"
             f"{history_section}"
             f"{rss_section}"
+            f"{world_section}"
             f"{already_sent}"
         )
         response = self._send_ai_query(prompt, temperature=0.1, max_tokens=99999)
@@ -462,6 +522,9 @@ class ProactiveAgentPlugin:
             "trigger": action.get("trigger", ""),
             "ts": time.strftime("%Y-%m-%dT%H:%M"),
         })
+        max_entries = self._config.get("max_actions_per_day", 5) * 3
+        if len(actions) > max_entries:
+            actions = actions[-max_entries:]
         os.makedirs(os.path.dirname(self._actions_path), exist_ok=True)
         with open(self._actions_path, "w", encoding="utf-8") as f:
             json.dump(actions, f, ensure_ascii=False, indent=2)

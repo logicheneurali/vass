@@ -46,7 +46,8 @@
       "volume": "Volume",
       "script": "Script progress",
       "bytes": "bytes",
-      "lines": "lines"
+      "lines": "lines",
+      "activity": "Activity"
     },
     "auth": {
       "title": "Authorization required",
@@ -308,7 +309,8 @@
       "add": "Add",
       "update": "Update",
       "delete": "Delete",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "save": "Save"
     },
     "dialog": {
       "error": "Error"
@@ -614,7 +616,25 @@
       "check",
       "lookup",
       "info",
-      "query"
+      "query",
+      "near",
+      "nearby",
+      "place",
+      "places",
+      "closest",
+      "nearest",
+      "location",
+      "locations",
+      "where",
+      "map",
+      "maps",
+      "address",
+      "street",
+      "directions",
+      "navigate",
+      "position",
+      "itinerary",
+      "navigator"
     ],
     "calendar": [
       "calendar",
@@ -696,7 +716,23 @@
       "vacation",
       "vacations",
       "holiday",
-      "holidays"
+      "holidays",
+      "today",
+      "tomorrow",
+      "yesterday",
+      "day after tomorrow",
+      "week",
+      "month",
+      "year",
+      "free slot",
+      "free time",
+      "when am I free",
+      "availability",
+      "next event",
+      "upcoming",
+      "what's on my schedule",
+      "my agenda",
+      "imminent"
     ],
     "time": [
       "time",
@@ -859,6 +895,31 @@
       "bookmarks",
       "favorite",
       "favorites"
+    ],
+    "news": [
+      "news",
+      "events",
+      "world",
+      "today",
+      "happened",
+      "yesterday",
+      "headlines",
+      "week",
+      "bulletin",
+      "digest",
+      "what happened",
+      "breaking",
+      "report",
+      "coverage",
+      "latest",
+      "summarize",
+      "daily",
+      "newspaper",
+      "inform me",
+      "give me the news",
+      "update me",
+      "what's new",
+      "news bulletin"
     ]
   },
   "tool_names": {
@@ -961,6 +1022,22 @@
     "getidle": {
       "name": "Idle time",
       "desc": "System idle time"
+    },
+    "search_places": {
+      "name": "Find places",
+      "desc": "Search places and shops via OpenStreetMap"
+    },
+    "search_nearby": {
+      "name": "Find nearby",
+      "desc": "Search nearby businesses by category"
+    },
+    "read_news": {
+      "name": "Read news",
+      "desc": "Gets world events for a date"
+    },
+    "read_news_range": {
+      "name": "News range",
+      "desc": "Gets world events for a date range"
     }
   },
   "mcp_down_tooltip": "MCP server unavailable",
@@ -979,7 +1056,20 @@
     "error": "Error",
     "save": "Save",
     "cancel": "Cancel",
-    "subtitle": "Plugins are loaded on next startup. Changes are immediate."
+    "subtitle": "Plugins are loaded on next startup. Changes are immediate.",
+    "remove": "Remove",
+    "remove_confirm": {
+      "title": "Confirm removal",
+      "text": "Remove '{name}'? The plugin files will be permanently deleted.",
+      "yes": "Yes, remove",
+      "no": "Cancel"
+    },
+    "deps_warning": {
+      "title": "Dependency warning",
+      "text": "'{name}' is required by: {deps}. Disabling it will also block these plugins.",
+      "disable_anyway": "Disable anyway",
+      "cancel": "Cancel"
+    }
   },
   "notification_types": {
     "rss": "RSS",
@@ -989,6 +1079,36 @@
     "timer": "Timers",
     "agent": "Agent",
     "auth": "System",
+    "script": "Scripts",
+    "profile": "Profile",
+    "world_event": "World",
     "other": "Other"
+  },
+  "sources_editor": {
+    "categories": "Categories",
+    "language": "Language",
+    "sources": "Sources",
+    "description": "Description",
+    "link": "Link",
+    "buttons": {
+      "add": "Add",
+      "save": "Save",
+      "delete": "Delete",
+      "save_file": "Save File"
+    },
+    "tab": {
+      "online": "Online Sources",
+      "rss": "RSS Feeds"
+    },
+    "feeds": "RSS Feeds",
+    "name": "Name",
+    "url": "URL Feed",
+    "active": "Active",
+    "interval": "Check every",
+    "errors": {
+      "required": "All fields are required.",
+      "invalid_interval": "Interval must be a positive integer."
+    },
+    "saved": "File saved."
   }
 }

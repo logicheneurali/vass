@@ -17,7 +17,8 @@ STANDALONE_GROUPS = {"compute", "time", "lang"}
 # Map of group name → list of MCP tool names belonging to that group.
 # interact, script, execute are excluded — they require allow_ai_scripts.
 TOOL_GROUPS = {
-    "web":       ["browse", "webfetch", "websearch"],
+    "web":       ["browse", "webfetch", "websearch", "search_places", "search_nearby"],
+    "news":      ["read_news", "read_news_range"],
     "calendar":  ["calendar_add", "calendar_list", "calendar_search"],
     "files":     ["read_file", "write_file", "readinfo", "writeinfo", "html_to_pdf"],
     "events":    ["addevent", "delevent", "listevents", "nextevent", "find_free_slot"],
@@ -260,7 +261,9 @@ def select_tool_groups(prompt, lang="it"):
             continue
         if any(w in prompt_lower for w in words) or fuzzy_match_word(prompt_lower, words):
             groups.add(group_name)
-    return groups or {"web"}
+    result = groups or {"web"}
+    print(f"[ToolGroups] prompt='{prompt[:80]}' lang={lang} -> {sorted(result)}")
+    return result
 
 
 def resolve_tool_names(group_names, all_tools, debug=False):

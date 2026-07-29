@@ -2,6 +2,7 @@
   "name": "user_profile",
   "version": "1.0.0",
   "min_app": "0.6.8",
+  "platform": "*",
   "description": "Builds structured user profile from permanent memory using AI",
   "description_it": "Costruisce profilo utente strutturato dalla memoria permanente usando AI",
   "subscriptions": []

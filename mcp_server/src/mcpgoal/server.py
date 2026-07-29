@@ -21,6 +21,10 @@ from mcpgoal.tools.memory_tags import save_tags as _save_tags, search_tags as _s
 from mcpgoal.tools.calendar import calendar_list as _calendar_list
 from mcpgoal.tools.calendar import calendar_add as _calendar_add
 from mcpgoal.tools.calendar import calendar_search as _calendar_search
+from mcpgoal.tools.places import search_places as _search_places
+from mcpgoal.tools.places import search_nearby as _search_nearby
+from mcpgoal.tools.news import read_news as _read_news
+from mcpgoal.tools.news import read_news_range as _read_news_range
 
 _GET_IDLE = None
 try:
@@ -490,5 +494,37 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def calendar_search(query: str) -> str:
         """Search Google Calendar events by keyword. Returns JSON."""
         return await _tool("calendar_search", f"q={query[:60]}", _calendar_search(query, enabled=_gcal_enabled(config)), config)
+
+    @mcp.tool()
+    async def search_places(query: str, near: str = "", limit: int = 5) -> str:
+        """Search for places, shops, restaurants, addresses using OpenStreetMap.
+        Always provide 'near' with a city/area name to get correct results.
+        Returns name, address, coordinates, and OpenStreetMap link for each result.
+        Examples: search_places('farmacia', 'Messina'), search_places('ristorante', 'Roma', 3)"""
+        return await _tool("search_places", f"q={query[:60]}", _search_places(query, near, limit), config)
+
+    @mcp.tool()
+    async def search_nearby(osm_key: str, osm_value: str, near: str, radius: int = 3000, limit: int = 10) -> str:
+        """Search nearby places by OpenStreetMap tag. Use osm_key + osm_value.
+        Common tags: amenity=pharmacy, amenity=restaurant, shop=supermarket, shop=hardware,
+        amenity=bank, amenity=cafe, tourism=hotel, amenity=hospital, shop=bakery, etc.
+        Always provide 'near' with a city/address. Returns name, address, distance, map link sorted by distance.
+        Examples: search_nearby('amenity', 'pharmacy', 'Messina')
+                  search_nearby('shop', 'supermarket', 'via Roma, Milano', 1000)"""
+        return await _tool("search_nearby", f"tag={osm_key}={osm_value}", _search_nearby(osm_key, osm_value, near, radius, limit), config)
+
+    @mcp.tool()
+    async def read_news(date: str) -> str:
+        """Read world events for a specific date from the daily events digest.
+        Use for questions like 'what happened today', 'cosa è successo ieri', 'news from July 28'.
+        Args: date in YYYY-MM-DD format. Returns summary, articles, categories, and top_headlines."""
+        return await _tool("read_news", f"date={date}", _read_news(date), config)
+
+    @mcp.tool()
+    async def read_news_range(from_date: str, to_date: str) -> str:
+        """Read world events for a date range from the daily events digest.
+        Args: from_date, to_date in YYYY-MM-DD format (inclusive).
+        Returns summary, articles, categories, and top_headlines for each date in the range."""
+        return await _tool("read_news_range", f"from={from_date} to={to_date}", _read_news_range(from_date, to_date), config)
 
     return mcp

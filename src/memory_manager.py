@@ -4,6 +4,7 @@ import os
 import threading
 import time
 from utils import get_project_root, get_path, log_exc
+from activity_tracker import get_tracker
 
 
 class MemoryManager:
@@ -47,20 +48,70 @@ class MemoryManager:
 
     def build_content(self, prompt, mcp=None, tools=None):
         """Return conversation history + external tagged data as context string."""
+        profile = self._build_profile_section()
         content = self._build_memory_content(mcp, tools)
         external = self._build_external_memory_content(prompt)
         if external:
             content += external
+        if profile:
+            content = profile + content
         return content
 
+    def _build_profile_section(self):
+        """Read user profile from private_profile.json and format as context section."""
+        try:
+            root = get_project_root()
+            path = os.path.join(root, "Allowed_root", "private_profile.json")
+            if not os.path.exists(path):
+                return ""
+            with open(path, encoding="utf-8") as f:
+                profile = json.load(f)
+            lu = profile.pop("last_updated", "")
+            lines = ["[User Profile]"]
+            for section, data in profile.items():
+                if not data:
+                    continue
+                if isinstance(data, dict):
+                    items = []
+                    for k, v in data.items():
+                        if v:
+                            if isinstance(v, list):
+                                items.append(f"  {k}: {', '.join(str(x) for x in v[:5])}")
+                            else:
+                                items.append(f"  {k}: {v}")
+                    if items:
+                        lines.append(f"- {section}:")
+                        lines.extend(items)
+                elif isinstance(data, list):
+                    items = [str(x) for x in data[:5] if x]
+                    if items:
+                        formatted = ", ".join(items[:3])
+                        if len(items) > 3:
+                            formatted += "..."
+                        lines.append(f"- {section}: {formatted}")
+            if lu:
+                lines.append(f"\n(Profile last updated: {lu})")
+            result = "\n".join(lines)
+            if len(result) > 2000:
+                result = result[:2000] + "\n..."
+            return "\n\n" + result + "\n\n"
+        except Exception:
+            return ""
+
     def classify_message(self, user_message):
-        self._classify_message(user_message)
+        tracker = get_tracker(); tracker.start("Classification", "memory")
+        try:
+            self._classify_message(user_message)
+        finally:
+            tracker.end("Classification")
 
     def enqueue_external(self, content, entry_id, source):
         self._enqueue_classify(content, entry_id, source)
 
     def trim_if_needed(self, force=False):
+        tracker = get_tracker(); tracker.start("Memory trim", "memory")
         self._trim_memory_if_needed(force)
+        tracker.end("Memory trim")
 
     # ── Internal methods ────────────────────────────────────────────────
 
@@ -405,10 +456,8 @@ class MemoryManager:
                 sf_path = os.path.join(mem_dir, f"{summary_id}.json")
                 if os.path.exists(sf_path):
                     total_size += os.path.getsize(sf_path)
+
             allowed_root = os.path.join(root, "Allowed_root")
-            tags_path = os.path.join(allowed_root, "memory_tags.json")
-            if os.path.exists(tags_path):
-                total_size += os.path.getsize(tags_path)
 
             threshold = self._app.memory_tokens * 2
             if total_size < threshold and not force:
@@ -610,8 +659,11 @@ class MemoryManager:
             del self._pending_classify[:5]
             for item in batch:
                 try:
+                    tracker = get_tracker()
+                    tracker.start("Classify external", "memory")
                     self._classify_external_entry(
                         item["content"], item["entry_id"], item["source"])
+                    tracker.end("Classify external")
                 except Exception as e:
                     print(f"[Classify] Deferred error: {e}")
 

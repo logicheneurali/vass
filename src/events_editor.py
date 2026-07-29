@@ -431,9 +431,9 @@ class EventsEditor(QMainWindow):
         btn_add.clicked.connect(self._add_item)
         btn_row.addWidget(btn_add)
 
-        btn_upd = QPushButton(self._t("events_editor.buttons.update"))
-        btn_upd.clicked.connect(self._update_item)
-        btn_row.addWidget(btn_upd)
+        btn_save = QPushButton(self._t("events_editor.buttons.save"))
+        btn_save.clicked.connect(self._save_item)
+        btn_row.addWidget(btn_save)
 
         btn_del = QPushButton(self._t("events_editor.buttons.delete"))
         btn_del.setStyleSheet(f"background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG};")
@@ -657,25 +657,23 @@ class EventsEditor(QMainWindow):
         return item
 
     def _add_item(self):
+        self._clear_form()
+        self._selected_idx = None
+        self.day_list.clearSelection()
+        today_str = self.calendar.selectedDate().toString("yyyy-MM-dd")
+        self.date_edit.setText(today_str)
+
+    def _save_item(self):
         if not self._validate():
             return
-        self._current_items.append(self._build_item())
+        if self._selected_idx is None:
+            self._current_items.append(self._build_item())
+        else:
+            self._current_items[self._selected_idx] = self._build_item(existing=self._current_items[self._selected_idx])
         self._refresh_list()
-        idx = len(self._current_items) - 1
+        idx = len(self._current_items) - 1 if self._selected_idx is None else self._selected_idx
         for i in range(self.day_list.count()):
             if self.day_list.item(i).data(Qt.UserRole) == idx:
-                self.day_list.setCurrentRow(i)
-                break
-
-    def _update_item(self):
-        if self._selected_idx is None:
-            return
-        if not self._validate():
-            return
-        self._current_items[self._selected_idx] = self._build_item(existing=self._current_items[self._selected_idx])
-        self._refresh_list()
-        for i in range(self.day_list.count()):
-            if self.day_list.item(i).data(Qt.UserRole) == self._selected_idx:
                 self.day_list.setCurrentRow(i)
                 break
 

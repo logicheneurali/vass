@@ -12,6 +12,15 @@
     },
     "rss_reader": {
       "enabled": true
+    },
+    "world_events": {
+      "enabled": true
+    },
+    "image_generator": {
+      "enabled": false
+    },
+    "news_publisher": {
+      "enabled": false
     }
   }
 }

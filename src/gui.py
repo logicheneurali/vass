@@ -10,12 +10,92 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
     QLineEdit, QSpacerItem, QSizePolicy, QDialog,
-    QFrame, QScrollArea, QSlider, QCheckBox, QComboBox,
+    QFrame, QScrollArea, QSlider, QCheckBox, QComboBox, QTextEdit,
+    QProgressBar,
 )
-from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG
+from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, ENTRY_BG, DESCRIPTION_FG, FRAME_BORDER, FG
+from activity_tracker import get_tracker, CATEGORY_COLORS
 
 BASE = get_project_root()
 SRC = os.path.join(BASE, "src")
+SVG_PATH = os.path.join(BASE, "vass.svg")
+VERSION_PATH = os.path.join(BASE, "VERSION")
+
+
+class SplashScreen(QWidget):
+    """Splash screen shown during app initialization."""
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.SplashScreen
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.setFixedSize(300, 110)
+        self.setStyleSheet(f"background-color: {BG}; border-radius: 8px;")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(4)
+
+        title_lbl = QLabel("VASS")
+        title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_font = QFont("Segoe UI", 16)
+        title_font.setBold(True)
+        title_lbl.setFont(title_font)
+        title_lbl.setStyleSheet(f"color: {FG}; background: transparent;")
+        layout.addWidget(title_lbl)
+
+        self._version_lbl = QLabel(self._load_version())
+        self._version_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._version_lbl.setStyleSheet(f"color: {DESCRIPTION_FG}; font-size: 10px; background: transparent;")
+        layout.addWidget(self._version_lbl)
+
+        self._detail = QLabel("Starting...")
+        self._detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._detail.setStyleSheet(f"color: {LABEL_FG}; font-size: 11px; background: transparent;")
+        layout.addWidget(self._detail)
+
+        self._bar = QProgressBar()
+        self._bar.setRange(0, 100)
+        self._bar.setValue(0)
+        self._bar.setTextVisible(False)
+        self._bar.setFixedHeight(4)
+        self._bar.setStyleSheet(
+            f"QProgressBar {{ background-color: {ENTRY_BG}; border: none; border-radius: 2px; }}"
+            f"QProgressBar::chunk {{ background-color: #2ecc71; border-radius: 2px; }}")
+        layout.addWidget(self._bar)
+
+        self._center_on_screen()
+
+    def _load_version(self):
+        try:
+            with open(VERSION_PATH) as f:
+                return f"v{f.read().strip()}"
+        except Exception:
+            return ""
+
+    def _center_on_screen(self):
+        screen = QApplication.primaryScreen()
+        if screen:
+            geo = screen.availableGeometry()
+            x = geo.left() + (geo.width() - self.width()) // 2
+            y = geo.top() + (geo.height() - self.height()) // 2
+            self.move(x, y)
+
+    def set_progress(self, value, maximum=100, detail=""):
+        self._bar.setRange(0, maximum)
+        self._bar.setValue(value)
+        if detail:
+            self._detail.setText(detail)
+        QApplication.processEvents()
+
+    def finish(self):
+        self.hide()
+        self.deleteLater()
 
 
 class WaveformPlayer(QWidget):
@@ -402,6 +482,7 @@ class InfoPanel(QFrame):
         "rss": "\U0001f4f0", "timer": "\u23f0", "event": "\U0001f4c5",
         "schedule": "\U0001f4cb", "mail": "\U0001f4e7", "auth": "\U0001f511",
         "script": "\U0001f4dc", "agent": "\U0001f916",
+        "profile": "\U0001f9d1", "world_event": "\U0001f30d",
     }
 
     def __init__(self, parent=None):
@@ -517,23 +598,34 @@ class InfoPanel(QFrame):
         type_counts = {}
         if hasattr(self, '_nm') and self._nm:
             for n in self._nm.list_all():
-                t = n.get("data", {}).get("type", "other") or "other"
+                d = n.get("data")
+                if isinstance(d, dict):
+                    t = d.get("type") or "other"
+                else:
+                    t = "other"
                 type_counts[t] = type_counts.get(t, 0) + (0 if n.get("read") else 1)
 
         # Build ordered list: all first, then special tabs, then type tabs by unread count
-        ordered = [("all", "all", self._t("gui.all_notifications"))]
+        all_label = self._t("gui.all_notifications")
+        ordered = [("all", "all", all_label if self._expanded else "\U0001f4cb", all_label)]
 
         if self._links:
-            ordered.append(("links", "links", self._t("gui.links")))
+            links_label = self._t("gui.links")
+            ordered.append(("links", "links", links_label if self._expanded else "\U0001f517", links_label))
         if self._ai_responses:
-            ordered.append(("ai", "ai", self._t("gui.ai_responses")))
+            ai_label = self._t("gui.ai_responses")
+            ordered.append(("ai", "ai", ai_label if self._expanded else "\U0001f4ac", ai_label))
 
         for t in sorted(type_counts, key=lambda t: -type_counts[t]):
             icon = self._TYPE_ICONS.get(t, "\U0001f514")
             count = type_counts[t]
-            label = self._t(f"notification_types.{t}") if t != "other" else t
+            label = self._t(f"notification_types.{t}")
             badge = f"({count})" if count > 0 else ""
-            ordered.append((t, t, f"{icon} {label} {badge}".strip()))
+            if self._expanded:
+                full_label = f"{icon} {label} {badge}".strip()
+            else:
+                full_label = f"{icon}{badge}" if badge else icon
+            ordered.append((t, t, full_label, f"{icon} {label}"))
 
         # Calculate available width based on parent window geometry
         if self._parent_window:
@@ -543,11 +635,11 @@ class InfoPanel(QFrame):
             panel_w = 275
         available = panel_w - 60  # expand + close + overflow + margins
 
-        for t_id, t_type, label in ordered:
-            btn = QPushButton(label)
+        for t_id, t_type, display_text, tooltip_text in ordered:
+            btn = QPushButton(display_text)
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setToolTip(label)
+            btn.setToolTip(tooltip_text)
             btn.clicked.connect(lambda checked=None, tab=t_type: self._switch_tab(tab))
             btn.setStyleSheet(self._tab_style(t_type == active_tab))
             btn_w = btn.sizeHint().width() + 8
@@ -678,7 +770,11 @@ class InfoPanel(QFrame):
                 dot_color = "#f1c40f"
             else:
                 dot_color = "#3498db"
-            txt = n.get("text", "")[:800]
+            txt = n.get("text", "")
+            if n.get("data", {}).get("type") == "rss":
+                tags = n.get("data", {}).get("tags", [])
+                if tags:
+                    txt += f' <span style="color:#666;font-size:9px;">[{", ".join(tags)}]</span>'
             # Top row: dot, icon, timestamp
             top_row = QHBoxLayout()
             dot_lbl = QLabel(dot)
@@ -706,7 +802,6 @@ class InfoPanel(QFrame):
             container_layout.addLayout(top_row)
             container_layout.addWidget(text_lbl)
             container.setCursor(Qt.CursorShape.PointingHandCursor)
-            container.setToolTip(n.get("text", ""))
             nid = n["id"]
             link = n.get("data", {}).get("link", "")
             container.mousePressEvent = lambda e, nid=nid, link=link: self._on_notif_click(nid, link)
@@ -784,15 +879,8 @@ class InfoPanel(QFrame):
         )
         self._expand_btn.setToolTip("Reduce" if self._expanded else "Expand")
         self._switch_tab(self._tab)
-        self._update_tooltips()
         if self._parent_window:
             self._position(self._parent_window)
-
-    def _update_tooltips(self):
-        for i in range(self._scroll_layout.count()):
-            w = self._scroll_layout.itemAt(i).widget()
-            if isinstance(w, QWidget) and w.toolTip():
-                w.setToolTip(w.toolTip() if not self._expanded else "")
 
     def _position(self, parent):
         geo = parent.geometry()
@@ -818,6 +906,19 @@ class InfoPanel(QFrame):
         else:
             count = 5
             panel_h = min(count * 38 + 52, 280)
+
+        panel_w = min(panel_w, screen.width() - 20)
+        panel_h = min(panel_h, screen.height() - 20)
+
+        if self._expanded:
+            mid_x = screen.left() + screen.width() // 2
+            if geo.center().x() < mid_x:
+                px = geo.left()
+            else:
+                px = geo.right() - panel_w
+        else:
+            px = geo.center().x() - panel_w // 2
+
         mid_y = screen.top() + screen.height() // 2
         if geo.center().y() < mid_y:
             py = geo.bottom() + 8
@@ -885,6 +986,9 @@ class VassGUI(QMainWindow):
 
         self._font_family = font_family
         self._font_size = font_size
+
+        self._splash = SplashScreen()
+        self._splash.show()
 
         # --- Layout ---
         central = QWidget()
@@ -1131,6 +1235,10 @@ class VassGUI(QMainWindow):
         self._on_top_timer.timeout.connect(self._enforce_always_on_top)
         self._on_top_timer.start(30000)
 
+        self._activity_timer = QTimer(self)
+        self._activity_timer.setInterval(800)
+        self._activity_timer.timeout.connect(self._poll_activity)
+
         self.show()
         self._clamp_to_screen()
 
@@ -1302,15 +1410,15 @@ class VassGUI(QMainWindow):
 
     def _build_loading_widget(self):
         self.loading_widget = QWidget()
-        self.loading_widget.setStyleSheet("background-color: #101010;")
+        self.loading_widget.setStyleSheet(f"background-color: {BG};")
         lo = QVBoxLayout(self.loading_widget)
         lo.setContentsMargins(0, 0, 0, 0)
-        self.loading_label = QLabel("...")
+        self.loading_label = QLabel(self._t("gui.states.loading"))
         f = QFont(self._font_family, self._font_size)
         f.setBold(True)
         self.loading_label.setFont(f)
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.loading_label.setStyleSheet("color: #888888; background-color: #101010;")
+        self.loading_label.setStyleSheet(f"color: {LABEL_FG}; background: transparent;")
         lo.addWidget(self.loading_label)
 
     def _build_main_button(self):
@@ -1387,7 +1495,12 @@ class VassGUI(QMainWindow):
             self.stacked.setCurrentWidget(self.loading_widget)
             self._compact_dot.set_state("#888888", state)
             return
+        if hasattr(self, '_splash') and self._splash is not None:
+            self._splash.finish()
+            self._splash = None
         color = self.COLORS.get(state, "#1e1e1e")
+        if state == "listening" and self._current_mode == "transcription":
+            color = "#85c1e9"
         self._compact_dot.set_state(color, state)
         if not self._compact_mode:
             bg = QColor(color)
@@ -1427,17 +1540,21 @@ class VassGUI(QMainWindow):
                 if self._chat_btn.isChecked():
                     self._collapse_chat()
             self._rebalance_spacers()
+        self._activity_timer.start()
         if state == "recording":
+            self._activity_timer.stop()
             self.memory_bar.set_color("#69DB7C")
             self.memory_bar.set_tooltip_context(self._t("gui.bar.volume"), "")
             self.memory_bar.set_value(0, 0, 1)
         elif state == "running_script":
+            self._activity_timer.stop()
             self.memory_bar.set_color("#9b59b6")
             self.memory_bar.set_tooltip_context(self._t("gui.bar.script"), self._t("gui.bar.lines"))
         else:
-            self.memory_bar.set_color("#888888")
-            self.memory_bar.set_tooltip_context(self._t("gui.bar.memory"), self._t("gui.bar.bytes"))
-            self.update_memory_bar()
+            self.memory_bar.set_color("#1abc9c")
+            self.memory_bar.set_tooltip_context(self._t("gui.bar.activity"), "")
+            self.memory_bar.set_ratio(0.0)
+            self._poll_activity()
         if state in ("waiting", "waiting_resources"):
             self._fade_anim.stop()
             self._pulse_anim.start()
@@ -1659,6 +1776,32 @@ class VassGUI(QMainWindow):
             self._central.setStyleSheet(f"#_centralWidget {{ background-color: {bg}; border: 2px solid #ffcc00; }}")
         else:
             self._central.setStyleSheet(f"#_centralWidget {{ background-color: {bg}; }}")
+
+    def _poll_activity(self):
+        try:
+            tracker = get_tracker()
+            active = tracker.get_active()
+            if not active:
+                self.memory_bar.set_ratio(0.0)
+                self.memory_bar.setToolTip(self._t("gui.bar.activity"))
+                return
+            count = len(active)
+            ratio = min(0.15 + 0.17 * count, 1.0)
+            self.memory_bar.set_ratio(ratio)
+            names = []
+            for name, info in active.items():
+                cat = info.get("category", "default")
+                cat_label = self._t(f"activity_categories.{cat}")
+                names.append(f"{cat_label}: {name}")
+            duration = int(time.time() - min(i["start"] for i in active.values()))
+            tip = f"{self._t('gui.bar.activity')} ({duration}s)\n" + "\n".join(names)
+            self.memory_bar.setToolTip(tip)
+        except Exception:
+            pass
+
+    def set_loading_progress(self, value, maximum=100, detail=""):
+        if hasattr(self, '_splash') and self._splash is not None:
+            self._splash.set_progress(value, maximum, detail)
 
     def update_memory_bar(self):
         self.update_memory_signal.emit()
@@ -2408,6 +2551,7 @@ class PluginManagerDialog(QDialog):
         "stopped": "#e67e22",
         "disabled": "#888888",
         "blocked": "#e74c3c",
+        "unsupported": "#888888",
         "error": "#e74c3c",
     }
 
@@ -2417,7 +2561,7 @@ class PluginManagerDialog(QDialog):
         self._t = t_func
         self._lang = lang
         self.setWindowTitle(self._t("plugins.title"))
-        self.setMinimumSize(380, 160)
+        self.setMinimumSize(456, 160)
         self.setStyleSheet("QDialog { background-color: #1e1e1e; color: #e0e0e0; }")
 
         layout = QVBoxLayout(self)
@@ -2498,6 +2642,15 @@ class PluginManagerDialog(QDialog):
         if p["status"] == "blocked" and missing:
             dep_names = ", ".join(missing)
             status_text = f"Dipende da: {dep_names}" if self._lang == "it" else f"Requires: {dep_names}"
+        elif p["status"] == "error":
+            detail = p.get("tooltip_detail", "")
+            if detail == "socket_missing":
+                status_text = "Senza handshake" if self._lang == "it" else "No handshake"
+            elif detail == "process_missing":
+                status_text = "Socket zombie" if self._lang == "it" else "Zombie socket"
+            else:
+                status_text = self._t("plugins.error")
+            name_lbl.setToolTip(tooltip + "\n" + status_text)
         else:
             status_text = self._t(f"plugins.{p['status']}")
         status_lbl = QLabel(status_text)
@@ -2521,7 +2674,7 @@ class PluginManagerDialog(QDialog):
         cfg_btn.setEnabled(has_cfg)
         row_layout.addWidget(cfg_btn)
 
-        if p["status"] in ("disabled", "blocked"):
+        if p["status"] in ("disabled", "blocked", "unsupported"):
             btn = QPushButton(self._t("plugins.enable"))
             btn.setFixedWidth(self._btn_width)
             btn.setStyleSheet(
@@ -2532,6 +2685,10 @@ class PluginManagerDialog(QDialog):
                 btn.setEnabled(False)
                 dep_names = ", ".join(p.get("missing_deps", []))
                 btn.setToolTip(f"Requires: {dep_names}" if self._lang != "it" else f"Dipende da: {dep_names}")
+            elif p["status"] == "unsupported":
+                btn.setEnabled(False)
+                plat = p.get("platform", "?")
+                btn.setToolTip(f"Requires: {plat}" if self._lang != "it" else f"Richiede: {plat}")
             else:
                 btn.clicked.connect(lambda checked, n=p["name"]: self._toggle_enabled(n))
         else:
@@ -2544,6 +2701,15 @@ class PluginManagerDialog(QDialog):
             btn.clicked.connect(lambda checked, n=p["name"]: self._toggle_enabled(n))
         row_layout.addWidget(btn)
 
+        if p["category"] == "external":
+            rem_btn = QPushButton(self._t("plugins.remove"))
+            rem_btn.setStyleSheet(
+                "QPushButton { background-color: #a83232; color: #fff; border-radius: 3px; "
+                "padding: 3px 10px; font-size: 11px; }"
+                "QPushButton:hover { background-color: #c0392b; }")
+            rem_btn.clicked.connect(lambda checked, n=p["name"]: self._remove_plugin(n))
+            row_layout.addWidget(rem_btn)
+
         return row
 
     def _toggle_enabled(self, name):
@@ -2554,7 +2720,34 @@ class PluginManagerDialog(QDialog):
         if current["status"] == "disabled":
             self._server.enable_plugin(name)
         else:
+            dependents = [s["name"] for s in statuses
+                          if s["status"] not in ("disabled", "blocked", "unsupported")
+                          and name in s.get("depends_on", [])]
+            if dependents:
+                deps_list = ", ".join(dependents)
+                msg = QMessageBox(self)
+                msg.setWindowTitle(self._t("plugins.deps_warning.title"))
+                msg.setText(self._t("plugins.deps_warning.text").replace("{name}", name).replace("{deps}", deps_list))
+                msg.setIcon(QMessageBox.Icon.Warning)
+                yes_btn = msg.addButton(self._t("plugins.deps_warning.disable_anyway"), QMessageBox.ButtonRole.YesRole)
+                no_btn = msg.addButton(self._t("plugins.deps_warning.cancel"), QMessageBox.ButtonRole.NoRole)
+                msg.exec()
+                if msg.clickedButton() != yes_btn:
+                    return
             self._server.disable_plugin(name)
+        self._refresh()
+
+    def _remove_plugin(self, name):
+        msg = QMessageBox(self)
+        msg.setWindowTitle(self._t("plugins.remove_confirm.title"))
+        msg.setText(self._t("plugins.remove_confirm.text").replace("{name}", name))
+        msg.setIcon(QMessageBox.Icon.Question)
+        yes_btn = msg.addButton(self._t("plugins.remove_confirm.yes"), QMessageBox.ButtonRole.YesRole)
+        no_btn = msg.addButton(self._t("plugins.remove_confirm.no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+        if msg.clickedButton() != yes_btn:
+            return
+        self._server.remove_plugin(name)
         self._refresh()
 
     def _plugin_has_config(self, name):
@@ -2659,6 +2852,17 @@ class PluginSettingsDialog(QDialog):
                 row.addStretch()
                 self._widgets[f["key"]] = ("dropdown", w)
 
+            elif ft == "readonly":
+                w = QTextEdit()
+                w.setText(str(current))
+                w.setReadOnly(True)
+                w.setMaximumHeight(80)
+                w.setStyleSheet(
+                    "QTextEdit { background: #2a2a2a; border: 1px solid #444; border-radius: 3px; "
+                    "padding: 3px 6px; color: #999; font-size: 11px; }")
+                row.addWidget(w)
+                self._widgets[f["key"]] = ("readonly", w)
+
             else:
                 w = QLineEdit()
                 w.setText(str(current))
@@ -2694,6 +2898,8 @@ class PluginSettingsDialog(QDialog):
             if not w_info:
                 continue
             ft = w_info[0]
+            if ft == "readonly":
+                continue
             w = w_info[1]
             if ft == "toggle":
                 val = "true" if w.isChecked() else "false"

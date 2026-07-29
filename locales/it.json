@@ -46,7 +46,8 @@
       "volume": "Volume",
       "script": "Script",
       "bytes": "byte",
-      "lines": "righe"
+      "lines": "righe",
+      "activity": "Attività"
     },
     "auth": {
       "title": "Autorizzazione richiesta",
@@ -308,7 +309,8 @@
       "add": "Aggiungi",
       "update": "Aggiorna",
       "delete": "Elimina",
-      "cancel": "Annulla"
+      "cancel": "Annulla",
+      "save": "Salva"
     },
     "dialog": {
       "error": "Errore"
@@ -614,7 +616,24 @@
       "wikipedia",
       "blog",
       "google",
-      "verifica"
+      "verifica",
+      "vicino",
+      "vicini",
+      "posto",
+      "posti",
+      "luogo",
+      "luoghi",
+      "dove",
+      "mappa",
+      "mappe",
+      "indirizzo",
+      "via",
+      "strada",
+      "raggiungi",
+      "posizione",
+      "località",
+      "itinerario",
+      "navigatore"
     ],
     "calendar": [
       "calendario",
@@ -696,7 +715,23 @@
       "vacanza",
       "vacanze",
       "ferie",
-      "riunione"
+      "riunione",
+      "oggi",
+      "domani",
+      "ieri",
+      "dopodomani",
+      "settimana",
+      "mese",
+      "anno",
+      "slot libero",
+      "tempo libero",
+      "quando sono libero",
+      "disponibilità",
+      "prossimo evento",
+      "prossimo appuntamento",
+      "cosa ho in programma",
+      "che impegni ho",
+      "imminente"
     ],
     "time": [
       "ora",
@@ -878,6 +913,37 @@
       "segnalibri",
       "preferito",
       "preferiti"
+    ],
+    "news": [
+      "notizie",
+      "news",
+      "evento",
+      "eventi",
+      "mondo",
+      "oggi",
+      "ieri",
+      "successo",
+      "accaduto",
+      "giorno",
+      "settimana",
+      "attualità",
+      "cronaca",
+      "fatto",
+      "fatti",
+      "headline",
+      "bollettino",
+      "rassegna",
+      "stampa",
+      "dammi le notizie",
+      "riassumi",
+      "ultime",
+      "aggiornami",
+      "novità",
+      "quotidiano",
+      "giornale",
+      "informami",
+      "breaking",
+      "notiziario"
     ]
   },
   "tool_names": {
@@ -980,6 +1046,22 @@
     "getidle": {
       "name": "Tempo inattivo",
       "desc": "Tempo di inattivita sistema"
+    },
+    "search_places": {
+      "name": "Cerca luoghi",
+      "desc": "Cerca negozi e luoghi via OpenStreetMap"
+    },
+    "search_nearby": {
+      "name": "Cerca vicino",
+      "desc": "Cerca esercizi commerciali per categoria"
+    },
+    "read_news": {
+      "name": "Leggi notizie",
+      "desc": "Legge eventi mondiali per data"
+    },
+    "read_news_range": {
+      "name": "Intervallo notizie",
+      "desc": "Legge eventi per intervallo date"
     }
   },
   "mcp_down_tooltip": "Server MCP non disponibile",
@@ -998,7 +1080,20 @@
     "error": "Errore",
     "save": "Salva",
     "cancel": "Annulla",
-    "subtitle": "I plugin vengono caricati all'avvio successivo. Le modifiche sono immediate."
+    "subtitle": "I plugin vengono caricati all'avvio successivo. Le modifiche sono immediate.",
+    "remove": "Rimuovi",
+    "remove_confirm": {
+      "title": "Conferma rimozione",
+      "text": "Rimuovere '{name}'? I file del plugin verranno eliminati definitivamente.",
+      "yes": "Sì, rimuovi",
+      "no": "Annulla"
+    },
+    "deps_warning": {
+      "title": "Dipendenze",
+      "text": "'{name}' è richiesto da: {deps}. Disabilitandolo verranno bloccati anche questi plugin.",
+      "disable_anyway": "Disabilita comunque",
+      "cancel": "Annulla"
+    }
   },
   "notification_types": {
     "rss": "RSS",
@@ -1008,6 +1103,36 @@
     "timer": "Timer",
     "agent": "Agente",
     "auth": "Sistema",
+    "script": "Script",
+    "profile": "Profilo",
+    "world_event": "Mondo",
     "other": "Altro"
+  },
+  "sources_editor": {
+    "categories": "Categorie",
+    "language": "Lingua",
+    "sources": "Sorgenti",
+    "description": "Descrizione",
+    "link": "Link",
+    "buttons": {
+      "add": "Aggiungi",
+      "save": "Salva",
+      "delete": "Elimina",
+      "save_file": "Salva File"
+    },
+    "tab": {
+      "online": "Fonti Online",
+      "rss": "Feed RSS"
+    },
+    "feeds": "Feed RSS",
+    "name": "Nome",
+    "url": "URL Feed",
+    "active": "Attivo",
+    "interval": "Controlla ogni",
+    "errors": {
+      "required": "Tutti i campi sono obbligatori.",
+      "invalid_interval": "L'intervallo deve essere un numero intero positivo."
+    },
+    "saved": "File salvato."
   }
 }

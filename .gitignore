@@ -129,3 +129,7 @@ website/
 .scripts/
 genvideo/
 plugins/internal/proactive_agent/log.txt
+plugins/internal/user_profile/log.txt
+plugins/internal/world_events/log.txt
+plugins/external/
+plugins/*/*/settings.ini

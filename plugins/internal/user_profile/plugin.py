@@ -9,6 +9,19 @@ import threading
 import time
 import uuid
 
+_LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log.txt")
+
+
+def _log(msg):
+    ts = time.strftime("%Y-%m-%d %H:%M:%S")
+    line = f"[{ts}] [UserProfile] {msg}"
+    print(line)
+    try:
+        with open(_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except Exception:
+        pass
+
 
 class UserProfilePlugin:
     def __init__(self):
@@ -24,6 +37,12 @@ class UserProfilePlugin:
         cfg = configparser.ConfigParser()
         ini_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "settings.ini")
+        if not os.path.exists(ini_path):
+            example = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "settings.example.ini")
+            if os.path.exists(example):
+                import shutil
+                shutil.copy(example, ini_path)
         if os.path.exists(ini_path):
             cfg.read(ini_path, encoding="utf-8")
         return {
@@ -46,7 +65,7 @@ class UserProfilePlugin:
         try:
             self._sock.connect((self._host, self._port))
         except ConnectionRefusedError:
-            print("[UserProfile] VASS not running. Exiting.")
+            _log(" VASS not running. Exiting.")
             return
 
         hello = json.dumps({
@@ -57,7 +76,7 @@ class UserProfilePlugin:
             "subscribe": manifest["subscriptions"],
         }) + "\n"
         self._sock.sendall(hello.encode("utf-8"))
-        print(f"[UserProfile] Connected to VASS on {self._host}:{self._port}")
+        _log(f" Connected to VASS on {self._host}:{self._port}")
 
         threading.Thread(target=self._profile_loop, daemon=True).start()
 
@@ -73,10 +92,10 @@ class UserProfilePlugin:
                 except socket.timeout:
                     continue
                 except (ConnectionResetError, OSError):
-                    print("[UserProfile] Disconnected. Exiting.")
+                    _log(" Disconnected. Exiting.")
                     break
                 if not data:
-                    print("[UserProfile] Server closed connection. Exiting.")
+                    _log(" Server closed connection. Exiting.")
                     break
                 buf += data
                 while b"\n" in buf:
@@ -91,15 +110,28 @@ class UserProfilePlugin:
         self._sock.close()
 
     def _on_message(self, msg):
-        if msg.get("type") == "error":
-            print(f"[UserProfile] Server error: {msg.get('msg', 'unknown')}")
+        msg_type = msg.get("type", "?")
+        if msg_type != "audio":
+            _log(f" <= received: type={msg_type} rid={msg.get('request_id','-')[:8]}")
+        if msg_type == "error":
+            _log(f" Server error: {msg.get('msg', 'unknown')}")
+        else:
+            self._pending.append(msg)
+            if len(self._pending) > 100:
+                self._pending = self._pending[-50:]
 
     def _profile_loop(self):
+        last_skip = ""
         while self._running:
             try:
-                self._maybe_build_profile()
+                reason = self._maybe_build_profile()
+                if reason and reason != last_skip:
+                    _log(f" {reason}")
+                    last_skip = reason
+                elif reason is None:
+                    last_skip = ""
             except Exception as e:
-                print(f"[UserProfile] Profile loop error: {e}")
+                _log(f" Profile loop error: {e}")
             interval = self._config["interval_min"] * 60
             for _ in range(int(interval)):
                 if not self._running:
@@ -107,8 +139,9 @@ class UserProfilePlugin:
                 time.sleep(1)
 
     def _maybe_build_profile(self):
-        if not self._is_idle():
-            return
+        idle_reason = self._is_idle()
+        if idle_reason:
+            return idle_reason
         profile = self._load_profile()
         last = profile.get("last_updated", "")
         if last:
@@ -117,38 +150,58 @@ class UserProfilePlugin:
                 last_dt = datetime.datetime.strptime(last, "%Y-%m-%d")
                 days = (datetime.date.today() - last_dt.date()).days
                 if days < 1:
-                    return
+                    return f"Skip: already updated today ({last})"
             except Exception:
                 pass
         data = self._collect_data(profile)
         if not data.strip():
-            return
+            return "Skip: no data (memory empty)"
+        _log(f" Data collected: {len(data)} chars, calling AI...")
         new_sections = self._call_ai(data)
         if new_sections:
-            merged = self._merge(profile, new_sections)
-            self._save_profile(merged)
+            if "error" not in new_sections:
+                merged = self._merge(profile, new_sections)
+                self._save_profile(merged)
+                self._send_cmd("notify", {"text": "User profile updated", "priority": 4, "data": {"type": "profile"}})
+                _log(" Profile updated and notification sent")
+            else:
+                _log(f" Skip: AI returned error: {new_sections.get('error')}")
+        else:
+            return "Skip: AI returned no sections (timeout/error/invalid JSON)"
+        return None
+
 
     def _is_idle(self):
         idle = self._send_idle_check()
         if idle is None:
-            return False
+            return "Skip: idle check failed (server unreachable)"
         idle_s = idle["input_idle_seconds"]
         if idle_s < self._config["idle_seconds"]:
-            return False
+            return f"Skip: not idle ({idle_s}s < {self._config['idle_seconds']}s)"
         res = self._send_resource_check()
         if res is None:
-            return False
+            return "Skip: resource check failed"
         cpu = res.get("cpu", -1); ram = res.get("ram", -1)
         gpu = res.get("gpu", -1); vram = res.get("vram", -1)
         if cpu > self._config["cpu_max"]:
-            return False
+            return f"Skip: CPU too high ({cpu:.0f}% > {self._config['cpu_max']}%)"
         if ram > self._config["ram_max"]:
-            return False
+            return f"Skip: RAM too high ({ram:.0f}% > {self._config['ram_max']}%)"
         if gpu >= 0 and gpu > self._config["gpu_max"]:
-            return False
+            return f"Skip: GPU too high ({gpu:.0f}% > {self._config['gpu_max']}%)"
         if vram >= 0 and vram > self._config["vram_max"]:
-            return False
-        return True
+            return f"Skip: VRAM too high ({vram:.0f}% > {self._config['vram_max']}%)"
+        return None
+
+    def _send_cmd(self, cmd, params=None):
+        msg = json.dumps({
+            "type": "cmd", "cmd": cmd, **(params or {})
+        }, ensure_ascii=False) + "\n"
+        with self._sock_lock:
+            try:
+                self._sock.sendall(msg.encode("utf-8"))
+            except Exception as e:
+                _log(f" Send '{cmd}' failed: {e}")
 
     def _send_idle_check(self):
         rid = str(uuid.uuid4())
@@ -165,32 +218,17 @@ class UserProfilePlugin:
             try:
                 self._sock.sendall(msg_str.encode("utf-8"))
             except Exception as e:
-                print(f"[UserProfile] Send failed: {e}")
+                _log(f" Send failed: {e}")
                 return None
-            deadline = time.time() + timeout
-            buf = b""
-            while time.time() < deadline:
-                try:
-                    self._sock.settimeout(1.0)
-                    data = self._sock.recv(4096)
-                except socket.timeout:
-                    continue
-                except Exception:
-                    break
-                if not data:
-                    break
-                buf += data
-                while b"\n" in buf:
-                    line, buf = buf.split(b"\n", 1)
-                    try:
-                        resp = json.loads(line.decode("utf-8"))
-                    except json.JSONDecodeError:
-                        continue
-                    if resp.get("type") == expected_type and resp.get("request_id") == rid:
-                        return resp
-                    self._pending.append(resp)
-            print(f"[UserProfile] {expected_type} timed out")
-            return None
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            for i, resp in enumerate(self._pending):
+                if resp.get("type") == expected_type and resp.get("request_id") == rid:
+                    return self._pending.pop(i)
+            time.sleep(0.1)
+        pending_types = [r.get("type") for r in self._pending[-5:]]
+        _log(f" {expected_type} timed out (pending: {pending_types})")
+        return None
 
     def _collect_data(self, existing_profile):
         root = self._resolve_root()
@@ -209,9 +247,9 @@ class UserProfilePlugin:
                     with open(sf_path, encoding="utf-8") as sf:
                         summary_text = json.load(sf).get("info", "")
                     parts.append(f"Summary:\n{summary_text}")
-                    print(f"[UserProfile] Summary loaded: {len(summary_text)} chars")
+                    _log(f" Summary loaded: {len(summary_text)} chars")
         except Exception as e:
-            print(f"[UserProfile] Error loading memory.json: {e}")
+            _log(f" Error loading memory.json: {e}")
 
         tags_path = os.path.join(root, "Allowed_root", "memory_tags.json")
         try:
@@ -227,9 +265,9 @@ class UserProfilePlugin:
                     if content:
                         lines.append(f"[{src}] [{tags}] {content}")
                 parts.append("Recent external data:\n" + "\n".join(lines))
-                print(f"[UserProfile] External data lines: {len(lines)}")
+                _log(f" External data lines: {len(lines)}")
         except Exception as e:
-            print(f"[UserProfile] Error loading memory_tags.json: {e}")
+            _log(f" Error loading memory_tags.json: {e}")
 
         return "\n\n".join(parts)
 
@@ -258,7 +296,7 @@ class UserProfilePlugin:
             "\"health\": {\"appointments\": [{\"description\": \"ecografia tiroide\", \"date\": \"2026-07-06\"}]}, ...}\n\n"
             f"Data:\n{data[:8000]}"
         )
-        print(f"[UserProfile] Calling AI with {len(data)} chars...")
+        _log(f" Calling AI with {len(data)} chars...")
         return self._send_ai_query(prompt, temperature=0.2, max_tokens=99999)
 
     def _send_ai_query(self, prompt, temperature=0.1, max_tokens=300):

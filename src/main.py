@@ -52,6 +52,7 @@ from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
 from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts, log_exc
+from activity_tracker import get_tracker
 from gui import VassGUI
 from i18n import t
 from script_engine import VASScript
@@ -270,6 +271,7 @@ class VassApp:
         from audio_filter import NoiseFilter
         self.noise_filter = NoiseFilter()
         self.mode = "chat" if self.settings.get("lastmode", "c") == "c" else "transcription"
+        self.gui.set_mode_display(self.mode)
         self.memory_mode = "full"
         self._input_mode = False
 
@@ -516,14 +518,15 @@ class VassApp:
             _debug_log_file = open("log/debug.log", "a", encoding="utf-8")
 
         print(f"VASS v{__version__} - Voice assistant software")
+        self.gui.set_loading_progress(5, 100, "Voice models...")
         self.voice_recognition.load_models()
-        self.set_state("listening")
-        self.running = True
+        self.gui.set_loading_progress(85, 100, "Audio...")
         self.audio_handler.start_stream()
         from utils import get_project_root, list_audio_devices
         inp = self.audio_handler.input_device
         out = self.tts.output_device
         list_audio_devices(resolved_inp=inp, resolved_out=out)
+        self.gui.set_loading_progress(88, 100, "Threads...")
         threading.Thread(target=self._watch_commands_file, daemon=True).start()
         threading.Thread(target=self._watch_settings_file, daemon=True).start()
         threading.Thread(target=self.script_runner.watch_queue, daemon=True).start()
@@ -548,9 +551,14 @@ class VassApp:
             self._file_scanner = FileScanner(self.memory._files_config, self.memory)
             threading.Thread(target=self._file_scanner.run, daemon=True).start()
 
+        self.gui.set_loading_progress(90, 100, "Plugins...")
         from plugin_server import PluginServer
         self._plugin_server = PluginServer(self, port=8765)
         self._plugin_server.start()
+
+        self.gui.set_loading_progress(95, 100, "Ready")
+        self.set_state("listening")
+        self.running = True
 
         self.gui.set_mode_display(self.mode)
         self.gui.update_memory_bar()
@@ -767,7 +775,9 @@ class VassApp:
         days = int(self.settings.get("calendar_sync_days", 7))
         events_path = os.path.join(get_project_root(), "Allowed_root", "events.json")
         try:
+            tracker = get_tracker(); tracker.start("Calendar sync", "sync")
             new_or_changed = gcal.sync_to_vass(events_path, days=days) or []
+            tracker.end("Calendar sync")
             if new_or_changed and self.memory.is_source_enabled("calendar"):
                 for ev in new_or_changed:
                     classify_content = (
@@ -780,7 +790,9 @@ class VassApp:
         while self.running:
             time.sleep(minutes * 60)
             try:
+                tracker = get_tracker(); tracker.start("Calendar sync", "sync")
                 new_or_changed = gcal.sync_to_vass(events_path, days=days) or []
+                tracker.end("Calendar sync")
                 if new_or_changed and self.memory.is_source_enabled("calendar"):
                     for ev in new_or_changed:
                         classify_content = (
@@ -800,14 +812,18 @@ class VassApp:
         seen_path = os.path.join(get_project_root(), "Allowed_root", "gmail_seen.json")
         print(f"[Gmail] Sync started (every {minutes}m, max {max_results} msgs)")
         try:
+            tracker = get_tracker(); tracker.start("Gmail sync", "sync")
             new = gmail.check_new(seen_path, max_results=max_results)
+            tracker.end("Gmail sync")
             self._announce_emails(new)
         except Exception as e:
             print(f"[Gmail] Sync error: {e}")
         while self.running:
             time.sleep(minutes * 60)
             try:
+                tracker = get_tracker(); tracker.start("Gmail sync", "sync")
                 new = gmail.check_new(seen_path, max_results=max_results)
+                tracker.end("Gmail sync")
                 self._announce_emails(new)
             except Exception as e:
                 print(f"[Gmail] Sync error: {e}")
@@ -1043,14 +1059,14 @@ class VassApp:
             return ""
         import sounddevice as sd
         import numpy as np
-        import webrtcvad
+        from audio_handler import SileroVAD, _resolve_vad_model
         self._input_mode = True
         self.audio_handler.stop_stream()
         self.audio_handler.clear_queue()
         try:
             sample_rate = 16000
             frame_size = 320
-            vad = webrtcvad.Vad(2)
+            vad = SileroVAD(_resolve_vad_model(), sample_rate=sample_rate, threshold=0.5)
             recorded = []
             speech_detected = False
             silence_start = None
@@ -1068,9 +1084,8 @@ class VassApp:
                 while time.time() - start < timeout:
                     if recorded:
                         frame = recorded[-1]
-                        audio_int16 = (frame * 32767).astype(np.int16).tobytes()
                         try:
-                            is_speech = vad.is_speech(audio_int16[:frame_size * 2], sample_rate)
+                            is_speech = vad.is_speech(frame)
                         except Exception as ex:
                             print(f"[Listen] VAD error: {ex}")
                             is_speech = False
@@ -1264,6 +1279,7 @@ class VassApp:
             self.set_state("waiting")
 
         self._ai_lock.acquire()
+        tracker = get_tracker(); tracker.start("AI query", "ai")
         try:
             now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
             base = self.system_message or ""
@@ -1608,6 +1624,7 @@ class VassApp:
             self.tts.enqueue(err_msg)
         finally:
             self._ai_lock.release()
+            tracker.end("AI query")
 
     def inject_context(self, text):
         self.context_notes.append(text.strip())

@@ -1,0 +1,10 @@
+{
+  "name": "world_events",
+  "version": "1.0.0",
+  "min_app": "0.7.0",
+  "platform": "*",
+  "description": "Builds structured daily world events digest from RSS feeds and Wikipedia",
+  "description_it": "Costruisce un riassunto giornaliero strutturato degli eventi mondiali da RSS e Wikipedia",
+  "subscriptions": [],
+  "depends_on": ["rss_reader"]
+}

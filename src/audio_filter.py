@@ -4,6 +4,7 @@ Handles non-stationary ambient noise (outdoor, traffic, wind).
 Pure numpy, no external dependencies.
 """
 import numpy as np
+import threading
 
 
 class NoiseFilter:
@@ -11,6 +12,7 @@ class NoiseFilter:
         self.sample_rate = sample_rate
         self.frame_size = frame_size
         self._enabled = True
+        self._lock = threading.Lock()
 
         # Biquad high-pass 80Hz @ 16000Hz (Butterworth 2nd order)
         self._hp_b = np.array([0.96508099, -1.93016197, 0.96508099])
@@ -49,14 +51,15 @@ class NoiseFilter:
         return self._min_buf is not None and self._frame_count >= self._min_window
 
     def reset_calibration(self):
-        self._noise = None
-        self._smooth = None
-        self._min_buf = None
-        self._min_pos = 0
-        self._frame_count = 0
-        self._prev_gamma = None
-        self._prev_gain = None
-        self._hp_z = np.zeros((2,))
+        with self._lock:
+            self._noise = None
+            self._smooth = None
+            self._min_buf = None
+            self._min_pos = 0
+            self._frame_count = 0
+            self._prev_gamma = None
+            self._prev_gain = None
+            self._hp_z = np.zeros((2,))
 
     def process(self, frame, raw_rms=0.0):
         if not self._enabled or not isinstance(frame, np.ndarray):
@@ -67,8 +70,9 @@ class NoiseFilter:
         # Stage 1: High-pass filter
         frame, self._hp_z = _biquad(frame, self._hp_b, self._hp_a, self._hp_z)
 
-        # Stage 2: MCRA + Wiener filter
-        clean = self._filter_frame(frame)
+        # Stage 2: MCRA + Wiener filter (locked against reset_calibration)
+        with self._lock:
+            clean = self._filter_frame(frame)
         return clean if clean is not None else frame.astype(np.float32)
 
     def _filter_frame(self, frame):
@@ -92,7 +96,10 @@ class NoiseFilter:
         self._frame_count += 1
 
         # MCRA: smoothed periodogram
-        self._smooth = self._alpha_s * self._smooth + (1 - self._alpha_s) * mag
+        if self._smooth is None:
+            self._smooth = mag.copy()
+        else:
+            self._smooth = self._alpha_s * self._smooth + (1 - self._alpha_s) * mag
 
         # MCRA: minima tracking via circular buffer
         self._min_buf[self._min_pos] = self._smooth.copy()

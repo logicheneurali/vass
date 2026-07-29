@@ -2,6 +2,7 @@
   "name": "noise_auto_pause",
   "version": "1.0.0",
   "min_app": "0.6.8",
+  "platform": "*",
   "description": "Auto-pause listening when ambient noise is too high",
   "description_it": "Mette in pausa automatica quando il rumore ambientale \u00e8 troppo alto",
   "subscriptions": ["audio", "state"]

@@ -6,6 +6,7 @@ import subprocess
 import numpy as np
 from collections import deque
 from utils import get_project_root, strip_markdown
+from activity_tracker import get_tracker
 
 _KOKORO_LANGS = {
     "it": ("i", "if_sara"),
@@ -87,6 +88,21 @@ class TtsEngine:
             self._speak_queue.append((text, speed, on_done))
             speak_len = len(self._speak_queue)
         self._log(f"enqueue: text='{text[:60]}' speak_queue={speak_len} on_done={on_done is not None}")
+
+    def generate_to_file(self, text, output_path, speed=0.9):
+        """Generate TTS audio and save to WAV file. Returns duration in seconds."""
+        from utils import strip_markdown
+        text = strip_markdown(str(text))
+        result = self._generate_kokoro_audio(text, speed)
+        if result is None:
+            print(f"[TTS] generate_to_file: no audio generated")
+            return 0.0
+        audio_data, sr = result
+        import soundfile as sf
+        sf.write(output_path, audio_data, sr)
+        dur = len(audio_data) / sr
+        print(f"[TTS] generate_to_file: saved to {output_path} ({dur:.1f}s)")
+        return dur
         if text:
             print(f"[TTS] Enqueued: {text[:60]}")
 
@@ -115,7 +131,9 @@ class TtsEngine:
                 continue
             gen = self._gen_seq
             print(f"[TTS] Generating audio: {text[:60]}")
+            tracker = get_tracker(); tracker.start("TTS", "tts")
             result = self._generate_kokoro_audio(text, speed)
+            tracker.end("TTS")
             if gen != self._gen_seq:
                 print(f"[TTS] Discarded stale generation (gen {gen} != {self._gen_seq})")
                 if on_done:

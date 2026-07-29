@@ -14,6 +14,7 @@ import threading
 import time
 from configparser import ConfigParser
 from pathlib import Path
+from activity_tracker import get_tracker
 
 
 class PluginServer(threading.Thread):
@@ -29,6 +30,7 @@ class PluginServer(threading.Thread):
         self._processes = {}        # name -> subprocess.Popen
         self._start_attempts = {}   # name -> count (for retry limit)
         self._lock = threading.Lock()
+        self._ai_semaphore = threading.Semaphore(1)
         self._running = False
         self._plugin_dir = self._resolve_path("plugins")
 
@@ -118,6 +120,8 @@ class PluginServer(threading.Thread):
             try:
                 msg = json.loads(line.decode("utf-8"))
             except json.JSONDecodeError:
+                print(f"[PluginServer] JSON decode failed, len={len(line)} "
+                      f"preview={line[:200]}")
                 self._buffers[sock] = buf
                 return
 
@@ -190,18 +194,11 @@ class PluginServer(threading.Thread):
                     text, priority=msg.get("priority", 5),
                     data=msg.get("data", None))
             elif cmd == "ai_query" and sock:
-                response = self._call_ai(
-                    msg["prompt"],
-                    temperature=msg.get("temperature", 0.1),
-                    max_tokens=msg.get("max_tokens", 300),
-                    extra_body=msg.get("extra_body", None),
-                )
-                reply = json.dumps({
-                    "type": "ai_response",
-                    "request_id": msg.get("request_id", ""),
-                    "response": response,
-                }, ensure_ascii=False) + "\n"
-                sock.sendall(reply.encode("utf-8"))
+                threading.Thread(
+                    target=self._handle_ai_query,
+                    args=(msg, sock),
+                    daemon=True,
+                ).start()
             elif cmd == "idle_check" and sock:
                 if hasattr(self._app, 'idle_tracker') and self._app.idle_tracker:
                     input_idle = self._app.idle_tracker.get_total_idle_seconds()
@@ -290,10 +287,14 @@ class PluginServer(threading.Thread):
     def _call_ai(self, prompt, temperature=0.1, max_tokens=300, extra_body=None):
         """Proxy LLM call for plugins. Blocks until response received."""
         if not self._app or not self._app.openai_client:
+            print(f"[PluginServer] _call_ai: openai_client is None, returning error")
             return json.dumps({"error": "OpenAI client not available"})
         body = {"temperature": temperature, "max_tokens": max_tokens}
         if extra_body:
             body["extra_body"] = extra_body
+        tracker = get_tracker(); tracker.start("Plugin AI", "plugin")
+        t0 = time.time()
+        print(f"[PluginServer] _call_ai: model={self._app.ai_model} url={self._app.ai_url} prompt_len={len(prompt)} max_tokens={max_tokens}")
         try:
             from utils import call_with_retry
             resp = call_with_retry(
@@ -304,10 +305,38 @@ class PluginServer(threading.Thread):
                 ),
                 retries=1, delays=(3,), log_prefix="[PluginServer]"
             )
-            return resp.choices[0].message.content or ""
+            dur = time.time() - t0
+            content = resp.choices[0].message.content or ""
+            print(f"[PluginServer] _call_ai: OK in {dur:.1f}s response_len={len(content)}")
+            return content
         except Exception as e:
-            print(f"[PluginServer] AI call failed: {e}")
+            dur = time.time() - t0
+            print(f"[PluginServer] _call_ai: FAILED in {dur:.1f}s: {e}")
             return json.dumps({"error": str(e)})
+        finally:
+            tracker.end("Plugin AI")
+
+    def _handle_ai_query(self, msg, sock):
+        """Execute an AI query in a background thread so the select loop stays responsive."""
+        with self._ai_semaphore:
+            try:
+                response = self._call_ai(
+                    msg["prompt"],
+                    temperature=msg.get("temperature", 0.1),
+                    max_tokens=msg.get("max_tokens", 300),
+                    extra_body=msg.get("extra_body", None),
+                )
+                reply = json.dumps({
+                    "type": "ai_response",
+                    "request_id": msg.get("request_id", ""),
+                    "response": response,
+                }, ensure_ascii=False) + "\n"
+                try:
+                    sock.sendall(reply.encode("utf-8"))
+                except Exception:
+                    pass
+            except Exception as e:
+                print(f"[PluginServer] _handle_ai_query error: {e}")
 
     # ── Auto-start plugins ──────────────────────────────────────
 
@@ -416,12 +445,20 @@ class PluginServer(threading.Thread):
         self._save_config(config)
 
     def is_plugin_running(self, name):
-        """Check if a plugin has an active client connection."""
+        """Check process liveness AND socket connection."""
+        proc = self._processes.get(name)
+        process_alive = proc is not None and proc.poll() is None
         with self._lock:
-            for info in self._clients.values():
-                if info.get("name") == name:
-                    return True
-        return False
+            socket_alive = any(info.get("name") == name for info in self._clients.values())
+        return process_alive and socket_alive
+
+    def _plugin_process_alive(self, name):
+        proc = self._processes.get(name)
+        return proc is not None and proc.poll() is None
+
+    def _plugin_socket_alive(self, name):
+        with self._lock:
+            return any(info.get("name") == name for info in self._clients.values())
 
     def discover_plugins(self, lang="en"):
         """Scan for all plugins with valid manifests. Returns list of dicts."""
@@ -485,22 +522,36 @@ class PluginServer(threading.Thread):
         for p in discovered:
             name = p["name"]
             enabled = enabled_map.get(name, {}).get("enabled", False)
-            running = self.is_plugin_running(name)
+            process_alive = self._plugin_process_alive(name)
+            socket_alive = self._plugin_socket_alive(name)
             deps_ok, missing_deps = self._check_deps(name)
-            if running:
+
+            if process_alive and socket_alive:
                 status = "running"
+                tooltip_detail = ""
             elif enabled and not deps_ok:
                 status = "blocked"
+                tooltip_detail = ""
+            elif process_alive and not socket_alive:
+                status = "error"
+                tooltip_detail = "socket_missing"
+            elif socket_alive and not process_alive:
+                status = "error"
+                tooltip_detail = "process_missing"
             elif enabled:
                 status = "stopped"
+                tooltip_detail = ""
             else:
                 status = "disabled"
+                tooltip_detail = ""
+
             result.append({
                 **p,
                 "enabled": enabled,
-                "running": running,
+                "running": process_alive and socket_alive,
                 "status": status,
                 "missing_deps": missing_deps,
+                "tooltip_detail": tooltip_detail,
             })
         return result
 
@@ -649,6 +700,9 @@ class PluginServer(threading.Thread):
                             "title": item.get("title", ""),
                             "source": item.get("source", ""),
                             "summary": item.get("summary", "")[:300],
+                            "guid": item.get("guid", ""),
+                            "link": item.get("link", ""),
+                            "pubDate": item.get("pubDate", ""),
                         })
             return items[-limit:]
         except Exception:

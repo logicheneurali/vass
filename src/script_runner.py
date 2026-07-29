@@ -7,6 +7,7 @@ from collections import deque
 import configparser
 
 from i18n import t
+from activity_tracker import get_tracker
 
 
 def _sr_log(app, msg):
@@ -267,7 +268,9 @@ class ScriptRunner:
                 queue._active_engine = engine
                 if params:
                     engine.vars.update(params)
+                tracker = get_tracker(); tracker.start(f"Script: {script_name}", "script")
                 engine.execute(code_text)
+                tracker.end(f"Script: {script_name}")
                 output_vars = {k: v for k, v in engine.vars.items() if not k.startswith("_")}
                 if result_callback:
                     result_callback({"status": "ok", "script": script_name, "vars": output_vars, "message": "Script executed successfully."})

@@ -59,7 +59,8 @@
       "volume": "Volume",
       "script": "Script progress",
       "bytes": "bytes",
-      "lines": "lines"
+      "lines": "lines",
+      "activity": "Activité"
     },
     "memory_mode": {
       "full": "Memoire: Complete",
@@ -308,7 +309,8 @@
       "add": "Ajouter",
       "update": "Mettre à jour",
       "delete": "Supprimer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "save": "Enregistrer"
     },
     "dialog": {
       "error": "Erreur"
@@ -614,7 +616,24 @@
       "blog",
       "google",
       "vérifier",
-      "consulter"
+      "consulter",
+      "pres",
+      "proche",
+      "lieu",
+      "lieux",
+      "endroit",
+      "endroits",
+      "ou",
+      "carte",
+      "cartes",
+      "adresse",
+      "rue",
+      "itinéraire",
+      "naviguer",
+      "position",
+      "lieu",
+      "trajet",
+      "navigation"
     ],
     "calendar": [
       "calendrier",
@@ -694,7 +713,23 @@
       "congés",
       "célébration",
       "célébrations",
-      "assemblée"
+      "assemblée",
+      "aujourd'hui",
+      "demain",
+      "hier",
+      "après-demain",
+      "semaine",
+      "mois",
+      "année",
+      "créneau libre",
+      "temps libre",
+      "quand suis-je libre",
+      "disponibilité",
+      "prochain événement",
+      "prochain rendez-vous",
+      "qu'est-ce que j'ai",
+      "mon agenda",
+      "imminent"
     ],
     "time": [
       "heure",
@@ -871,6 +906,29 @@
       "signets",
       "favori",
       "favoris"
+    ],
+    "news": [
+      "actualites",
+      "nouvelles",
+      "monde",
+      "aujourd'hui",
+      "hier",
+      "semaine",
+      "evenements",
+      "titres",
+      "passe",
+      "bulletin",
+      "rapport",
+      "presse",
+      "donne-moi les nouvelles",
+      "résume",
+      "dernières",
+      "mets-moi à jour",
+      "quoi de neuf",
+      "quotidien",
+      "journal",
+      "informe-moi",
+      "dernière minute"
     ]
   },
   "tool_names": {
@@ -970,6 +1028,22 @@
       "name": "Temps inactif",
       "desc": "Temps inactivite systeme"
     },
+    "search_places": {
+      "name": "Chercher lieux",
+      "desc": "Chercher commerces et lieux via OpenStreetMap"
+    },
+    "search_nearby": {
+      "name": "Proximite",
+      "desc": "Chercher commerces a proximite par categorie"
+    },
+    "read_news": {
+      "name": "Lire actualites",
+      "desc": "Lit evenements mondiaux par date"
+    },
+    "read_news_range": {
+      "name": "Periode actualites",
+      "desc": "Lit evenements sur une periode"
+    },
     "html_to_pdf": {
       "name": "Creer PDF",
       "desc": "Cree un PDF a partir de contenu HTML"
@@ -991,7 +1065,20 @@
     "save": "Enregistrer",
     "cancel": "Annuler",
     "subtitle": "Les plugins sont chargés au prochain démarrage. Les changements sont immédiats.",
-    "blocked": "Bloque"
+    "blocked": "Bloque",
+    "remove": "Supprimer",
+    "remove_confirm": {
+      "title": "Confirmer la suppression",
+      "text": "Supprimer '{name}'? Les fichiers du plugin seront définitivement supprimés.",
+      "yes": "Oui, supprimer",
+      "no": "Annuler"
+    },
+    "deps_warning": {
+      "title": "Dépendances",
+      "text": "'{name}' est requis par: {deps}. Le désactiver bloquera aussi ces plugins.",
+      "disable_anyway": "Désactiver quand même",
+      "cancel": "Annuler"
+    }
   },
   "notification_types": {
     "rss": "RSS",
@@ -1001,6 +1088,36 @@
     "timer": "Minuteurs",
     "agent": "Agent",
     "auth": "Systeme",
+    "script": "Scripts",
+    "profile": "Profil",
+    "world_event": "Monde",
     "other": "Autre"
+  },
+  "sources_editor": {
+    "categories": "Catégories",
+    "language": "Langue",
+    "sources": "Sources",
+    "description": "Description",
+    "link": "Lien",
+    "buttons": {
+      "add": "Ajouter",
+      "save": "Enregistrer",
+      "delete": "Supprimer",
+      "save_file": "Enregistrer fichier"
+    },
+    "tab": {
+      "online": "Sources en ligne",
+      "rss": "Flux RSS"
+    },
+    "feeds": "Flux RSS",
+    "name": "Nom",
+    "url": "URL Flux",
+    "active": "Actif",
+    "interval": "Vérifier tous les",
+    "errors": {
+      "required": "Tous les champs sont obligatoires.",
+      "invalid_interval": "L'intervalle doit être un entier positif."
+    },
+    "saved": "Fichier enregistré."
   }
 }

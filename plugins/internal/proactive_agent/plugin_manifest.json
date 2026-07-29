@@ -2,6 +2,7 @@
   "name": "proactive_agent",
   "version": "1.0.0",
   "min_app": "0.6.8",
+  "platform": "*",
   "depends_on": ["user_profile"],
   "description": "Analyzes user profile and performs proactive actions (notify, say) when idle",
   "description_it": "Analizza il profilo utente ed esegue azioni proattive (notifiche, voce) quando in idle",

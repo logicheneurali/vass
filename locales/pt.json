@@ -59,7 +59,8 @@
       "volume": "Volume",
       "script": "Script progress",
       "bytes": "bytes",
-      "lines": "lines"
+      "lines": "lines",
+      "activity": "Atividade"
     },
     "memory_mode": {
       "full": "Memoria: Completa",
@@ -308,7 +309,8 @@
       "add": "Adicionar",
       "update": "Atualizar",
       "delete": "Excluir",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "save": "Salvar"
     },
     "dialog": {
       "error": "Erro"
@@ -614,7 +616,24 @@
       "blog",
       "google",
       "verificar",
-      "consultar"
+      "consultar",
+      "perto",
+      "proximo",
+      "local",
+      "locais",
+      "lugar",
+      "lugares",
+      "onde",
+      "mapa",
+      "mapas",
+      "endereço",
+      "rua",
+      "rota",
+      "navegar",
+      "posição",
+      "localização",
+      "itinerário",
+      "navegação"
     ],
     "calendar": [
       "calendário",
@@ -695,7 +714,23 @@
       "feriados",
       "celebração",
       "celebrações",
-      "assembleia"
+      "assembleia",
+      "hoje",
+      "amanhã",
+      "ontem",
+      "depois de amanhã",
+      "semana",
+      "mês",
+      "ano",
+      "horário livre",
+      "tempo livre",
+      "quando estou livre",
+      "disponibilidade",
+      "próximo evento",
+      "próximo",
+      "o que tenho",
+      "minha agenda",
+      "iminente"
     ],
     "time": [
       "hora",
@@ -872,6 +907,29 @@
       "favoritos",
       "marcar",
       "marcador"
+    ],
+    "news": [
+      "noticias",
+      "eventos",
+      "mundo",
+      "hoje",
+      "ontem",
+      "semana",
+      "manchetes",
+      "aconteceu",
+      "boletim",
+      "relatorio",
+      "imprensa",
+      "atualidades",
+      "me dê as notícias",
+      "resuma",
+      "últimas",
+      "atualize-me",
+      "o que há de novo",
+      "diário",
+      "jornal",
+      "informe-me",
+      "urgente"
     ]
   },
   "tool_names": {
@@ -971,6 +1029,22 @@
       "name": "Tempo ocioso",
       "desc": "Tempo ocioso sistema"
     },
+    "search_places": {
+      "name": "Buscar lugares",
+      "desc": "Buscar lojas e lugares via OpenStreetMap"
+    },
+    "search_nearby": {
+      "name": "Proximos",
+      "desc": "Buscar comercios proximos por categoria"
+    },
+    "read_news": {
+      "name": "Ler noticias",
+      "desc": "Le eventos mundiais por data"
+    },
+    "read_news_range": {
+      "name": "Periodo noticias",
+      "desc": "Le eventos em periodo"
+    },
     "html_to_pdf": {
       "name": "Criar PDF",
       "desc": "Cria um PDF a partir de conteudo HTML"
@@ -992,7 +1066,20 @@
     "save": "Salvar",
     "cancel": "Cancelar",
     "subtitle": "Os plugins sao carregados na proxima inicializacao. As alteracoes sao imediatas.",
-    "blocked": "Bloqueado"
+    "blocked": "Bloqueado",
+    "remove": "Remover",
+    "remove_confirm": {
+      "title": "Confirmar remoção",
+      "text": "Remover '{name}'? Os arquivos do plugin serão permanentemente excluídos.",
+      "yes": "Sim, remover",
+      "no": "Cancelar"
+    },
+    "deps_warning": {
+      "title": "Dependências",
+      "text": "'{name}' é necessário para: {deps}. Desabilitá-lo também bloqueará estes plugins.",
+      "disable_anyway": "Desabilitar mesmo assim",
+      "cancel": "Cancelar"
+    }
   },
   "notification_types": {
     "rss": "RSS",
@@ -1002,6 +1089,36 @@
     "timer": "Temporizadores",
     "agent": "Agente",
     "auth": "Sistema",
+    "script": "Scripts",
+    "profile": "Perfil",
+    "world_event": "Mundo",
     "other": "Outro"
+  },
+  "sources_editor": {
+    "categories": "Categorias",
+    "language": "Idioma",
+    "sources": "Fontes",
+    "description": "Descrição",
+    "link": "Link",
+    "buttons": {
+      "add": "Adicionar",
+      "save": "Salvar",
+      "delete": "Excluir",
+      "save_file": "Salvar arquivo"
+    },
+    "tab": {
+      "online": "Fontes online",
+      "rss": "Feeds RSS"
+    },
+    "feeds": "Feeds RSS",
+    "name": "Nome",
+    "url": "URL Feed",
+    "active": "Ativo",
+    "interval": "Verificar a cada",
+    "errors": {
+      "required": "Todos os campos são obrigatórios.",
+      "invalid_interval": "O intervalo deve ser um número inteiro positivo."
+    },
+    "saved": "Arquivo salvo."
   }
 }

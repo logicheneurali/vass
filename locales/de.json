@@ -59,7 +59,8 @@
       "volume": "Volume",
       "script": "Script progress",
       "bytes": "bytes",
-      "lines": "lines"
+      "lines": "lines",
+      "activity": "Aktivität"
     },
     "memory_mode": {
       "full": "Speicher: Voll",
@@ -308,7 +309,8 @@
       "add": "Hinzufügen",
       "update": "Aktualisieren",
       "delete": "Löschen",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "save": "Speichern"
     },
     "dialog": {
       "error": "Fehler"
@@ -613,7 +615,24 @@
       "blog",
       "google",
       "prüfen",
-      "nachschlagen"
+      "nachschlagen",
+      "nah",
+      "nahe",
+      "ort",
+      "orte",
+      "platz",
+      "platze",
+      "wo",
+      "karte",
+      "karten",
+      "adresse",
+      "straße",
+      "navigieren",
+      "position",
+      "standort",
+      "route",
+      "navigation",
+      "wegbeschreibung"
     ],
     "calendar": [
       "kalender",
@@ -693,7 +712,23 @@
       "urlaub",
       "feiertag",
       "feiertage",
-      "versammlung"
+      "versammlung",
+      "heute",
+      "morgen",
+      "gestern",
+      "übermorgen",
+      "woche",
+      "monat",
+      "jahr",
+      "freier termin",
+      "freie zeit",
+      "wann bin ich frei",
+      "verfügbarkeit",
+      "nächstes ereignis",
+      "nächster termin",
+      "was steht an",
+      "meine agenda",
+      "bevorstehend"
     ],
     "time": [
       "uhr",
@@ -868,6 +903,30 @@
       "favorit",
       "favoriten",
       "markieren"
+    ],
+    "news": [
+      "nachrichten",
+      "ereignisse",
+      "welt",
+      "heute",
+      "gestern",
+      "woche",
+      "schlagzeilen",
+      "passiert",
+      "aktuell",
+      "bericht",
+      "meldung",
+      "presse",
+      "gib mir nachrichten",
+      "fass zusammen",
+      "neueste",
+      "aktualisiere mich",
+      "was gibt's neues",
+      "täglich",
+      "zeitung",
+      "informiere mich",
+      "eilmeldung",
+      "nachrichtenbulletin"
     ]
   },
   "tool_names": {
@@ -967,6 +1026,22 @@
       "name": "Leerlaufzeit",
       "desc": "System Leerlaufzeit"
     },
+    "search_places": {
+      "name": "Orte suchen",
+      "desc": "Gesafte und Orte via OpenStreetMap"
+    },
+    "search_nearby": {
+      "name": "In der Nahe",
+      "desc": "Gesafte in der Nahe nach Kategorie"
+    },
+    "read_news": {
+      "name": "Nachrichten lesen",
+      "desc": "Liest Weltereignisse fur ein Datum"
+    },
+    "read_news_range": {
+      "name": "Nachrichten Zeitraum",
+      "desc": "Liest Ereignisse im Zeitraum"
+    },
     "html_to_pdf": {
       "name": "PDF erstellen",
       "desc": "Erstellt ein PDF aus HTML-Inhalt"
@@ -988,7 +1063,20 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "subtitle": "Plugins werden beim naechsten Start geladen. Aenderungen sind sofort wirksam.",
-    "blocked": "Blockiert"
+    "blocked": "Blockiert",
+    "remove": "Entfernen",
+    "remove_confirm": {
+      "title": "Entfernung bestätigen",
+      "text": "'{name}' entfernen? Die Plugin-Dateien werden dauerhaft gelöscht.",
+      "yes": "Ja, entfernen",
+      "no": "Abbrechen"
+    },
+    "deps_warning": {
+      "title": "Abhängigkeiten",
+      "text": "'{name}' wird benötigt von: {deps}. Deaktivieren blockiert auch diese Plugins.",
+      "disable_anyway": "Trotzdem deaktivieren",
+      "cancel": "Abbrechen"
+    }
   },
   "notification_types": {
     "rss": "RSS",
@@ -998,6 +1086,36 @@
     "timer": "Timer",
     "agent": "Agent",
     "auth": "System",
+    "script": "Skripte",
+    "profile": "Profil",
+    "world_event": "Welt",
     "other": "Andere"
+  },
+  "sources_editor": {
+    "categories": "Kategorien",
+    "language": "Sprache",
+    "sources": "Quellen",
+    "description": "Beschreibung",
+    "link": "Link",
+    "buttons": {
+      "add": "Hinzufügen",
+      "save": "Speichern",
+      "delete": "Löschen",
+      "save_file": "Datei speichern"
+    },
+    "tab": {
+      "online": "Online-Quellen",
+      "rss": "RSS-Feeds"
+    },
+    "feeds": "RSS-Feeds",
+    "name": "Name",
+    "url": "URL Feed",
+    "active": "Aktiv",
+    "interval": "Prüfen alle",
+    "errors": {
+      "required": "Alle Felder sind erforderlich.",
+      "invalid_interval": "Intervall muss eine positive Ganzzahl sein."
+    },
+    "saved": "Datei gespeichert."
   }
 }

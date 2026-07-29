@@ -1015,6 +1015,7 @@ def copy_tree_filtered(src: Path, dst: Path):
         "config/settings.ini",
         "bump.py",
         "google_client_secret.json",
+        "plugins/internal/proactive_agent/log.txt",
     }
     copied = 0
     total = 0
