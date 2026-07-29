@@ -160,7 +160,7 @@ class WorldEventsPlugin:
 
         rss_items = self._fetch_rss_items()
         if rss_items:
-            new_items = self._filter_new_items(rss_items, data)
+            new_items, _ = self._filter_new_items(rss_items, data)
             if not new_items:
                 _log(" No new RSS items today")
             else:
