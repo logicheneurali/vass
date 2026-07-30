@@ -10,7 +10,8 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
     QLineEdit, QSpacerItem, QSizePolicy, QDialog,
-    QFrame, QScrollArea, QSlider, QCheckBox, QComboBox, QTextEdit,
+    QFrame, QScrollArea, QSlider, QCheckBox, QComboBox, QTextEdit, QTextBrowser,
+    QAbstractScrollArea,
     QProgressBar,
 )
 from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, ENTRY_BG, DESCRIPTION_FG, FRAME_BORDER, FG
@@ -848,14 +849,26 @@ class InfoPanel(QFrame):
             c_layout = QVBoxLayout(container)
             c_layout.setContentsMargins(4, 3, 4, 3)
             c_layout.setSpacing(1)
-            text_lbl = QLabel(text)
-            text_lbl.setWordWrap(True)
-            text_lbl.setStyleSheet(f"color: #aaa; font-size: {self._fs(11)}px; background: transparent;"
-                                   "padding: 4px; border: 1px solid #16213e; border-radius: 3px;")
-            text_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
-            text_lbl.setToolTip(self._t("gui.click_to_copy"))
-            text_lbl.mousePressEvent = lambda e, t=text: (self._reset_timer(), self._copy_text(t))
-            c_layout.addWidget(text_lbl)
+            browser = QTextBrowser()
+            browser.setMarkdown(text)
+            browser.setOpenExternalLinks(True)
+            browser.setReadOnly(True)
+            browser.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            browser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            browser.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
+            browser.setStyleSheet(
+                f"color: #aaa; font-size: {self._fs(11)}px; background: transparent; "
+                "padding: 4px; border: 1px solid #16213e; border-radius: 3px; "
+                "selection-background-color: #1a5276; "
+                "QScrollBar { width: 0px; }"
+            )
+            browser.document().setDocumentMargin(0)
+            browser.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+            browser.setToolTip(self._t("gui.click_to_copy"))
+            browser.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.TextSelectableByKeyboard
+            )
+            c_layout.addWidget(browser)
             self._scroll_layout.addWidget(container)
             last = container
         self._scroll_layout.addStretch()
