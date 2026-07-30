@@ -704,7 +704,8 @@ class PluginServer(threading.Thread):
                             "link": item.get("link", ""),
                             "pubDate": item.get("pubDate", ""),
                         })
-            return items[-limit:]
+            items.sort(key=lambda x: x.get("pubDate", ""), reverse=True)
+            return items[:limit]
         except Exception:
             return []
 

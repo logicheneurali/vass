@@ -653,7 +653,7 @@ class WorldEventsPlugin:
             return
 
         self._send_cmd("notify", {
-            "text": summary[:500],
+            "text": summary,
             "priority": 5,
             "data": {"type": "world_event"},
         })
