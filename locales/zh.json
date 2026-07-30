@@ -69,6 +69,7 @@
     },
     "button_tooltip": "点击 = 更改状态 | 滚轮 = 音量 | 中键 = 退出 | 拖动 = 移动",
     "chat_tooltip": "输入消息给AI",
+    "mic_btn_tooltip": "语音消息发送给AI",
     "chat_placeholder": "在此输入并按回车...",
     "notifications": "通知",
     "mark_read": "全部标记为已读",

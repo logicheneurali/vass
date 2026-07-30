@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QTextCharFormat, QColor, QFont, QPen, QPalette
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
+from icons import icon
 
 STYLESHEET = BASE_STYLESHEET + f"""
 QSpinBox {{
@@ -217,7 +218,8 @@ class EventsEditor(QMainWindow):
                 wr.addWidget(lbl)
                 wr.addStretch()
                 if orig_date:
-                    lnk = QPushButton("\u2197")
+                    lnk = QPushButton()
+                    lnk.setIcon(icon("arrow-up-right", "#e0e0e0", 12))
                     lnk.setFixedSize(20, 18)
                     lnk.setFlat(True)
                     lnk.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -369,7 +371,8 @@ class EventsEditor(QMainWindow):
         self.cmd_edit.setPlaceholderText("python")
         self.cmd_edit.textChanged.connect(self._on_cmd_changed)
         row_cmd.addWidget(self.cmd_edit)
-        self._btn_cmd_browse = QPushButton("...")
+        self._btn_cmd_browse = QPushButton()
+        self._btn_cmd_browse.setIcon(icon("folder-open", "#e0e0e0", 14))
         self._btn_cmd_browse.setFixedWidth(28)
         self._btn_cmd_browse.clicked.connect(self._browse_command)
         row_cmd.addWidget(self._btn_cmd_browse)
@@ -386,7 +389,8 @@ class EventsEditor(QMainWindow):
         self.workdir_edit = QLineEdit()
         self.workdir_edit.setPlaceholderText("C:\\...")
         row3.addWidget(self.workdir_edit)
-        self._btn_wd_browse = QPushButton("...")
+        self._btn_wd_browse = QPushButton()
+        self._btn_wd_browse.setIcon(icon("folder-open", "#e0e0e0", 14))
         self._btn_wd_browse.setFixedWidth(28)
         self._btn_wd_browse.clicked.connect(self._browse_workdir)
         row3.addWidget(self._btn_wd_browse)

@@ -69,6 +69,7 @@
     },
     "button_tooltip": "클릭 = 상태 변경 | 휠 = 볼륨 | 가운데 버튼 = 종료 | 드래그 = 이동",
     "chat_tooltip": "AI에게 메시지 입력",
+    "mic_btn_tooltip": "AI 음성 메시지",
     "chat_placeholder": "여기에 입력하고 Enter...",
     "notifications": "알림",
     "mark_read": "모두 읽음으로 표시",

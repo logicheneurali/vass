@@ -4,18 +4,18 @@ import sys
 import time
 from utils import get_project_root
 
-from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal, QPoint
+from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal, QPoint, QSize
 from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QIcon, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
     QLineEdit, QSpacerItem, QSizePolicy, QDialog,
-    QFrame, QScrollArea, QSlider, QCheckBox, QComboBox, QTextEdit, QTextBrowser,
-    QAbstractScrollArea,
+    QFrame, QScrollArea, QSlider, QCheckBox, QComboBox, QTextEdit,
     QProgressBar,
 )
 from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, ENTRY_BG, DESCRIPTION_FG, FRAME_BORDER, FG
 from activity_tracker import get_tracker, CATEGORY_COLORS
+from icons import icon, icon_dual, pixmap
 
 BASE = get_project_root()
 SRC = os.path.join(BASE, "src")
@@ -480,10 +480,10 @@ class InfoPanel(QFrame):
     """Floating panel: dynamic tabs for notifications by type, AI links, AI responses."""
 
     _TYPE_ICONS = {
-        "rss": "\U0001f4f0", "timer": "\u23f0", "event": "\U0001f4c5",
-        "schedule": "\U0001f4cb", "mail": "\U0001f4e7", "auth": "\U0001f511",
-        "script": "\U0001f4dc", "agent": "\U0001f916",
-        "profile": "\U0001f9d1", "world_event": "\U0001f30d",
+        "rss": "rss", "timer": "clock", "event": "calendar",
+        "schedule": "clipboard-list", "mail": "mail", "auth": "key",
+        "script": "scroll-text", "agent": "bot",
+        "profile": "user", "world_event": "globe",
     }
 
     def __init__(self, parent=None):
@@ -518,18 +518,21 @@ class InfoPanel(QFrame):
         self._tab_buttons = {}
 
         self._overflow_menu = QMenu()
-        self._overflow_btn = QPushButton("+")
+        self._overflow_btn = QPushButton()
+        self._overflow_btn.setIcon(icon("plus", "#888", 14))
         self._overflow_btn.setFixedSize(20, 20)
         self._overflow_btn.setStyleSheet(
             "QPushButton { background: transparent; color: #888; border: none; "
             "font-size: 14px; font-weight: bold; }"
             "QPushButton:hover { color: #e0e0e0; }")
         self._overflow_btn.setMenu(self._overflow_menu)
+        self._overflow_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._overflow_btn.hide()
         self._tab_row.addWidget(self._overflow_btn)
 
         self._tab_row.addStretch()
-        self._expand_btn = QPushButton("\u2194")
+        self._expand_btn = QPushButton()
+        self._expand_btn.setIcon(icon("maximize-2", "#888", 14))
         self._expand_btn.setFixedSize(20, 20)
         self._expand_btn.setStyleSheet(
             "QPushButton { background: transparent; color: #888; border: none; "
@@ -537,10 +540,13 @@ class InfoPanel(QFrame):
             "QPushButton:hover { color: #e0e0e0; }"
         )
         self._expand_btn.setToolTip("Expand")
+        self._expand_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._expand_btn.clicked.connect(self._toggle_expand)
         self._tab_row.addWidget(self._expand_btn)
-        close_btn = QPushButton("x")
+        close_btn = QPushButton()
+        close_btn.setIcon(icon_dual("x", "#888", "#e94560", 14))
         close_btn.setFixedSize(20, 20)
+        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setStyleSheet(
             "QPushButton { background: transparent; color: #888; border: none; "
             "font-size: 14px; font-weight: bold; }"
@@ -608,25 +614,28 @@ class InfoPanel(QFrame):
 
         # Build ordered list: all first, then special tabs, then type tabs by unread count
         all_label = self._t("gui.all_notifications")
-        ordered = [("all", "all", all_label if self._expanded else "\U0001f4cb", all_label)]
+        ordered = [("all", "all", "clipboard-list",
+                    all_label if self._expanded else "", all_label)]
 
         if self._links:
             links_label = self._t("gui.links")
-            ordered.append(("links", "links", links_label if self._expanded else "\U0001f517", links_label))
+            ordered.append(("links", "links", "link",
+                           links_label if self._expanded else "", links_label))
         if self._ai_responses:
             ai_label = self._t("gui.ai_responses")
-            ordered.append(("ai", "ai", ai_label if self._expanded else "\U0001f4ac", ai_label))
+            ordered.append(("ai", "ai", "message-circle",
+                           ai_label if self._expanded else "", ai_label))
 
         for t in sorted(type_counts, key=lambda t: -type_counts[t]):
-            icon = self._TYPE_ICONS.get(t, "\U0001f514")
+            icon_name = self._TYPE_ICONS.get(t, "bell")
             count = type_counts[t]
             label = self._t(f"notification_types.{t}")
             badge = f"({count})" if count > 0 else ""
             if self._expanded:
-                full_label = f"{icon} {label} {badge}".strip()
+                display_text = f"{label} {badge}".strip()
             else:
-                full_label = f"{icon}{badge}" if badge else icon
-            ordered.append((t, t, full_label, f"{icon} {label}"))
+                display_text = badge if badge else ""
+            ordered.append((t, t, icon_name, display_text, label))
 
         # Calculate available width based on parent window geometry
         if self._parent_window:
@@ -636,11 +645,13 @@ class InfoPanel(QFrame):
             panel_w = 275
         available = panel_w - 60  # expand + close + overflow + margins
 
-        for t_id, t_type, display_text, tooltip_text in ordered:
+        for t_id, t_type, icon_name, display_text, tooltip_text in ordered:
             btn = QPushButton(display_text)
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setToolTip(tooltip_text)
+            btn.setIcon(icon(icon_name, "#e94560" if t_type == active_tab else "#888", 12))
+            btn.setIconSize(QSize(12, 12))
             btn.clicked.connect(lambda checked=None, tab=t_type: self._switch_tab(tab))
             btn.setStyleSheet(self._tab_style(t_type == active_tab))
             btn_w = btn.sizeHint().width() + 8
@@ -653,7 +664,7 @@ class InfoPanel(QFrame):
                 self._tab_row.insertWidget(0, btn)
             else:
                 self._overflow_btn.show()
-                action = self._overflow_menu.addAction(label)
+                action = self._overflow_menu.addAction(tooltip_text)
                 action.triggered.connect(lambda checked=None, tab=t_type: self._switch_tab(tab))
 
     def _switch_tab(self, tab):
@@ -762,7 +773,7 @@ class InfoPanel(QFrame):
             self._scroll_layout.addWidget(lbl)
             return
         for n in notifs:
-            icon = self._TYPE_ICONS.get(n.get("data", {}).get("type", ""), "\U0001f514")
+            icon_name = self._TYPE_ICONS.get(n.get("data", {}).get("type", ""), "bell")
             dot = "\u25cf" if not n.get("read", False) else "\u25cb"
             prio = n.get("priority", 1)
             if prio >= 8:
@@ -782,8 +793,9 @@ class InfoPanel(QFrame):
             dot_lbl.setStyleSheet(f"color: {dot_color}; font-size: {self._fs(10)}px; background: transparent;")
             dot_lbl.setFixedWidth(14)
             top_row.addWidget(dot_lbl)
-            icon_lbl = QLabel(icon)
-            icon_lbl.setStyleSheet(f"font-size: {self._fs(12)}px; background: transparent;")
+            icon_lbl = QLabel()
+            icon_lbl.setPixmap(pixmap(icon_name, "#aaaaaa", 16))
+            icon_lbl.setStyleSheet("background: transparent;")
             icon_lbl.setFixedWidth(22)
             top_row.addWidget(icon_lbl)
             ts_lbl = QLabel(n.get("ts", ""))
@@ -849,26 +861,14 @@ class InfoPanel(QFrame):
             c_layout = QVBoxLayout(container)
             c_layout.setContentsMargins(4, 3, 4, 3)
             c_layout.setSpacing(1)
-            browser = QTextBrowser()
-            browser.setMarkdown(text)
-            browser.setOpenExternalLinks(True)
-            browser.setReadOnly(True)
-            browser.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            browser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            browser.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
-            browser.setStyleSheet(
-                f"color: #aaa; font-size: {self._fs(11)}px; background: transparent; "
-                "padding: 4px; border: 1px solid #16213e; border-radius: 3px; "
-                "selection-background-color: #1a5276; "
-                "QScrollBar { width: 0px; }"
-            )
-            browser.document().setDocumentMargin(0)
-            browser.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
-            browser.setToolTip(self._t("gui.click_to_copy"))
-            browser.setTextInteractionFlags(
-                Qt.TextInteractionFlag.TextBrowserInteraction | Qt.TextInteractionFlag.TextSelectableByKeyboard
-            )
-            c_layout.addWidget(browser)
+            text_lbl = QLabel(text)
+            text_lbl.setWordWrap(True)
+            text_lbl.setStyleSheet(f"color: #aaa; font-size: {self._fs(11)}px; background: transparent;"
+                                   "padding: 4px; border: 1px solid #16213e; border-radius: 3px;")
+            text_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+            text_lbl.setToolTip(self._t("gui.click_to_copy"))
+            text_lbl.mousePressEvent = lambda e, t=text: (self._reset_timer(), self._copy_text(t))
+            c_layout.addWidget(text_lbl)
             self._scroll_layout.addWidget(container)
             last = container
         self._scroll_layout.addStretch()
@@ -957,6 +957,7 @@ class VassGUI(QMainWindow):
     volume_signal = Signal(float)
     noise_floor_signal = Signal(float, float)  # gain, raw_noise
     chat_text_signal = Signal(str)
+    mic_pressed = Signal()
     tool_indicator_signal = Signal(str, str)
     compact_mode_signal = Signal(bool)
     debug_border_signal = Signal()
@@ -1046,15 +1047,17 @@ class VassGUI(QMainWindow):
         self._left_side = []
         self._right_side = []
 
-        self._bell_btn = QPushButton("0")
+        self._bell_btn = QPushButton()
+        self._bell_btn.setIcon(icon("bell", "#3f3f3f", 16))
         self._bell_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #3f3f3f; "
             "border: none; font-size: 10px; padding: 2px 4px; }"
-            "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+            "QPushButton:hover { color: #dddddd; }"
         )
         self._bell_btn.setFixedWidth(35)
         self._bell_btn.setToolTip(self._t("gui.notifications"))
         self._bell_btn.clicked.connect(lambda: self._show_info_panel("all"))
+        self._bell_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         row.addWidget(self._bell_btn)
         self._left_side.append(self._bell_btn)
 
@@ -1065,33 +1068,51 @@ class VassGUI(QMainWindow):
         row.addWidget(self._tool_indicator)
         self._left_side.append(self._tool_indicator)
 
+        self._mic_btn = QPushButton()
+        self._mic_btn.setIcon(icon("mic", "#f1c40f", 16))
+        self._mic_btn.setFixedSize(22, 22)
+        self._mic_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #f1c40f; border: none; }"
+            "QPushButton:hover { color: #f9e79f; }"
+        )
+        self._mic_btn.setVisible(False)
+        self._mic_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._mic_btn.setToolTip(self._t("gui.mic_btn_tooltip"))
+        self._mic_btn.clicked.connect(lambda: self.mic_pressed.emit())
+        row.addWidget(self._mic_btn)
+        self._left_side.append(self._mic_btn)
+
         row.addSpacerItem(self._left_spacer)
         row.addWidget(self.stacked)
         row.addSpacerItem(self._right_spacer)
 
-        self.replay_btn = QPushButton("\u21bb")
+        self.replay_btn = QPushButton()
+        self.replay_btn.setIcon(icon("refresh-cw", "#ffffff", 16))
         self.replay_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #ffffff; "
-            "border: none; font-size: 10px; padding: 2px; }"
-            "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+            "border: none; padding: 2px; }"
+            "QPushButton:hover { color: #dddddd; }"
         )
-        self.replay_btn.setFixedWidth(16)
+        self.replay_btn.setFixedWidth(22)
         self.replay_btn.setVisible(False)
         self.replay_btn.clicked.connect(self._on_replay)
         self.replay_btn._right_click_cb = self.open_history
         self.replay_btn.mousePressEvent = self._replay_btn_press
+        self.replay_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         row.addWidget(self.replay_btn)
         self._right_side.append(self.replay_btn)
 
         # Menu button with popup
         # Right-side widget — automatically balanced by _rebalance_spacers()
-        self._menu_btn = QPushButton("\u2630")
+        self._menu_btn = QPushButton()
+        self._menu_btn.setIcon(icon("menu", "#ffffff", 16))
         self._menu_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #888888; "
-            "border: none; font-size: 10px; padding: 2px; }"
-            "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+            "border: none; padding: 2px; }"
+            "QPushButton:hover { color: #dddddd; }"
         )
-        self._menu_btn.setFixedWidth(16)
+        self._menu_btn.setFixedWidth(22)
+        self._menu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._menu = QMenu()
         self._menu.setStyleSheet(
             "QMenu { background-color: #2d2d2d; color: #e0e0e0; "
@@ -1142,15 +1163,16 @@ class VassGUI(QMainWindow):
         row.addWidget(self._menu_btn)
         self._right_side.append(self._menu_btn)
 
-        self._chat_btn = QPushButton("\u2726")
+        self._chat_btn = QPushButton()
+        self._chat_btn.setIcon(icon("sparkles", "#ffffff", 16))
         self._chat_btn.setStyleSheet(
-            "QPushButton { background-color: transparent; color: #888888; "
-            "border: none; font-size: 10px; padding: 2px; }"
-            "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
-            "QPushButton:checked { background-color: transparent; color: #0d7377; }"
+            "QPushButton { background-color: transparent; color: #ffffff; "
+            "border: none; padding: 2px; }"
+            "QPushButton:hover { color: #dddddd; }"
         )
-        self._chat_btn.setFixedWidth(16)
+        self._chat_btn.setFixedWidth(22)
         self._chat_btn.setCheckable(True)
+        self._chat_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._chat_btn.setVisible(False)
         self._chat_btn.setToolTip(self._t("gui.chat_tooltip"))
         self._chat_btn.clicked.connect(self._toggle_chat_input)
@@ -1171,8 +1193,7 @@ class VassGUI(QMainWindow):
         self._chat_input.returnPressed.connect(self._send_chat_text)
         row.addWidget(self._chat_input, 1)
 
-        self._chat_original_width = None
-        self._chat_original_x = None
+        self._chat_normal_geo = None
 
         outer.addLayout(row)
 
@@ -1552,10 +1573,12 @@ class VassGUI(QMainWindow):
             if state == "listening":
                 path = os.path.join(BASE, "Allowed_root", "last_response.txt")
                 self.replay_btn.setVisible(os.path.exists(path) and os.path.getsize(path) > 0)
-                self._chat_btn.setVisible(True)
+                self._chat_btn.setVisible(self._current_mode != "transcription")
+                self._mic_btn.setVisible(self._current_mode == "chat")
             else:
                 self.replay_btn.setVisible(False)
                 self._chat_btn.setVisible(False)
+                self._mic_btn.setVisible(False)
                 if self._chat_btn.isChecked():
                     self._collapse_chat()
             self._rebalance_spacers()
@@ -1675,18 +1698,20 @@ class VassGUI(QMainWindow):
                     if p > max_priority:
                         max_priority = p
             color = self.app.notification_manager.color_for(max_priority)
+            self._bell_btn.setIcon(icon("bell", color, 16))
             self._bell_btn.setText(str(count))
             self._bell_btn.setStyleSheet(
                 f"QPushButton {{ background-color: transparent; color: {color}; "
                 "border: none; font-size: 10px; padding: 2px 4px; font-weight: bold; }"
-                "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+                f"QPushButton:hover {{ color: #dddddd; }}"
             )
         else:
+            self._bell_btn.setIcon(icon("bell", "#3f3f3f", 16))
             self._bell_btn.setText("0")
             self._bell_btn.setStyleSheet(
                 "QPushButton { background-color: transparent; color: #3f3f3f; "
                 "border: none; font-size: 10px; padding: 2px 4px; }"
-                "QPushButton:hover { background-color: #3d3d3d; color: #dddddd; }"
+                "QPushButton:hover { color: #dddddd; }"
             )
 
     def _replay_btn_press(self, event):
@@ -1708,7 +1733,7 @@ class VassGUI(QMainWindow):
                 pass
 
     def _collapse_chat(self):
-        should_restore = self._chat_original_width is not None
+        should_restore = hasattr(self, '_chat_normal_geo') and self._chat_normal_geo is not None
         self._chat_btn.setChecked(False)
         self._chat_input.setVisible(False)
         self._chat_input.clear()
@@ -1717,12 +1742,9 @@ class VassGUI(QMainWindow):
         for w in self._left_side:
             w.setVisible(vis.get(w, True))
         self._left_side_visibility = {}
-        if should_restore:
-            self.resize(self._chat_original_width, self.height())
-            if self._chat_original_x is not None:
-                self.move(self._chat_original_x, self.y())
-            self._chat_original_width = None
-            self._chat_original_x = None
+        if should_restore and self._chat_normal_geo is not None:
+            self.setGeometry(self._chat_normal_geo)
+            self._chat_normal_geo = None
         self._rebalance_spacers()
 
     def _rebalance_spacers(self):
@@ -1761,13 +1783,12 @@ class VassGUI(QMainWindow):
 
     def _toggle_chat_input(self):
         if self._chat_btn.isChecked():
-            self._chat_original_width = self.width()
-            self._chat_original_x = self.x()
+            self._chat_normal_geo = self.geometry()
             self._left_side_visibility = {w: w.isVisible() for w in self._left_side}
             for w in self._left_side:
                 w.setVisible(False)
             self.stacked.setVisible(False)
-            self.resize(self._chat_original_width * 2, self.height())
+            self.resize(self._chat_normal_geo.width() * 2, self.height())
             self._clamp_to_screen()
             self._rebalance_spacers()
             self._chat_input.setVisible(True)
@@ -2679,7 +2700,8 @@ class PluginManagerDialog(QDialog):
 
         has_cfg = self._plugin_has_config(p["name"])
 
-        cfg_btn = QPushButton("\u2699")
+        cfg_btn = QPushButton()
+        cfg_btn.setIcon(icon("settings", "#cccccc", 16))
         cfg_btn.setFixedSize(28, 28)
         cfg_btn.setToolTip(f"{p['name']} settings" if has_cfg else "No settings available")
         if has_cfg:

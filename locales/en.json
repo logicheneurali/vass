@@ -69,6 +69,7 @@
       "cancel": "Cancel"
     },
     "chat_tooltip": "Type a message to the AI",
+    "mic_btn_tooltip": "Voice message to AI",
     "chat_placeholder": "Type here and press Enter...",
     "notifications": "Notifications",
     "mark_read": "Mark all as read",

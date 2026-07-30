@@ -69,6 +69,7 @@
     },
     "button_tooltip": "Klick = Status ändern | Rad = Lautstärke | Mittlere Taste = Beenden | Ziehen = Verschieben",
     "chat_tooltip": "Nachricht an die KI schreiben",
+    "mic_btn_tooltip": "Sprachnachricht an KI",
     "chat_placeholder": "Hier schreiben und Enter drücken...",
     "notifications": "Benachrichtigungen",
     "mark_read": "Alle als gelesen markieren",

@@ -14,6 +14,7 @@ from i18n import t
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, DESCRIPTION_FG, FRAME_BORDER, BASE_STYLESHEET)
 from utils import get_project_root
+from icons import icon
 
 STYLESHEET = BASE_STYLESHEET + f"""
 QScrollArea {{ border: none; }}
@@ -129,7 +130,8 @@ class SettingsEditor(QMainWindow):
         entry = QLineEdit()
         entry.setEchoMode(QLineEdit.Password)
         entry.setText(self._original_api_key)
-        toggle_btn = QPushButton("👁")
+        toggle_btn = QPushButton()
+        toggle_btn.setIcon(icon("eye", "#cccccc", 16))
         toggle_btn.setFixedWidth(30)
         toggle_btn.setCheckable(True)
         toggle_btn.setToolTip("Mostra/Nascondi chiave")
@@ -381,7 +383,8 @@ class SettingsEditor(QMainWindow):
                 elif section == "ai" and key == "model":
                     entry = QLineEdit()
                     entry.setText(self.config.get(section, key))
-                    model_btn = QPushButton("\u2630")  # \u2630
+                    model_btn = QPushButton()
+                    model_btn.setIcon(icon("menu", "#888888", 14))
                     model_btn.setFixedWidth(28)
                     model_btn.setToolTip(t("settings_editor.model_menu_tooltip", self.lang))
                     model_btn.clicked.connect(lambda checked, e=entry: self._show_model_menu(e))

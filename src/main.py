@@ -204,6 +204,7 @@ class VassApp:
 
 
         self._silent_frames = 0
+        self._mic_recording = False
         self._memory_cache = None
 
         # Audio diagnostics for wake-word issues
@@ -348,6 +349,9 @@ class VassApp:
             self._handle_button_press_impl()
         except Exception as e:
             print(f"[ButtonPress] Error: {e}")
+
+    def trigger_mic_recording(self):
+        self._mic_recording = True
 
     def _handle_button_press_impl(self):
         with self.state_lock:
@@ -635,7 +639,21 @@ class VassApp:
 
                     if not self.audio_handler.is_recording:
                         # Defensive: re-check we are still listening before wake-word detection.
-                        if current_state != "listening":
+                        if current_state != "listening" and not self._mic_recording:
+                            continue
+                        if self._mic_recording:
+                            self._mic_recording = False
+                            print("Mic button pressed. Switching to recording mode...")
+                            try:
+                                beep(self.app_volume)
+                            except Exception as ex:
+                                with open("log/crash.log", "a") as f:
+                                    f.write(f"Beep error: {ex}\n")
+                            self.audio_handler.clear_queue()
+                            self.stop_playback()
+                            self.audio_handler.start_recording()
+                            self.voice_recognition.reset_model()
+                            self.state_manager.set_state("recording")
                             continue
                         try:
                             wake = self.voice_recognition.detect_wake_word(frame, raw_energy=raw_rms)
@@ -1908,6 +1926,7 @@ def main():
             gui._refresh_debug_border()
             _state["app"].notification_manager.gui = gui
             gui.chat_text_signal.connect(_state["app"]._process_chat_text)
+            gui.mic_pressed.connect(_state["app"].trigger_mic_recording)
             gui.set_state("loading")
             def _run_safe():
                 try:

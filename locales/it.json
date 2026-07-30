@@ -69,6 +69,7 @@
       "cancel": "Annulla"
     },
     "chat_tooltip": "Scrivi un messaggio all'AI",
+    "mic_btn_tooltip": "Messaggio vocale all'AI",
     "chat_placeholder": "Scrivi qui e premi Invio...",
     "notifications": "Notifiche",
     "mark_read": "Segna tutte come lette",

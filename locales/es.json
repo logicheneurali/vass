@@ -69,6 +69,7 @@
     },
     "button_tooltip": "Clic = Cambiar estado | Rueda = Volumen | Botón central = Salir | Arrastrar = Mover",
     "chat_tooltip": "Escribe un mensaje a la IA",
+    "mic_btn_tooltip": "Mensaje de voz a la IA",
     "chat_placeholder": "Escribe aquí y pulsa Enter...",
     "notifications": "Notificaciones",
     "mark_read": "Marcar todo como leído",

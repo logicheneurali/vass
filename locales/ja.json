@@ -69,6 +69,7 @@
     },
     "button_tooltip": "クリック = 状態変更 | ホイール = 音量 | 中ボタン = 終了 | ドラッグ = 移動",
     "chat_tooltip": "AIにメッセージを入力",
+    "mic_btn_tooltip": "AIへの音声メッセージ",
     "chat_placeholder": "ここに入力してEnterを押す...",
     "notifications": "通知",
     "mark_read": "すべて既読にする",
