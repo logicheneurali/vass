@@ -208,7 +208,13 @@ class WorldEventsPlugin:
                     all_new_events = result
                 else:
                     all_new_events = self._merge_batch_results(all_new_events, result)
-                _log(f" Batch {batch_num + 1}/{len(batches)}: OK")
+
+                # Save immediately so completed batches are never lost
+                data = self._merge_events(data, result, today)
+                data = self._clean_old_events(data)
+                data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+                self._save_data(data)
+                _log(f" Batch {batch_num + 1}/{len(batches)}: OK (saved)")
             elif result and isinstance(result, dict) and "error" in result:
                 _log(f" Batch {batch_num + 1}/{len(batches)}: AI error: {result.get('error')}")
             else:
@@ -219,12 +225,6 @@ class WorldEventsPlugin:
 
         # Notify significant events from the newly processed batch only
         self._notify_significant(all_new_events, today)
-
-        # Merge into data
-        data = self._merge_events(data, all_new_events, today)
-        data = self._clean_old_events(data)
-        data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
-        self._save_data(data)
         _log(" Events updated and saved")
         return None
 
@@ -564,7 +564,9 @@ class WorldEventsPlugin:
             }
 
         day = events[today]
-        day["summary"] = summary or day["summary"]
+        if summary:
+            existing = day.get("summary", "")
+            day["summary"] = (existing + "\n" + summary).strip() if existing else summary
         incoming_articles = incoming.get("articles", [])
         existing_links = {a.get("link") for a in day.get("articles", []) if a.get("link")}
         for art in incoming_articles:
