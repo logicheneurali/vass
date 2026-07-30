@@ -919,7 +919,12 @@
       "give me the news",
       "update me",
       "what's new",
-      "news bulletin"
+      "news bulletin",
+      "search news",
+      "find news",
+      "search articles",
+      "find articles",
+      "search event"
     ]
   },
   "tool_names": {
@@ -1038,6 +1043,10 @@
     "read_news_range": {
       "name": "News range",
       "desc": "Gets world events for a date range"
+    },
+    "search_news": {
+      "name": "Search news",
+      "desc": "Search articles by keywords"
     }
   },
   "mcp_down_tooltip": "MCP server unavailable",

@@ -928,7 +928,10 @@
       "diario",
       "periódico",
       "infórmame",
-      "última hora"
+      "última hora",
+      "buscar noticias",
+      "encontrar noticias",
+      "buscar articulos"
     ]
   },
   "tool_names": {
@@ -1047,6 +1050,10 @@
     "html_to_pdf": {
       "name": "Crear PDF",
       "desc": "Crea un PDF desde contenido HTML"
+    },
+    "search_news": {
+      "name": "Buscar noticias",
+      "desc": "Buscar articulos por palabras clave"
     }
   },
   "mcp_down_tooltip": "Servidor MCP no disponible",

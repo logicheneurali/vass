@@ -469,7 +469,7 @@ class _CompactWidget(QWidget):
                     if hasattr(win, '_clamp_to_screen'):
                         win._clamp_to_screen()
                     if hasattr(win, 'app') and win.app:
-                        win._pending_pos = (win.x(), win.y())
+                        win._pending_pos = (win.x(), win.y(), win.width(), win.height())
                         win._pos_debounce.start()
         self._drag_pos = None
         self._drag_start = None
@@ -1340,7 +1340,7 @@ class VassGUI(QMainWindow):
                 self._normal_geometry = (self.x(), self.y(), self.width(), self.height())
                 self.setGeometry(center_x - 18, self.y(), self.width(), self.height())
                 if self.app:
-                    self.app.save_gui_position(self.x(), self.y())
+                    self.app.save_layout(self.x(), self.y(), self.width(), self.height())
             self.volume_top_bar.hide()
             self.memory_bar.hide()
             for w in self._left_side:
@@ -1403,7 +1403,7 @@ class VassGUI(QMainWindow):
                 x, y, w, h = self._normal_geometry
                 self.setGeometry(x, y, w, h)
                 if self.app:
-                    self.app.save_gui_position(self.x(), self.y())
+                    self.app.save_layout(self.x(), self.y(), self.width(), self.height())
             else:
                 self.setGeometry(self.x(), self.y(), 220, 60)
             self._on_set_state(self._current_state, self._current_detail)
@@ -1468,19 +1468,25 @@ class VassGUI(QMainWindow):
             else:
                 self._clamp_to_screen()
                 if self.app:
-                    self._pending_pos = (self.x(), self.y())
+                    self._pending_pos = (self.x(), self.y(), self.width(), self.height())
                     self._pos_debounce.start()
         self._drag_pos = None
         self._drag_start = None
 
     def _save_position_debounced(self):
         if self._pending_pos and self.app:
-            x, y = self._pending_pos
-            self.app.save_gui_position(x, y)
+            x, y, w, h = self._pending_pos
+            self.app.save_layout(x, y, w, h)
         self._pending_pos = None
 
     def _btn_release(self, event):
         self._ui_release(event)
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        if self.app and not self._compact_mode:
+            self._pending_pos = (self.x(), self.y(), self.width(), self.height())
+            self._pos_debounce.start()
 
     # ---- Thread-safe public API called from VassApp ----
 

@@ -25,6 +25,7 @@ from mcpgoal.tools.places import search_places as _search_places
 from mcpgoal.tools.places import search_nearby as _search_nearby
 from mcpgoal.tools.news import read_news as _read_news
 from mcpgoal.tools.news import read_news_range as _read_news_range
+from mcpgoal.tools.news import search_news as _search_news
 
 _GET_IDLE = None
 try:
@@ -526,5 +527,12 @@ def create_server(config: ServerConfig) -> FastMCP:
         Args: from_date, to_date in YYYY-MM-DD format (inclusive).
         Returns summary, articles, categories, and top_headlines for each date in the range."""
         return await _tool("read_news_range", f"from={from_date} to={to_date}", _read_news_range(from_date, to_date), config)
+
+    @mcp.tool()
+    async def search_news(keywords: str) -> str:
+        """Search world events by keywords across all saved dates.
+        Use for questions like 'find news about climate', 'cerca notizie su elezioni', 'search for X'.
+        Args: keywords (space-separated). Returns matching articles sorted by date (newest first)."""
+        return await _tool("search_news", f"keywords={keywords}", _search_news(keywords), config)
 
     return mcp

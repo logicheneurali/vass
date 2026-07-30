@@ -43,10 +43,6 @@ def load_settings(settings_file):
         result["overflow_strategy"] = config.get("ai", "overflow_strategy", fallback="truncate")
         result["compress_context"] = config.get("ai", "compress_context", fallback="false")
 
-        result["gui_x"] = config.getint("gui", "x", fallback=1541)
-        result["gui_y"] = config.getint("gui", "y", fallback=52)
-        result["gui_width"] = config.getint("gui", "width", fallback=220)
-        result["gui_height"] = config.getint("gui", "height", fallback=32)
         result["gui_font_family"] = config.get("gui", "font_family", fallback="Segoe UI")
         result["gui_font_size"] = config.getint("gui", "font_size", fallback=12)
         result["paused_opacity"] = config.getfloat("gui", "paused_opacity", fallback=0.5)
@@ -124,10 +120,6 @@ def load_settings(settings_file):
         result["auto_context_selection"] = False
         result["context_length"] = 0
         result["overflow_strategy"] = "truncate"
-        result["gui_x"] = 1541
-        result["gui_y"] = 52
-        result["gui_width"] = 220
-        result["gui_height"] = 32
         result["gui_font_family"] = "Segoe UI"
         result["gui_font_size"] = 12
         result["paused_opacity"] = 0.5
@@ -168,7 +160,6 @@ def load_settings(settings_file):
 
         config["locale"] = {"language": lang}
         config["gui"] = {
-            "x": "1541", "y": "52", "width": "220", "height": "32",
             "font_family": "Segoe UI", "font_size": "12", "lastmode": "c",
             "paused_opacity": "0.5"
         }

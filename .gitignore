@@ -91,6 +91,7 @@ Allowed_root/private_*
 # VASS - user config (use config/settings.example.ini as template)
 config/settings.ini
 config/settings.ini.bk
+config/layout.ini
 config/commands.ini
 
 # VASS - temporary files

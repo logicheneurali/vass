@@ -926,7 +926,10 @@
       "zeitung",
       "informiere mich",
       "eilmeldung",
-      "nachrichtenbulletin"
+      "nachrichtenbulletin",
+      "nachrichten suchen",
+      "nachrichten finden",
+      "artikel suchen"
     ]
   },
   "tool_names": {
@@ -1045,6 +1048,10 @@
     "html_to_pdf": {
       "name": "PDF erstellen",
       "desc": "Erstellt ein PDF aus HTML-Inhalt"
+    },
+    "search_news": {
+      "name": "Nachrichten suchen",
+      "desc": "Artikel nach Stichworten durchsuchen"
     }
   },
   "mcp_down_tooltip": "MCP-Server nicht verfuegbar",

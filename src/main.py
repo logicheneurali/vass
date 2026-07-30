@@ -176,10 +176,6 @@ class VassApp:
         self.compress_context = self.settings.get("compress_context", "false").lower() == "true"
         self.auto_context_selection = self.settings.get("auto_context_selection", False)
         self.waveform_enabled = False
-        self.gui_x = self.settings["gui_x"]
-        self.gui_y = self.settings["gui_y"]
-        self.gui_width = self.settings["gui_width"]
-        self.gui_height = self.settings["gui_height"]
         self.gui_font_family = self.settings["gui_font_family"]
         self.gui_font_size = self.settings["gui_font_size"]
         self.command_similarity = self.settings["command_similarity"]
@@ -449,13 +445,6 @@ class VassApp:
                         self.app_volume = self.settings.get("app_volume", 1.0)
                         self.tts.update_settings(self.app_volume)
                         self.gui.volume_top_bar.set_volume(self.app_volume)
-                        self.gui_x = self.settings["gui_x"]
-                        self.gui_y = self.settings["gui_y"]
-                        self.gui_width = self.settings["gui_width"]
-                        self.gui_height = self.settings["gui_height"]
-                        self.gui.schedule(0, lambda: self.gui.setGeometry(
-                            self.gui_x, self.gui_y, self.gui_width, self.gui_height))
-                        self.gui.schedule(0, self.gui._clamp_to_screen)
                         # Ricarica dispositivi audio
                         new_inp = int(self.settings.get("input_device", -1))
                         new_inp_name = self.settings.get("input_device_name", "")
@@ -483,20 +472,40 @@ class VassApp:
             except Exception as e:
                 print(f"[Watch] Settings watcher error: {e}")
 
-    def save_gui_position(self, x, y):
-        config = configparser.ConfigParser()
-        abs_path = os.path.abspath(self.settings_file)
+    @staticmethod
+    def _load_layout():
+        """Read window geometry and limits from config/layout.ini. Creates with defaults if missing."""
+        path = os.path.join(get_project_root(), "config", "layout.ini")
+        layout = configparser.ConfigParser()
+        defaults = {"x": 1541, "y": 52, "width": 200, "height": 32}
+        limits = {"min_width": 200, "min_height": 32, "max_width": 600, "max_height": 400}
+        if not os.path.exists(path):
+            layout["window"] = {k: str(v) for k, v in defaults.items()}
+            layout["limits"] = {k: str(v) for k, v in limits.items()}
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                layout.write(f)
+            return defaults, limits
         try:
-            if os.path.exists(abs_path):
-                config.read(abs_path, encoding="utf-8")
-            if "gui" not in config:
-                config["gui"] = {}
-            config["gui"]["x"] = str(x)
-            config["gui"]["y"] = str(y)
-            with open(abs_path, "w", encoding="utf-8") as f:
-                config.write(f)
+            layout.read(path, encoding="utf-8")
+            window = {k: layout.getint("window", k, fallback=defaults[k]) for k in defaults}
+            limits_val = {k: layout.getint("limits", k, fallback=limits[k]) for k in limits}
+            return window, limits_val
+        except Exception:
+            return defaults, limits
+
+    def save_layout(self, x, y, width, height):
+        """Persist window geometry to config/layout.ini."""
+        path = os.path.join(get_project_root(), "config", "layout.ini")
+        try:
+            layout = configparser.ConfigParser()
+            if os.path.exists(path):
+                layout.read(path, encoding="utf-8")
+            layout["window"] = {"x": str(x), "y": str(y), "width": str(width), "height": str(height)}
+            with open(path, "w", encoding="utf-8") as f:
+                layout.write(f)
         except Exception as e:
-            print(f"[Settings] Could not save position: {e}")
+            print(f"[Layout] Could not save: {e}")
 
     def run(self):
         # Cleanup old OCR debug images from previous sessions
@@ -1806,18 +1815,18 @@ def main():
         settings_file = "config/settings.ini"
         config = configparser.ConfigParser()
         abs_path = os.path.abspath(settings_file)
+        layout_window, layout_limits = VassApp._load_layout()
+        gui_x = layout_window["x"]
+        gui_y = layout_window["y"]
+        gui_width = layout_window["width"]
+        gui_height = layout_window["height"]
         if os.path.exists(abs_path):
             config.read(abs_path, encoding="utf-8")
-            gui_x = config.getint("gui", "x", fallback=1541)
-            gui_y = config.getint("gui", "y", fallback=52)
-            gui_width = config.getint("gui", "width", fallback=220)
-            gui_height = config.getint("gui", "height", fallback=32)
             gui_font_family = config.get("gui", "font_family", fallback="Segoe UI")
             gui_font_size = config.getint("gui", "font_size", fallback=12)
             gui_language = config.get("locale", "language", fallback="en")
             compact_mode = config.getboolean("gui", "compact_mode", fallback=False)
         else:
-            gui_x, gui_y, gui_width, gui_height = 1541, 52, 220, 32
             gui_font_family, gui_font_size = "Segoe UI", 12
             gui_language = "en"
             compact_mode = False

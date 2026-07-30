@@ -665,22 +665,17 @@ class WorldEventsPlugin:
         threshold = self._config["notify_significance"]
         if threshold == "none":
             return
-        levels = {"low": 0, "medium": 1, "high": 2}
-        min_level = levels.get(threshold, 2)
 
-        events = data.get("events", {}).get(today, {})
-        articles = events.get("articles", [])
-        for art in articles:
-            sig = art.get("significance", "low")
-            if levels.get(sig, 0) >= min_level:
-                title = art.get("title", "Event")
-                location = art.get("location", "")
-                prefix = f"[{location}] " if location else ""
-                self._send_cmd("notify", {
-                    "text": f"{prefix}{title}",
-                    "priority": 6,
-                    "data": {"type": "world_event", "link": art.get("link", ""), "title": title},
-                })
+        # Extract today's summary from the newly processed data
+        summary = self._extract_summary(data)
+        if not summary:
+            return
+
+        self._send_cmd("notify", {
+            "text": summary[:500],
+            "priority": 5,
+            "data": {"type": "world_event"},
+        })
 
     @staticmethod
     def _resolve_root():

@@ -18,7 +18,7 @@ STANDALONE_GROUPS = {"compute", "time", "lang"}
 # interact, script, execute are excluded — they require allow_ai_scripts.
 TOOL_GROUPS = {
     "web":       ["browse", "webfetch", "websearch", "search_places", "search_nearby"],
-    "news":      ["read_news", "read_news_range"],
+    "news":      ["read_news", "read_news_range", "search_news"],
     "calendar":  ["calendar_add", "calendar_list", "calendar_search"],
     "files":     ["read_file", "write_file", "readinfo", "writeinfo", "html_to_pdf"],
     "events":    ["addevent", "delevent", "listevents", "nextevent", "find_free_slot"],

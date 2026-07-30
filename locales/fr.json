@@ -928,7 +928,11 @@
       "quotidien",
       "journal",
       "informe-moi",
-      "dernière minute"
+      "dernière minute",
+      "rechercher actualites",
+      "trouver actualites",
+      "rechercher articles",
+      "chercher nouvelles"
     ]
   },
   "tool_names": {
@@ -1047,6 +1051,10 @@
     "html_to_pdf": {
       "name": "Creer PDF",
       "desc": "Cree un PDF a partir de contenu HTML"
+    },
+    "search_news": {
+      "name": "Rechercher actualites",
+      "desc": "Rechercher articles par mots-cles"
     }
   },
   "mcp_down_tooltip": "Serveur MCP indisponible",

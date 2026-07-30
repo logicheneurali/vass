@@ -55,3 +55,45 @@ async def read_news_range(from_date: str, to_date: str) -> str:
             ensure_ascii=False)
 
     return json.dumps({"results": result}, ensure_ascii=False)
+
+
+async def search_news(keywords: str) -> str:
+    """Search world events by keywords across all dates.
+    Use for questions like 'find news about climate', 'cerca notizie su elezioni', 'what happened with X'.
+    Args:
+        keywords: space-separated keywords to search in titles, summaries, and categories
+    Returns JSON with matching articles sorted by date (newest first).
+    """
+    data = _load_events()
+    events = data.get("events", {})
+    terms = [k.lower() for k in keywords.split()]
+
+    matches = []
+    for d in sorted(events, reverse=True):
+        day = events[d]
+        for art in day.get("articles", []):
+            text = (
+                (art.get("title", "") + " " +
+                 art.get("summary", "") + " " +
+                 art.get("category", "") + " " +
+                 art.get("location", "") + " " +
+                 art.get("source", "")).lower()
+            )
+            if any(t in text for t in terms):
+                matches.append({
+                    "date": d,
+                    "title": art.get("title", ""),
+                    "source": art.get("source", ""),
+                    "category": art.get("category", ""),
+                    "location": art.get("location", ""),
+                    "significance": art.get("significance", ""),
+                    "summary": art.get("summary", ""),
+                    "link": art.get("link", ""),
+                })
+
+    if not matches:
+        return json.dumps(
+            {"results": [], "message": f"No articles matching '{keywords}' found"},
+            ensure_ascii=False)
+
+    return json.dumps({"results": matches}, ensure_ascii=False)

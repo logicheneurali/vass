@@ -929,7 +929,10 @@
       "diário",
       "jornal",
       "informe-me",
-      "urgente"
+      "urgente",
+      "buscar noticias",
+      "procurar noticias",
+      "buscar artigos"
     ]
   },
   "tool_names": {
@@ -1048,6 +1051,10 @@
     "html_to_pdf": {
       "name": "Criar PDF",
       "desc": "Cria um PDF a partir de conteudo HTML"
+    },
+    "search_news": {
+      "name": "Buscar noticias",
+      "desc": "Buscar artigos por palavras-chave"
     }
   },
   "mcp_down_tooltip": "Servidor MCP indisponivel",

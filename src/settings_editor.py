@@ -32,7 +32,7 @@ QSlider::sub-page:horizontal {{
 
 
 BOOLEAN_KEYS = {"llama_autostart", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode"}
-HIDDEN_KEYS = {"lastmode", "output_volume", "input_device_name", "output_device_name"}
+HIDDEN_KEYS = {"lastmode", "output_volume", "input_device_name", "output_device_name", "x", "y", "width", "height"}
 
 COMBO_OPTIONS = {
     "overflow_strategy": {"truncate": "Truncate", "summarize": "Summarize"},

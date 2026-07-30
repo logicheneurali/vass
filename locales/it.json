@@ -943,7 +943,11 @@
       "giornale",
       "informami",
       "breaking",
-      "notiziario"
+      "notiziario",
+      "cerca notizie",
+      "trova notizie",
+      "cerca articoli",
+      "cerca evento"
     ]
   },
   "tool_names": {
@@ -1062,6 +1066,10 @@
     "read_news_range": {
       "name": "Intervallo notizie",
       "desc": "Legge eventi per intervallo date"
+    },
+    "search_news": {
+      "name": "Cerca notizie",
+      "desc": "Cerca articoli per parole chiave"
     }
   },
   "mcp_down_tooltip": "Server MCP non disponibile",
