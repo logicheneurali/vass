@@ -469,10 +469,7 @@ class WorldEventsPlugin:
             '          "summary": "concise summary"\n'
             "        }\n"
             "      ],\n"
-            '      "categories": ["politics", "science", ...],\n'
-            '      "top_headlines": [\n'
-            '        {"title": "...", "source": "...", "link": "..."}\n'
-            "      ]\n"
+            '      "categories": ["politics", "science", ...]\n'
             "    }\n"
             "  }\n"
             "}\n\n"
@@ -483,7 +480,6 @@ class WorldEventsPlugin:
             "- location: use 'global' if event affects multiple nations or the entire planet.\n"
             "  Otherwise use the specific country or region (e.g. 'Spain', 'Italy', 'France', 'EU', 'Asia').\n"
             "- Set significance: high=major world impact, medium=notable, low=minor.\n"
-            "- top_headlines: the 5-10 most important stories as simple title/source/link.\n"
             "- summary: a 2-3 sentence overview of the day.\n"
             "- Preserve ALL original links from the RSS items and Wikipedia sources.\n"
             "- Write ALL text (titles, summaries, categories) in the same language as the source articles.\n"
@@ -560,7 +556,6 @@ class WorldEventsPlugin:
                 "summary": "",
                 "articles": [],
                 "categories": [],
-                "top_headlines": [],
             }
 
         day = events[today]
@@ -588,15 +583,6 @@ class WorldEventsPlugin:
             if cat:
                 all_cats.add(cat)
         day["categories"] = sorted(all_cats)
-
-        # Update top_headlines
-        incoming_headlines = incoming.get("top_headlines", [])
-        existing_hl = {h.get("link") for h in day.get("top_headlines", []) if h.get("link")}
-        for hl in incoming_headlines:
-            if hl.get("link") and hl["link"] not in existing_hl:
-                if hl.get("link"):
-                    existing_hl.add(hl["link"])
-                day.setdefault("top_headlines", []).append(hl)
 
         data["events"] = events
         return data
@@ -634,12 +620,6 @@ class WorldEventsPlugin:
                 if cat:
                     all_cats.add(cat)
             bd["categories"] = sorted(all_cats)
-            existing_hl = {h.get("link") for h in bd.get("top_headlines", []) if h.get("link")}
-            for hl in day_data.get("top_headlines", []):
-                if hl.get("link") and hl["link"] not in existing_hl:
-                    if hl.get("link"):
-                        existing_hl.add(hl["link"])
-                    bd.setdefault("top_headlines", []).append(hl)
             if day_data.get("summary"):
                 existing = bd.get("summary", "")
                 bd["summary"] = (existing + "\n" + day_data["summary"]).strip() if existing else day_data["summary"]
@@ -658,7 +638,6 @@ class WorldEventsPlugin:
                     "summary": day.get("summary", ""),
                     "articles": [],
                     "categories": [],
-                    "top_headlines": [],
                 }
         data["events"] = events
         return data
