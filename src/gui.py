@@ -1410,11 +1410,11 @@ class VassGUI(QMainWindow):
 
     def _build_loading_widget(self):
         self.loading_widget = QWidget()
-        self.loading_widget.setStyleSheet(f"background-color: {BG};")
+        self.loading_widget.setStyleSheet("background: transparent;")
         lo = QVBoxLayout(self.loading_widget)
         lo.setContentsMargins(0, 0, 0, 0)
         self.loading_label = QLabel(self._t("gui.states.loading"))
-        f = QFont(self._font_family, self._font_size)
+        f = QFont(self._font_family, max(8, self._font_size - 2))
         f.setBold(True)
         self.loading_label.setFont(f)
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
