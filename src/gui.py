@@ -1193,8 +1193,6 @@ class VassGUI(QMainWindow):
         self._chat_input.returnPressed.connect(self._send_chat_text)
         row.addWidget(self._chat_input, 1)
 
-        self._chat_normal_geo = None
-
         outer.addLayout(row)
 
         # Multi-purpose bar (memory / volume / script progress)
@@ -1276,6 +1274,21 @@ class VassGUI(QMainWindow):
         self.show()
         self._clamp_to_screen()
 
+    def save_layout(self, x, y, width=None, height=None):
+        import configparser
+        path = os.path.join(BASE, "config", "layout.ini")
+        try:
+            layout = configparser.ConfigParser()
+            if os.path.exists(path):
+                layout.read(path, encoding="utf-8")
+            w = str(width) if width is not None else layout.get("window", "width", fallback="200")
+            h = str(height) if height is not None else layout.get("window", "height", fallback="32")
+            layout["window"] = {"x": str(x), "y": str(y), "width": w, "height": h}
+            with open(path, "w", encoding="utf-8") as f:
+                layout.write(f)
+        except Exception as e:
+            print(f"[Layout] Could not save: {e}")
+
     def showEvent(self, event):
         super().showEvent(event)
         if sys.platform == "win32":
@@ -1318,7 +1331,7 @@ class VassGUI(QMainWindow):
         if y < geo.top():
             y = geo.top()
 
-        self.setGeometry(x, y, w, h)
+        self.setGeometry(x, y, self.width(), self.height())
 
     def _enforce_always_on_top(self):
         if sys.platform == "win32":
@@ -1374,7 +1387,7 @@ class VassGUI(QMainWindow):
                 self._normal_geometry = (self.x(), self.y(), self.width(), self.height())
                 self.setGeometry(center_x - 18, self.y(), self.width(), self.height())
                 if self.app:
-                    self.app.save_layout(self.x(), self.y(), self.width(), self.height())
+                    self.save_layout(self.x(), self.y(), self.width(), self.height())
             self.volume_top_bar.hide()
             self.memory_bar.hide()
             for w in self._left_side:
@@ -1437,7 +1450,7 @@ class VassGUI(QMainWindow):
                 x, y, w, h = self._normal_geometry
                 self.setGeometry(x, y, w, h)
                 if self.app:
-                    self.app.save_layout(self.x(), self.y(), self.width(), self.height())
+                    self.save_layout(self.x(), self.y(), self.width(), self.height())
             else:
                 self.setGeometry(self.x(), self.y(), 220, 60)
             self._on_set_state(self._current_state, self._current_detail)
@@ -1508,9 +1521,9 @@ class VassGUI(QMainWindow):
         self._drag_start = None
 
     def _save_position_debounced(self):
-        if self._pending_pos and self.app:
+        if self._pending_pos:
             x, y, w, h = self._pending_pos
-            self.app.save_layout(x, y, w, h)
+            self.save_layout(x, y)
         self._pending_pos = None
 
     def _btn_release(self, event):
@@ -1733,7 +1746,6 @@ class VassGUI(QMainWindow):
                 pass
 
     def _collapse_chat(self):
-        should_restore = hasattr(self, '_chat_normal_geo') and self._chat_normal_geo is not None
         self._chat_btn.setChecked(False)
         self._chat_input.setVisible(False)
         self._chat_input.clear()
@@ -1742,53 +1754,78 @@ class VassGUI(QMainWindow):
         for w in self._left_side:
             w.setVisible(vis.get(w, True))
         self._left_side_visibility = {}
-        if should_restore and self._chat_normal_geo is not None:
-            self.setGeometry(self._chat_normal_geo)
-            self._chat_normal_geo = None
-        self._rebalance_spacers()
+        w = self._restore_from_layout() or self.width()
+        self._rebalance_spacers(force_width=w)
 
-    def _rebalance_spacers(self):
+    def _restore_from_layout(self):
+        import configparser
+        path = os.path.join(BASE, "config", "layout.ini")
+        try:
+            layout = configparser.ConfigParser()
+            if os.path.exists(path):
+                layout.read(path, encoding="utf-8")
+            x = layout.getint("window", "x", fallback=self.x())
+            y = layout.getint("window", "y", fallback=self.y())
+            w = layout.getint("window", "width", fallback=200)
+            self.move(x, y)
+            self.setFixedWidth(w)
+            #QTimer.singleShot(0, lambda: self.setFixedWidth(16777215))
+            return w
+        except Exception:
+            pass
+
+    def _rebalance_spacers(self, force_width=None):
         """Keep the stacked widget (button / waveform) horizontally centred.
 
         Calculates the total visible width of widgets placed to the left
         and right of the centred area, then pads the shorter side with a
         spacer so the centre widget stays balanced.
 
+        If force_width is given, spacers are sized so the total layout
+        fits exactly within that width.
+
         To make a new widget participate in balancing, append it to
         self._left_side or self._right_side.  No other changes needed.
         """
-        # ── measure visible widths ─────────────────────────────────────
         left_w = sum(w.width() for w in self._left_side if w.isVisible())
         right_w = sum(w.width() for w in self._right_side if w.isVisible())
 
-        # _chat_input has dynamic width (not fixed), handle separately
         if self._chat_input.isVisible():
             right_w += max(self._chat_input.width(),
                            self._chat_input.sizeHint().width())
 
-        # ── apply the difference to the shorter side ───────────────────
-        diff = abs(left_w - right_w)
-        if left_w > right_w:
-            self._right_spacer.changeSize(diff, 0,
+        if force_width is not None:
+            center_w = self.stacked.sizeHint().width() if self.stacked.isVisible() else 0
+            total_side = left_w + right_w
+            remaining = max(0, force_width - total_side - center_w)
+            half = remaining // 2
+            self._left_spacer.changeSize(half, half,
                 QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-            self._left_spacer.changeSize(0, 0,
+            self._right_spacer.changeSize(half, half,
                 QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         else:
-            self._left_spacer.changeSize(diff, 0,
-                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-            self._right_spacer.changeSize(0, 0,
-                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            diff = abs(left_w - right_w)
+            if left_w > right_w:
+                self._right_spacer.changeSize(diff, 0,
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+                self._left_spacer.changeSize(0, 0,
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            else:
+                self._left_spacer.changeSize(diff, 0,
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+                self._right_spacer.changeSize(0, 0,
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         self.centralWidget().layout().invalidate()
 
     def _toggle_chat_input(self):
         if self._chat_btn.isChecked():
-            self._chat_normal_geo = self.geometry()
+            original_width = self.width()
             self._left_side_visibility = {w: w.isVisible() for w in self._left_side}
             for w in self._left_side:
                 w.setVisible(False)
             self.stacked.setVisible(False)
-            self.resize(self._chat_normal_geo.width() * 2, self.height())
+            self.setFixedWidth(original_width * 2)
             self._clamp_to_screen()
             self._rebalance_spacers()
             self._chat_input.setVisible(True)

@@ -498,19 +498,6 @@ class VassApp:
         except Exception:
             return defaults, limits
 
-    def save_layout(self, x, y, width, height):
-        """Persist window geometry to config/layout.ini."""
-        path = os.path.join(get_project_root(), "config", "layout.ini")
-        try:
-            layout = configparser.ConfigParser()
-            if os.path.exists(path):
-                layout.read(path, encoding="utf-8")
-            layout["window"] = {"x": str(x), "y": str(y), "width": str(width), "height": str(height)}
-            with open(path, "w", encoding="utf-8") as f:
-                layout.write(f)
-        except Exception as e:
-            print(f"[Layout] Could not save: {e}")
-
     def run(self):
         # Cleanup old OCR debug images from previous sessions
         try:
