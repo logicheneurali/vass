@@ -1,11 +1,11 @@
 import os
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 
 _ICONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "lucide")
 
-def _render(name, color, size):
+def _render(name, color, size, padding=0):
     svg_path = os.path.join(_ICONS_DIR, f"{name}.svg")
     if not os.path.exists(svg_path):
         return None, None
@@ -18,12 +18,16 @@ def _render(name, color, size):
     pixmap = QPixmap(double, double)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
-    r.render(painter)
+    if padding:
+        p2 = padding * 2
+        r.render(painter, QRectF(p2, p2, double - p2 * 2, double - p2 * 2))
+    else:
+        r.render(painter)
     painter.end()
     return pixmap, pixmap.copy()
 
-def icon(name, color="#e0e0e0", size=24):
-    pixmap, _ = _render(name, color, size)
+def icon(name, color="#e0e0e0", size=24, padding=0):
+    pixmap, _ = _render(name, color, size, padding)
     if pixmap is None:
         return QIcon()
     ico = QIcon(pixmap)

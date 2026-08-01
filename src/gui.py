@@ -1048,7 +1048,7 @@ class VassGUI(QMainWindow):
         self._right_side = []
 
         self._bell_btn = QPushButton()
-        self._bell_btn.setIcon(icon("bell", "#3f3f3f", 16))
+        self._bell_btn.setIcon(icon("bell", "#3f3f3f", 16, 1))
         self._bell_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #3f3f3f; "
             "border: none; font-size: 10px; padding: 2px 4px; }"
@@ -1069,7 +1069,8 @@ class VassGUI(QMainWindow):
         self._left_side.append(self._tool_indicator)
 
         self._mic_btn = QPushButton()
-        self._mic_btn.setIcon(icon("mic", "#f1c40f", 16))
+        self._mic_btn.setIcon(icon("mic", "#f1c40f", 16, 1))
+        self._mic_btn.setIconSize(QSize(16, 16))
         self._mic_btn.setFixedSize(22, 22)
         self._mic_btn.setStyleSheet(
             "QPushButton { background: transparent; color: #f1c40f; border: none; }"
@@ -1087,7 +1088,8 @@ class VassGUI(QMainWindow):
         row.addSpacerItem(self._right_spacer)
 
         self.replay_btn = QPushButton()
-        self.replay_btn.setIcon(icon("refresh-cw", "#ffffff", 16))
+        self.replay_btn.setIcon(icon("refresh-cw", "#ffffff", 16, 1))
+        self.replay_btn.setIconSize(QSize(16, 16))
         self.replay_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #ffffff; "
             "border: none; padding: 2px; }"
@@ -1105,7 +1107,8 @@ class VassGUI(QMainWindow):
         # Menu button with popup
         # Right-side widget — automatically balanced by _rebalance_spacers()
         self._menu_btn = QPushButton()
-        self._menu_btn.setIcon(icon("menu", "#ffffff", 16))
+        self._menu_btn.setIcon(icon("menu", "#ffffff", 16, 1))
+        self._menu_btn.setIconSize(QSize(16, 16))
         self._menu_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #888888; "
             "border: none; padding: 2px; }"
@@ -1164,7 +1167,8 @@ class VassGUI(QMainWindow):
         self._right_side.append(self._menu_btn)
 
         self._chat_btn = QPushButton()
-        self._chat_btn.setIcon(icon("sparkles", "#ffffff", 16))
+        self._chat_btn.setIcon(icon("sparkles", "#ffffff", 16, 1))
+        self._chat_btn.setIconSize(QSize(16, 16))
         self._chat_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #ffffff; "
             "border: none; padding: 2px; }"
@@ -1711,7 +1715,7 @@ class VassGUI(QMainWindow):
                     if p > max_priority:
                         max_priority = p
             color = self.app.notification_manager.color_for(max_priority)
-            self._bell_btn.setIcon(icon("bell", color, 16))
+            self._bell_btn.setIcon(icon("bell", color, 16, 1))
             self._bell_btn.setText(str(count))
             self._bell_btn.setStyleSheet(
                 f"QPushButton {{ background-color: transparent; color: {color}; "
@@ -1719,7 +1723,7 @@ class VassGUI(QMainWindow):
                 f"QPushButton:hover {{ color: #dddddd; }}"
             )
         else:
-            self._bell_btn.setIcon(icon("bell", "#3f3f3f", 16))
+            self._bell_btn.setIcon(icon("bell", "#3f3f3f", 16, 1))
             self._bell_btn.setText("0")
             self._bell_btn.setStyleSheet(
                 "QPushButton { background-color: transparent; color: #3f3f3f; "
