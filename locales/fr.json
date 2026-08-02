@@ -25,7 +25,8 @@
       "help_vasscript": "VASScript",
       "memory_editor": "Mémoire Permanente",
       "compact_mode": "Mode compact",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "mail": "Comptes email"
     },
     "dialog": {
       "exit_title": "Quitter",
@@ -129,6 +130,7 @@
       "input_volume": "Gain micro",
       "app_volume": "Volume général",
       "calendar_setup": "Démarrer config",
+      "mail_accounts": "Comptes email",
       "calendar_enabled": "Google Agenda",
       "calendar_sync_enabled": "Sync auto",
       "calendar_sync_minutes": "Intervalle sync (min)",
@@ -468,6 +470,32 @@
     "auto_model_selected": "Modele IA manquant. Auto-selectionne: {model}",
     "model_not_found_retry": "Modele {old} introuvable. {new} selectionne. Reessayez.",
     "no_valid_model": "Aucun modele IA valide trouve sur llama.cpp. Demarrez le serveur avec un modele."
+  },
+  "mail": {
+    "tts_new_email": "Nouvel email de {from} ({date}). Objet: {subject}. {snippet}"
+  },
+  "mail_editor": {
+    "add": "Ajouter",
+    "delete": "Supprimer",
+    "delete_confirm": "Supprimer le compte {account}?",
+    "save": "Enregistrer",
+    "enable": "Activer",
+    "disable": "Desactiver",
+    "details": "Details du compte",
+    "type": "Type:",
+    "email": "Email:",
+    "host": "Hote:",
+    "port": "Port:",
+    "ssl": "Connexion:",
+    "auth": "Authentification:",
+    "username": "Utilisateur:",
+    "password": "Mot de passe:",
+    "sync_minutes": "Sync (minutes):",
+    "max_results": "Max resultats:",
+    "status_unknown": "Statut: inconnu",
+    "status_last": "Dernier sync: {time}",
+    "status_auth": "Statut: authentifie",
+    "status_noauth": "Statut: non authentifie"
   },
   "setup_google": {
     "title": "Configuration identifiants Google",

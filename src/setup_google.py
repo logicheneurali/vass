@@ -305,8 +305,10 @@ def do_setup_gui(lang="en"):
                 return
             result_data["success"] = thread_result["success"]
             result_data["message"] = thread_result["message"]
-            page3.progress.setVisible(False)
+            if thread_result["success"]:
+                _auto_setup_mail_account()
             btn_auth.setEnabled(True)
+            page3.progress.setVisible(False)
             wizard.next()
         QTimer.singleShot(200, _poll)
 
@@ -363,6 +365,43 @@ def do_setup_gui(lang="en"):
     l5.addStretch()
     wizard.addPage(page5)
 
+    def _auto_setup_mail_account():
+        try:
+            from google_auth import get_google_credentials
+            creds = get_google_credentials()
+            if not creds:
+                return
+            from googleapiclient.discovery import build
+            svc = build("gmail", "v1", credentials=creds)
+            profile = svc.users().getProfile(userId="me").execute()
+            email = profile.get("emailAddress")
+            if not email:
+                return
+
+            import configparser
+            mail_path = os.path.join(BASE, "config", "mail.ini")
+            cfg = configparser.ConfigParser()
+            if os.path.exists(mail_path):
+                cfg.read(mail_path, encoding="utf-8")
+
+            active_str = cfg.get("sources", "active", fallback="")
+            active = [a.strip() for a in active_str.split(",") if a.strip()]
+            if email not in active:
+                active.append(email)
+            cfg["sources"]["active"] = ", ".join(active)
+
+            cfg[email] = {
+                "type": "gmail",
+                "sync_minutes": "5",
+                "max_results": "10",
+            }
+            os.makedirs(os.path.dirname(mail_path), exist_ok=True)
+            with open(mail_path, "w", encoding="utf-8") as f:
+                cfg.write(f)
+            print(f"[Setup] Gmail account {email} added to mail.ini")
+        except Exception as e:
+            print(f"[Setup] Could not setup mail account: {e}")
+
     def _on_finish():
         model_id = page5.input_model.text().strip()
         device_id = page5.input_device.text().strip()
@@ -382,6 +421,8 @@ def do_setup_gui(lang="en"):
                     print("[Setup] Google Home model/device saved to settings.ini")
             except Exception as e:
                 print(f"[Setup] Failed to save Google Home config: {e}")
+        if result_data["success"]:
+            _auto_setup_mail_account()
 
     wizard.finished.connect(_on_finish)
 

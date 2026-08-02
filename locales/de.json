@@ -25,7 +25,8 @@
       "help_vasscript": "VASScript",
       "memory_editor": "Dauerhafter Speicher",
       "compact_mode": "Kompakter Modus",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "mail": "E-Mail-Konten"
     },
     "dialog": {
       "exit_title": "Beenden",
@@ -129,6 +130,7 @@
       "input_volume": "Mikrofonverstärkung",
       "app_volume": "Allgemeine Lautstärke",
       "calendar_setup": "Setup starten",
+      "mail_accounts": "E-Mail-Konten",
       "calendar_enabled": "Google Kalender",
       "calendar_sync_enabled": "Auto-Sync",
       "calendar_sync_minutes": "Sync-Intervall (Min)",
@@ -468,6 +470,32 @@
     "auto_model_selected": "KI-Modell fehlt. Automatisch ausgewaehlt: {model}",
     "model_not_found_retry": "Modell {old} nicht gefunden. {new} ausgewaehlt. Versuche es erneut.",
     "no_valid_model": "Kein gueltiges KI-Modell auf llama.cpp gefunden. Starten Sie den Server mit einem Modell."
+  },
+  "mail": {
+    "tts_new_email": "Neue E-Mail von {from} ({date}). Betreff: {subject}. {snippet}"
+  },
+  "mail_editor": {
+    "add": "Hinzufugen",
+    "delete": "Loschen",
+    "delete_confirm": "Konto {account} entfernen?",
+    "save": "Speichern",
+    "enable": "Aktivieren",
+    "disable": "Deaktivieren",
+    "details": "Kontodetails",
+    "type": "Typ:",
+    "email": "E-Mail:",
+    "host": "Host:",
+    "port": "Port:",
+    "ssl": "Verbindung:",
+    "auth": "Authentifizierung:",
+    "username": "Benutzername:",
+    "password": "Passwort:",
+    "sync_minutes": "Sync (Minuten):",
+    "max_results": "Max Ergebnisse:",
+    "status_unknown": "Status: unbekannt",
+    "status_last": "Letzter Sync: {time}",
+    "status_auth": "Status: authentifiziert",
+    "status_noauth": "Status: nicht authentifiziert"
   },
   "setup_google": {
     "title": "Google-Anmeldeinformationen",

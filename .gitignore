@@ -74,6 +74,7 @@ highlight_toast.ps1
 **/bk_memory.json
 **/last_response.txt
 **/gmail_seen.json
+**/gmail_seen.json.bk
 **/memory_files_tracker.json
 **/memory_files_config.json
 **/word_weights.json
@@ -92,6 +93,7 @@ Allowed_root/private_*
 config/settings.ini
 config/settings.ini.bk
 config/layout.ini
+config/mail.ini
 config/commands.ini
 
 # VASS - temporary files

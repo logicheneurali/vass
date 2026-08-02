@@ -25,7 +25,8 @@
       "help_vasscript": "VASScript",
       "memory_editor": "永久记忆",
       "compact_mode": "紧凑模式",
-      "plugins": "插件"
+      "plugins": "插件",
+      "mail": "邮件账户"
     },
     "dialog": {
       "exit_title": "退出",
@@ -129,6 +130,7 @@
       "input_volume": "麦克风增益",
       "app_volume": "通用音量",
       "calendar_setup": "开始设置",
+      "mail_accounts": "邮件账户",
       "calendar_enabled": "Google 日历",
       "calendar_sync_enabled": "自动同步",
       "calendar_sync_minutes": "同步间隔 (分钟)",
@@ -469,6 +471,32 @@
     "auto_model_selected": "AI模型缺失。已自动选择: {model}",
     "model_not_found_retry": "模型{old}未找到。已选择{new}。请重试。",
     "no_valid_model": "llama.cpp上未找到有效的AI模型。请用模型启动服务器。"
+  },
+  "mail": {
+    "tts_new_email": "来自{from}的新邮件 ({date})。主题: {subject}。{snippet}"
+  },
+  "mail_editor": {
+    "add": "添加",
+    "delete": "删除",
+    "delete_confirm": "删除账户 {account}？",
+    "save": "保存",
+    "enable": "启用",
+    "disable": "禁用",
+    "details": "账户详情",
+    "type": "类型:",
+    "email": "邮箱:",
+    "host": "主机:",
+    "port": "端口:",
+    "ssl": "连接:",
+    "auth": "认证:",
+    "username": "用户名:",
+    "password": "密码:",
+    "sync_minutes": "同步 (分钟):",
+    "max_results": "最大结果:",
+    "status_unknown": "状态: 未知",
+    "status_last": "最后同步: {time}",
+    "status_auth": "状态: 已认证",
+    "status_noauth": "状态: 未认证"
   },
   "setup_google": {
     "title": "Google 凭据设置",

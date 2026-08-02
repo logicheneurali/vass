@@ -32,8 +32,9 @@ QSlider::sub-page:horizontal {{
 """
 
 
-BOOLEAN_KEYS = {"llama_autostart", "calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode"}
-HIDDEN_KEYS = {"lastmode", "output_volume", "input_device_name", "output_device_name", "x", "y", "width", "height"}
+BOOLEAN_KEYS = {"llama_autostart", "calendar_enabled", "calendar_sync_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode"}
+HIDDEN_KEYS = {"lastmode", "output_volume", "input_device_name", "output_device_name", "x", "y", "width", "height",
+               "gmail_enabled", "gmail_sync_minutes", "gmail_max_results"}
 
 COMBO_OPTIONS = {
     "overflow_strategy": {"truncate": "Truncate", "summarize": "Summarize"},
@@ -72,7 +73,7 @@ _SECTION_DEFAULTS = {
         "calendar_sync_minutes": "30", "calendar_sync_days": "7",
         "gmail_enabled": "false", "gmail_sync_minutes": "5", "gmail_max_results": "10",
         "google_home_enabled": "false", "google_home_model_id": "", "google_home_device_id": "",
-        "calendar_setup": "start",
+        "calendar_setup": "start", "mail_accounts": "open",
     },
     "debug": {"debug_enabled": "false", "debug_log_max_kb": "1024"},
     "events": {
@@ -380,6 +381,16 @@ class SettingsEditor(QMainWindow):
                     )
                     entry.clicked.connect(self._launch_google_setup)
                     group_layout.addWidget(entry, row, 1)
+                elif key == "mail_accounts":
+                    entry = QPushButton(t(f"settings_editor.field_labels.{key}", self.lang))
+                    entry.setStyleSheet(
+                        f"QPushButton {{ background-color: {BTN_BG}; color: {BTN_FG}; "
+                        f"border: none; border-radius: 3px; padding: 8px 12px; "
+                        f"font-weight: bold; }}"
+                        "QPushButton:hover { background-color: #0d7377; }"
+                    )
+                    entry.clicked.connect(self._launch_mail_editor)
+                    group_layout.addWidget(entry, row, 1)
                 elif section == "ai" and key == "model":
                     entry = QLineEdit()
                     entry.setText(self.config.get(section, key))
@@ -441,7 +452,7 @@ class SettingsEditor(QMainWindow):
                 row += 2
 
             if section == "google" and self._google_disabled:
-                google_keys = ["calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled"]
+                google_keys = ["calendar_enabled", "calendar_sync_enabled", "google_home_enabled"]
                 for gk in google_keys:
                     ge = self.entries.get((section, gk))
                     if ge is None:
@@ -633,8 +644,8 @@ class SettingsEditor(QMainWindow):
 
         # Validate HH:MM and integer fields before saving
         _INT_KEYS = {"memory_tokens", "context_length", "calendar_sync_minutes",
-                     "calendar_sync_days", "gmail_sync_minutes", "gmail_max_results",
-                     "debug_log_max_kb"}
+                      "calendar_sync_days",
+                      "debug_log_max_kb"}
         _URL_KEYS = {"url", "mcp_server_url"}
         _TIME_KEYS = {"work_start_hour", "work_end_hour", "lunch_start", "lunch_end"}
         for (section, key), entry in self.entries.items():
@@ -664,7 +675,7 @@ class SettingsEditor(QMainWindow):
                     return
 
         for (section, key), entry in self.entries.items():
-            if self._google_disabled and section == "google" and key in {"calendar_enabled", "calendar_sync_enabled", "gmail_enabled", "google_home_enabled"}:
+            if self._google_disabled and section == "google" and key in {"calendar_enabled", "calendar_sync_enabled", "google_home_enabled"}:
                 value = "false"
                 self.config.set(section, key, value)
                 continue
@@ -754,6 +765,11 @@ class SettingsEditor(QMainWindow):
     def _launch_google_setup(self):
         import subprocess, os
         path = os.path.join(get_project_root(), "src", "setup_google.py")
+        subprocess.Popen([sys.executable, path, "--lang", self.lang])
+
+    def _launch_mail_editor(self):
+        import subprocess, os
+        path = os.path.join(get_project_root(), "src", "mail_editor.py")
         subprocess.Popen([sys.executable, path, "--lang", self.lang])
 
     def _show_model_menu(self, field):

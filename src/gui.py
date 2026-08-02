@@ -1061,8 +1061,10 @@ class VassGUI(QMainWindow):
         row.addWidget(self._bell_btn)
         self._left_side.append(self._bell_btn)
 
-        self._tool_indicator = QLabel()
-        self._tool_indicator.setFixedSize(10, 10)
+        self._tool_indicator = QPushButton()
+        self._tool_indicator.setFlat(True)
+        self._tool_indicator.setFixedSize(20, 20)
+        self._tool_indicator.setIconSize(QSize(16, 16))
         self._tool_indicator.setVisible(False)
         self._tool_indicator.setToolTip("")
         row.addWidget(self._tool_indicator)
@@ -1131,6 +1133,7 @@ class VassGUI(QMainWindow):
         self._menu.addAction(self._t("gui.menu.sources"), self.open_sources)
         self._menu.addAction(self._t("gui.menu.events"), self.open_events)
         self._menu.addAction(self._t("gui.menu.plugins"), self.open_plugins)
+        self._menu.addAction(self._t("gui.menu.mail"), self.open_mail_editor)
         self._help_menu = self._menu.addMenu(self._t("gui.menu.help"))
         self._help_menu.addAction(self._t("gui.menu.help_usage"), self._open_help_usage)
         self._help_menu.addAction(self._t("gui.menu.help_commands"), self._open_help_commands)
@@ -2217,6 +2220,7 @@ class VassGUI(QMainWindow):
                     "memory_editor": "memoria permanente",
                     "sources": "vass - fonti online",
                     "events": "vass - eventi e operazioni",
+                    "mail": "vass - account di posta",
                 }
                 search = titles.get(key, "")
                 found = []
@@ -2337,6 +2341,9 @@ class VassGUI(QMainWindow):
             return
         dlg = PluginManagerDialog(self.app._plugin_server, self._t, self.language, self)
         dlg.exec()
+
+    def open_mail_editor(self):
+        self._open_unique_window("mail", os.path.join(SRC, "mail_editor.py"), "--lang", self.language)
 
     def _open_help_usage(self):
         import os
@@ -2522,13 +2529,34 @@ class VassGUI(QMainWindow):
         "readinfo": "#f1c40f", "read_info": "#f1c40f", "writeinfo": "#f1c40f", "write_info": "#f1c40f", "savetags": "#ff5722", "save_tags": "#ff5722",
         "getidle": "#95a5a6", "get_idle": "#95a5a6",
     }
+    _TOOL_ICONS = {
+        "browse": "globe", "webfetch": "globe", "websearch": "globe",
+        "search_places": "globe", "search_nearby": "globe",
+        "read_file": "scroll-text", "write_file": "scroll-text",
+        "readinfo": "scroll-text", "read_info": "scroll-text",
+        "writeinfo": "scroll-text", "write_info": "scroll-text",
+        "html_to_pdf": "scroll-text",
+        "interact": "bot", "script": "bot",
+        "calendar_add": "calendar", "calendar_list": "calendar", "calendar_search": "calendar",
+        "addevent": "calendar", "add_event": "calendar", "nextevent": "calendar",
+        "listevents": "calendar", "list_events": "calendar", "find_free_slot": "calendar",
+        "delevent": "x", "delete_event": "x",
+        "clipboardget": "clipboard-list", "clipboard_get": "clipboard-list",
+        "clipboardset": "clipboard-list", "clipboard_set": "clipboard-list",
+        "current_time": "clock", "to_timestamp": "clock",
+        "calculate": "sparkles",
+        "langcheck": "message-circle",
+        "savetags": "pin", "save_tags": "pin", "search_tags": "pin",
+        "getidle": "eye", "get_idle": "eye",
+        "read_news": "rss", "read_news_range": "rss", "search_news": "rss",
+    }
 
     def show_tool_indicator(self, tool_name):
-        color = self._TOOL_COLORS.get(tool_name, "#95a5a6")
         from tool_groups import load_tool_name
         name, desc = load_tool_name(tool_name, self.language)
+        color = self._TOOL_COLORS.get(tool_name, "#95a5a6")
         tip = f'<font color="{color}"><b>{name}</b></font><br><font color="#aaaaaa">{desc}</font>'
-        self.tool_indicator_signal.emit(color, tip)
+        self.tool_indicator_signal.emit(tool_name, tip)
 
     def hide_tool_indicator(self):
         self.tool_indicator_signal.emit("", "")
@@ -2580,31 +2608,30 @@ class VassGUI(QMainWindow):
         else:
             self.tool_indicator_signal.emit("__mcp_down__", "")
 
-    def _on_tool_indicator(self, color, tooltip):
-        if color == "__mcp_down__":
+    def _on_tool_indicator(self, tool_name, tooltip):
+        if tool_name == "__mcp_down__":
             self._compact_dot.set_tool("#e74c3c")
             if not self._compact_mode:
-                self._tool_indicator.setStyleSheet(
-                    "QLabel { background-color: #e74c3c; border-radius: 0px; border: none; }")
+                self._tool_indicator.setIcon(icon("x", "#e74c3c", 16))
                 self._tool_indicator.setToolTip(self._t("gui.mcp_down_tooltip"))
                 self._tool_indicator.setVisible(True)
             return
-        if color == "__transcription__":
+        if tool_name == "__transcription__":
             self._compact_dot.set_tool("#95a5a6")
             if not self._compact_mode:
-                self._tool_indicator.setStyleSheet(
-                    "QLabel { background-color: #95a5a6; border-radius: 0px; border: none; }")
+                self._tool_indicator.setIcon(icon("mic", "#95a5a6", 16))
                 self._tool_indicator.setToolTip(self._t("gui.transcription_mode"))
                 self._tool_indicator.setVisible(True)
             return
-        if not color:
+        if not tool_name:
             self._tool_indicator.setVisible(False)
             self._compact_dot.set_tool()
             return
+        icon_name = self._TOOL_ICONS.get(tool_name, "bell")
+        color = self._TOOL_COLORS.get(tool_name, "#95a5a6")
         self._compact_dot.set_tool(color)
         if not self._compact_mode:
-            self._tool_indicator.setStyleSheet(
-                f"QLabel {{ background-color: {color}; border-radius: 5px; }}")
+            self._tool_indicator.setIcon(icon(icon_name, color, 16))
             self._tool_indicator.setToolTip(tooltip)
             self._tool_indicator.setVisible(True)
 

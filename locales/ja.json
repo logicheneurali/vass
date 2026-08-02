@@ -25,7 +25,8 @@
       "help_vasscript": "VASScript",
       "memory_editor": "永続メモリ",
       "compact_mode": "コンパクトモード",
-      "plugins": "プラグイン"
+      "plugins": "プラグイン",
+      "mail": "メールアカウント"
     },
     "dialog": {
       "exit_title": "終了",
@@ -129,6 +130,7 @@
       "input_volume": "マイクゲイン",
       "app_volume": "一般音量",
       "calendar_setup": "設定を開始",
+      "mail_accounts": "メールアカウント",
       "calendar_enabled": "Googleカレンダー",
       "calendar_sync_enabled": "自動同期",
       "calendar_sync_minutes": "同期間隔 (分)",
@@ -469,6 +471,32 @@
     "auto_model_selected": "AIモデルが見つかりません。自動選択されました: {model}",
     "model_not_found_retry": "モデル{old}が見つかりません。{new}を選択しました。再試行してください。",
     "no_valid_model": "llama.cppに有効なAIモデルが見つかりません。サーバーをモデル付きで起動してください。"
+  },
+  "mail": {
+    "tts_new_email": "{from}から新着メール ({date})。件名: {subject}。{snippet}"
+  },
+  "mail_editor": {
+    "add": "追加",
+    "delete": "削除",
+    "delete_confirm": "アカウント {account} を削除しますか？",
+    "save": "保存",
+    "enable": "有効化",
+    "disable": "無効化",
+    "details": "アカウント詳細",
+    "type": "タイプ:",
+    "email": "メール:",
+    "host": "ホスト:",
+    "port": "ポート:",
+    "ssl": "接続:",
+    "auth": "認証:",
+    "username": "ユーザー名:",
+    "password": "パスワード:",
+    "sync_minutes": "同期 (分):",
+    "max_results": "最大結果:",
+    "status_unknown": "状態: 不明",
+    "status_last": "最終同期: {time}",
+    "status_auth": "状態: 認証済み",
+    "status_noauth": "状態: 未認証"
   },
   "setup_google": {
     "title": "Google認証情報の設定",

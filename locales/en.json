@@ -25,7 +25,8 @@
       "help_vasscript": "VASScript",
       "memory_editor": "Permanent Memory",
       "compact_mode": "Compact Mode",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "mail": "Email accounts"
     },
     "dialog": {
       "exit_title": "Exit",
@@ -129,6 +130,7 @@
       "input_volume": "Microphone gain",
       "app_volume": "General volume",
       "calendar_setup": "Start setup",
+      "mail_accounts": "Email accounts",
       "calendar_enabled": "Google Calendar",
       "calendar_sync_enabled": "Auto sync",
       "calendar_sync_minutes": "Sync interval (min)",
@@ -468,6 +470,32 @@
     "auto_model_selected": "AI model missing. Auto-selected {model}",
     "model_not_found_retry": "Model {old} not found. Selected {new}. Try again.",
     "no_valid_model": "No valid AI model found on llama.cpp. Start the server with a model."
+  },
+  "mail": {
+    "tts_new_email": "New email from {from} ({date}). Subject: {subject}. {snippet}"
+  },
+  "mail_editor": {
+    "add": "Add",
+    "delete": "Delete",
+    "delete_confirm": "Remove account {account}?",
+    "save": "Save",
+    "enable": "Enable",
+    "disable": "Disable",
+    "details": "Account details",
+    "type": "Type:",
+    "email": "Email:",
+    "host": "Host:",
+    "port": "Port:",
+    "ssl": "Connection:",
+    "auth": "Authentication:",
+    "username": "Username:",
+    "password": "Password:",
+    "sync_minutes": "Sync (minutes):",
+    "max_results": "Max results:",
+    "status_unknown": "Status: unknown",
+    "status_last": "Last sync: {time}",
+    "status_auth": "Status: authenticated",
+    "status_noauth": "Status: not authenticated"
   },
   "setup_google": {
     "title": "Google credentials setup",
