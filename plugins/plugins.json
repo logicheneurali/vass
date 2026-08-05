@@ -17,10 +17,10 @@
       "enabled": true
     },
     "image_generator": {
-      "enabled": false
+      "enabled": true
     },
     "news_publisher": {
-      "enabled": false
+      "enabled": true
     }
   }
 }

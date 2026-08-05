@@ -26,7 +26,18 @@
       "memory_editor": "Permanent Memory",
       "compact_mode": "Compact Mode",
       "plugins": "Plugins",
-      "mail": "Email accounts"
+      "mail": "Email accounts",
+      "mail_queue": "Email outbox",
+      "settings_general": "General",
+      "mail_pending": "Pending mail ({n})",
+      "contacts": "Contacts",
+      "notifications": "Notifications"
+    },
+    "actions": {
+      "open_browser": "Open in browser",
+      "open_queue": "Open email queue",
+      "copy_text": "Copy text",
+      "mark_seen": "Mark as seen"
     },
     "dialog": {
       "exit_title": "Exit",
@@ -148,6 +159,7 @@
       "auto_context_selection": "Auto context selection",
       "paused_opacity": "Pause opacity",
       "compact_mode": "Compact Mode",
+      "app_autostart": "Launch VASS at system startup",
       "work_start_hour": "Work start",
       "work_end_hour": "Work end",
       "lunch_start": "Lunch break start",
@@ -211,7 +223,8 @@
       "debug_log_max_kb": "Maximum debug log file size in KB (default 1024)",
       "compress_context": "Removes articles, prepositions and conjunctions from text sent to the AI to reduce token count.",
       "auto_context_selection": "Skip memory injection when the request does not need context (e.g. calculations, time, translations).",
-      "compact_mode": "Reduces the window to 36x36 pixels with concentric circles and transparent background"
+      "compact_mode": "Reduces the window to 36x36 pixels with concentric circles and transparent background",
+      "app_autostart": "Registers or removes VASS from OS startup. The displayed state reflects the system registry."
     },
     "section_labels": {
       "gui": "Window",
@@ -224,6 +237,7 @@
       "resources": "System resources",
       "locale": "Language",
       "events": "Events",
+      "startup": "Startup",
       "noise": "Noise",
       "audio": "Audio input/output",
       "google": "External Services",
@@ -488,6 +502,10 @@
     "port": "Port:",
     "ssl": "Connection:",
     "auth": "Authentication:",
+    "smtp": "--- Send (SMTP) ---",
+    "smtp_host": "SMTP Host:",
+    "smtp_port": "SMTP Port:",
+    "smtp_ssl": "SMTP Security:",
     "username": "Username:",
     "password": "Password:",
     "sync_minutes": "Sync (minutes):",
@@ -586,7 +604,8 @@
     "map_subtitle": "Click a tag to see details",
     "map_tooltip": "<b>{tag}</b><br>{count} entries &middot; avg rel {rel}",
     "map_sidebar": "Tags",
-    "map_items": "{count} entries"
+    "map_items": "{count} entries",
+    "delete_confirm_multi": "Delete {n} selected entries?"
   },
   "tag_manager": {
     "title": "Tag Manager",
@@ -618,6 +637,26 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "Open in browser",
     "new_articles_count": "{count} new articles"
+  },
+  "notif_editor": {
+    "title": "Notification settings",
+    "subtitle": "Choose how VASS handles each event type: voice (TTS), InfoPanel bell, both, or none.",
+    "default": "Default (unlisted events)",
+    "email": "New email",
+    "timer": "Timer expired",
+    "schedule": "Scheduled command (start/error)",
+    "event_reminder": "Calendar event / schedule done",
+    "plugins": "Plugin commands",
+    "ai_error": "AI error / model not found",
+    "ai_ready": "AI model selected",
+    "tts": "Voice only",
+    "notification": "Notification only",
+    "both": "Voice + notification",
+    "none": "None",
+    "save": "Save",
+    "cancel": "Cancel",
+    "error": "Error",
+    "saved": "Settings saved."
   },
   "tool_groups": {
     "web": [
@@ -663,7 +702,19 @@
       "navigate",
       "position",
       "itinerary",
-      "navigator"
+      "navigator",
+      "reply",
+      "mail",
+      "email",
+      "send",
+      "write to",
+      "response",
+      "forward",
+      "inbox",
+      "message",
+      "compose",
+      "draft",
+      "outbox"
     ],
     "calendar": [
       "calendar",
@@ -954,6 +1005,36 @@
       "search articles",
       "find articles",
       "search event"
+    ],
+    "mail": [
+      "write",
+      "mail",
+      "email",
+      "reply",
+      "send",
+      "forward",
+      "compose",
+      "inbox",
+      "outbox",
+      "message",
+      "draft",
+      "recipient",
+      "sender"
+    ],
+    "browser": [
+      "go to",
+      "open site",
+      "navigate to",
+      "visit",
+      "click on",
+      "fill form",
+      "submit form",
+      "log in",
+      "sign in",
+      "download file",
+      "save from",
+      "fill in",
+      "register"
     ]
   },
   "tool_names": {
@@ -1092,6 +1173,8 @@
     "starting": "Starting...",
     "blocked": "Blocked",
     "error": "Error",
+    "port_conflict_title": "VASS already running",
+    "port_conflict_msg": "Another instance of VASS is already running (port 8765 in use). Close the other instance and try again.",
     "save": "Save",
     "cancel": "Cancel",
     "subtitle": "Plugins are loaded on next startup. Changes are immediate.",

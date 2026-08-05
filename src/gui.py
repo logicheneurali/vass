@@ -486,6 +486,33 @@ class InfoPanel(QFrame):
         "profile": "user", "world_event": "globe",
     }
 
+    _ACTION_HANDLERS = {
+        "open_browser": lambda self, item: self._open_url((item.get("data") or {}).get("link", "")),
+        "open_queue": lambda self, item: (
+            self._open_queue_cb((item.get("data") or {}).get("queue_id", ""))
+            if getattr(self, "_open_queue_cb", None) else None),
+        "copy_text": lambda self, item: self._copy_text((item.get("data") or {}).get("text", "")),
+        "mark_read": lambda self, item: None,
+        "mark_seen": lambda self, item: None,
+    }
+
+    _TYPE_ACTIONS = {
+        "rss": ["open_browser"],
+        "mail": ["open_browser"],
+        "auth": ["open_browser"],
+        "link": ["open_browser"],
+        "ai": ["copy_text"],
+        "mail_queue": ["open_queue"],
+        "youtube": ["mark_seen", "open_browser"],
+    }
+
+    _ACTION_ICONS = {
+        "open_browser": "arrow-up-right",
+        "open_queue": "mail",
+        "copy_text": "clipboard-list",
+        "mark_seen": "eye",
+    }
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._t = lambda k: k
@@ -745,19 +772,35 @@ class InfoPanel(QFrame):
             return
         from urllib.parse import urlparse
         for url in self._links:
-            domain = urlparse(url).netloc or url
+            try:
+                domain = urlparse(url).netloc or url
+            except ValueError:
+                domain = url[:50]
             display = url if len(url) <= 50 else url[:47] + "..."
-            btn = QPushButton(f"{domain}\n{display}")
-            btn.setStyleSheet(
-                f"QPushButton {{ background-color: #16213e; color: #aaaaaa; "
-                f"border: none; border-radius: 3px; padding: 4px 8px; "
-                f"text-align: left; font-size: {self._fs(11)}px; }}"
-                f"QPushButton:hover {{ background-color: #1a5276; color: #e0e0e0; }}"
+            item = {"data": {"type": "link", "link": url}}
+            container = QWidget()
+            container.setStyleSheet("background: transparent;")
+            c_layout = QVBoxLayout(container)
+            c_layout.setContentsMargins(4, 3, 4, 3)
+            c_layout.setSpacing(1)
+            link_lbl = QLabel(f"{domain}\n{display}")
+            link_lbl.setStyleSheet(
+                f"color: #aaaaaa; background: transparent; font-size: {self._fs(11)}px;"
+                f"padding: 4px 8px; border: 1px solid #16213e; border-radius: 3px;"
             )
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setToolTip(url)
-            btn.clicked.connect(lambda checked, u=url: (self._reset_timer(), self._open_url(u)))
-            self._scroll_layout.addWidget(btn)
+            link_lbl.setWordWrap(True)
+            link_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+            link_lbl.setToolTip(url)
+            link_lbl.mousePressEvent = lambda e, it=item: self._on_item_click(it)
+            c_layout.addWidget(link_lbl)
+            action_row = QHBoxLayout()
+            action_row.setSpacing(2)
+            for abtn in self._build_action_icons(item):
+                action_row.addWidget(abtn)
+            action_row.addStretch()
+            if action_row.count() > 1:
+                c_layout.addLayout(action_row)
+            self._scroll_layout.addWidget(container)
         self._scroll_layout.addStretch()
 
     def _build_notifications(self, filter_type="all"):
@@ -806,6 +849,12 @@ class InfoPanel(QFrame):
             text_lbl = QLabel(txt)
             text_lbl.setStyleSheet(f"color: #aaa; font-size: {self._fs(11)}px; background: transparent;")
             text_lbl.setWordWrap(True)
+            # Actions row: horizontal icon buttons below the text
+            action_row = QHBoxLayout()
+            action_row.setSpacing(2)
+            for abtn in self._build_action_icons(n):
+                action_row.addWidget(abtn)
+            action_row.addStretch()
             # Container
             container = QWidget()
             container.setStyleSheet("background: transparent;")
@@ -814,18 +863,23 @@ class InfoPanel(QFrame):
             container_layout.setSpacing(1)
             container_layout.addLayout(top_row)
             container_layout.addWidget(text_lbl)
+            if action_row.count() > 1:
+                container_layout.addLayout(action_row)
             container.setCursor(Qt.CursorShape.PointingHandCursor)
-            nid = n["id"]
-            link = n.get("data", {}).get("link", "")
-            container.mousePressEvent = lambda e, nid=nid, link=link: self._on_notif_click(nid, link)
+            container.mousePressEvent = lambda e, it=n: self._on_item_click(it)
             self._scroll_layout.addWidget(container)
         self._scroll_layout.addStretch()
 
-    def _on_notif_click(self, nid, link):
+    def _on_item_click(self, item):
         self._reset_timer()
+        self._mark_read(item)
+
+    def _mark_read(self, item):
+        if not item or not item.get("id"):
+            return
         if hasattr(self, '_nm') and self._nm is not None:
             for n in self._nm.list_all():
-                if n["id"] == nid:
+                if n["id"] == item["id"]:
                     n["read"] = True
                     break
             if hasattr(self, '_update_bell_cb'):
@@ -834,9 +888,41 @@ class InfoPanel(QFrame):
             scroll_val = self._scroll.verticalScrollBar().value()
             self._build_notifications(filter_type)
             self._scroll.verticalScrollBar().setValue(scroll_val)
-        if link:
-            import webbrowser
-            webbrowser.open(link)
+
+    def _run_action(self, action, item):
+        self._reset_timer()
+        handler = self._ACTION_HANDLERS.get(action, self._ACTION_HANDLERS["mark_read"])
+        try:
+            handler(self, item)
+        except Exception:
+            pass
+
+    def _item_actions(self, item):
+        data = item.get("data", {})
+        raw = data.get("action") or self._TYPE_ACTIONS.get(data.get("type"), [])
+        if raw is None:
+            raw = []
+        return raw if isinstance(raw, list) else [raw]
+
+    def _build_action_icons(self, item):
+        """Build horizontal icon buttons for the item's actions (mark_read is implicit)."""
+        buttons = []
+        for act in self._item_actions(item):
+            if act == "mark_read":
+                continue
+            btn = QPushButton()
+            btn.setIcon(icon(self._ACTION_ICONS.get(act, "ellipsis"), "#888", 13, 1))
+            btn.setIconSize(QSize(13, 13))
+            btn.setFixedSize(18, 18)
+            btn.setToolTip(self._t(f"gui.actions.{act}"))
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet(
+                "QPushButton { background: transparent; border: none; }"
+                "QPushButton:hover { background: #16213e; border-radius: 3px; }"
+            )
+            btn.clicked.connect(lambda checked=False, a=act, it=item: self._run_action(a, it))
+            buttons.append(btn)
+        return buttons
 
     def _mark_all_read(self):
         if hasattr(self, '_nm') and self._nm is not None:
@@ -856,6 +942,7 @@ class InfoPanel(QFrame):
         last = None
         for msg in assistant_msgs[-10:]:
             text = msg.get("content", "")
+            item = {"data": {"type": "ai", "text": text}}
             container = QWidget()
             container.setStyleSheet("background: transparent;")
             c_layout = QVBoxLayout(container)
@@ -867,8 +954,15 @@ class InfoPanel(QFrame):
                                    "padding: 4px; border: 1px solid #16213e; border-radius: 3px;")
             text_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
             text_lbl.setToolTip(self._t("gui.click_to_copy"))
-            text_lbl.mousePressEvent = lambda e, t=text: (self._reset_timer(), self._copy_text(t))
+            text_lbl.mousePressEvent = lambda e, it=item: self._on_item_click(it)
             c_layout.addWidget(text_lbl)
+            action_row = QHBoxLayout()
+            action_row.setSpacing(2)
+            for abtn in self._build_action_icons(item):
+                action_row.addWidget(abtn)
+            action_row.addStretch()
+            if action_row.count() > 1:
+                c_layout.addLayout(action_row)
             self._scroll_layout.addWidget(container)
             last = container
         self._scroll_layout.addStretch()
@@ -961,6 +1055,7 @@ class VassGUI(QMainWindow):
     tool_indicator_signal = Signal(str, str)
     compact_mode_signal = Signal(bool)
     debug_border_signal = Signal()
+    splash_progress_signal = Signal(int, int, str)
  
     COLORS = {
         "listening": "#2ecc71",
@@ -1003,6 +1098,7 @@ class VassGUI(QMainWindow):
 
         self._splash = SplashScreen()
         self._splash.show()
+        self.splash_progress_signal.connect(self._on_splash_progress)
 
         # --- Layout ---
         central = QWidget()
@@ -1125,15 +1221,27 @@ class VassGUI(QMainWindow):
             "QMenu::item { padding: 6px 20px; }"
             "QMenu::item:selected { background-color: #0d7377; }"
         )
-        self._menu.addAction(self._t("gui.menu.settings"), self.open_settings)
-        self._menu.addAction(self._t("gui.menu.commands"), self.open_commands)
-        self._menu.addAction(self._t("gui.menu.scripts"), self.open_scripts)
+        self._mail_queue_action = self._menu.addAction("")
+        self._mail_queue_action.setVisible(False)
+        self._mail_queue_action.triggered.connect(self.open_mail_queue)
+
         self._menu.addAction(self._t("gui.menu.history"), self.open_history)
         self._menu.addAction(self._t("gui.menu.memory_editor"), self.open_memory_editor)
-        self._menu.addAction(self._t("gui.menu.sources"), self.open_sources)
         self._menu.addAction(self._t("gui.menu.events"), self.open_events)
-        self._menu.addAction(self._t("gui.menu.plugins"), self.open_plugins)
-        self._menu.addAction(self._t("gui.menu.mail"), self.open_mail_editor)
+
+        self._settings_menu = self._menu.addMenu(self._t("gui.menu.settings"))
+        self._settings_menu.addAction(self._t("gui.menu.settings_general"), self.open_settings)
+        self._settings_menu.addAction(self._t("gui.menu.commands"), self.open_commands)
+        self._settings_menu.addAction(self._t("gui.menu.scripts"), self.open_scripts)
+        self._settings_menu.addAction(self._t("gui.menu.sources"), self.open_sources)
+        self._settings_menu.addAction(self._t("gui.menu.plugins"), self.open_plugins)
+        self._settings_menu.addSeparator()
+        self._settings_menu.addAction(self._t("gui.menu.mail"), self.open_mail_editor)
+        self._settings_menu.addAction(self._t("gui.menu.contacts"), self.open_contacts_editor)
+        self._settings_menu.addAction(self._t("gui.menu.notifications"), self.open_notifications_editor)
+
+        self._menu.aboutToShow.connect(self._update_mail_queue_menu)
+
         self._help_menu = self._menu.addMenu(self._t("gui.menu.help"))
         self._help_menu.addAction(self._t("gui.menu.help_usage"), self._open_help_usage)
         self._help_menu.addAction(self._t("gui.menu.help_commands"), self._open_help_commands)
@@ -1594,7 +1702,7 @@ class VassGUI(QMainWindow):
                 path = os.path.join(BASE, "Allowed_root", "last_response.txt")
                 self.replay_btn.setVisible(os.path.exists(path) and os.path.getsize(path) > 0)
                 self._chat_btn.setVisible(self._current_mode != "transcription")
-                self._mic_btn.setVisible(self._current_mode == "chat")
+                self._mic_btn.setVisible(self._current_mode in ("chat", "transcription"))
             else:
                 self.replay_btn.setVisible(False)
                 self._chat_btn.setVisible(False)
@@ -1670,9 +1778,7 @@ class VassGUI(QMainWindow):
         if self._current_mode != mode:
             self._current_mode = mode
             self._on_set_state(self._current_state, self._current_detail)
-        if mode == "transcription":
-            self.tool_indicator_signal.emit("__transcription__", "")
-        else:
+        if mode != "transcription":
             self.hide_tool_indicator()
 
     def update_button_tooltip(self):
@@ -1774,8 +1880,10 @@ class VassGUI(QMainWindow):
             x = layout.getint("window", "x", fallback=self.x())
             y = layout.getint("window", "y", fallback=self.y())
             w = layout.getint("window", "width", fallback=200)
+            h = layout.getint("window", "height", fallback=32)
             self.move(x, y)
             self.setFixedWidth(w)
+            self.setFixedHeight(h)
             #QTimer.singleShot(0, lambda: self.setFixedWidth(16777215))
             return w
         except Exception:
@@ -1833,6 +1941,7 @@ class VassGUI(QMainWindow):
                 w.setVisible(False)
             self.stacked.setVisible(False)
             self.setFixedWidth(original_width * 2)
+            self.setFixedHeight(self.height())
             self._clamp_to_screen()
             self._rebalance_spacers()
             self._chat_input.setVisible(True)
@@ -1884,6 +1993,10 @@ class VassGUI(QMainWindow):
             pass
 
     def set_loading_progress(self, value, maximum=100, detail=""):
+        if hasattr(self, '_splash') and self._splash is not None:
+            self.splash_progress_signal.emit(value, maximum, detail)
+
+    def _on_splash_progress(self, value, maximum, detail):
         if hasattr(self, '_splash') and self._splash is not None:
             self._splash.set_progress(value, maximum, detail)
 
@@ -2345,6 +2458,47 @@ class VassGUI(QMainWindow):
     def open_mail_editor(self):
         self._open_unique_window("mail", os.path.join(SRC, "mail_editor.py"), "--lang", self.language)
 
+    def open_contacts_editor(self):
+        def _show():
+            from mail.contacts_editor import ContactsDialog
+            dlg = ContactsDialog(self)
+            dlg.exec()
+        self.schedule_signal.emit(_show)
+
+    def open_notifications_editor(self):
+        def _show():
+            from notifications_editor import NotificationsEditor
+            dlg = NotificationsEditor(lang=self.language, parent=self)
+            dlg.exec()
+        self.schedule_signal.emit(_show)
+
+    def open_mail_queue(self):
+        def _show():
+            from mail.queue_viewer import QueueViewerDialog
+            dlg = QueueViewerDialog(self.language)
+            dlg.exec()
+        self.schedule_signal.emit(_show)
+
+    def open_mail_queue_with_id(self, qid):
+        def _show():
+            from mail.queue_viewer import QueueViewerDialog
+            dlg = QueueViewerDialog(self.language, select_id=qid)
+            dlg.exec()
+        self.schedule_signal.emit(_show)
+
+    def _update_mail_queue_menu(self):
+        try:
+            from mail.queue import count
+            n = count()
+            if n > 0:
+                self._mail_queue_action.setText(
+                    self._t("gui.menu.mail_pending").replace("{n}", str(n)))
+                self._mail_queue_action.setVisible(True)
+            else:
+                self._mail_queue_action.setVisible(False)
+        except Exception:
+            self._mail_queue_action.setVisible(False)
+
     def _open_help_usage(self):
         import os
         readme = os.path.join(BASE, "docs", f"README_{self.language}.md")
@@ -2549,6 +2703,11 @@ class VassGUI(QMainWindow):
         "savetags": "pin", "save_tags": "pin", "search_tags": "pin",
         "getidle": "eye", "get_idle": "eye",
         "read_news": "rss", "read_news_range": "rss", "search_news": "rss",
+        "search_emails": "mail", "send_email": "mail", "reply_email": "mail",
+        "forward_email": "mail", "search_contacts": "user",
+        "browser_open": "globe", "browser_read": "globe", "browser_click": "globe",
+        "browser_fill": "globe", "browser_submit": "globe", "browser_download": "globe",
+        "browser_back": "globe", "browser_show": "globe", "browser_check_auth": "globe",
     }
 
     def show_tool_indicator(self, tool_name):
@@ -2599,6 +2758,7 @@ class VassGUI(QMainWindow):
             setattr(self._link_panel, '_t', self._t),
             setattr(self._link_panel, '_nm', nm),
             setattr(self._link_panel, '_update_bell_cb', self._update_bell),
+            setattr(self._link_panel, '_open_queue_cb', lambda qid: self.open_mail_queue_with_id(qid)),
             self._link_panel.show_panel(tab, self, user_opened=True)
         ))
 

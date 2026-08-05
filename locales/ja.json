@@ -26,7 +26,18 @@
       "memory_editor": "永続メモリ",
       "compact_mode": "コンパクトモード",
       "plugins": "プラグイン",
-      "mail": "メールアカウント"
+      "mail": "メールアカウント",
+      "mail_queue": "メール送信待ち",
+      "settings_general": "一般",
+      "mail_pending": "保留メール ({n})",
+      "contacts": "連絡先",
+      "notifications": "通知"
+    },
+    "actions": {
+      "open_browser": "ブラウザで開く",
+      "open_queue": "メールキューを開く",
+      "copy_text": "テキストをコピー",
+      "mark_seen": "既読にする"
     },
     "dialog": {
       "exit_title": "終了",
@@ -148,6 +159,7 @@
       "auto_context_selection": "コンテキスト自動選択",
       "paused_opacity": "一時停止の不透明度",
       "compact_mode": "コンパクトモード",
+      "app_autostart": "システム起動時にVASSを起動",
       "work_start_hour": "勤務開始",
       "work_end_hour": "勤務終了",
       "lunch_start": "昼休み開始",
@@ -211,7 +223,8 @@
       "debug_log_max_kb": "デバッグログファイルの最大サイズKB（デフォルト1024）",
       "compress_context": "AIに送信されるテキストから冠詞、前置詞、接続詞を削除し、トークン数を削減します。",
       "auto_context_selection": "リクエストがコンテキストを必要としない場合（計算、時刻、翻訳など）、メモリの注入をスキップします。",
-      "compact_mode": "ウィンドウを36x36ピクセルに縮小し、同心円と透明な背景を表示します"
+      "compact_mode": "ウィンドウを36x36ピクセルに縮小し、同心円と透明な背景を表示します",
+      "app_autostart": "システム起動時にVASSを登録または削除します。表示される状態はシステムレジストリを反映します。"
     },
     "section_labels": {
       "gui": "ウィンドウ",
@@ -224,6 +237,7 @@
       "resources": "System resources",
       "locale": "言語",
       "events": "イベント",
+      "startup": "自動起動",
       "noise": "ノイズ",
       "audio": "オーディオ入出力",
       "google": "外部サービス",
@@ -496,7 +510,11 @@
     "status_unknown": "状態: 不明",
     "status_last": "最終同期: {time}",
     "status_auth": "状態: 認証済み",
-    "status_noauth": "状態: 未認証"
+    "status_noauth": "状態: 未認証",
+    "smtp": "--- Send (SMTP) ---",
+    "smtp_host": "SMTP Host:",
+    "smtp_port": "SMTP Port:",
+    "smtp_ssl": "SMTP Security:"
   },
   "setup_google": {
     "title": "Google認証情報の設定",
@@ -587,7 +605,8 @@
     "files_blacklist": "次の文字列を含むパスを除外（カンマ区切り、ワイルドカード対応）：",
     "files_extensions": "有効な拡張子（カンマ区切り、空=すべて）：",
     "sources_max_entries": "AIコンテキストの最大エントリ数：",
-    "sources_max_entries_desc": "タグに基づいて最も関連性の高いもののみが含まれます"
+    "sources_max_entries_desc": "タグに基づいて最も関連性の高いもののみが含まれます",
+    "delete_confirm_multi": "{n}件のエントリを削除しますか？"
   },
   "tag_manager": {
     "title": "タグマネージャー",
@@ -619,6 +638,26 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "ブラウザで開く",
     "new_articles_count": "{count}件の新しい記事"
+  },
+  "notif_editor": {
+    "title": "通知設定",
+    "subtitle": "各イベントタイプをVASSがどう処理するか選択: 音声(TTS)、InfoPanelベル、両方、またはなし。",
+    "default": "デフォルト(未記載のイベント)",
+    "email": "新着メール",
+    "timer": "タイマー終了",
+    "schedule": "予定コマンド(開始/エラー)",
+    "event_reminder": "カレンダーイベント/予定完了",
+    "plugins": "プラグインコマンド",
+    "ai_error": "AIエラー/モデル見つかりません",
+    "ai_ready": "AIモデル選択済み",
+    "tts": "音声のみ",
+    "notification": "通知のみ",
+    "both": "音声+通知",
+    "none": "なし",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "error": "エラー",
+    "saved": "設定を保存しました。"
   },
   "tool_groups": {
     "web": [
@@ -659,7 +698,14 @@
       "ナビ",
       "位置",
       "経路",
-      "ナビゲーション"
+      "ナビゲーション",
+      "返信",
+      "メール",
+      "送信",
+      "転送",
+      "メッセージ",
+      "作成",
+      "受信箱"
     ],
     "calendar": [
       "カレンダー",
@@ -957,6 +1003,27 @@
       "ニュースを検索",
       "記事を検索",
       "ニュースを探す"
+    ],
+    "mail": [
+      "書く",
+      "メール",
+      "返信",
+      "送信",
+      "転送",
+      "作成",
+      "メッセージ",
+      "下書き",
+      "宛先",
+      "差出人"
+    ],
+    "browser": [
+      "開く",
+      "サイトに行く",
+      "クリック",
+      "フォーム入力",
+      "送信",
+      "ログイン",
+      "ダウンロード"
     ]
   },
   "tool_names": {
@@ -1094,6 +1161,8 @@
     "stopped": "停止中",
     "starting": "起動中...",
     "error": "エラー",
+    "port_conflict_title": "VASSはすでに実行中です",
+    "port_conflict_msg": "別のVASSインスタンスがすでに実行中です（ポート8765使用中）。他のインスタンスを閉じて、もう一度お試しください。",
     "save": "保存",
     "cancel": "キャンセル",
     "subtitle": "プラグインは次回起動時に読み込まれます。変更はすぐに反映されます。",

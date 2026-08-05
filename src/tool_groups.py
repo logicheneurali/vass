@@ -17,7 +17,9 @@ STANDALONE_GROUPS = {"compute", "time", "lang"}
 # Map of group name → list of MCP tool names belonging to that group.
 # interact, script, execute are excluded — they require allow_ai_scripts.
 TOOL_GROUPS = {
-    "web":       ["browse", "webfetch", "websearch", "search_places", "search_nearby"],
+        "web":       ["browse", "webfetch", "websearch", "search_places", "search_nearby", "search_news"],
+        "mail":      ["search_emails", "send_email", "reply_email", "forward_email", "search_contacts"],
+        "browser":   ["browser_open", "browser_read", "browser_click", "browser_fill", "browser_submit", "browser_download", "browser_back", "browser_show", "browser_check_auth"],
     "news":      ["read_news", "read_news_range", "search_news"],
     "calendar":  ["calendar_add", "calendar_list", "calendar_search"],
     "files":     ["read_file", "write_file", "readinfo", "writeinfo", "html_to_pdf"],
@@ -29,6 +31,11 @@ TOOL_GROUPS = {
     "idle":      ["getidle"],
     "tags":      ["savetags", "search_tags"],
 }
+
+TOOL_TO_GROUP = {}
+for group, names in TOOL_GROUPS.items():
+    for name in names:
+        TOOL_TO_GROUP[name] = group
 
 # ── Keyword loading ───────────────────────────────────────────────
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -264,6 +271,40 @@ def select_tool_groups(prompt, lang="it"):
     result = groups or {"web"}
     print(f"[ToolGroups] prompt='{prompt[:80]}' lang={lang} -> {sorted(result)}")
     return result
+
+
+def select_tool_groups_ai(prompt, tools, openai_client, model):
+    """Ask AI which tools it needs. Returns set of group names. Falls back to empty set."""
+    if not openai_client or not model:
+        return set()
+    tool_names = sorted(set(t["function"]["name"] for t in (tools or [])))
+    if not tool_names:
+        return set()
+    tool_list = ", ".join(tool_names)
+
+    msg = (
+        f"User request: \"{prompt[:500]}\"\n\n"
+        f"Available tools: {tool_list}\n\n"
+        f"Return ONLY the tool names needed, comma-separated. Nothing else.\n"
+        f"If no tools are needed, return 'none'."
+    )
+    try:
+        resp = openai_client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": msg}],
+            temperature=0.1,
+            max_tokens=100,
+            extra_body={"disable_thinking": True},
+        )
+        text = resp.choices[0].message.content.lower()
+        requested = {t.strip() for t in text.split(",") if t.strip() and t.strip() != "none"}
+        groups = {TOOL_TO_GROUP[t] for t in requested if t in TOOL_TO_GROUP}
+        if groups:
+            print(f"[ToolGroups-AI] prompt='{prompt[:60]}' -> {sorted(groups)}")
+        return groups
+    except Exception as e:
+        print(f"[ToolGroups-AI] Error: {e}")
+        return set()
 
 
 def resolve_tool_names(group_names, all_tools, debug=False):

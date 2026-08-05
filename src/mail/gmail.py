@@ -102,7 +102,8 @@ class GmailSource(MailSource):
         try:
             msg = svc.users().messages().get(
                 userId="me", id=msg_id, format="full",
-                metadataHeaders=["From", "Subject", "Date"],
+                metadataHeaders=["From", "Subject", "Date", "Message-ID",
+                                 "References", "In-Reply-To"],
             ).execute()
         except Exception as e:
             print(f"[Gmail:{self._account}] get msg {msg_id}: {e}")
@@ -112,6 +113,7 @@ class GmailSource(MailSource):
             headers[h["name"].lower()] = h["value"]
         snippet = msg.get("snippet", "")
         label_ids = msg.get("labelIds", [])
+        body = self._extract_body(msg.get("payload", {}))
         return {
             "id": msg["id"],
             "from": headers.get("from", "?"),
@@ -119,8 +121,29 @@ class GmailSource(MailSource):
             "date": headers.get("date", ""),
             "sent_date": headers.get("date", ""),
             "snippet": snippet,
+            "body": body or snippet,
+            "message_id": headers.get("message-id", ""),
+            "references": headers.get("references", ""),
+            "in_reply_to": headers.get("in-reply-to", ""),
+            "thread_id": msg.get("threadId", ""),
             "important": "IMPORTANT" in label_ids,
         }
+
+    @staticmethod
+    def _extract_body(payload):
+        if not payload:
+            return ""
+        if payload.get("mimeType") == "text/plain":
+            data = payload.get("body", {}).get("data", "")
+            if data:
+                import base64
+                return base64.urlsafe_b64decode(data + "==").decode("utf-8", errors="replace")
+            return ""
+        for part in payload.get("parts", []):
+            body = GmailSource._extract_body(part)
+            if body:
+                return body
+        return ""
 
     def _get_seen_ids(self):
         from mail.store import get_seen_ids

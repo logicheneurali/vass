@@ -41,6 +41,9 @@ def _detach_console():
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
+# Ensure working directory is the VASS root regardless of how the app was
+# launched (registry autostart, double click, console from elsewhere).
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 try:
     import main
 except ImportError as e:

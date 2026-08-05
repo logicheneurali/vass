@@ -371,11 +371,20 @@ class MemoryEditor(QMainWindow):
                  '.entry-card { background:#252525; border:1px solid #3a3a3a; padding:14px; margin-bottom:12px; }',
                  '.flex-row { display:flex; align-items:center; }',
                  '.spacer { flex:1; }',
+                 '#batch-bar { display:none; position:sticky; top:0; z-index:10; background:#1a1a2e; padding:8px 12px; border-radius:4px; margin-bottom:10px; }',
+                 '#batch-bar button { background:#e74c3c; color:#fff; border:none; border-radius:3px; padding:6px 14px; cursor:pointer; }',
+                 '#batch-bar button:hover { background:#c0392b; }',
+                 '.sel-cb { transform:scale(1.3); margin-right:8px; accent-color:#e94560; }',
                  '</style></head>',
                  f'<body style="background-color:{BG}; color:{FG}; font-family:Segoe UI; font-size:13px;">']
 
         _src_icons = {"chat": "\U0001F4AC", "email": "\U0001F4E7",
                        "calendar": "\U0001F4C5", "events": "\U0001F4CC", "timers": "\u23F0"}
+
+        lines.append(f'<div id="batch-bar">'
+                     f'<label style="color:#ccc;font-size:12px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" class="sel-cb"> Tutti</label> '
+                     f'<button onclick="deleteSelected()">Elimina selezionati (<span id="sel-count">0</span>)</button>'
+                     f'</div>')
 
         for i, entry in enumerate(entries):
             date_str = entry.get("ts", "?")
@@ -390,10 +399,9 @@ class MemoryEditor(QMainWindow):
             safe_content = self._escape_html(content[:600])
 
             lines.append(f'<div class="entry-card">')
-            lines.append(f'<div style="margin-bottom:8px;">')
+            lines.append(f'  <label style="cursor:pointer;"><input type="checkbox" class="sel-cb entry-cb" data-eid="{eid}" onchange="updateBatchBar()"> ')
             lines.append(f'<span style="color:#888; font-size:11px;">[{date_str}]</span> ')
-            lines.append(f'<span style="color:#aaa; font-size:11px;">{src_icon} {self._tl("memory_editor.relevance_label")}: {relevance}</span>')
-            lines.append(f'</div>')
+            lines.append(f'<span style="color:#aaa; font-size:11px;">{src_icon} {self._tl("memory_editor.relevance_label")}: {relevance}</span></label>')
             lines.append(f'<div style="white-space:pre-wrap; margin-bottom:14px; font-size:12px;">{safe_content}</div>')
             lines.append(f'<div class="flex-row" style="margin-top:8px;">')
             lines.append(f'<div>')
@@ -411,6 +419,26 @@ class MemoryEditor(QMainWindow):
             lines.append(f'<a href="vass:delentry:{eid}" style="color:#e74c3c; font-size:11px; white-space:nowrap;">{self._tl("memory_editor.delete_entry")}</a>')
             lines.append(f'</div>')
             lines.append(f'</div>')
+
+        lines.append('<script>'
+                     'function updateBatchBar(){'
+                     'var cbs=document.querySelectorAll(".entry-cb:checked");'
+                     'var n=cbs.length;'
+                     'document.getElementById("sel-count").textContent=n;'
+                     'document.getElementById("batch-bar").style.display=n>0?"block":"none";'
+                     'document.getElementById("select-all").checked=n>0&&n==document.querySelectorAll(".entry-cb").length;'
+                     '}'
+                     'function toggleAll(el){'
+                     'document.querySelectorAll(".entry-cb").forEach(cb=>{cb.checked=el.checked;});'
+                     'updateBatchBar();'
+                     '}'
+                     'function deleteSelected(){'
+                     'var ids=Array.from(document.querySelectorAll(".entry-cb:checked")).map(cb=>cb.dataset.eid);'
+                     'if(ids.length&&confirm("Eliminare "+ids.length+" voci?")){'
+                     'window.location.href="vass:delselected:"+ids.join(",");'
+                     '}'
+                     '}'
+                     '</script>')
 
         lines.append('</body></html>')
         self.browser.setHtml("\n".join(lines), QUrl("vass://local/"))
@@ -430,6 +458,8 @@ class MemoryEditor(QMainWindow):
             self._show_add_tag_menu(parts[1])
         elif action == "delentry" and len(parts) >= 2:
             self._delete_entry(parts[1])
+        elif action == "delselected" and len(parts) >= 2:
+            self._delete_selected(parts[1])
         elif action == "bubble" and len(parts) >= 2:
             from urllib.parse import unquote
             tag = unquote(parts[1])
@@ -501,6 +531,23 @@ class MemoryEditor(QMainWindow):
         msg.exec()
         if msg.clickedButton() == yes_btn:
             del self._data["entries"][idx]
+            self._mark_dirty()
+            self._rebuild_content()
+
+    def _delete_selected(self, ids_str):
+        ids = [eid.strip() for eid in ids_str.split(",") if eid.strip()]
+        if not ids:
+            return
+        msg = QMessageBox(self)
+        msg.setWindowTitle(self._tl("memory_editor.delete_entry"))
+        msg.setText(self._tl("memory_editor.delete_confirm_multi").replace("{n}", str(len(ids))))
+        msg.setIcon(QMessageBox.Icon.Question)
+        yes_btn = msg.addButton(self._tl("memory_editor.dialog_yes"), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(self._tl("memory_editor.dialog_no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+        if msg.clickedButton() == yes_btn:
+            to_remove = set(ids)
+            self._data["entries"] = [e for e in self._data.get("entries", []) if e.get("id", "") not in to_remove]
             self._mark_dirty()
             self._rebuild_content()
 

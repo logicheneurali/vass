@@ -26,7 +26,18 @@
       "memory_editor": "永久记忆",
       "compact_mode": "紧凑模式",
       "plugins": "插件",
-      "mail": "邮件账户"
+      "mail": "邮件账户",
+      "mail_queue": "邮件发件箱",
+      "settings_general": "常规",
+      "mail_pending": "待发邮件 ({n})",
+      "contacts": "联系人",
+      "notifications": "通知"
+    },
+    "actions": {
+      "open_browser": "在浏览器中打开",
+      "open_queue": "打开邮件队列",
+      "copy_text": "复制文本",
+      "mark_seen": "标记为已读"
     },
     "dialog": {
       "exit_title": "退出",
@@ -148,6 +159,7 @@
       "auto_context_selection": "自动上下文选择",
       "paused_opacity": "暂停不透明度",
       "compact_mode": "紧凑模式",
+      "app_autostart": "系统启动时启动VASS",
       "work_start_hour": "工作开始",
       "work_end_hour": "工作结束",
       "lunch_start": "午休开始",
@@ -211,7 +223,8 @@
       "debug_log_max_kb": "调试日志文件最大大小KB（默认1024）",
       "compress_context": "从发送给AI的文本中移除冠词、介词和连词以减少token数量。",
       "auto_context_selection": "当请求不需要上下文时（如计算、时间、翻译），跳过内存注入。",
-      "compact_mode": "将窗口缩小为36x36像素，显示同心圆和透明背景"
+      "compact_mode": "将窗口缩小为36x36像素，显示同心圆和透明背景",
+      "app_autostart": "在系统启动时注册或移除VASS。显示的状态反映系统注册表。"
     },
     "section_labels": {
       "gui": "窗口",
@@ -224,6 +237,7 @@
       "resources": "System resources",
       "locale": "语言",
       "events": "事件",
+      "startup": "自动启动",
       "noise": "噪音",
       "audio": "音频输入/输出",
       "google": "外部服务",
@@ -496,7 +510,11 @@
     "status_unknown": "状态: 未知",
     "status_last": "最后同步: {time}",
     "status_auth": "状态: 已认证",
-    "status_noauth": "状态: 未认证"
+    "status_noauth": "状态: 未认证",
+    "smtp": "--- Send (SMTP) ---",
+    "smtp_host": "SMTP Host:",
+    "smtp_port": "SMTP Port:",
+    "smtp_ssl": "SMTP Security:"
   },
   "setup_google": {
     "title": "Google 凭据设置",
@@ -587,7 +605,8 @@
     "files_blacklist": "排除包含以下内容的路径（逗号分隔，支持通配符）：",
     "files_extensions": "有效扩展名（逗号分隔，空=全部）：",
     "sources_max_entries": "AI上下文最大条目：",
-    "sources_max_entries_desc": "仅包含基于标签的最相关条目"
+    "sources_max_entries_desc": "仅包含基于标签的最相关条目",
+    "delete_confirm_multi": "删除{n}个条目？"
   },
   "tag_manager": {
     "title": "标签管理器",
@@ -619,6 +638,26 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "在浏览器中打开",
     "new_articles_count": "{count} 篇新文章"
+  },
+  "notif_editor": {
+    "title": "通知设置",
+    "subtitle": "选择VASS如何处理每种事件类型：语音(TTS)、InfoPanel铃铛、两者或都不。",
+    "default": "默认(未列出的事件)",
+    "email": "新邮件",
+    "timer": "计时器到期",
+    "schedule": "计划命令(开始/错误)",
+    "event_reminder": "日历事件/计划完成",
+    "plugins": "插件命令",
+    "ai_error": "AI错误/未找到模型",
+    "ai_ready": "已选择AI模型",
+    "tts": "仅语音",
+    "notification": "仅通知",
+    "both": "语音+通知",
+    "none": "无",
+    "save": "保存",
+    "cancel": "取消",
+    "error": "错误",
+    "saved": "设置已保存。"
   },
   "tool_groups": {
     "web": [
@@ -657,7 +696,14 @@
       "导航",
       "方向",
       "路线",
-      "指南"
+      "指南",
+      "回复",
+      "邮件",
+      "发送",
+      "转发",
+      "消息",
+      "写信",
+      "收件箱"
     ],
     "calendar": [
       "日历",
@@ -952,6 +998,27 @@
       "搜索新闻",
       "查找新闻",
       "搜索文章"
+    ],
+    "mail": [
+      "写",
+      "邮件",
+      "回复",
+      "发送",
+      "转发",
+      "撰写",
+      "消息",
+      "草稿",
+      "收件人",
+      "发件人"
+    ],
+    "browser": [
+      "打开",
+      "访问网站",
+      "点击",
+      "填写表单",
+      "提交",
+      "登录",
+      "下载"
     ]
   },
   "tool_names": {
@@ -1089,6 +1156,8 @@
     "stopped": "已停止",
     "starting": "启动中...",
     "error": "错误",
+    "port_conflict_title": "VASS已在运行",
+    "port_conflict_msg": "另一个VASS实例已在运行(端口8765被占用)。请关闭另一个实例后重试。",
     "save": "保存",
     "cancel": "取消",
     "subtitle": "插件在下次启动时加载。更改立即生效。",

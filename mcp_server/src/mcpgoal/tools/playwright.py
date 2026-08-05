@@ -1,10 +1,13 @@
 import json
 import os
+import time
 
 from playwright.async_api import async_playwright
 
 _browser = None
 _playwright = None
+_context = None
+_page = None
 
 
 async def _get_browser():
@@ -18,7 +21,62 @@ async def _get_browser():
     return _browser
 
 
+async def _get_page():
+    global _context, _page, _playwright
+    if _context is None:
+        _playwright = await async_playwright().start()
+        user_data_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__)))))), "Allowed_root", "browser_profile")
+        os.makedirs(user_data_dir, exist_ok=True)
+        _context = await _playwright.chromium.launch_persistent_context(
+            user_data_dir,
+            headless=False,
+            args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
+            accept_downloads=True,
+            no_viewport=True,
+        )
+    else:
+        try:
+            # Check if context is still alive
+            _context.pages
+        except Exception:
+            # Context was closed (e.g., user closed visible browser)
+            _context = None
+            _page = None
+            return await _get_page()
+    if _page is None or _page.is_closed():
+        _page = await _context.new_page()
+    return _page
+
+
+async def _get_visible_page():
+    global _context, _page, _playwright
+    # Save current URL before closing
+    current_url = _page.url if _page and not _page.is_closed() else "about:blank"
+    if _context:
+        await _context.close()
+        _context = None
+        _page = None
+    user_data_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))))), "Allowed_root", "browser_profile")
+    _playwright = await async_playwright().start()
+    _context = await _playwright.chromium.launch_persistent_context(
+        user_data_dir,
+        headless=False,
+        args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
+        accept_downloads=True,
+        no_viewport=True,
+    )
+    _page = await _context.new_page()
+    if current_url != "about:blank":
+        await _page.goto(current_url, timeout=30000, wait_until="domcontentloaded")
+    return _page
+
+
 async def search_web(query: str, max_results: int = 10) -> str:
+    time.sleep(2)
     import httpx
     from bs4 import BeautifulSoup
     try:

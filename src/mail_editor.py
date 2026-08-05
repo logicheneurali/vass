@@ -142,6 +142,35 @@ class MailEditor(QMainWindow):
         auth_row.addStretch()
         imap_layout.addLayout(auth_row)
 
+        # SMTP fields
+        smtp_label = QHBoxLayout()
+        smtp_label.addWidget(QLabel(self._t("mail_editor.smtp")))
+        imap_layout.addLayout(smtp_label)
+
+        smtp_host_row = QHBoxLayout()
+        smtp_host_row.addWidget(QLabel(self._t("mail_editor.smtp_host")))
+        self._smtp_host_edit = QLineEdit()
+        self._smtp_host_edit.setPlaceholderText("smtp.azienda.com")
+        smtp_host_row.addWidget(self._smtp_host_edit)
+        imap_layout.addLayout(smtp_host_row)
+
+        smtp_port_row = QHBoxLayout()
+        smtp_port_row.addWidget(QLabel(self._t("mail_editor.smtp_port")))
+        self._smtp_port_spin = QSpinBox()
+        self._smtp_port_spin.setRange(1, 65535)
+        self._smtp_port_spin.setValue(587)
+        smtp_port_row.addWidget(self._smtp_port_spin)
+        smtp_port_row.addStretch()
+        imap_layout.addLayout(smtp_port_row)
+
+        smtp_ssl_row = QHBoxLayout()
+        smtp_ssl_row.addWidget(QLabel(self._t("mail_editor.smtp_ssl")))
+        self._smtp_ssl_cmb = QComboBox()
+        self._smtp_ssl_cmb.addItems(["STARTTLS", "SSL/TLS", "Nessuna"])
+        smtp_ssl_row.addWidget(self._smtp_ssl_cmb)
+        smtp_ssl_row.addStretch()
+        imap_layout.addLayout(smtp_ssl_row)
+
         form_layout.addWidget(self._imap_fields)
 
         # Sync settings
@@ -256,6 +285,9 @@ class MailEditor(QMainWindow):
         self._port_spin.setValue(993)
         self._ssl_cmb.setCurrentIndex(0)
         self._auth_cmb.setCurrentIndex(0)
+        self._smtp_host_edit.clear()
+        self._smtp_port_spin.setValue(587)
+        self._smtp_ssl_cmb.setCurrentIndex(0)
         self._sync_spin.setValue(5)
         self._results_spin.setValue(10)
         self._status_lbl.setText("")
@@ -274,6 +306,10 @@ class MailEditor(QMainWindow):
         self._ssl_cmb.setCurrentIndex(ssl_map.get(cfg.get(account, "ssl", fallback="ssl"), 0))
         auth_map = {"login": 0, "plain": 1, "cram-md5": 2}
         self._auth_cmb.setCurrentIndex(auth_map.get(cfg.get(account, "auth", fallback="login"), 0))
+        self._smtp_host_edit.setText(cfg.get(account, "smtp_host", fallback=""))
+        self._smtp_port_spin.setValue(cfg.getint(account, "smtp_port", fallback=587))
+        smtp_ssl_map = {"starttls": 0, "ssl": 1, "none": 2}
+        self._smtp_ssl_cmb.setCurrentIndex(smtp_ssl_map.get(cfg.get(account, "smtp_ssl", fallback="starttls"), 0))
         self._sync_spin.setValue(cfg.getint(account, "sync_minutes", fallback=5))
         self._results_spin.setValue(cfg.getint(account, "max_results", fallback=10))
         if stype in ("imap", "pop"):
@@ -344,6 +380,10 @@ class MailEditor(QMainWindow):
             cfg[account]["ssl"] = ssl_mode
             auth_mode = ["login", "plain", "cram-md5"][self._auth_cmb.currentIndex()]
             cfg[account]["auth"] = auth_mode
+            cfg[account]["smtp_host"] = self._smtp_host_edit.text().strip()
+            cfg[account]["smtp_port"] = str(self._smtp_port_spin.value())
+            smtp_ssl_mode = ["starttls", "ssl", "none"][self._smtp_ssl_cmb.currentIndex()]
+            cfg[account]["smtp_ssl"] = smtp_ssl_mode
             pw = self._pass_edit.text()
             if pw:
                 try:

@@ -32,7 +32,7 @@ QSlider::sub-page:horizontal {{
 """
 
 
-BOOLEAN_KEYS = {"llama_autostart", "calendar_enabled", "calendar_sync_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode"}
+BOOLEAN_KEYS = {"llama_autostart", "calendar_enabled", "calendar_sync_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode", "app_autostart"}
 HIDDEN_KEYS = {"lastmode", "output_volume", "input_device_name", "output_device_name", "x", "y", "width", "height",
                "gmail_enabled", "gmail_sync_minutes", "gmail_max_results"}
 
@@ -76,6 +76,7 @@ _SECTION_DEFAULTS = {
         "calendar_setup": "start", "mail_accounts": "open",
     },
     "debug": {"debug_enabled": "false", "debug_log_max_kb": "1024"},
+    "startup": {"app_autostart": "false"},
     "events": {
         "reminder_advance": "3600",
         "work_start_hour": "08:00",
@@ -221,7 +222,12 @@ class SettingsEditor(QMainWindow):
         self._section_widgets = {}
         section_items = []
 
-        for section in self.config.sections():
+        sections = list(self.config.sections())
+        if "startup" in sections:
+            sections.remove("startup")
+            sections.insert(0, "startup")
+
+        for section in sections:
             label = t(f"settings_editor.section_labels.{section}", self.lang)
             section_items.append((section, label))
 
@@ -297,8 +303,12 @@ class SettingsEditor(QMainWindow):
                         entry = cw
                     else:
                         entry = QCheckBox()
-                        current_val = self.config.get(section, key, fallback="false")
-                        entry.setChecked(current_val.lower() == "true")
+                        if section == "startup" and key == "app_autostart":
+                            from utils import is_autostart_enabled
+                            entry.setChecked(is_autostart_enabled())
+                        else:
+                            current_val = self.config.get(section, key, fallback="false")
+                            entry.setChecked(current_val.lower() == "true")
                         group_layout.addWidget(entry, row, 1)
                 elif key in SLIDER_CONFIG:
                     cfg = SLIDER_CONFIG[key]
@@ -734,6 +744,15 @@ class SettingsEditor(QMainWindow):
         list_audio_devices()
         with open(self.settings_file, "w", encoding="utf-8") as f:
             self.config.write(f)
+
+        # Apply OS autostart state on save (source of truth is the OS registry/autostart files)
+        try:
+            from utils import apply_autostart
+            autostart_val = self.config.get("startup", "app_autostart", fallback="false")
+            apply_autostart(autostart_val.lower() == "true")
+        except Exception:
+            pass
+
         QMessageBox.information(self, self._t("settings_editor.dialog.info"),
                                 self._t("settings_editor.errors.save_ok"))
 

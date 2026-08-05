@@ -29,6 +29,108 @@ def get_path(*parts):
     return os.path.join(get_project_root(), *parts)
 
 
+# ── OS autostart (source of truth: OS registry / autostart files) ──────────────
+
+def _autostart_command():
+    vass_py = os.path.join(get_project_root(), "vass.py")
+    if sys.platform == "win32":
+        pw = sys.executable.replace("python.exe", "pythonw.exe")
+        exe = pw if os.path.exists(pw) else sys.executable
+        return f'"{exe}" "{vass_py}"'
+    return f"{sys.executable} {vass_py}"
+
+
+def _autostart_paths():
+    if sys.platform == "win32":
+        return ("winreg",)
+    if sys.platform == "darwin":
+        return ("plist", os.path.expanduser("~/Library/LaunchAgents/com.vass.assistant.plist"))
+    return ("desktop", os.path.expanduser("~/.config/autostart/vass.desktop"))
+
+
+def is_autostart_enabled():
+    """Read the REAL autostart state from the OS (source of truth)."""
+    kind, *rest = _autostart_paths()
+    try:
+        if kind == "winreg":
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                 r"Software\Microsoft\Windows\CurrentVersion\Run")
+            try:
+                winreg.QueryValueEx(key, "VASS")
+                return True
+            except FileNotFoundError:
+                return False
+            finally:
+                winreg.CloseKey(key)
+        return os.path.exists(rest[0])
+    except Exception:
+        return False
+
+
+def apply_autostart(enabled):
+    """Register/unregister VASS at OS startup (Windows registry / macOS LaunchAgent / Linux autostart)."""
+    kind, *rest = _autostart_paths()
+    try:
+        if kind == "winreg":
+            import winreg
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER,
+                                   r"Software\Microsoft\Windows\CurrentVersion\Run")
+            try:
+                if enabled:
+                    winreg.SetValueEx(key, "VASS", 0, winreg.REG_SZ, _autostart_command())
+                else:
+                    try:
+                        winreg.DeleteValue(key, "VASS")
+                    except FileNotFoundError:
+                        pass
+            finally:
+                winreg.CloseKey(key)
+        elif kind == "plist":
+            path = rest[0]
+            if enabled:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.vass.assistant</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{sys.executable}</string>
+        <string>{os.path.join(get_project_root(), "vass.py")}</string>
+    </array>
+    <key>RunAtLoad</key><true/>
+</dict>
+</plist>
+""")
+            else:
+                try:
+                    os.remove(path)
+                except FileNotFoundError:
+                    pass
+        else:
+            path = rest[0]
+            if enabled:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(f"""[Desktop Entry]
+Type=Application
+Name=VASS
+Exec={_autostart_command()}
+X-GNOME-Autostart-enabled=true
+""")
+            else:
+                try:
+                    os.remove(path)
+                except FileNotFoundError:
+                    pass
+        print(f"[Autostart] {'Enabled' if enabled else 'Disabled'} ({kind})")
+    except Exception as e:
+        print(f"[Autostart] Failed: {e}")
+
+
 def log_exc(msg=""):
     """Log exception with timestamp and traceback to log/crash.log."""
     try:
@@ -111,8 +213,10 @@ def beep(volume=0.6, output_device=-1):
 
 def paste_text(text):
     import pyautogui
+    import pyperclip
     try:
-        pyautogui.write(text, interval=0.01)
+        pyperclip.copy(text)
+        pyautogui.hotkey('ctrl', 'v')
     except Exception as e:
         print(f"[Paste] Error: {e}")
 
@@ -296,15 +400,41 @@ def call_with_retry(fn, retries=4, delays=(1, 2, 4, 8), log_prefix="[AI]"):
             time.sleep(delay)
 
 
-def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=0.7, log_prefix="[AI]", gui=None):
+def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=0.7, log_prefix="[AI]", gui=None, context_limit=0):
     if not (msg.tool_calls and mcp and tools):
         return msg
 
+    def _trim_for_context():
+        """Estimate prompt tokens (chars/3, conservative for non-OpenAI tokenizers)
+        and truncate oversized tool results so the request fits context_limit."""
+        if context_limit <= 0:
+            return
+        budget = int(context_limit * 0.85)
+        total = sum((len(m.get("content") or "") if isinstance(m.get("content"), str) else 0) // 3
+                    for m in messages)
+        if total + 1024 <= budget:
+            return
+        tool_msgs = [m for m in messages
+                     if m.get("role") == "tool" and isinstance(m.get("content"), str)
+                     and len(m["content"]) > 600]
+        tool_msgs.sort(key=lambda m: len(m["content"]), reverse=True)
+        for m in tool_msgs:
+            if total + 1024 <= budget:
+                break
+            c = m["content"]
+            keep = max(600, len(c) // 3)
+            m["content"] = c[:keep] + "\n...[risultato troncato per contesto]...\n" + c[-keep // 2:]
+            total -= (len(c) - len(m["content"]))
+        if total + 1024 > budget:
+            print(f"[AI] Context guard: still {total} est tokens after truncation")
+
     MAX_TURNS = 10
     for _ in range(MAX_TURNS):
+        called_this_turn = set()
         for tc in msg.tool_calls:
             tool_name = tc.function.name
             tool_args = tc.function.arguments
+            called_this_turn.add(tool_name)
             print(f"[MCP] Call: {tool_name}({tool_args})")
             if gui:
                 gui.show_tool_indicator(tool_name)
@@ -340,6 +470,27 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
                 "content": out
             })
 
+        if "websearch" in called_this_turn and "search_news" not in called_this_turn:
+            for tc in msg.tool_calls:
+                if tc.function.name == "websearch":
+                    try:
+                        args = json.loads(tc.function.arguments)
+                        news_result = mcp.call_tool("search_news", args)
+                        parsed = json.loads(news_result) if isinstance(news_result, str) else news_result
+                        if isinstance(parsed, dict) and "results" in parsed:
+                            parsed["results"] = parsed["results"][:50]
+                        news_content = json.dumps(parsed, ensure_ascii=False)
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": f"{tc.id}_news",
+                            "content": f"[Archivio notizie locale]\n{news_content}"
+                        })
+                        print(f"[MCP] Auto news search: {len(parsed.get('results', []))} results")
+                    except Exception:
+                        pass
+                    break
+
+        _trim_for_context()
         resp = call_with_retry(lambda: openai_client.chat.completions.create(
             model=model,
             messages=messages,

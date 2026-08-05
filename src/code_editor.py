@@ -175,7 +175,11 @@ class CodeEditor(QPlainTextEdit):
                 painter.setPen(QColor(LINE_FG))
                 if block_number == current:
                     painter.setPen(QColor(FG))
-                    painter.setFont(QFont(self.font().family(), self.font().pointSize(),
+                    f = self.font()
+                    ps = f.pointSize()
+                    if ps <= 0:
+                        ps = max(8, round(f.pixelSize() * 0.75))
+                    painter.setFont(QFont(f.family(), max(1, ps),
                                           QFont.Weight.Bold))
                 else:
                     painter.setFont(self.font())

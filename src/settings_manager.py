@@ -95,6 +95,8 @@ def load_settings(settings_file):
         result["debug_enabled"] = config.get("debug", "debug_enabled", fallback="false").lower() == "true"
         result["debug_log_max_kb"] = config.getint("debug", "debug_log_max_kb", fallback=1024)
 
+        result["app_autostart"] = config.get("startup", "app_autostart", fallback="false")
+
         from setup_google import is_google_configured
         if not is_google_configured():
             result["calendar_enabled"] = "false"
@@ -157,6 +159,7 @@ def load_settings(settings_file):
         result["google_home_device_id"] = ""
         result["debug_enabled"] = False
         result["debug_log_max_kb"] = 1024
+        result["app_autostart"] = "false"
 
         config["locale"] = {"language": lang}
         config["gui"] = {
@@ -205,6 +208,9 @@ def load_settings(settings_file):
         config["debug"] = {
             "debug_enabled": "false",
             "debug_log_max_kb": "1024"
+        }
+        config["startup"] = {
+            "app_autostart": "false"
         }
         os.makedirs(os.path.dirname(abs_path), exist_ok=True)
         with open(abs_path, "w", encoding="utf-8") as f:

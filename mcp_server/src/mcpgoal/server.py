@@ -26,6 +26,20 @@ from mcpgoal.tools.places import search_nearby as _search_nearby
 from mcpgoal.tools.news import read_news as _read_news
 from mcpgoal.tools.news import read_news_range as _read_news_range
 from mcpgoal.tools.news import search_news as _search_news
+from mcpgoal.tools.mail import send_email as _send_email
+from mcpgoal.tools.mail import reply_email as _reply_email
+from mcpgoal.tools.mail import forward_email as _forward_email
+from mcpgoal.tools.mail import search_emails as _search_emails
+from mcpgoal.tools.mail import search_contacts as _search_contacts
+from mcpgoal.tools.browser import browser_open as _browser_open
+from mcpgoal.tools.browser import browser_read as _browser_read
+from mcpgoal.tools.browser import browser_click as _browser_click
+from mcpgoal.tools.browser import browser_fill as _browser_fill
+from mcpgoal.tools.browser import browser_submit as _browser_submit
+from mcpgoal.tools.browser import browser_download as _browser_download
+from mcpgoal.tools.browser import browser_back as _browser_back
+from mcpgoal.tools.browser import browser_show as _browser_show
+from mcpgoal.tools.browser import browser_check_auth as _browser_check_auth
 
 _GET_IDLE = None
 try:
@@ -534,5 +548,95 @@ def create_server(config: ServerConfig) -> FastMCP:
         Use for questions like 'find news about climate', 'cerca notizie su elezioni', 'search for X'.
         Args: keywords (space-separated). Returns matching articles sorted by date (newest first)."""
         return await _tool("search_news", f"keywords={keywords}", _search_news(keywords), config)
+
+    @mcp.tool()
+    async def send_email(to: str, subject: str, body: str) -> str:
+        """Send a new email. The email goes to an outbox for user approval.
+        Use this for composing NEW emails. For replies, use reply_email() instead.
+        Ask the user for the recipient if not specified.
+        Args: to (recipient email), subject, body (plain text)."""
+        return await _tool("send_email", f"to={to}", _send_email(to, subject, body), config)
+
+    @mcp.tool()
+    async def reply_email(msg_id: str, body: str) -> str:
+        """Reply to a received email. First find the msg_id using search_emails() with sender/subject keywords.
+        The original email body is quoted automatically below your reply.
+        The email goes to an outbox for user approval before sending.
+        Args: msg_id (from search_emails() result), body (your reply text, quoting is automatic)."""
+        return await _tool("reply_email", f"msg_id={msg_id}", _reply_email(msg_id, body), config)
+
+    @mcp.tool()
+    async def forward_email(msg_id: str, to: str) -> str:
+        """Forward an email. Find msg_id first with search_emails().
+        The email goes to an outbox for user approval.
+        Args: msg_id (from search_emails()), to (recipient)."""
+        return await _tool("forward_email", f"msg_id={msg_id}", _forward_email(msg_id, to), config)
+
+    @mcp.tool()
+    async def search_emails(keywords: str) -> str:
+        """Search the local email archive by sender name, subject, or content keywords.
+        Returns matching emails with their msg_id, sender, subject, date, and snippet.
+        Use this to find emails before replying or forwarding. Use sender name as keywords.
+        Args: keywords (space-separated, e.g. 'Mario Rossi' or 'fattura')."""
+        return await _tool("search_emails", f"keywords={keywords}", _search_emails(keywords), config)
+
+    @mcp.tool()
+    async def search_contacts(keywords: str) -> str:
+        """Search email contacts by name or email address (fuzzy matching).
+        Use this to find recipient email addresses before sending an email.
+        Args: keywords (name fragments, e.g. 'Fabio' or 'gmail')."""
+        return await _tool("search_contacts", f"keywords={keywords}", _search_contacts(keywords), config)
+
+    @mcp.tool()
+    async def browser_open(url: str) -> str:
+        """Navigate to a URL in the persistent browser session. Stays on the same page between calls.
+        Use for starting a browsing session or navigating to a new page.
+        Args: url (full URL with https://)"""
+        return await _tool("browser_open", f"url={url}", _browser_open(url), config)
+
+    @mcp.tool()
+    async def browser_read() -> str:
+        """Read the visible text content of the current browser page."""
+        return await _tool("browser_read", "", _browser_read(), config)
+
+    @mcp.tool()
+    async def browser_click(text: str) -> str:
+        """Click an element by its visible text. Use for buttons, links, or clickable elements.
+        Args: text (visible text of the element, e.g. 'Login', 'Submit', 'Download')"""
+        return await _tool("browser_click", f"text={text}", _browser_click(text), config)
+
+    @mcp.tool()
+    async def browser_fill(label: str, value: str) -> str:
+        """Fill an input field by its label or placeholder text.
+        Args: label (text near the field), value (text to type)"""
+        return await _tool("browser_fill", f"label={label} value={value}", _browser_fill(label, value), config)
+
+    @mcp.tool()
+    async def browser_submit() -> str:
+        """Submit the current form. Clicks the first submit button."""
+        return await _tool("browser_submit", "", _browser_submit(), config)
+
+    @mcp.tool()
+    async def browser_download(text: str) -> str:
+        """Click a download link and save the file. Returns filename.
+        Args: text (visible text of the download link/button)"""
+        return await _tool("browser_download", f"text={text}", _browser_download(text), config)
+
+    @mcp.tool()
+    async def browser_back() -> str:
+        """Go back to the previous page in browser history."""
+        return await _tool("browser_back", "", _browser_back(), config)
+
+    @mcp.tool()
+    async def browser_show() -> str:
+        """Open the browser VISIBLY so the user can manually log in, solve CAPTCHA, etc.
+        Use when authentication is needed and not yet saved. Cookies/sessions persist."""
+        return await _tool("browser_show", "", _browser_show(), config)
+
+    @mcp.tool()
+    async def browser_check_auth(text: str) -> str:
+        """Check if logged in by searching for expected text on the page (e.g. 'Dashboard', 'Logout').
+        Args: text (text that should be visible after successful login)."""
+        return await _tool("browser_check_auth", f"text={text}", _browser_check_auth(text), config)
 
     return mcp

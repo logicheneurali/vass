@@ -98,7 +98,9 @@ class TimerManager:
         from i18n import t
         lang = getattr(self.app, "language", "en")
         msg = t("timer.expired", lang).replace("{duration}", self._clean_duration(info["duration"]))
-        if hasattr(self.app, 'notification_manager'):
+        router = getattr(self.app, "notification_router", None)
+        action = router.get_action("timer") if router else "both"
+        if action in ("notification", "both") and hasattr(self.app, 'notification_manager'):
             self.app.notification_manager.add(msg, priority=8, data={"type": "timer"})
         if hasattr(self.app, 'memory') and hasattr(self.app.memory, 'enqueue_external'):
             if self.app.memory.is_source_enabled("timers"):
@@ -119,7 +121,8 @@ class TimerManager:
                 print(f"[Timer] Alert abandoned after 60s: state={state}")
                 return
         self._play_alert(2)
-        self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2), defer_if_busy=True)
+        if action in ("tts", "both"):
+            self.app.tts.enqueue(msg, on_done=lambda: self._play_alert(2), defer_if_busy=True)
 
     def _play_alert(self, count=1):
         try:

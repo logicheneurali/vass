@@ -11,7 +11,55 @@ tools:
     - ::1
     - localhost
     blacklist: []
-  write_file:
+  browser_open:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  browser_read:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  browser_click:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  browser_fill:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  browser_submit:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  browser_download:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  browser_back:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  browser_show:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  browser_check_auth:
     whitelist:
     - 127.0.0.1
     - ::1
@@ -105,7 +153,19 @@ tools:
     - ::1
     - localhost
     blacklist: []
+  calendar_search:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
   listevents:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  nextevent:
     whitelist:
     - 127.0.0.1
     - ::1
@@ -135,7 +195,13 @@ tools:
     - ::1
     - localhost
     blacklist: []
-  calendar_search:
+  writeinfo:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  write_file:
     whitelist:
     - 127.0.0.1
     - ::1
@@ -185,6 +251,36 @@ tools:
     - localhost
     blacklist: []
   search_news:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  send_email:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  reply_email:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  forward_email:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  search_emails:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  search_contacts:
     whitelist:
     - 127.0.0.1
     - ::1

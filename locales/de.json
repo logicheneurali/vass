@@ -26,7 +26,18 @@
       "memory_editor": "Dauerhafter Speicher",
       "compact_mode": "Kompakter Modus",
       "plugins": "Plugins",
-      "mail": "E-Mail-Konten"
+      "mail": "E-Mail-Konten",
+      "mail_queue": "E-Mail-Postausgang",
+      "settings_general": "Allgemein",
+      "mail_pending": "Ausstehende Mail ({n})",
+      "contacts": "Kontakte",
+      "notifications": "Benachrichtigungen"
+    },
+    "actions": {
+      "open_browser": "Im Browser öffnen",
+      "open_queue": "E-Mail-Warteschlange öffnen",
+      "copy_text": "Text kopieren",
+      "mark_seen": "Als gesehen markieren"
     },
     "dialog": {
       "exit_title": "Beenden",
@@ -148,6 +159,7 @@
       "auto_context_selection": "Automatische Kontextauswahl",
       "paused_opacity": "Pause-Deckkraft",
       "compact_mode": "Kompakter Modus",
+      "app_autostart": "VASS beim Systemstart starten",
       "work_start_hour": "Arbeitsbeginn",
       "work_end_hour": "Arbeitsende",
       "lunch_start": "Mittagspause Beginn",
@@ -211,7 +223,8 @@
       "debug_log_max_kb": "Maximale Debug-Log-Dateigröße in KB (Standard 1024)",
       "compress_context": "Entfernt Artikel, Prapositionen und Konjunktionen aus dem an die KI gesendeten Text, um die Token-Anzahl zu reduzieren.",
       "auto_context_selection": "Überspringt die Speicherinjektion, wenn die Anfrage keinen Kontext benötigt (z.B. Berechnungen, Uhrzeit, Übersetzungen).",
-      "compact_mode": "Reduziert das Fenster auf 36x36 Pixel mit konzentrischen Kreisen und transparentem Hintergrund"
+      "compact_mode": "Reduziert das Fenster auf 36x36 Pixel mit konzentrischen Kreisen und transparentem Hintergrund",
+      "app_autostart": "Registriert oder entfernt VASS beim Systemstart. Der angezeigte Status spiegelt die Systemregistrierung wider."
     },
     "section_labels": {
       "gui": "Fenster",
@@ -224,6 +237,7 @@
       "resources": "Systemressourcen",
       "locale": "Sprache",
       "events": "Ereignisse",
+      "startup": "Autostart",
       "noise": "Geräusch",
       "audio": "Audio Ein-/Ausgabe",
       "google": "Externe Dienste",
@@ -488,6 +502,10 @@
     "port": "Port:",
     "ssl": "Verbindung:",
     "auth": "Authentifizierung:",
+    "smtp": "--- Senden (SMTP) ---",
+    "smtp_host": "SMTP Host:",
+    "smtp_port": "SMTP Port:",
+    "smtp_ssl": "SMTP Sicherheit:",
     "username": "Benutzername:",
     "password": "Passwort:",
     "sync_minutes": "Sync (Minuten):",
@@ -586,7 +604,8 @@
     "files_blacklist": "Pfade ausschließen die enthalten (durch Komma getrennt, Platzhalter erlaubt):",
     "files_extensions": "Gultige Erweiterungen (durch Komma getrennt, leer = alle):",
     "sources_max_entries": "Max Einträge im AI-Kontext:",
-    "sources_max_entries_desc": "Nur die relevantesten werden basierend auf Tags einbezogen"
+    "sources_max_entries_desc": "Nur die relevantesten werden basierend auf Tags einbezogen",
+    "delete_confirm_multi": "{n} ausgewahlte Eintrage loschen?"
   },
   "tag_manager": {
     "title": "Tag-Verwaltung",
@@ -618,6 +637,26 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "Im Browser öffnen",
     "new_articles_count": "{count} neue Artikel"
+  },
+  "notif_editor": {
+    "title": "Benachrichtigungseinstellungen",
+    "subtitle": "Wählen Sie, wie VASS jeden Ereignistyp behandelt: Sprache (TTS), InfoPanel-Glocke, beides oder keine.",
+    "default": "Standard (nicht aufgeführte Ereignisse)",
+    "email": "Neue E-Mail",
+    "timer": "Timer abgelaufen",
+    "schedule": "Geplanter Befehl (Start/Fehler)",
+    "event_reminder": "Kalenderereignis / Planung abgeschlossen",
+    "plugins": "Plugin-Befehle",
+    "ai_error": "KI-Fehler / Modell nicht gefunden",
+    "ai_ready": "KI-Modell ausgewählt",
+    "tts": "Nur Sprache",
+    "notification": "Nur Benachrichtigung",
+    "both": "Sprache + Benachrichtigung",
+    "none": "Keine",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "error": "Fehler",
+    "saved": "Einstellungen gespeichert."
   },
   "tool_groups": {
     "web": [
@@ -661,7 +700,16 @@
       "standort",
       "route",
       "navigation",
-      "wegbeschreibung"
+      "wegbeschreibung",
+      "antworten",
+      "mail",
+      "email",
+      "senden",
+      "schreiben an",
+      "antwort",
+      "weiterleiten",
+      "posteingang",
+      "verfassen"
     ],
     "calendar": [
       "kalender",
@@ -959,6 +1007,32 @@
       "nachrichten suchen",
       "nachrichten finden",
       "artikel suchen"
+    ],
+    "mail": [
+      "schreiben",
+      "mail",
+      "email",
+      "antworten",
+      "senden",
+      "weiterleiten",
+      "verfassen",
+      "nachricht",
+      "entwurf",
+      "empfanger",
+      "absender"
+    ],
+    "browser": [
+      "gehe zu",
+      "offne site",
+      "navigiere zu",
+      "besuche",
+      "klicke auf",
+      "formular ausfullen",
+      "absenden",
+      "einloggen",
+      "anmelden",
+      "herunterladen",
+      "download"
     ]
   },
   "tool_names": {
@@ -1096,6 +1170,8 @@
     "stopped": "Gestoppt",
     "starting": "Startet...",
     "error": "Fehler",
+    "port_conflict_title": "VASS läuft bereits",
+    "port_conflict_msg": "Eine andere VASS-Instanz läuft bereits (Port 8765 belegt). Schließen Sie die andere Instanz und versuchen Sie es erneut.",
     "save": "Speichern",
     "cancel": "Abbrechen",
     "subtitle": "Plugins werden beim naechsten Start geladen. Aenderungen sind sofort wirksam.",

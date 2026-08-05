@@ -398,7 +398,7 @@ class EventReminder:
 
         if not silent:
             started_msg = t("events.schedule_started", self.lang).replace("{description}", desc)
-            self.app.tts.enqueue(started_msg, defer_if_busy=True)
+            self._emit("schedule", started_msg)
         print(f"[Schedules] Started: {desc} -> {command} {arguments}")
 
         # Check if command is a .vass script
@@ -414,14 +414,14 @@ class EventReminder:
                 self.app.script_runner.enqueue(script_name, silent=silent)
             elif not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-                self.app.tts.enqueue(failed_msg, defer_if_busy=True)
+                self._emit("schedule", failed_msg)
             self._log(f"_execute_schedule_thread: end (script enqueue) desc='{desc}' state={self.app.state}")
             return
 
         if not _validate_command(command, arguments):
             if not silent:
                 failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-                self.app.tts.enqueue(failed_msg, defer_if_busy=True)
+                self._emit("schedule", failed_msg)
             self._log(f"_execute_schedule_thread: end (invalid command) desc='{desc}' state={self.app.state}")
             return
 
@@ -469,17 +469,32 @@ class EventReminder:
                 msg = t("events.schedule_done", self.lang).replace("{description}", desc)
             else:
                 msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
+            self._emit("event_reminder", msg, priority=9 if not ok else 7,
+                       data={"type": "schedule"}, with_notification=True, silent=silent)
+        except Exception:
+            failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
+            self._emit("event_reminder", failed_msg, priority=9,
+                       data={"type": "schedule"}, with_notification=True, silent=silent)
+        self._log(f"_execute_schedule_thread: end desc='{desc}' state={self.app.state}")
+
+    def _emit(self, event_type, msg, priority=5, data=None, with_notification=False, silent=False):
+        """Route via NotificationRouter; fallback to legacy TTS/notification behavior."""
+        router = getattr(self.app, "notification_router", None)
+        if router is not None:
+            if silent:
+                action = router.get_action(event_type)
+                if action in ("notification", "both"):
+                    self.app.notification_manager.add(msg, priority=priority, data=data)
+            else:
+                router.emit(event_type, msg, priority=priority, data=data,
+                            tts_kwargs={"defer_if_busy": True})
+        elif with_notification:
             if not silent:
                 self.app.tts.enqueue(msg, defer_if_busy=True)
             if hasattr(self.app, 'notification_manager'):
-                self.app.notification_manager.add(msg, priority=9 if not ok else 7, data={"type": "schedule"})
-        except Exception:
-            if not silent:
-                failed_msg = t("events.schedule_failed", self.lang).replace("{description}", desc)
-                self.app.tts.enqueue(failed_msg, defer_if_busy=True)
-            if hasattr(self.app, 'notification_manager'):
-                self.app.notification_manager.add(failed_msg, priority=9, data={"type": "schedule"})
-        self._log(f"_execute_schedule_thread: end desc='{desc}' state={self.app.state}")
+                self.app.notification_manager.add(msg, priority=priority, data=data)
+        elif not silent:
+            self.app.tts.enqueue(msg, defer_if_busy=True)
 
     def _is_already_running(self, exe_path):
         """Check if a process with the given executable path is already running."""
@@ -593,9 +608,8 @@ class EventReminder:
             time.sleep(2)
             if not self._running:
                 return
-        self.app.tts.enqueue(msg, defer_if_busy=True)
-        if hasattr(self.app, 'notification_manager'):
-            self.app.notification_manager.add(msg, priority=7, data={"type": "event"})
+        self._emit("event_reminder", msg, priority=7, data={"type": "event"},
+                   with_notification=True)
         print(f"[Events] Fired: {msg}")
         self._mark_notified()
         self._calculate_next_alert()

@@ -36,8 +36,25 @@ class PluginServer(threading.Thread):
 
     # ── Thread run ──────────────────────────────────────────────
 
+    @staticmethod
+    def _port_in_use(port):
+        """Return True if another process is already listening on the port."""
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(1)
+            s.connect(("localhost", port))
+            s.close()
+            return True
+        except Exception:
+            return False
+
     def run(self):
         self._running = True
+        if self._port_in_use(self._port):
+            print(f"[PluginServer] Port {self._port} already in use — "
+                  f"another VASS instance is running")
+            self._notify_port_conflict()
+            return
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
@@ -46,6 +63,7 @@ class PluginServer(threading.Thread):
             print(f"[PluginServer] Listening on localhost:{self._port}")
         except OSError as e:
             print(f"[PluginServer] Bind failed: {e}")
+            self._notify_port_conflict()
             return
 
         self._auto_start_plugins()
@@ -71,8 +89,36 @@ class PluginServer(threading.Thread):
 
     def stop(self):
         self._running = False
+        # Terminate all plugin subprocesses to avoid orphan processes
+        # that keep the port busy across restarts.
+        for name in list(self._processes.keys()):
+            try:
+                self.stop_plugin(name)
+            except Exception:
+                pass
         if self._sock:
             self._sock.close()
+
+    def _notify_port_conflict(self):
+        """Warn the user (GUI thread) that another VASS instance holds the port."""
+        app = self._app
+        gui = getattr(app, "gui", None) if app else None
+        if not gui:
+            return
+        try:
+            from i18n import t
+            lang = getattr(app, "language", "it")
+            title = t("plugins.port_conflict_title", lang)
+            msg = t("plugins.port_conflict_msg", lang)
+
+            def _show():
+                from PySide6.QtWidgets import QMessageBox, QApplication
+                QMessageBox.warning(None, title, msg)
+                QApplication.quit()
+
+            gui.schedule_signal.emit(_show)
+        except Exception as e:
+            print(f"[PluginServer] Port conflict notification failed: {e}")
 
     # ── Broadcast ───────────────────────────────────────────────
 
@@ -186,13 +232,37 @@ class PluginServer(threading.Thread):
                     self._app.voice_recognition.reset_noise_floor()
             elif cmd == "tts_enqueue":
                 text = self._maybe_translate(msg["text"])
-                self._app.tts.enqueue(
-                    text, speed=msg.get("speed", 0.9), defer_if_busy=True)
+                router = getattr(self._app, "notification_router", None)
+                if router is not None:
+                    router.emit("plugins", text,
+                                tts_kwargs={"speed": msg.get("speed", 0.9),
+                                            "defer_if_busy": True})
+                else:
+                    self._app.tts.enqueue(
+                        text, speed=msg.get("speed", 0.9), defer_if_busy=True)
+            elif cmd == "tts_to_file" and sock:
+                text = msg.get("text", "")
+                output_path = msg.get("output_path", "")
+                speed = msg.get("speed", 0.9)
+                dur = self._app.tts.generate_to_file(text, output_path, speed)
+                reply = json.dumps({
+                    "type": "tts_file_response",
+                    "request_id": msg.get("request_id", ""),
+                    "duration_sec": dur,
+                    "output_path": output_path,
+                }, ensure_ascii=False) + "\n"
+                sock.sendall(reply.encode("utf-8"))
             elif cmd == "notify":
                 text = self._maybe_translate(msg["text"])
-                self._app.notification_manager.add(
-                    text, priority=msg.get("priority", 5),
-                    data=msg.get("data", None))
+                router = getattr(self._app, "notification_router", None)
+                if router is not None:
+                    router.emit("plugins", text,
+                                priority=msg.get("priority", 5),
+                                data=msg.get("data", None))
+                else:
+                    self._app.notification_manager.add(
+                        text, priority=msg.get("priority", 5),
+                        data=msg.get("data", None))
             elif cmd == "ai_query" and sock:
                 threading.Thread(
                     target=self._handle_ai_query,

@@ -260,6 +260,8 @@ class VassApp:
         self.timer_manager = TimerManager(self)
         from notification_manager import NotificationManager
         self.notification_manager = NotificationManager()
+        from notification_router import NotificationRouter
+        self.notification_router = NotificationRouter(self)
         self.context_notes = []
         self.conversation_history = []
         from memory_manager import MemoryManager
@@ -481,7 +483,7 @@ class VassApp:
         """Read window geometry and limits from config/layout.ini. Creates with defaults if missing."""
         path = os.path.join(get_project_root(), "config", "layout.ini")
         layout = configparser.ConfigParser()
-        defaults = {"x": 1541, "y": 52, "width": 200, "height": 32}
+        defaults = {"x": 1541, "y": 52, "width": 240, "height": 32}
         limits = {"min_width": 200, "min_height": 32, "max_width": 600, "max_height": 400}
         if not os.path.exists(path):
             layout["window"] = {k: str(v) for k, v in defaults.items()}
@@ -527,6 +529,17 @@ class VassApp:
         out = self.tts.output_device
         list_audio_devices(resolved_inp=inp, resolved_out=out)
         self.gui.set_loading_progress(88, 100, "Threads...")
+        self.running = True
+
+        self.gui.set_loading_progress(90, 100, "Plugins...")
+        from plugin_server import PluginServer
+        self._plugin_server = PluginServer(self, port=8765)
+        self._plugin_server.start()
+
+        self.gui.set_loading_progress(95, 100, "Ready")
+        self.set_state("listening")
+
+        # Threads start only after the app is in listening state (GUI stable)
         threading.Thread(target=self._watch_commands_file, daemon=True).start()
         threading.Thread(target=self._watch_settings_file, daemon=True).start()
         threading.Thread(target=self.script_runner.watch_queue, daemon=True).start()
@@ -550,15 +563,6 @@ class VassApp:
             from memory_files_scanner import FileScanner
             self._file_scanner = FileScanner(self.memory._files_config, self.memory)
             threading.Thread(target=self._file_scanner.run, daemon=True).start()
-
-        self.gui.set_loading_progress(90, 100, "Plugins...")
-        from plugin_server import PluginServer
-        self._plugin_server = PluginServer(self, port=8765)
-        self._plugin_server.start()
-
-        self.gui.set_loading_progress(95, 100, "Ready")
-        self.set_state("listening")
-        self.running = True
 
         self.gui.set_mode_display(self.mode)
         self.gui.update_memory_bar()
@@ -868,6 +872,11 @@ class VassApp:
         if self.llama_process:
             kill_process(self.llama_process)
             self.llama_process = None
+        if hasattr(self, '_plugin_server') and self._plugin_server:
+            try:
+                self._plugin_server.stop()
+            except Exception:
+                log_exc()
 
     def _get_tokenizer(self):
         if self._tokenizer is not None:
@@ -1233,7 +1242,9 @@ class VassApp:
                 tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
 
             import tool_groups
-            groups = tool_groups.select_tool_groups(prompt, self.language)
+            kw_groups = tool_groups.select_tool_groups(prompt, self.language)
+            ai_groups = tool_groups.select_tool_groups_ai(prompt, tools, self.openai_client, self.ai_model)
+            groups = ai_groups | kw_groups
             tools = tool_groups.resolve_tool_names(groups, tools,
                                                     getattr(self, 'debug_enabled', False))
 
@@ -1247,6 +1258,28 @@ class VassApp:
                     print(f"[DEBUG] needs_memory({prompt[:80]}) = True  (include memory)")
 
             tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
+            if tools:
+                mail_tools = {t["function"]["name"] for t in tools}
+                if "reply_email" in mail_tools:
+                    tools_block += (
+                        "\n\nEMAIL TOOLS: When asked to reply/send/forward an email, you MUST use these tools."
+                        "\nDO NOT write email text yourself — call the tools immediately."
+                        "\n- search_emails(keywords): find the email by sender name, get the msg_id."
+                        "\n- reply_email(msg_id, body): reply. Call search_emails() FIRST to get msg_id."
+                        "\n- send_email(to, subject, body): compose new email."
+                        "\n- forward_email(msg_id, to): forward. Find msg_id with search_emails() first."
+                    )
+                elif "search_emails" in mail_tools:
+                    tools_block += (
+                        "\n\nEMAIL: You can search emails with search_emails() but sending/reply is unavailable."
+                    )
+                browser_tools = {t["function"]["name"] for t in tools}
+                if "browser_show" in browser_tools:
+                    tools_block += (
+                        "\n\nBROWSER AUTH: If a website requires login, use browser_show() to let the user log in manually."
+                        "\nNEVER fill credentials yourself — the user handles authentication. Ask the user to log in."
+                        "\nAfter login, use browser_check_auth() to verify before proceeding."
+                    )
             if self.allow_ai_scripts:
                 tools_block += VASSCRIPT_TOOLS_PROMPT + vas_ref
             notes_block = "\n".join(self.context_notes)
@@ -1455,7 +1488,8 @@ class VassApp:
                 )
 
                 pseudo_msg = type("", (), {"tool_calls": tool_calls_list, "content": None})()
-                msg = execute_mcp_tool_calls(messages, pseudo_msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui)
+                msg = execute_mcp_tool_calls(messages, pseudo_msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui,
+                                             context_limit=self.context_length or 32768)
                 ai_response = msg.content or ""
                 response_from_tool_calls = True
 
@@ -1551,17 +1585,14 @@ class VassApp:
                 if self.ai_model.strip() and self.ai_model != old_model:
                     msg = t("notifications.model_not_found_retry", self.language)
                     msg = msg.replace("{old}", old_model).replace("{new}", self.ai_model)
-                    if hasattr(self, 'notification_manager'):
-                        self.notification_manager.add(msg, priority=8, data={"type": "auth"})
-                    err_msg = msg
+                    err_msg = self._route_ai_error(msg, priority=8)
                 elif not self.ai_model.strip():
                     msg = t("notifications.no_valid_model", self.language)
-                    if hasattr(self, 'notification_manager'):
-                        self.notification_manager.add(msg, priority=9, data={"type": "auth"})
-                    err_msg = msg
+                    err_msg = self._route_ai_error(msg, priority=9)
             print(f"Error calling AI Agent: {e}")
             self.set_state("listening")
-            self.tts.enqueue(err_msg)
+            if err_msg:
+                self.tts.enqueue(err_msg)
         finally:
             self._ai_lock.release()
             tracker.end("AI query")
@@ -1693,12 +1724,31 @@ class VassApp:
             print(f"[Settings] Auto-selected AI model: {selected} ({p_text} params)")
             from i18n import t
             msg = t("notifications.auto_model_selected", self.language).replace("{model}", selected)
-            if hasattr(self, 'notification_manager'):
-                self.notification_manager.add(msg, priority=6, data={"type": "auth"})
-            if hasattr(self, 'tts') and self.tts and self.state not in ("recording", "playing"):
-                self.tts.enqueue(msg)
+            self._route_ai_ready(msg, priority=6)
         except Exception as e:
             print(f"[Settings] Auto model selection failed: {e}")
+
+    def _route_ai_error(self, msg, priority):
+        """Route AI error via router; returns text to speak (or "" if speech handled/skipped)."""
+        router = getattr(self, "notification_router", None)
+        if router is None:
+            if hasattr(self, 'notification_manager'):
+                self.notification_manager.add(msg, priority=priority, data={"type": "auth"})
+            return msg
+        action = router.get_action("ai_error")
+        if action in ("notification", "both") and hasattr(self, 'notification_manager'):
+            self.notification_manager.add(msg, priority=priority, data={"type": "auth"})
+        return msg if action in ("tts", "both") else ""
+
+    def _route_ai_ready(self, msg, priority):
+        """Route AI-ready info via router (notification and/or TTS per config)."""
+        router = getattr(self, "notification_router", None)
+        action = router.get_action("ai_ready") if router else "both"
+        if action in ("notification", "both") and hasattr(self, 'notification_manager'):
+            self.notification_manager.add(msg, priority=priority, data={"type": "auth"})
+        if action in ("tts", "both") and hasattr(self, 'tts') and self.tts and \
+                self.state not in ("recording", "playing"):
+            self.tts.enqueue(msg)
 
     def _verify_model_and_autoselect(self):
         """Check if the configured AI model exists on the server; auto-select if not."""
@@ -1722,10 +1772,7 @@ class VassApp:
                 from i18n import t
                 msg = t("notifications.model_not_found_retry", self.language)
                 msg = msg.replace("{old}", old).replace("{new}", self.ai_model)
-                if hasattr(self, 'notification_manager'):
-                    self.notification_manager.add(msg, priority=8, data={"type": "auth"})
-                if hasattr(self, 'tts') and self.tts and self.state not in ("recording", "playing"):
-                    self.tts.enqueue(msg)
+                self._route_ai_ready(msg, priority=8)
         except Exception as e:
             print(f"[Settings] Model verification failed: {e}")
 

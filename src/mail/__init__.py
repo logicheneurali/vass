@@ -190,7 +190,8 @@ def _do_sync(app, source):
     from mail.store import append_new
     append_new(new, source.name, source.account)
     from mail.notifier import announce
-    announce(new, app.tts, app.notification_manager, app.memory, app.language, source.name)
+    announce(new, app.tts, app.notification_manager, app.memory, app.language, source.name,
+             router=getattr(app, "notification_router", None))
 
 
 def _resolve_gmail_account(source):

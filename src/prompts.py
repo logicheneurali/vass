@@ -34,6 +34,7 @@ MCP_PROMPT = (
     "\n- If the first search is insufficient, try alternative keywords or broader queries."
     "\n- You CAN access the internet. Call tools immediately. Never say you cannot browse websites."
     "\n- When asked to write/save/store data, ALWAYS use write_file. Do not just describe the data — write it."
+    "\n- When asked to reply/send/forward an email: use search_emails() + reply_email(). Never write email text yourself."
 )
 
 VASSCRIPT_TOOLS_PROMPT = (

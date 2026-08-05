@@ -48,13 +48,14 @@ class MemoryManager:
 
     def build_content(self, prompt, mcp=None, tools=None):
         """Return conversation history + external tagged data as context string."""
-        profile = self._build_profile_section()
         content = self._build_memory_content(mcp, tools)
         external = self._build_external_memory_content(prompt)
         if external:
             content += external
-        if profile:
-            content = profile + content
+        if self._app.memory_mode != "none":
+            profile = self._build_profile_section()
+            if profile:
+                content = profile + content
         return content
 
     def _build_profile_section(self):
@@ -470,6 +471,7 @@ class MemoryManager:
 
             tagged_ids = set()
             min_rel = 10
+            tags_path = os.path.join(allowed_root, "memory_tags.json")
             if os.path.exists(tags_path):
                 try:
                     with open(tags_path, encoding="utf-8") as f:

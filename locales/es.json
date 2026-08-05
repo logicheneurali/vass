@@ -26,7 +26,18 @@
       "memory_editor": "Memoria Permanente",
       "compact_mode": "Modo compacto",
       "plugins": "Plugins",
-      "mail": "Cuentas de correo"
+      "mail": "Cuentas de correo",
+      "mail_queue": "Bandeja de salida",
+      "settings_general": "General",
+      "mail_pending": "Correo pendiente ({n})",
+      "contacts": "Contactos",
+      "notifications": "Notificaciones"
+    },
+    "actions": {
+      "open_browser": "Abrir en el navegador",
+      "open_queue": "Abrir cola de correos",
+      "copy_text": "Copiar texto",
+      "mark_seen": "Marcar como visto"
     },
     "dialog": {
       "exit_title": "Salir",
@@ -148,6 +159,7 @@
       "auto_context_selection": "Selección automática de contexto",
       "paused_opacity": "Opacidad pausa",
       "compact_mode": "Modo compacto",
+      "app_autostart": "Iniciar VASS al arrancar el sistema",
       "work_start_hour": "Inicio trabajo",
       "work_end_hour": "Fin trabajo",
       "lunch_start": "Inicio almuerzo",
@@ -211,7 +223,8 @@
       "debug_log_max_kb": "Tamaño máximo del archivo debug en KB (por defecto 1024)",
       "compress_context": "Elimina articulos, preposiciones y conjunciones del texto enviado a la IA para reducir el numero de tokens.",
       "auto_context_selection": "Omite la inyección de memoria cuando la solicitud no necesita contexto (ej. cálculos, hora, traducciones).",
-      "compact_mode": "Reduce la ventana a 36x36 píxeles con círculos concéntricos y fondo transparente"
+      "compact_mode": "Reduce la ventana a 36x36 píxeles con círculos concéntricos y fondo transparente",
+      "app_autostart": "Registra o elimina VASS del inicio del sistema. El estado mostrado refleja el registro del sistema."
     },
     "section_labels": {
       "gui": "Ventana",
@@ -224,6 +237,7 @@
       "resources": "System resources",
       "locale": "Idioma",
       "events": "Eventos",
+      "startup": "Inicio automático",
       "noise": "Ruido",
       "audio": "Entrada/salida de audio",
       "google": "Servicios Externos",
@@ -495,7 +509,11 @@
     "status_unknown": "Estado: desconocido",
     "status_last": "Ultimo sync: {time}",
     "status_auth": "Estado: autenticado",
-    "status_noauth": "Estado: no autenticado"
+    "status_noauth": "Estado: no autenticado",
+    "smtp": "--- Send (SMTP) ---",
+    "smtp_host": "SMTP Host:",
+    "smtp_port": "SMTP Port:",
+    "smtp_ssl": "SMTP Security:"
   },
   "setup_google": {
     "title": "Configuración credenciales Google",
@@ -586,7 +604,8 @@
     "files_blacklist": "Excluir rutas que contengan (separado por comas, soporta comodines):",
     "files_extensions": "Extensiones validas (separadas por comas, vacio = todas):",
     "sources_max_entries": "Máx entradas en contexto AI:",
-    "sources_max_entries_desc": "Solo se incluirán las más relevantes según las etiquetas"
+    "sources_max_entries_desc": "Solo se incluirán las más relevantes según las etiquetas",
+    "delete_confirm_multi": "Eliminar {n} entradas?"
   },
   "tag_manager": {
     "title": "Gestor de Tags",
@@ -618,6 +637,26 @@
     "viewer_title": "HTML Viewer",
     "open_in_browser": "Abrir en el navegador",
     "new_articles_count": "{count} nuevos artículos"
+  },
+  "notif_editor": {
+    "title": "Configuración de notificaciones",
+    "subtitle": "Elija cómo VASS maneja cada tipo de evento: voz (TTS), campana InfoPanel, ambas o ninguna.",
+    "default": "Predeterminado (eventos no listados)",
+    "email": "Nuevo correo",
+    "timer": "Temporizador expirado",
+    "schedule": "Comando programado (inicio/error)",
+    "event_reminder": "Evento de calendario / fin de programación",
+    "plugins": "Comandos de plugins",
+    "ai_error": "Error de IA / modelo no encontrado",
+    "ai_ready": "Modelo de IA seleccionado",
+    "tts": "Solo voz",
+    "notification": "Solo notificación",
+    "both": "Voz + notificación",
+    "none": "Ninguna",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "error": "Error",
+    "saved": "Configuración guardada."
   },
   "tool_groups": {
     "web": [
@@ -662,7 +701,18 @@
       "posición",
       "ubicación",
       "itinerario",
-      "navegación"
+      "navegación",
+      "responder",
+      "mail",
+      "email",
+      "enviar",
+      "escribir a",
+      "respuesta",
+      "reenviar",
+      "mensaje",
+      "correo",
+      "buzón",
+      "redactar"
     ],
     "calendar": [
       "calendario",
@@ -961,6 +1011,31 @@
       "buscar noticias",
       "encontrar noticias",
       "buscar articulos"
+    ],
+    "mail": [
+      "escribir",
+      "mail",
+      "email",
+      "responder",
+      "enviar",
+      "reenviar",
+      "redactar",
+      "mensaje",
+      "borrador",
+      "destinatario",
+      "remitente"
+    ],
+    "browser": [
+      "ir a",
+      "abrir sitio",
+      "navegar a",
+      "visitar",
+      "clic en",
+      "rellenar formulario",
+      "enviar",
+      "iniciar sesion",
+      "descargar",
+      "descarga"
     ]
   },
   "tool_names": {
@@ -1098,6 +1173,8 @@
     "stopped": "Detenido",
     "starting": "Iniciando...",
     "error": "Error",
+    "port_conflict_title": "VASS ya en ejecución",
+    "port_conflict_msg": "Otra instancia de VASS ya está en ejecución (puerto 8765 en uso). Cierre la otra instancia e inténtelo de nuevo.",
     "save": "Guardar",
     "cancel": "Cancelar",
     "subtitle": "Los plugins se cargan en el próximo inicio. Los cambios son inmediatos.",

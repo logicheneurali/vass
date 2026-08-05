@@ -28,7 +28,7 @@ def _format_email_ago(sent_date, lang):
     return t("notifications.on_date", lang).replace("{date}", dt.strftime("%Y-%m-%d"))
 
 
-def announce(emails, tts, notification_manager, memory, language, source="gmail"):
+def announce(emails, tts, notification_manager, memory, language, source="gmail", router=None):
     from utils import clean_for_tts
     for em in emails:
         from_parts = clean_for_tts(em["from"], 80)
@@ -40,16 +40,20 @@ def announce(emails, tts, notification_manager, memory, language, source="gmail"
             .replace("{date}", date_str) \
             .replace("{subject}", subj) \
             .replace("{snippet}", snip)
-        tts.enqueue(text, defer_if_busy=True)
         notif = t("notifications.new_email", language) \
             .replace("{from}", from_parts) \
             .replace("{date}", date_str) \
             .replace("{subject}", subj)
         priority = 7 if em.get("important") else 5
-        data = {"type": "mail"}
+        data = {"type": "mail", "msg_id": em["id"]}
         if source == "gmail":
             data["link"] = f"https://mail.google.com/mail/u/0/#inbox/{em['id']}"
-        notification_manager.add(notif, priority=priority, data=data)
+        if router is not None:
+            router.emit("email", text, priority=priority, data=data,
+                        tts_kwargs={"defer_if_busy": True})
+        else:
+            tts.enqueue(text, defer_if_busy=True)
+            notification_manager.add(notif, priority=priority, data=data)
         if memory and memory.is_source_enabled("email"):
             classify_content = (
                 f"From: {from_parts}\n"

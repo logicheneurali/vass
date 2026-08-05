@@ -27,21 +27,26 @@ def _decode_header_value(value):
 
 
 def _get_first_body_chars(parsed, max_chars=500):
+    body = _get_full_body(parsed)
+    return body[:max_chars]
+
+
+def _get_full_body(parsed):
     if parsed.is_multipart():
         for part in parsed.walk():
             if part.get_content_type() == "text/plain":
                 payload = part.get_payload(decode=True)
                 if payload:
                     try:
-                        return payload.decode("utf-8", errors="replace")[:max_chars]
+                        return payload.decode("utf-8", errors="replace")
                     except Exception:
-                        return str(payload)[:max_chars]
+                        return str(payload)
     payload = parsed.get_payload(decode=True)
     if payload:
         try:
-            return payload.decode("utf-8", errors="replace")[:max_chars]
+            return payload.decode("utf-8", errors="replace")
         except Exception:
-            return str(payload)[:max_chars]
+            return str(payload)
     return ""
 
 
@@ -146,29 +151,29 @@ class ImapSource(MailSource):
                 uid_key = f"imap:{uid.decode()}"
                 if uid_key in seen_ids:
                     continue
-                status, msg_data = conn.fetch(uid, "(RFC822.HEADER BODY[TEXT]<0.500>)")
+                status, msg_data = conn.fetch(uid, "(RFC822)")
                 if status != "OK":
                     continue
 
-                body = None
-                header = None
+                raw = None
                 for part in msg_data:
                     if isinstance(part, tuple):
-                        body = part[1]
+                        raw = part[1]
                         break
 
-                if not body:
+                if not raw:
                     continue
 
-                if body and isinstance(body, bytes):
-                    parsed = email.message_from_bytes(body)
+                if isinstance(raw, bytes):
+                    parsed = email.message_from_bytes(raw)
                 else:
-                    parsed = email.message_from_string(body if isinstance(body, str) else "")
+                    parsed = email.message_from_string(raw if isinstance(raw, str) else "")
 
                 if not parsed:
                     continue
 
-                snippet = _get_first_body_chars(parsed, 500).replace("\r", " ").replace("\n", " ").strip()
+                full_body = _get_full_body(parsed).replace("\r", " ").replace("\n", " ").strip()
+                snippet = full_body[:300]
                 priority = "high" in str(parsed.get("X-Priority", "")).lower() or \
                            "important" in str(parsed.get("Importance", "")).lower()
 
@@ -178,7 +183,12 @@ class ImapSource(MailSource):
                     "subject": _decode_header_value(parsed.get("Subject", "")),
                     "date": _parse_date(parsed),
                     "sent_date": _parse_date(parsed),
-                    "snippet": snippet[:300],
+                    "snippet": snippet,
+                    "body": full_body,
+                    "message_id": parsed.get("Message-ID", "").strip(),
+                    "references": parsed.get("References", "").strip(),
+                    "in_reply_to": parsed.get("In-Reply-To", "").strip(),
+                    "thread_id": "",
                     "important": priority,
                 })
 
@@ -219,7 +229,8 @@ class ImapSource(MailSource):
                 if msg_key in seen_ids:
                     continue
 
-                snippet = _get_first_body_chars(parsed, 500).replace("\r", " ").replace("\n", " ").strip()
+                full_body = _get_full_body(parsed).replace("\r", " ").replace("\n", " ").strip()
+                snippet = full_body[:300]
                 priority = "high" in str(parsed.get("X-Priority", "")).lower() or \
                            "important" in str(parsed.get("Importance", "")).lower()
 
@@ -229,7 +240,12 @@ class ImapSource(MailSource):
                     "subject": _decode_header_value(parsed.get("Subject", "")),
                     "date": _parse_date(parsed),
                     "sent_date": _parse_date(parsed),
-                    "snippet": snippet[:300],
+                    "snippet": snippet,
+                    "body": full_body,
+                    "message_id": parsed.get("Message-ID", "").strip(),
+                    "references": parsed.get("References", "").strip(),
+                    "in_reply_to": parsed.get("In-Reply-To", "").strip(),
+                    "thread_id": "",
                     "important": priority,
                 })
 

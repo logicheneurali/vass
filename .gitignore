@@ -75,6 +75,10 @@ highlight_toast.ps1
 **/last_response.txt
 **/gmail_seen.json
 **/gmail_seen.json.bk
+Allowed_root/private_mail_queue.json
+Allowed_root/private_mail_contacts.json
+Allowed_root/browser_profile/
+Allowed_root/downloads/
 **/memory_files_tracker.json
 **/memory_files_config.json
 **/word_weights.json
@@ -136,3 +140,4 @@ plugins/internal/user_profile/log.txt
 plugins/internal/world_events/log.txt
 plugins/external/
 plugins/*/*/settings.ini
+config/notifications.ini
