@@ -37,6 +37,7 @@
       "open_browser": "Im Browser öffnen",
       "open_queue": "E-Mail-Warteschlange öffnen",
       "copy_text": "Text kopieren",
+      "speak_text": "Vorlesen",
       "mark_seen": "Als gesehen markieren"
     },
     "dialog": {

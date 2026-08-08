@@ -67,6 +67,7 @@ class WorldEventsPlugin:
             "rss_limit": cfg.getint("rss", "rss_limit", fallback=50),
             "wikipedia_lang": cfg.get("wikipedia", "wikipedia_lang", fallback="en"),
             "notify_significance": cfg.get("notify", "notify_significance", fallback="high"),
+            "finalize": cfg.get("summary", "finalize", fallback="on").lower() in ("on", "1", "true", "yes"),
         }
 
     def _load_manifest(self) -> dict:
@@ -163,6 +164,10 @@ class WorldEventsPlugin:
         self._today_str = today
 
         data = self._load_data()
+
+        # Finalize summaries of past days (one per cycle) before processing today
+        if self._config.get("finalize", True):
+            self._finalize_summaries(data, today)
 
         rss_items = self._fetch_rss_items()
         if rss_items:
@@ -488,11 +493,12 @@ class WorldEventsPlugin:
         )
         return prompt
 
-    def _call_ai(self, data):
+    def _call_ai(self, data, parse_json=True, max_tokens=4096):
         _log(f" Calling AI with {len(data)} chars...")
-        return self._send_ai_query(data, temperature=0.2, max_tokens=4096)
+        return self._send_ai_query(data, temperature=0.2, max_tokens=max_tokens,
+                                   parse_json=parse_json)
 
-    def _send_ai_query(self, prompt, temperature=0.1, max_tokens=300):
+    def _send_ai_query(self, prompt, temperature=0.1, max_tokens=300, parse_json=True):
         rid = str(uuid.uuid4())
         msg = json.dumps({
             "type": "cmd",
@@ -511,6 +517,8 @@ class WorldEventsPlugin:
             raw = raw.strip("`").strip()
             if raw.startswith("json"):
                 raw = raw[4:]
+        if not parse_json:
+            return raw
         try:
             return json.loads(raw)
         except json.JSONDecodeError:
@@ -657,6 +665,39 @@ class WorldEventsPlugin:
             "priority": 5,
             "data": {"type": "world_event"},
         })
+
+    _FINALIZE_PROMPT = """You are a news editor. Below is the RAW daily world events summary for {day}, accumulated by concatenating several partial elaborations: it contains repetitions, and the same story appears multiple times (often from different sources).
+
+--- RAW SUMMARY START ---
+{summary}
+--- RAW SUMMARY END ---
+
+Rewrite the FINAL day summary: coherent, readable, no repetitions. The same story mentioned multiple times = a single mention. Group related events by theme, order by importance. Maximum 4 short paragraphs. Use ONLY facts present in the text above, do not invent anything. Respond ONLY with the summary: no preamble, no JSON, no code fences."""
+
+    def _finalize_summaries(self, data, today):
+        """Rewrite the summary of every past day (d < today) that has no
+        'finalized' flag. Input is ONLY the accumulated raw summary — no article
+        re-processing. The new summary REPLACES the old one."""
+        events = data.get("events", {})
+        days = sorted(d for d in events if d < today and not events[d].get("finalized"))
+        for day in days:
+            summary = (events[day].get("summary") or "").strip()
+            if not summary:
+                events[day]["finalized"] = True
+                continue
+            _log(f" Finalizing summary for {day} ({len(summary)} chars input)")
+            prompt = self._FINALIZE_PROMPT.format(day=day, summary=summary[:12000])
+            result = self._call_ai(prompt, parse_json=False, max_tokens=4096)
+            if not result:
+                _log(f" Finalize {day}: AI error/timeout, will retry next cycle")
+                continue
+            new_summary = result.strip()[:4000]
+            events[day]["summary"] = new_summary
+            events[day]["finalized"] = True
+            data["events"] = events
+            data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+            self._save_data(data)
+            _log(f" Finalize {day}: {len(summary)} -> {len(new_summary)} chars (saved)")
 
     @staticmethod
     def _resolve_root():

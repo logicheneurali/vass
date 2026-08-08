@@ -61,6 +61,11 @@ credentials/*.token
 # VASS - dev tools
 bump.py
 
+# VASS - local dev tools and generated codebase index
+tools/
+codebase_index.json
+codebase_purposes.json
+
 # VASS - misc utilities
 highlight_toast.ps1
 
@@ -141,3 +146,4 @@ plugins/internal/world_events/log.txt
 plugins/external/
 plugins/*/*/settings.ini
 config/notifications.ini
+plugins/internal/telegram_bot/log.txt

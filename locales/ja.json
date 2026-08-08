@@ -37,6 +37,7 @@
       "open_browser": "ブラウザで開く",
       "open_queue": "メールキューを開く",
       "copy_text": "テキストをコピー",
+      "speak_text": "音声で読み上げ",
       "mark_seen": "既読にする"
     },
     "dialog": {

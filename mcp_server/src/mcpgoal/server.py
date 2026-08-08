@@ -12,6 +12,8 @@ from mcpgoal.tools.vasscript import execute_code as _exec_code
 from mcpgoal.tools.vasscript import info_read as _info_read
 from mcpgoal.tools.vasscript import info_write as _info_write
 from mcpgoal.tools.vasscript import clipboard_get as _clip_get
+from mcpgoal.tools.vasscript import timer_start as _timer_start
+from mcpgoal.tools.vasscript import timer_list as _timer_list
 from mcpgoal.tools.vasscript import clipboard_set as _clip_set
 from mcpgoal.tools.playwright import search_web as _search_web
 from mcpgoal.tools.playwright import fetch_page as _fetch_page
@@ -104,6 +106,8 @@ _TOOL_SYNTAX = {
     "calendar_list": "calendar_list(from_date?) — example: calendar_list('2026-06-15')",
     "calendar_add": "calendar_add(summary, start, end, description?) — example: calendar_add('Meeting', '2026-06-15T14:00:00', '2026-06-15T15:00:00')",
     "calendar_search": "calendar_search(query) — example: calendar_search('dentist')",
+    "timer_start": "timer_start(duration) — example: timer_start('5m') or timer_start('1h30m')",
+    "timer_list": "timer_list() — no parameters",
 }
 
 
@@ -422,6 +426,17 @@ def create_server(config: ServerConfig) -> FastMCP:
         return await _orig_interact(code)
     _gated_interact.__doc__ = _interact_doc
     interact = mcp.tool()(_gated_interact)
+
+    @mcp.tool()
+    async def timer_start(duration: str) -> str:
+        """Start a countdown timer. The timer beeps and speaks when it expires.
+        Args: duration (e.g. '5m', '1h30m', '90s', '2h')."""
+        return await _tool("timer_start", f"duration={duration}", _timer_start(duration), config)
+
+    @mcp.tool()
+    async def timer_list() -> str:
+        """List all active timers with id, duration, and remaining time."""
+        return await _tool("timer_list", "", _timer_list(), config)
 
     @mcp.tool()
     async def readinfo(id: str) -> str:

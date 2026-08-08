@@ -37,6 +37,7 @@
       "open_browser": "Ouvrir dans le navigateur",
       "open_queue": "Ouvrir la file d'e-mails",
       "copy_text": "Copier le texte",
+      "speak_text": "Lire à voix haute",
       "mark_seen": "Marquer comme vu"
     },
     "dialog": {

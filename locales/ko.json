@@ -37,6 +37,7 @@
       "open_browser": "브라우저에서 열기",
       "open_queue": "이메일 대기열 열기",
       "copy_text": "텍스트 복사",
+      "speak_text": "소리내어 읽기",
       "mark_seen": "본 것으로 표시"
     },
     "dialog": {

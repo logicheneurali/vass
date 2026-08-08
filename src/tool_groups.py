@@ -23,7 +23,7 @@ TOOL_GROUPS = {
     "news":      ["read_news", "read_news_range", "search_news"],
     "calendar":  ["calendar_add", "calendar_list", "calendar_search"],
     "files":     ["read_file", "write_file", "readinfo", "writeinfo", "html_to_pdf"],
-    "events":    ["addevent", "delevent", "listevents", "nextevent", "find_free_slot"],
+    "events":    ["addevent", "delevent", "listevents", "nextevent", "find_free_slot", "timer_start", "timer_list"],
     "clipboard": ["clipboardget", "clipboardset"],
     "time":      ["current_time", "to_timestamp"],
     "compute":   ["calculate"],

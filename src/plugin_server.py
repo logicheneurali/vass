@@ -269,6 +269,12 @@ class PluginServer(threading.Thread):
                     args=(msg, sock),
                     daemon=True,
                 ).start()
+            elif cmd == "chat_text" and sock:
+                threading.Thread(
+                    target=self._handle_chat_text,
+                    args=(msg, sock),
+                    daemon=True,
+                ).start()
             elif cmd == "idle_check" and sock:
                 if hasattr(self._app, 'idle_tracker') and self._app.idle_tracker:
                     input_idle = self._app.idle_tracker.get_total_idle_seconds()
@@ -317,6 +323,7 @@ class PluginServer(threading.Thread):
                     "language": getattr(self._app, 'language', 'en'),
                     "version": getattr(self._app, 'app_version', '?'),
                     "debug": getattr(self._app, 'debug_enabled', False),
+                    "state": getattr(self._app, 'state', '?'),
                 }, ensure_ascii=False) + "\n"
                 sock.sendall(reply.encode("utf-8"))
             elif cmd == "rss_items" and sock:
@@ -407,6 +414,52 @@ class PluginServer(threading.Thread):
                     pass
             except Exception as e:
                 print(f"[PluginServer] _handle_ai_query error: {e}")
+
+    def _handle_chat_text(self, msg, sock):
+        """Forward text through the full VASS chat pipeline (memory, profile,
+        tools, voice commands) and send the final response back to the caller.
+        The reply callback may fire on a different thread — sendall is safe."""
+        app = self._app
+        if app is None or not hasattr(app, "chat_remote"):
+            reply = json.dumps({
+                "type": "chat_response",
+                "request_id": msg.get("request_id", ""),
+                "response": "VASS chat pipeline not available",
+            }, ensure_ascii=False) + "\n"
+            try:
+                sock.sendall(reply.encode("utf-8"))
+            except Exception:
+                pass
+            return
+        prompt = (msg.get("prompt") or "").strip()
+        if not prompt:
+            reply = json.dumps({
+                "type": "chat_response",
+                "request_id": msg.get("request_id", ""),
+                "response": "Empty prompt",
+            }, ensure_ascii=False) + "\n"
+            try:
+                sock.sendall(reply.encode("utf-8"))
+            except Exception:
+                pass
+            return
+
+        def _reply(text):
+            reply = json.dumps({
+                "type": "chat_response",
+                "request_id": msg.get("request_id", ""),
+                "response": text,
+            }, ensure_ascii=False) + "\n"
+            try:
+                sock.sendall(reply.encode("utf-8"))
+            except Exception:
+                pass
+
+        try:
+            app.chat_remote(prompt, reply_cb=_reply)
+        except Exception as e:
+            print(f"[PluginServer] _handle_chat_text error: {e}")
+            _reply(f"Error: {e}")
 
     # ── Auto-start plugins ──────────────────────────────────────
 
@@ -672,6 +725,9 @@ class PluginServer(threading.Thread):
                 elif ft == "dropdown":
                     opts = cfg.get(section, "options", fallback="")
                     field["options"] = [o.strip() for o in opts.split("|") if o.strip()]
+                elif ft == "note":
+                    field["note"] = cfg.get(section, f"note_{lang}",
+                                            fallback=cfg.get(section, "note", fallback=""))
                 fields.append(field)
             else:
                 values[section] = {}

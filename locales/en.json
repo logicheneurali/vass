@@ -37,6 +37,7 @@
       "open_browser": "Open in browser",
       "open_queue": "Open email queue",
       "copy_text": "Copy text",
+      "speak_text": "Read aloud",
       "mark_seen": "Mark as seen"
     },
     "dialog": {

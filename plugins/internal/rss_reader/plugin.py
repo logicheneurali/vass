@@ -235,7 +235,10 @@ class RssReaderPlugin:
                     pub_date = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
                 except Exception:
                     pass
-            raw_guid = entry.get("id") or entry.get("link", "")
+            # Use the article link as guid source: some feeds (e.g. Al Jazeera,
+            # TechCrunch, Punto Informatico) expose a homepage-with-query as `id`
+            # which collapses every entry to the same guid. `link` is the real article URL.
+            raw_guid = entry.get("link") or entry.get("id", "")
             if "#" in raw_guid and raw_guid.startswith("http"):
                 raw_guid = raw_guid.split("#")[0]
             if raw_guid.startswith("http"):

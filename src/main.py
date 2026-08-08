@@ -151,6 +151,7 @@ class VassApp:
         self.gui = gui
         self.state_manager = StateManager(self)
         self._ai_lock = threading.Lock()
+        self._remote_reply_cb = None
         self.settings_file = settings_file
         self.app_version = __version__
         self.settings = self._load_settings()
@@ -464,6 +465,10 @@ class VassApp:
                                 self.audio_handler.start_stream()
                             self.voice_recognition.reset_noise_floor()
                             print(f"[Watch] Input device changed to: {new_inp}")
+                        new_vol = float(self.settings.get("input_volume", 1.0))
+                        if abs(new_vol - self.voice_recognition.input_volume) > 0.001:
+                            self.voice_recognition.input_volume = new_vol
+                            print(f"[Watch] Input volume changed to: {new_vol}")
                         new_out = int(self.settings.get("output_device", -1))
                         new_out_name = self.settings.get("output_device_name", "")
                         new_out = self._resolve_audio_device(new_out, new_out_name, kind="output")
@@ -926,6 +931,30 @@ class VassApp:
         print(f"[Chat] Text input ({len(text)} chars)")
         threading.Thread(target=self._execute_chat_text, args=(text,), daemon=True).start()
 
+    def chat_remote(self, text, reply_cb=None):
+        """Process text through the full pipeline (commands + AI fallback) for
+        remote callers (e.g. Telegram bot). When reply_cb is given, state gates
+        are relaxed so the request is never dropped while VASS is speaking, and
+        reply_cb(response) fires when the AI response is ready."""
+        if reply_cb is not None:
+            self._remote_reply_cb = reply_cb
+        with open("lastcommands.txt", "w", encoding="utf-8") as f:
+            f.write(text)
+        self._process_command()
+
+    def _consume_remote_reply(self, text=None):
+        """Deliver (or discard) the pending remote reply callback. Must be called
+        in every outcome of the command pipeline so a stale callback can never
+        steal the response of a later, unrelated chat request."""
+        cb = self._remote_reply_cb
+        if cb:
+            self._remote_reply_cb = None
+            if text:
+                try:
+                    cb(text)
+                except Exception as e:
+                    print(f"[Remote] reply_cb error: {e}")
+
     def _execute_summarize_text(self, text):
         self.set_state("waiting")
         ctx_len = self.context_length or 4096
@@ -1070,7 +1099,7 @@ class VassApp:
             self._input_mode = False
 
     def _process_command(self):
-        if self.state in ("recording", "playing"):
+        if self.state in ("recording", "playing") and self._remote_reply_cb is None:
             print(f"[ProcessCommand] Blocked: state={self.state}")
             return
         try:
@@ -1092,16 +1121,19 @@ class VassApp:
         if matched_command == "__delayed__":
             duration_text = matched_vars.get("duration", "") if matched_vars else ""
             original_key = matched_vars.get("original_key", "") if matched_vars else ""
+            self._consume_remote_reply()
             threading.Thread(target=self._execute_delayed_command,
                              args=(duration_text, original_key, transcribed_text), daemon=True).start()
             return
         if matched_command and is_script_command(matched_command):
             print(f"Executing script command: {matched_command}")
             script_name = strip_script_prefix(matched_command)
+            self._consume_remote_reply()
             self.script_runner.enqueue(script_name, params=matched_vars, transcribed_text=transcribed_text)
             return
         if matched_command:
             print(f"Executing command: {matched_command}")
+            self._consume_remote_reply()
             ok = self.command_executor.execute_command(matched_command)
             self.command_executor.track_command_outcome(transcribed_text, ok)
         else:
@@ -1197,6 +1229,7 @@ class VassApp:
             clean = clean.strip()
             if not clean:
                 print(f"[Blacklist] Testo vuoto dopo filtro: '{prompt_original}'")
+                self._consume_remote_reply()
                 self.tts.enqueue(t("ai.blacklisted", self.language))
                 self.set_state("listening")
                 return
@@ -1223,6 +1256,7 @@ class VassApp:
                                        cancel_check=lambda: self.state != "waiting_resources",
                                        on_status=_res_status)
             if not ready:
+                self._consume_remote_reply()
                 self.set_state("listening")
                 return
             self.set_state("waiting")
@@ -1495,6 +1529,8 @@ class VassApp:
 
             ai_response = strip_think_tags(ai_response)
 
+            self._consume_remote_reply(strip_markdown(ai_response) or "")
+
             if ai_response and self.gui:
                 self.gui.schedule_signal.emit(
                     lambda t=ai_response: self.gui.show_links(t))
@@ -1591,6 +1627,7 @@ class VassApp:
                     err_msg = self._route_ai_error(msg, priority=9)
             print(f"Error calling AI Agent: {e}")
             self.set_state("listening")
+            self._consume_remote_reply(err_msg or "")
             if err_msg:
                 self.tts.enqueue(err_msg)
         finally:

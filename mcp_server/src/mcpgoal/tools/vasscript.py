@@ -155,6 +155,25 @@ async def execute_vasscript(script_name: str, timeout: float = 60) -> str:
     return await _run_sync(execute_vasscript_sync, script_name, timeout)
 
 
+def timer_start_sync(duration: str, timeout: float = 60) -> str:
+    """Start a timer via VASScript timer_start()."""
+    code = f'timer_start("{duration}")'
+    return exec_sync(code, timeout)
+
+
+def timer_list_sync(timeout: float = 60) -> str:
+    """List active timers via VASScript timer_list()."""
+    return exec_sync("timer_list()", timeout)
+
+
+async def timer_start(duration: str, timeout: float = 60) -> str:
+    return await _run_sync(timer_start_sync, duration, timeout)
+
+
+async def timer_list(timeout: float = 60) -> str:
+    return await _run_sync(timer_list_sync, timeout)
+
+
 async def execute_code(code: str, timeout: float = 60) -> str:
     return await _run_sync(exec_sync, code, timeout)
 

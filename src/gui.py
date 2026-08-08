@@ -492,24 +492,27 @@ class InfoPanel(QFrame):
             self._open_queue_cb((item.get("data") or {}).get("queue_id", ""))
             if getattr(self, "_open_queue_cb", None) else None),
         "copy_text": lambda self, item: self._copy_text((item.get("data") or {}).get("text", "")),
+        "speak_text": lambda self, item: self._speak_item(item),
         "mark_read": lambda self, item: None,
         "mark_seen": lambda self, item: None,
     }
 
     _TYPE_ACTIONS = {
-        "rss": ["open_browser"],
-        "mail": ["open_browser"],
-        "auth": ["open_browser"],
+        "rss": ["open_browser", "speak_text"],
+        "mail": ["open_browser", "speak_text"],
+        "auth": ["open_browser", "speak_text"],
         "link": ["open_browser"],
-        "ai": ["copy_text"],
+        "ai": ["copy_text", "speak_text"],
         "mail_queue": ["open_queue"],
         "youtube": ["mark_seen", "open_browser"],
+        "world_event": ["speak_text"],
     }
 
     _ACTION_ICONS = {
         "open_browser": "arrow-up-right",
         "open_queue": "mail",
         "copy_text": "clipboard-list",
+        "speak_text": "volume-2",
         "mark_seen": "eye",
     }
 
@@ -973,6 +976,15 @@ class InfoPanel(QFrame):
     def _copy_text(self, text):
         QApplication.clipboard().setText(text)
 
+    def _speak_item(self, item):
+        gui = self._parent_window
+        app = getattr(gui, "app", None) if gui else None
+        if not app or not getattr(app, "tts", None):
+            return
+        text = (item.get("data") or {}).get("text") or item.get("text", "")
+        if text:
+            app.tts.enqueue(text, defer_if_busy=True)
+
     def _toggle_expand(self):
         self._expanded = not self._expanded
         self._expand_btn.setStyleSheet(
@@ -1131,6 +1143,7 @@ class VassGUI(QMainWindow):
 
         self._btn_full_text = ""
         self.stacked.installEventFilter(self)
+        self.stacked.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
 
         self._left_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self._right_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
@@ -1306,7 +1319,7 @@ class VassGUI(QMainWindow):
         )
         self._chat_input.setVisible(False)
         self._chat_input.returnPressed.connect(self._send_chat_text)
-        row.addWidget(self._chat_input, 1)
+        row.addWidget(self._chat_input)
 
         outer.addLayout(row)
 
@@ -1340,6 +1353,12 @@ class VassGUI(QMainWindow):
         self._pos_debounce.setInterval(200)
         self._pos_debounce.timeout.connect(self._save_position_debounced)
         self._pending_pos = None
+
+        # Layout size enforce (restore width/height if a widget altered them)
+        self._layout_enforce_timer = QTimer()
+        self._layout_enforce_timer.setSingleShot(True)
+        self._layout_enforce_timer.setInterval(0)
+        self._layout_enforce_timer.timeout.connect(self._enforce_layout_size)
 
         # TTS polling
         self._tts_polling = False
@@ -1552,8 +1571,6 @@ class VassGUI(QMainWindow):
                         0x0027)
                 except Exception:
                     pass
-            self.setMinimumSize(0, 0)
-            self.setMaximumSize(16777215, 16777215)
             self.volume_top_bar.show()
             self.memory_bar.show()
             self.stacked.show()
@@ -1561,13 +1578,15 @@ class VassGUI(QMainWindow):
                 w.show()
             for w in self._right_side:
                 w.show()
+            # Apply size exclusively from layout.ini (do NOT clear fixed constraints)
             if self._normal_geometry:
-                x, y, w, h = self._normal_geometry
-                self.setGeometry(x, y, w, h)
-                if self.app:
-                    self.save_layout(self.x(), self.y(), self.width(), self.height())
+                x, y = self._normal_geometry[0], self._normal_geometry[1]
             else:
-                self.setGeometry(self.x(), self.y(), 220, 60)
+                x, y = self.x(), self.y()
+            self._apply_window_size()
+            self.move(x, y)
+            if self.app:
+                self.save_layout(self.x(), self.y(), self.width(), self.height())
             self._on_set_state(self._current_state, self._current_detail)
 
     def _build_loading_widget(self):
@@ -1595,7 +1614,7 @@ class VassGUI(QMainWindow):
             "QPushButton:hover { color: #27ae60; }"
         )
         self.btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.btn.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
 
     def _btn_press(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:
@@ -1649,6 +1668,39 @@ class VassGUI(QMainWindow):
         if self.app and not self._compact_mode:
             self._pending_pos = (self.x(), self.y(), self.width(), self.height())
             self._pos_debounce.start()
+
+    def _apply_window_size(self):
+        """Apply window size exclusively from layout.ini (single source of truth)."""
+        import configparser
+        path = os.path.join(BASE, "config", "layout.ini")
+        layout = configparser.ConfigParser()
+        if os.path.exists(path):
+            layout.read(path, encoding="utf-8")
+        w = layout.getint("window", "width", fallback=240)
+        h = layout.getint("window", "height", fallback=32)
+        self.setFixedSize(w, h)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if not self._compact_mode and hasattr(self, '_layout_enforce_timer'):
+            self._layout_enforce_timer.start()
+
+    def _enforce_layout_size(self):
+        """Network of safety: if any widget altered the window size, restore it."""
+        if self._compact_mode:
+            return
+        # Skip when chat is expanded (width intentionally doubled)
+        if self._chat_btn.isChecked() or self._chat_input.isVisible():
+            return
+        import configparser
+        path = os.path.join(BASE, "config", "layout.ini")
+        layout = configparser.ConfigParser()
+        if os.path.exists(path):
+            layout.read(path, encoding="utf-8")
+        w = layout.getint("window", "width", fallback=240)
+        h = layout.getint("window", "height", fallback=32)
+        if self.width() != w or self.height() != h:
+            self.setFixedSize(w, h)
 
     # ---- Thread-safe public API called from VassApp ----
 
@@ -3131,6 +3183,15 @@ class PluginSettingsDialog(QDialog):
                     "padding: 3px 6px; color: #999; font-size: 11px; }")
                 row.addWidget(w)
                 self._widgets[f["key"]] = ("readonly", w)
+
+            elif ft == "note":
+                note = QLabel(str(f.get("note", "")))
+                note.setWordWrap(True)
+                note.setStyleSheet(
+                    "color: #aaa; font-size: 11px; background: #2a2a2a; border-radius: 3px; "
+                    "padding: 6px 8px;")
+                layout.addWidget(note)
+                continue
 
             else:
                 w = QLineEdit()

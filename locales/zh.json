@@ -37,6 +37,7 @@
       "open_browser": "在浏览器中打开",
       "open_queue": "打开邮件队列",
       "copy_text": "复制文本",
+      "speak_text": "朗读",
       "mark_seen": "标记为已读"
     },
     "dialog": {

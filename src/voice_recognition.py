@@ -67,7 +67,7 @@ class VoiceRecognition:
         self._clip_history_maxlen = 500
         self._clip_cooldown = 0            # frames before another clipping reduction
 
-        self._gain_min = 0.05
+        self._gain_min = 0.15
         self._gain_max = 1.0
         self._target_noise_rms = 0.015
 
@@ -95,7 +95,8 @@ class VoiceRecognition:
 
     def load_models(self):
         self.wakeword_model = WhisperModel("tiny", device="cpu", compute_type="int8")
-        transcribe_device = "cuda" if _cuda_available() else "cpu"
+        transcribe_device = "cpu"
+        #transcribe_device = "cuda" if _cuda_available() else "cpu"
         transcribe_type = "float16" if transcribe_device == "cuda" else "int8"
         print(f"[Whisper] Transcription device={transcribe_device} compute_type={transcribe_type}")
         self.whisper_model = WhisperModel(self.transcription_model, device=transcribe_device, compute_type=transcribe_type)
@@ -131,8 +132,12 @@ class VoiceRecognition:
         ambient = float(np.percentile(self._energy_history[-self._history_maxlen:], 30))
         if ambient <= 1e-6:
             return
+        # Dynamic target: track the measured ambient with smoothing so the
+        # gain converges instead of spiralling down to the absolute floor.
         target = self._target_noise_rms
-        ratio = target / ambient
+        smoothed = target * 0.99 + ambient * 0.01
+        self._target_noise_rms = max(0.008, min(0.05, smoothed))
+        ratio = self._target_noise_rms / ambient
         # Smooth adaptation: move only 5% toward target per call (~every second)
         new_volume = self._input_volume * (1.0 + 0.05 * (ratio - 1.0))
         new_volume = max(self._gain_min, min(self._gain_max, new_volume))
@@ -167,6 +172,10 @@ class VoiceRecognition:
 
         if raw_energy is None:
             raw_energy = np.sqrt(np.mean(audio_chunk**2))
+        else:
+            # raw_energy is measured PRE-volume (from the raw audio loop);
+            # scale it so the adaptive gain sees post-volume energy.
+            raw_energy = raw_energy * self._input_volume
         energy = raw_energy
 
         with self._lock:

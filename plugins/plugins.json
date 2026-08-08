@@ -21,6 +21,9 @@
     },
     "news_publisher": {
       "enabled": true
+    },
+    "telegram_bot": {
+      "enabled": true
     }
   }
 }

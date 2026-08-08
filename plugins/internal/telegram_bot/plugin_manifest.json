@@ -1,0 +1,9 @@
+{
+  "name": "telegram_bot",
+  "version": "1.0.0",
+  "min_app": "0.8.4",
+  "platform": "*",
+  "description": "Telegram bot to send AI requests to VASS remotely (outbound long polling, no open ports)",
+  "description_it": "Bot Telegram per inviare richieste AI a VASS da remoto (long polling outbound, nessuna porta aperta)",
+  "subscriptions": []
+}

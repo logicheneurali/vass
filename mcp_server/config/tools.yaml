@@ -286,3 +286,15 @@ tools:
     - ::1
     - localhost
     blacklist: []
+  timer_start:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  timer_list:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
