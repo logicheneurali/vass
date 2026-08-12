@@ -288,4 +288,7 @@ class ScriptRunner:
                 _sr_log(app, f"_execute_script_impl: finished script={script_name} silent={silent} state={app.state} queue_remaining={queue_len}")
 
             if script_error and not result_callback:
-                app.tts.enqueue(f"Errore script: {script_error}")
+                from i18n import t
+                lang = getattr(app, "language", "it")
+                app.tts.enqueue(t("script_runner.script_error", lang)
+                                .replace("{error}", script_error))

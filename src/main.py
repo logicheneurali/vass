@@ -155,6 +155,12 @@ class VassApp:
         self.settings_file = settings_file
         self.app_version = __version__
         self.settings = self._load_settings()
+        try:
+            from tool_auth import configure
+            configure(int(self.settings.get("online_rate_per_min", 10) or 10),
+                      float(self.settings.get("online_min_interval", 1) or 1))
+        except Exception:
+            pass
         inp = int(self.settings.get("input_device", -1))
         inp_name = self.settings.get("input_device_name", "")
         inp = self._resolve_audio_device(inp, inp_name, kind="input")

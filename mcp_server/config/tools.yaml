@@ -298,3 +298,15 @@ tools:
     - ::1
     - localhost
     blacklist: []
+  model_advice:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  generate_svg:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []

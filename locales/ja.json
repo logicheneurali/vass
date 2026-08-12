@@ -31,7 +31,8 @@
       "settings_general": "一般",
       "mail_pending": "保留メール ({n})",
       "contacts": "連絡先",
-      "notifications": "通知"
+      "notifications": "通知",
+      "plugins_ui": "プラグイン"
     },
     "actions": {
       "open_browser": "ブラウザで開く",
@@ -294,7 +295,7 @@
       "test": "Test"
     },
     "permissions": {
-      "title": "Script permissions",
+      "title": "権限（スクリプトとツール）",
       "no_permissions": "No permissions stored.",
       "stored": "Scripts with stored permissions:",
       "revoke": "Revoke selected",
@@ -302,7 +303,11 @@
       "close": "Close",
       "revoke_confirm": "Revoke permissions for '{name}'?",
       "revoke_all_confirm": "Revoke ALL stored permissions?",
-      "all_revoked": "All permissions have been revoked."
+      "all_revoked": "All permissions have been revoked.",
+      "all": "すべて",
+      "unknown": "不明",
+      "tool_scope_all": "すべてのツール",
+      "tool_scope_always": "常に"
     },
     "close": {
       "title": "Save?",
@@ -313,7 +318,27 @@
     "select_function": "関数を選択するとヘルプが表示されます",
     "ask_ai": "AIに質問",
     "ask_ai_placeholder": "作成したいスクリプトを説明してください...",
-    "ask_ai_loading": "生成中..."
+    "ask_ai_loading": "生成中...",
+    "error": "エラー",
+    "test_timeout": "タイムアウト (60秒)。VASSが起動していない可能性があります。",
+    "test_ok": "スクリプトが正常に実行されました。",
+    "ai_error_title": "AIエラー",
+    "ai_client_failed": "AIクライアントを作成できませんでした:\n{e}",
+    "ai_request_failed": "AIリクエストに失敗しました:\n{e}",
+    "ai_empty_response": "AIが空の応答を返しました。",
+    "info": "情報",
+    "read_failed": "{name} を読み取れません:\n{e}",
+    "no_file_selected": "ファイルが選択されていません。",
+    "save_failed": "保存に失敗しました:\n{e}",
+    "empty_editor": "エディタは空です。",
+    "new_script_title": "新しいスクリプト",
+    "new_script_label": "名前（.vass なし）:",
+    "already_exists": "{name} は既に存在します。",
+    "create_failed": "作成に失敗しました:\n{e}",
+    "delete_failed": "削除に失敗しました:\n{e}",
+    "keyring_unavailable": "keyring を利用できません。",
+    "save_prompt_title": "保存しますか？",
+    "save_prompt_msg": "スクリプトを切り替える前に変更を保存しますか？"
   },
   "commands_editor": {
     "title": "VASS コマンドエディタ",
@@ -627,7 +652,8 @@
     "min_relevance_desc": "この値未満の関連度の会話は永続メモリに保存されません。",
     "add_tag": "タグ追加",
     "delete_tag": "タグ削除",
-    "no_tags": "タグが設定されていません。"
+    "no_tags": "タグが設定されていません。",
+    "error": "エラー"
   },
   "delayed": {
     "scheduled": "わかりました、'{cmd}'を実行します",
@@ -1025,6 +1051,31 @@
       "送信",
       "ログイン",
       "ダウンロード"
+    ],
+    "models": [
+      "モデル",
+      "llm",
+      "より賢い",
+      "モデルを更新",
+      "おすすめのモデル",
+      "新しいモデル",
+      "量子化",
+      "アップグレード"
+    ],
+    "image": [
+      "svg",
+      "画像",
+      "描く",
+      "絵",
+      "ロゴ",
+      "アイコン",
+      "イラスト",
+      "背景",
+      "バナー",
+      "画像を生成",
+      "ポスター",
+      "インフォグラフィック",
+      "アバター"
     ]
   },
   "tool_names": {
@@ -1147,6 +1198,14 @@
     "search_news": {
       "name": "ニュース検索",
       "desc": "キーワードで記事を検索"
+    },
+    "model_advice": {
+      "name": "AIモデル提案",
+      "desc": "HuggingFaceをスキャンし、このPCに最適なAIモデルを推奨します。"
+    },
+    "generate_svg": {
+      "name": "SVG画像を生成",
+      "desc": "SDXLスタイルの説明から高品質なSVG画像を生成します。"
     }
   },
   "mcp_down_tooltip": "MCPサーバーが利用できません",
@@ -1218,8 +1277,42 @@
     "interval": "確認間隔",
     "errors": {
       "required": "すべての項目が必要です。",
-      "invalid_interval": "間隔は正の整数でなければなりません。"
+      "invalid_interval": "間隔は正の整数でなければなりません。",
+      "title": "エラー"
     },
     "saved": "ファイルを保存しました。"
+  },
+  "contacts_editor": {
+    "title": "メール連絡先",
+    "add": "追加",
+    "remove": "削除",
+    "add_title": "連絡先を追加",
+    "email": "メール:",
+    "email_placeholder": "name@example.com",
+    "display_name": "表示名:",
+    "name_placeholder": "山田太郎",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "remove_confirm": "連絡先 '{name}' を削除しますか？"
+  },
+  "queue_viewer": {
+    "title": "VASS - 保留メールキュー",
+    "edit": "編集",
+    "send": "送信",
+    "delete": "削除",
+    "send_all": "すべて送信",
+    "edit_title": "メール編集",
+    "to": "宛先:",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "error": "エラー",
+    "send_failed": "送信に失敗しました: {msg}",
+    "delete_confirm": "このメールをキューから削除しますか？",
+    "send_all_confirm": "キュー内の {count} 通のメールをすべて送信しますか？",
+    "completed": "完了",
+    "sent_count": "送信済み: {sent}/{count}"
+  },
+  "script_runner": {
+    "script_error": "スクリプトエラー: {error}"
   }
 }

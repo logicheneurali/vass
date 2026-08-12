@@ -11,6 +11,7 @@ import socket
 import threading
 import time
 import uuid
+from datetime import datetime
 
 import requests
 
@@ -44,6 +45,7 @@ class TelegramBotPlugin:
         self._language = self._config.get("language", "it")
         self._pending = {}
         self._pending_lock = threading.Lock()
+        self._pending_request = {}
         self._unlocked = {}
         self._fail = {}
         self._blocked_until = {}
@@ -91,6 +93,56 @@ class TelegramBotPlugin:
         except Exception:
             pass
 
+    # ── Daily greeting ───────────────────────────────────────────
+
+    @staticmethod
+    def _resolve_root():
+        return os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+    def _daily_greeting_text(self):
+        now = datetime.now()
+        if self._language == "it":
+            wd = ("lunedì", "martedì", "mercoledì", "giovedì", "venerdì",
+                  "sabato", "domenica")[now.weekday()]
+            ms = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+                  "luglio", "agosto", "settembre", "ottobre", "novembre",
+                  "dicembre")[now.month - 1]
+            return f"Oggi è {wd} {now.day} {ms} {now.year}."
+        wd = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+              "Saturday", "Sunday")[now.weekday()]
+        ms = ("January", "February", "March", "April", "May", "June", "July",
+              "August", "September", "October", "November",
+              "December")[now.month - 1]
+        return f"Today is {wd} {now.day} {ms} {now.year}."
+
+    def _send_daily_greeting(self):
+        """Send the once-a-day greeting to all authorized chats (persisted, so
+        restarts do not re-send it within the same calendar day)."""
+        today = time.strftime("%Y-%m-%d")
+        path = os.path.join(self._resolve_root(), "Allowed_root",
+                            "private_telegram_greeting.txt")
+        try:
+            with open(path, encoding="utf-8") as f:
+                if f.read().strip() == today:
+                    return
+        except Exception:
+            pass
+        chats = self._config["allowed_chat_ids"]
+        if not chats:
+            self._log("Daily greeting skipped: whitelist empty")
+            return
+        msg = self._daily_greeting_text()
+        for cid in chats:
+            self._send_message(cid, msg)
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(today)
+        except Exception:
+            pass
+        self._log(f"Daily greeting sent to {len(chats)} chat(s)")
+
     # ── Telegram API ────────────────────────────────────────────
 
     def _api(self, method, payload=None, timeout=40):
@@ -132,8 +184,8 @@ class TelegramBotPlugin:
                 "en": "VASS bot: your chat_id is {chat_id}.\nTo enable this chat, add the number to allowed_chat_ids in plugins/internal/telegram_bot/settings.ini, then restart the plugin (or VASS).",
             },
             "pin_request": {
-                "it": "Chat bloccata. Invia il PIN a 6 cifre per sbloccarla.",
-                "en": "Chat locked. Send the 6-digit PIN to unlock it.",
+                "it": "Chat bloccata. Invia il PIN a 6 cifre per sbloccarla. La tua richiesta sarà eseguita subito dopo lo sblocco.",
+                "en": "Chat locked. Send the 6-digit PIN to unlock it. Your request will be executed right after unlocking.",
             },
             "pin_ok": {
                 "it": "Chat sbloccata per {hours} ore.",
@@ -179,10 +231,19 @@ class TelegramBotPlugin:
             self._blocked_until.pop(chat_id, None)
             self._log(f"Chat {chat_id} unlocked for {hours}h")
             self._send_message(chat_id, self._tr("pin_ok").format(hours=hours))
+            pending = None
+            with self._pending_lock:
+                pending = self._pending_request.pop(chat_id, None)
+            if pending:
+                self._log(f"Executing stored request from chat {chat_id}")
+                self._send_cmd("chat_text", {"prompt": pending,
+                                             "request_id": self._new_req(chat_id)})
         else:
             fails = self._fail.get(chat_id, 0) + 1
             self._fail[chat_id] = fails
             self._log(f"Wrong PIN attempt {fails}/3 from chat {chat_id}")
+            with self._pending_lock:
+                self._pending_request.pop(chat_id, None)
             if fails >= 3:
                 self._blocked_until[chat_id] = now + 600
                 self._fail[chat_id] = 0
@@ -211,6 +272,10 @@ class TelegramBotPlugin:
         if not text:
             return
         if not self._is_unlocked(chat_id):
+            if not re.fullmatch(r"\d{6}", text):
+                with self._pending_lock:
+                    self._pending_request[chat_id] = text
+                self._log(f"Stored pending request from chat {chat_id} ({len(text)} chars)")
             self._handle_pin(chat_id, text)
             return
         print(f"[Telegram] Chat {chat_id}: {text[:100]}")
@@ -259,6 +324,7 @@ class TelegramBotPlugin:
             try:
                 self._config = self._load_config()
                 self._language = self._config.get("language", "it")
+                self._send_daily_greeting()
                 updates = self._api("getUpdates", {
                     "timeout": 30,
                     "offset": self._offset,

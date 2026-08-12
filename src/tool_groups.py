@@ -30,6 +30,8 @@ TOOL_GROUPS = {
     "lang":      ["langcheck"],
     "idle":      ["getidle"],
     "tags":      ["savetags", "search_tags"],
+    "models":    ["model_advice"],
+    "image":     ["generate_svg"],
 }
 
 TOOL_TO_GROUP = {}
@@ -84,6 +86,23 @@ def _default_keywords():
                         "memoria", "argomento", "tipo", "gruppo", "genere",
                         "chiave", "catalogare", "organizzare", "ricordare",
                         "contesto", "tema"},
+        "models":    {"modello", "modelli", "model", "llm", "ai migliore",
+                        "migliore", "miglior modello", "consigliami un modello",
+                        "aggiorna il modello", "cambia modello", "nuovo modello",
+                        "quantizzazione", "piu' intelligente", "piu intelligente",
+                        "upgrade", "consigli", "consiglio", "consigliare",
+                        "raccomanda", "raccomandazione", "suggerisci", "suggerimento",
+                        "quale modello", "che modello", "modello da usare",
+                        "installare un modello", "quale ai", "modello migliore",
+                        "modelli migliori", "quale intelligenza artificiale",
+                        "nuovo ai", "modello consigliato", "meglio per questo pc",
+                        "gira sulla mia scheda", "sta nella vram", "vram"},
+        "image":     {"svg", "immagine", "immagini", "disegna", "disegno",
+                        "logo", "icona", "icona", "illustrazione", "sfondo",
+                        "banner", "genera un'immagine", "genera una immagine",
+                        "crea un'immagine", "crea una immagine", "poster",
+                        "infografica", "avatar", "grafica", "scena",
+                        "immagine vettoriale", "vettoriale"},
     }
 
 

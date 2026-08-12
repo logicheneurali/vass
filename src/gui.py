@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import time
+import copy
 from utils import get_project_root
 
 from PySide6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, Signal, QPoint, QSize
@@ -11,9 +12,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QStackedWidget, QMenu, QMessageBox,
     QLineEdit, QSpacerItem, QSizePolicy, QDialog,
     QFrame, QScrollArea, QSlider, QCheckBox, QComboBox, QTextEdit,
-    QProgressBar,
+    QProgressBar, QGroupBox, QListWidget, QListWidgetItem,
 )
-from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, ENTRY_BG, DESCRIPTION_FG, FRAME_BORDER, FG
+from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, ENTRY_BG, DESCRIPTION_FG, FRAME_BORDER, FG, BASE_STYLESHEET
 from activity_tracker import get_tracker, CATEGORY_COLORS
 from icons import icon, icon_dual, pixmap
 
@@ -746,7 +747,8 @@ class InfoPanel(QFrame):
         self._position(parent_window)
         self.show()
         self.raise_()
-        self._timer.start(30000)
+        if not self._user_opened:
+            self._timer.start(30000)
 
     def set_ai_responses(self, responses, parent_window):
         self._ai_responses = responses
@@ -1241,6 +1243,10 @@ class VassGUI(QMainWindow):
         self._menu.addAction(self._t("gui.menu.history"), self.open_history)
         self._menu.addAction(self._t("gui.menu.memory_editor"), self.open_memory_editor)
         self._menu.addAction(self._t("gui.menu.events"), self.open_events)
+
+        self._plugins_ui_menu = self._menu.addMenu(self._t("gui.menu.plugins_ui"))
+        self._plugins_ui_menu.menuAction().setVisible(False)
+        self._menu.aboutToShow.connect(self._update_plugins_ui_menu)
 
         self._settings_menu = self._menu.addMenu(self._t("gui.menu.settings"))
         self._settings_menu.addAction(self._t("gui.menu.settings_general"), self.open_settings)
@@ -2165,12 +2171,18 @@ class VassGUI(QMainWindow):
             self.player.data = None
             self.player.peaks = []
 
-    def request_auth(self, script_name, func_name):
+    def request_auth(self, script_name, func_name, timeout=None):
         import threading
         self._auth_result = None
+        self._auth_timeout = timeout
         self._auth_event = threading.Event()
         self.auth_requested_signal.emit(script_name, func_name)
-        self._auth_event.wait()
+        if timeout:
+            self._auth_event.wait(timeout)
+            if self._auth_result is None:
+                return "deny"
+        else:
+            self._auth_event.wait()
         return self._auth_result if self._auth_result else "deny"
 
     def request_form(self, title, fields):
@@ -2223,6 +2235,11 @@ class VassGUI(QMainWindow):
         btn_lo.addWidget(btn_all)
         btn_lo.addWidget(btn_cancel)
         lo.addLayout(btn_lo)
+        timeout = getattr(self, "_auth_timeout", None)
+        if timeout:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(int(timeout * 1000),
+                              lambda: self._finish_auth("deny", dlg))
         dlg.exec()
         if self._auth_result is None:
             self._finish_auth("deny", dlg)
@@ -2507,13 +2524,44 @@ class VassGUI(QMainWindow):
         dlg = PluginManagerDialog(self.app._plugin_server, self._t, self.language, self)
         dlg.exec()
 
+    def _update_plugins_ui_menu(self):
+        """Populate the dynamic 'Plugin' submenu with registered declarative UIs."""
+        self._plugins_ui_menu.clear()
+        server = getattr(self.app, '_plugin_server', None) if self.app else None
+        if server is None:
+            self._plugins_ui_menu.menuAction().setVisible(False)
+            return
+        uis = server.get_plugin_uis()
+        if not uis:
+            self._plugins_ui_menu.menuAction().setVisible(False)
+            return
+        self._plugins_ui_menu.menuAction().setVisible(True)
+        for name, entry in sorted(uis.items()):
+            schema = entry.get("schema", {})
+            title = (schema.get(f"title_{self.language}")
+                     or schema.get("title") or name)
+            action = self._plugins_ui_menu.addAction(title)
+            action.triggered.connect(lambda checked=False, n=name: self._open_plugin_ui(n))
+
+    def _open_plugin_ui(self, name):
+        if not self.app or not hasattr(self.app, '_plugin_server'):
+            return
+        server = self.app._plugin_server
+        uis = server.get_plugin_uis()
+        entry = uis.get(name)
+        if not entry:
+            return
+        dlg = PluginUiDialog(server, name, entry.get("schema", {}),
+                             self._t, self.language, self)
+        dlg.exec()
+
     def open_mail_editor(self):
         self._open_unique_window("mail", os.path.join(SRC, "mail_editor.py"), "--lang", self.language)
 
     def open_contacts_editor(self):
         def _show():
             from mail.contacts_editor import ContactsDialog
-            dlg = ContactsDialog(self)
+            dlg = ContactsDialog(self, lang=self.language)
             dlg.exec()
         self.schedule_signal.emit(_show)
 
@@ -2732,6 +2780,7 @@ class VassGUI(QMainWindow):
         "clipboardget": "#1abc9c", "clipboard_get": "#1abc9c", "clipboardset": "#1abc9c", "clipboard_set": "#1abc9c",
         "current_time": "#2ecc71", "to_timestamp": "#2ecc71",
         "calculate": "#e91e63", "langcheck": "#673ab7",
+        "model_advice": "#00bcd4", "generate_svg": "#e67e22",
         "readinfo": "#f1c40f", "read_info": "#f1c40f", "writeinfo": "#f1c40f", "write_info": "#f1c40f", "savetags": "#ff5722", "save_tags": "#ff5722",
         "getidle": "#95a5a6", "get_idle": "#95a5a6",
     }
@@ -2751,6 +2800,7 @@ class VassGUI(QMainWindow):
         "clipboardset": "clipboard-list", "clipboard_set": "clipboard-list",
         "current_time": "clock", "to_timestamp": "clock",
         "calculate": "sparkles",
+        "model_advice": "sparkles", "generate_svg": "sparkles",
         "langcheck": "message-circle",
         "savetags": "pin", "save_tags": "pin", "search_tags": "pin",
         "getidle": "eye", "get_idle": "eye",
@@ -2902,7 +2952,7 @@ class PluginManagerDialog(QDialog):
         btn_row = QHBoxLayout()
         refresh_btn = QPushButton(self._t("plugins.refresh"))
         refresh_btn.clicked.connect(self._refresh)
-        close_btn = QPushButton("Chiudi")
+        close_btn = QPushButton(self._t("gui.close"))
         close_btn.clicked.connect(self.close)
         btn_row.addWidget(refresh_btn)
         btn_row.addStretch()
@@ -3243,5 +3293,289 @@ class PluginSettingsDialog(QDialog):
                 val = w.text()
             self._server.set_plugin_value(self._name, section, key, val)
         self.accept()
+
+
+_PLUGIN_UI_EXTRA_STYLE = (
+    "QDialog { background-color: #1e1e1e; color: #e0e0e0; }"
+    "QLabel { color: #e0e0e0; }"
+    "QCheckBox { color: #e0e0e0; }"
+    "QLineEdit { background: #333; border: 1px solid #555; border-radius: 3px; "
+    "padding: 3px 6px; color: #e0e0e0; }"
+    "QComboBox { background: #333; border: 1px solid #555; border-radius: 3px; "
+    "padding: 3px 6px; color: #e0e0e0; }"
+    "QSlider::groove:horizontal { height: 4px; background: #444; border-radius: 2px; }"
+    "QSlider::handle:horizontal { background: #2ecc71; width: 12px; "
+    "margin: -4px 0; border-radius: 6px; }"
+)
+
+
+class PluginUiDialog(QDialog):
+    """Renderer for declarative plugin UIs (ui_register schema).
+
+    Widget kinds: toggle, slider, text, combo, button, label, list.
+    Instant widgets (toggle/slider with instant=true) send ui_action on change;
+    buffered widgets (text/combo, and non-instant toggles/sliders) are collected
+    and sent with button clicks. The plugin replies with ui_state which is
+    polled every second and applied to the widgets.
+    """
+
+    def __init__(self, plugin_server, name, schema, t_func, lang, parent=None):
+        super().__init__(parent)
+        self._server = plugin_server
+        self._name = name
+        self._schema = schema
+        self._t = t_func
+        self._lang = lang
+        self._widgets = {}          # key -> widget
+        self._widget_kind = {}      # key -> kind
+        self._list_widgets = {}     # key -> QListWidget
+        self._slider_labels = {}    # key -> QLabel (value display)
+        self._last_state = None
+
+        title = (schema.get(f"title_{lang}") or schema.get("title") or name)
+        self.setWindowTitle(title)
+        self.setMinimumWidth(460)
+        self.setStyleSheet(BASE_STYLESHEET + _PLUGIN_UI_EXTRA_STYLE)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 14, 14, 14)
+        layout.setSpacing(10)
+
+        for section in schema.get("sections", []):
+            sec_title = (section.get(f"title_{lang}")
+                         or section.get("title") or "")
+            box = QGroupBox(sec_title) if sec_title else QGroupBox()
+            box.setStyleSheet("QGroupBox { border: 1px solid #333; border-radius: 4px; "
+                              "margin-top: 8px; padding-top: 6px; color: #e0e0e0; }")
+            sec_layout = QVBoxLayout(box)
+            sec_layout.setSpacing(6)
+            for row in section.get("rows", []):
+                self._build_row(sec_layout, row)
+            layout.addWidget(box)
+
+        close_btn = QPushButton(self._t("gui.close"))
+        close_btn.clicked.connect(self.accept)
+        layout.addWidget(close_btn, 0, Qt.AlignmentFlag.AlignRight)
+
+        self._sync_state()
+        self._timer = QTimer(self)
+        self._timer.setInterval(1000)
+        self._timer.timeout.connect(self._sync_state)
+        self._timer.start()
+
+    # ── helpers ──────────────────────────────────────────────────
+
+    def _loc(self, field, key):
+        return (field.get(f"label_{self._lang}")
+                or field.get("label") or key)
+
+    def _collect_values(self):
+        values = {}
+        for key, w in self._widgets.items():
+            kind = self._widget_kind[key]
+            try:
+                if kind == "toggle":
+                    values[key] = bool(w.isChecked())
+                elif kind == "slider":
+                    values[key] = w.value()
+                elif kind == "combo":
+                    values[key] = w.currentText()
+                elif kind == "text":
+                    values[key] = w.text()
+                elif kind == "label":
+                    values[key] = w.text()
+            except Exception:
+                pass
+        for key, lw in self._list_widgets.items():
+            item = lw.currentItem()
+            values[f"{key}_selected"] = item.data(Qt.ItemDataRole.UserRole) if item else ""
+        return values
+
+    def _emit(self, key, event, extra=None):
+        action = {"key": key, "event": event}
+        if event != "select":
+            action["values"] = self._collect_values()
+        if extra:
+            action.update(extra)
+        self._server.send_ui_action(self._name, action)
+
+    # ── row builders ─────────────────────────────────────────────
+
+    def _build_row(self, layout, row):
+        kind = row.get("kind", "label")
+        key = row.get("key", "")
+        label = self._loc(row, key)
+
+        if kind == "toggle":
+            w = QCheckBox(label)
+            w.setChecked(bool(row.get("value", False)))
+            if row.get("instant"):
+                w.toggled.connect(lambda checked, k=key: self._emit(k, "toggle"))
+            layout.addWidget(w)
+            self._widgets[key] = w
+            self._widget_kind[key] = "toggle"
+
+        elif kind == "slider":
+            row_l = QHBoxLayout()
+            lbl = QLabel(label)
+            lbl.setFixedWidth(150)
+            row_l.addWidget(lbl)
+            w = QSlider(Qt.Orientation.Horizontal)
+            w.setRange(int(row.get("min", 0)), int(row.get("max", 100)))
+            w.setValue(int(row.get("value", 0)))
+            val_lbl = QLabel(str(w.value()))
+            val_lbl.setFixedWidth(40)
+            val_lbl.setStyleSheet("color: #aaa;")
+            if row.get("instant"):
+                w.valueChanged.connect(
+                    lambda v, k=key: (val_lbl.setText(str(v)), self._emit(k, "slider")))
+            else:
+                w.valueChanged.connect(lambda v, l=val_lbl: l.setText(str(v)))
+            row_l.addWidget(w)
+            row_l.addWidget(val_lbl)
+            layout.addLayout(row_l)
+            self._widgets[key] = w
+            self._widget_kind[key] = "slider"
+            self._slider_labels[key] = val_lbl
+
+        elif kind == "text":
+            row_l = QHBoxLayout()
+            lbl = QLabel(label)
+            lbl.setFixedWidth(150)
+            row_l.addWidget(lbl)
+            w = QLineEdit(str(row.get("value", "")))
+            row_l.addWidget(w)
+            layout.addLayout(row_l)
+            self._widgets[key] = w
+            self._widget_kind[key] = "text"
+
+        elif kind == "combo":
+            row_l = QHBoxLayout()
+            lbl = QLabel(label)
+            lbl.setFixedWidth(150)
+            row_l.addWidget(lbl)
+            w = QComboBox()
+            w.addItems([str(o) for o in row.get("options", [])])
+            cur = str(row.get("value", ""))
+            if cur in [str(o) for o in row.get("options", [])]:
+                w.setCurrentText(cur)
+            row_l.addWidget(w)
+            layout.addLayout(row_l)
+            self._widgets[key] = w
+            self._widget_kind[key] = "combo"
+
+        elif kind == "button":
+            w = QPushButton(label)
+            w.clicked.connect(lambda checked=False, k=key: self._emit(k, "button"))
+            layout.addWidget(w)
+            self._widgets[key] = w
+            self._widget_kind[key] = "button"
+
+        elif kind == "list":
+            lbl = QLabel(label)
+            layout.addWidget(lbl)
+            lw = QListWidget()
+            self._fill_list(lw, row.get("items", []), row)
+
+            def _on_select(current, _prev, k=key):
+                item_id = current.data(Qt.ItemDataRole.UserRole) if current else ""
+                self._emit(k, "select", {"selected": item_id})
+
+            lw.currentItemChanged.connect(_on_select)
+            layout.addWidget(lw)
+            self._list_widgets[key] = lw
+
+        else:  # label
+            w = QLabel(str(row.get("text", "")))
+            w.setWordWrap(True)
+            w.setStyleSheet("color: #aaa;")
+            layout.addWidget(w)
+            self._widgets[key] = w
+            self._widget_kind[key] = "label"
+
+    @staticmethod
+    def _fill_list(lw, items, row):
+        lw.blockSignals(True)
+        lw.clear()
+        columns = [c.get("key", "") for c in row.get("columns", [])]
+        for item in items:
+            parts = []
+            for ck in columns:
+                v = item.get(ck, "")
+                if isinstance(v, bool):
+                    v = "on" if v else "off"
+                parts.append(str(v))
+            li = QListWidgetItem(" — ".join(parts))
+            li.setData(Qt.ItemDataRole.UserRole, item.get("id", ""))
+            lw.addItem(li)
+        lw.blockSignals(False)
+
+    # ── state sync ───────────────────────────────────────────────
+
+    def _sync_state(self):
+        try:
+            uis = self._server.get_plugin_uis()
+            entry = uis.get(self._name)
+            state = entry.get("state", {}) if entry else {}
+        except Exception:
+            return
+        if state == self._last_state:
+            return
+        self._last_state = copy.deepcopy(state)
+
+        for key, w in self._widgets.items():
+            if key not in state:
+                continue
+            kind = self._widget_kind[key]
+            try:
+                if kind == "toggle":
+                    w.blockSignals(True)
+                    w.setChecked(bool(state[key]))
+                    w.blockSignals(False)
+                elif kind == "slider":
+                    w.blockSignals(True)
+                    w.setValue(int(state[key]))
+                    w.blockSignals(False)
+                    lbl = self._slider_labels.get(key)
+                    if lbl:
+                        lbl.setText(str(w.value()))
+                elif kind == "combo":
+                    txt = str(state[key])
+                    if txt in [w.itemText(i) for i in range(w.count())]:
+                        w.setCurrentText(txt)
+                elif kind == "text":
+                    w.setText(str(state[key]))
+                elif kind == "label":
+                    w.setText(str(state[key]))
+            except Exception:
+                pass
+
+        for key, lw in self._list_widgets.items():
+            items = state.get(key)
+            if not isinstance(items, list):
+                continue
+            current_ids = [lw.item(i).data(Qt.ItemDataRole.UserRole)
+                           for i in range(lw.count())]
+            new_ids = [i.get("id", "") for i in items]
+            if current_ids == new_ids:
+                continue  # dati invariati: preserva selezione e scroll
+            sel_id = (lw.currentItem().data(Qt.ItemDataRole.UserRole)
+                      if lw.currentItem() else "")
+            self._fill_list(lw, items, self._find_row(key))
+            if not items:
+                continue
+            row = 0
+            for i in range(lw.count()):
+                if lw.item(i).data(Qt.ItemDataRole.UserRole) == sel_id:
+                    row = i
+                    break
+            lw.setCurrentRow(row)
+
+    def _find_row(self, key):
+        for section in self._schema.get("sections", []):
+            for row in section.get("rows", []):
+                if row.get("key") == key:
+                    return row
+        return {}
 
 

@@ -31,7 +31,8 @@
       "settings_general": "Allgemein",
       "mail_pending": "Ausstehende Mail ({n})",
       "contacts": "Kontakte",
-      "notifications": "Benachrichtigungen"
+      "notifications": "Benachrichtigungen",
+      "plugins_ui": "Plugins"
     },
     "actions": {
       "open_browser": "Im Browser öffnen",
@@ -294,7 +295,7 @@
       "test": "Test"
     },
     "permissions": {
-      "title": "Script permissions",
+      "title": "Berechtigungen (Skripte und Werkzeuge)",
       "no_permissions": "No permissions stored.",
       "stored": "Scripts with stored permissions:",
       "revoke": "Revoke selected",
@@ -302,7 +303,11 @@
       "close": "Close",
       "revoke_confirm": "Revoke permissions for '{name}'?",
       "revoke_all_confirm": "Revoke ALL stored permissions?",
-      "all_revoked": "All permissions have been revoked."
+      "all_revoked": "All permissions have been revoked.",
+      "all": "alles",
+      "unknown": "unbekannt",
+      "tool_scope_all": "alle Werkzeuge",
+      "tool_scope_always": "immer"
     },
     "close": {
       "title": "Save?",
@@ -313,7 +318,27 @@
     "select_function": "Funktion auswählen für Hilfe",
     "ask_ai": "KI fragen",
     "ask_ai_placeholder": "Beschreibe das gewünschte Skript...",
-    "ask_ai_loading": "Generierung läuft..."
+    "ask_ai_loading": "Generierung läuft...",
+    "error": "Fehler",
+    "test_timeout": "Zeitüberschreitung (60s). VASS läuft möglicherweise nicht.",
+    "test_ok": "Skript erfolgreich ausgeführt.",
+    "ai_error_title": "KI-Fehler",
+    "ai_client_failed": "KI-Client konnte nicht erstellt werden:\n{e}",
+    "ai_request_failed": "KI-Anfrage fehlgeschlagen:\n{e}",
+    "ai_empty_response": "Die KI hat eine leere Antwort zurückgegeben.",
+    "info": "Info",
+    "read_failed": "{name} kann nicht gelesen werden:\n{e}",
+    "no_file_selected": "Keine Datei ausgewählt.",
+    "save_failed": "Speichern fehlgeschlagen:\n{e}",
+    "empty_editor": "Der Editor ist leer.",
+    "new_script_title": "Neues Skript",
+    "new_script_label": "Name (ohne .vass):",
+    "already_exists": "{name} existiert bereits.",
+    "create_failed": "Erstellung fehlgeschlagen:\n{e}",
+    "delete_failed": "Löschen fehlgeschlagen:\n{e}",
+    "keyring_unavailable": "Keyring nicht verfügbar.",
+    "save_prompt_title": "Speichern?",
+    "save_prompt_msg": "Änderungen vor dem Wechseln des Skripts speichern?"
   },
   "commands_editor": {
     "title": "VASS Befehlseditor",
@@ -626,7 +651,8 @@
     "min_relevance_desc": "Konversationen mit einer Relevanz unter diesem Wert werden NICHT im dauerhaften Speicher gespeichert.",
     "add_tag": "Tag hinzufügen",
     "delete_tag": "Tag löschen",
-    "no_tags": "Keine Tags konfiguriert."
+    "no_tags": "Keine Tags konfiguriert.",
+    "error": "Fehler"
   },
   "delayed": {
     "scheduled": "Ok, ich fuehre '{cmd}' wie gewuenscht aus",
@@ -1034,6 +1060,34 @@
       "anmelden",
       "herunterladen",
       "download"
+    ],
+    "models": [
+      "modell",
+      "modelle",
+      "llm",
+      "besseres ki-modell",
+      "modell empfehlen",
+      "modell aktualisieren",
+      "neues modell",
+      "quantisierung",
+      "schlauer",
+      "upgrade"
+    ],
+    "image": [
+      "svg",
+      "bild",
+      "zeichnen",
+      "zeichnung",
+      "logo",
+      "symbol",
+      "illustration",
+      "hintergrund",
+      "banner",
+      "bild generieren",
+      "poster",
+      "infografik",
+      "avatar",
+      "grafik"
     ]
   },
   "tool_names": {
@@ -1156,6 +1210,14 @@
     "search_news": {
       "name": "Nachrichten suchen",
       "desc": "Artikel nach Stichworten durchsuchen"
+    },
+    "model_advice": {
+      "name": "KI-Modell-Beratung",
+      "desc": "Durchsucht HuggingFace und empfiehlt das beste KI-Modell für diesen PC (VRAM, llama.cpp) gegenüber dem aktuellen."
+    },
+    "generate_svg": {
+      "name": "SVG-Bild erzeugen",
+      "desc": "Erzeugt ein detailliertes SVG-Bild aus einer SDXL-Stil-Beschreibung."
     }
   },
   "mcp_down_tooltip": "MCP-Server nicht verfuegbar",
@@ -1227,8 +1289,42 @@
     "interval": "Prüfen alle",
     "errors": {
       "required": "Alle Felder sind erforderlich.",
-      "invalid_interval": "Intervall muss eine positive Ganzzahl sein."
+      "invalid_interval": "Intervall muss eine positive Ganzzahl sein.",
+      "title": "Fehler"
     },
     "saved": "Datei gespeichert."
+  },
+  "contacts_editor": {
+    "title": "E-Mail-Kontakte",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "add_title": "Kontakt hinzufügen",
+    "email": "E-Mail:",
+    "email_placeholder": "name@beispiel.de",
+    "display_name": "Anzeigename:",
+    "name_placeholder": "Max Mustermann",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "remove_confirm": "Kontakt '{name}' entfernen?"
+  },
+  "queue_viewer": {
+    "title": "VASS - Wartende E-Mail-Warteschlange",
+    "edit": "Bearbeiten",
+    "send": "Senden",
+    "delete": "Löschen",
+    "send_all": "Alle senden",
+    "edit_title": "E-Mail bearbeiten",
+    "to": "An:",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "error": "Fehler",
+    "send_failed": "Senden fehlgeschlagen: {msg}",
+    "delete_confirm": "Diese E-Mail aus der Warteschlange entfernen?",
+    "send_all_confirm": "Alle {count} E-Mails in der Warteschlange senden?",
+    "completed": "Abgeschlossen",
+    "sent_count": "Gesendete E-Mails: {sent}/{count}"
+  },
+  "script_runner": {
+    "script_error": "Skriptfehler: {error}"
   }
 }

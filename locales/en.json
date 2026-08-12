@@ -31,7 +31,8 @@
       "settings_general": "General",
       "mail_pending": "Pending mail ({n})",
       "contacts": "Contacts",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "plugins_ui": "Plugins"
     },
     "actions": {
       "open_browser": "Open in browser",
@@ -294,7 +295,7 @@
       "test": "Test"
     },
     "permissions": {
-      "title": "Script permissions",
+      "title": "Permissions (scripts and tools)",
       "no_permissions": "No permissions stored.",
       "stored": "Scripts with stored permissions:",
       "revoke": "Revoke selected",
@@ -302,7 +303,11 @@
       "close": "Close",
       "revoke_confirm": "Revoke permissions for '{name}'?",
       "revoke_all_confirm": "Revoke ALL stored permissions?",
-      "all_revoked": "All permissions have been revoked."
+      "all_revoked": "All permissions have been revoked.",
+      "all": "all",
+      "unknown": "unknown",
+      "tool_scope_all": "all tools",
+      "tool_scope_always": "always"
     },
     "close": {
       "title": "Save?",
@@ -313,7 +318,27 @@
     "select_function": "Select a function to see its help",
     "ask_ai": "Ask AI",
     "ask_ai_placeholder": "Describe the script you want...",
-    "ask_ai_loading": "Generating..."
+    "ask_ai_loading": "Generating...",
+    "error": "Error",
+    "test_timeout": "Timeout (60s). VASS may not be running.",
+    "test_ok": "Script executed successfully.",
+    "ai_error_title": "AI Error",
+    "ai_client_failed": "Failed to create AI client:\n{e}",
+    "ai_request_failed": "AI request failed:\n{e}",
+    "ai_empty_response": "AI returned an empty response.",
+    "info": "Info",
+    "read_failed": "Cannot read {name}:\n{e}",
+    "no_file_selected": "No file selected.",
+    "save_failed": "Save failed:\n{e}",
+    "empty_editor": "The editor is empty.",
+    "new_script_title": "New script",
+    "new_script_label": "Name (without .vass):",
+    "already_exists": "{name} already exists.",
+    "create_failed": "Creation failed:\n{e}",
+    "delete_failed": "Deletion failed:\n{e}",
+    "keyring_unavailable": "keyring is not available.",
+    "save_prompt_title": "Save?",
+    "save_prompt_msg": "Save changes before switching scripts?"
   },
   "commands_editor": {
     "title": "VASS Command Editor",
@@ -626,7 +651,8 @@
     "min_relevance_desc": "Conversations with relevance below this value are NOT saved to permanent memory.",
     "add_tag": "Add Tag",
     "delete_tag": "Delete Tag",
-    "no_tags": "No tags configured."
+    "no_tags": "No tags configured.",
+    "error": "Error"
   },
   "delayed": {
     "scheduled": "Ok, I'll execute '{cmd}' as requested",
@@ -1036,6 +1062,39 @@
       "save from",
       "fill in",
       "register"
+    ],
+    "models": [
+      "model",
+      "models",
+      "llm",
+      "better ai",
+      "recommend a model",
+      "upgrade the model",
+      "new model",
+      "quantization",
+      "smarter",
+      "upgrade"
+    ],
+    "image": [
+      "svg",
+      "image",
+      "images",
+      "draw",
+      "drawing",
+      "logo",
+      "icon",
+      "illustration",
+      "background",
+      "banner",
+      "generate an image",
+      "create an image",
+      "poster",
+      "infographic",
+      "avatar",
+      "graphic",
+      "scene",
+      "vector image",
+      "vector"
     ]
   },
   "tool_names": {
@@ -1158,6 +1217,14 @@
     "search_news": {
       "name": "Search news",
       "desc": "Search articles by keywords"
+    },
+    "model_advice": {
+      "name": "AI model advice",
+      "desc": "Scans HuggingFace and recommends the best AI model compatible with this PC (VRAM, llama.cpp) vs the current one."
+    },
+    "generate_svg": {
+      "name": "Generate SVG image",
+      "desc": "Generates a detailed SVG image from an SDXL-style description (subject + style)."
     }
   },
   "mcp_down_tooltip": "MCP server unavailable",
@@ -1229,8 +1296,42 @@
     "interval": "Check every",
     "errors": {
       "required": "All fields are required.",
-      "invalid_interval": "Interval must be a positive integer."
+      "invalid_interval": "Interval must be a positive integer.",
+      "title": "Error"
     },
     "saved": "File saved."
+  },
+  "contacts_editor": {
+    "title": "Email contacts",
+    "add": "Add",
+    "remove": "Remove",
+    "add_title": "Add contact",
+    "email": "Email:",
+    "email_placeholder": "name@example.com",
+    "display_name": "Display name:",
+    "name_placeholder": "John Doe",
+    "save": "Save",
+    "cancel": "Cancel",
+    "remove_confirm": "Remove contact '{name}'?"
+  },
+  "queue_viewer": {
+    "title": "VASS - Pending email queue",
+    "edit": "Edit",
+    "send": "Send",
+    "delete": "Delete",
+    "send_all": "Send all",
+    "edit_title": "Edit email",
+    "to": "To:",
+    "save": "Save",
+    "cancel": "Cancel",
+    "error": "Error",
+    "send_failed": "Send failed: {msg}",
+    "delete_confirm": "Remove this email from the queue?",
+    "send_all_confirm": "Send all {count} queued emails?",
+    "completed": "Completed",
+    "sent_count": "Emails sent: {sent}/{count}"
+  },
+  "script_runner": {
+    "script_error": "Script error: {error}"
   }
 }

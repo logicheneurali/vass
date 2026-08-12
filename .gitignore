@@ -147,3 +147,4 @@ plugins/external/
 plugins/*/*/settings.ini
 config/notifications.ini
 plugins/internal/telegram_bot/log.txt
+Allowed_root/model_advice_cache.json

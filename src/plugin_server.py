@@ -33,6 +33,7 @@ class PluginServer(threading.Thread):
         self._ai_semaphore = threading.Semaphore(1)
         self._running = False
         self._plugin_dir = self._resolve_path("plugins")
+        self._plugin_uis = {}       # name -> {"schema": {...}, "state": {...}}
 
     # ── Thread run ──────────────────────────────────────────────
 
@@ -335,6 +336,27 @@ class PluginServer(threading.Thread):
                     "items": items,
                 }, ensure_ascii=False) + "\n"
                 sock.sendall(reply.encode("utf-8"))
+            elif cmd == "ui_register" and sock:
+                name = self._client_name(sock)
+                schema = msg.get("schema")
+                if name and isinstance(schema, dict):
+                    with self._lock:
+                        self._plugin_uis[name] = {"schema": schema, "state": {}}
+                    print(f"[PluginServer] UI registered by '{name}': {schema.get('title', '?')}")
+            elif cmd == "ui_list" and sock:
+                reply = json.dumps({
+                    "type": "ui_list_response",
+                    "request_id": msg.get("request_id", ""),
+                    "uis": list(self._plugin_uis.keys()),
+                }, ensure_ascii=False) + "\n"
+                sock.sendall(reply.encode("utf-8"))
+            elif cmd == "ui_state" and sock:
+                name = self._client_name(sock)
+                values = msg.get("values")
+                if name and isinstance(values, dict) and name in self._plugin_uis:
+                    with self._lock:
+                        self._plugin_uis[name]["state"].update(values)
+                    print(f"[PluginServer] UI state from '{name}': {list(values.keys())[:6]}")
         except Exception as e:
             print(f"[PluginServer] Execute '{cmd}' failed: {e}")
 
@@ -764,6 +786,36 @@ class PluginServer(threading.Thread):
 
     # ── Helpers ─────────────────────────────────────────────────
 
+    def _client_name(self, sock):
+        with self._lock:
+            info = self._clients.get(sock)
+            return info.get("name", "") if info else ""
+
+    def get_plugin_uis(self):
+        """Return {plugin_name: {"schema": {...}, "state": {...}}} for the GUI."""
+        with self._lock:
+            return {k: {"schema": v["schema"], "state": dict(v.get("state", {}))}
+                    for k, v in self._plugin_uis.items()}
+
+    def send_ui_action(self, name, action):
+        """Route a UI action from the GUI to the plugin socket by name."""
+        target = None
+        with self._lock:
+            for sock, info in self._clients.items():
+                if info.get("name") == name:
+                    target = sock
+                    break
+        if target is None:
+            return False
+        try:
+            msg = json.dumps({"type": "cmd", "cmd": "ui_action",
+                              "action": action}, ensure_ascii=False) + "\n"
+            target.sendall(msg.encode("utf-8"))
+            return True
+        except Exception as e:
+            print(f"[PluginServer] send_ui_action to '{name}' failed: {e}")
+            return False
+
     def _remove_client(self, sock):
         name = "unknown"
         with self._lock:
@@ -771,6 +823,7 @@ class PluginServer(threading.Thread):
                 name = self._clients[sock]["name"]
                 del self._clients[sock]
             self._buffers.pop(sock, None)
+            self._plugin_uis.pop(name, None)
         try:
             sock.close()
         except Exception:

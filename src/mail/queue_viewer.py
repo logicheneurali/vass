@@ -21,7 +21,7 @@ class QueueViewerDialog(QDialog):
         return t(path, self.lang)
 
     def _build_ui(self):
-        self.setWindowTitle("VASS - Coda email in attesa")
+        self.setWindowTitle(self._t("queue_viewer.title"))
         self.setMinimumSize(720, 420)
 
         layout = QVBoxLayout(self)
@@ -40,18 +40,18 @@ class QueueViewerDialog(QDialog):
 
         btn_row = QHBoxLayout()
 
-        edit_btn = QPushButton("Modifica")
+        edit_btn = QPushButton(self._t("queue_viewer.edit"))
         edit_btn.clicked.connect(self._edit)
         btn_row.addWidget(edit_btn)
 
-        send_btn = QPushButton("Invia")
+        send_btn = QPushButton(self._t("queue_viewer.send"))
         send_btn.setStyleSheet(
             "QPushButton { background-color: #27ae60; color: white; border-radius: 3px; padding: 6px 16px; }"
             "QPushButton:hover { background-color: #2ecc71; }")
         send_btn.clicked.connect(self._send)
         btn_row.addWidget(send_btn)
 
-        del_btn = QPushButton("Elimina")
+        del_btn = QPushButton(self._t("queue_viewer.delete"))
         del_btn.setStyleSheet(
             "QPushButton { background-color: #e74c3c; color: white; border-radius: 3px; padding: 6px 16px; }"
             "QPushButton:hover { background-color: #c0392b; }")
@@ -60,7 +60,7 @@ class QueueViewerDialog(QDialog):
 
         btn_row.addStretch()
 
-        send_all_btn = QPushButton("Invia tutto")
+        send_all_btn = QPushButton(self._t("queue_viewer.send_all"))
         send_all_btn.clicked.connect(self._send_all)
         btn_row.addWidget(send_all_btn)
 
@@ -117,12 +117,12 @@ class QueueViewerDialog(QDialog):
             return
         item = self._current_item
         dlg = QDialog(self)
-        dlg.setWindowTitle("Modifica email")
+        dlg.setWindowTitle(self._t("queue_viewer.edit_title"))
         dlg.setMinimumSize(500, 420)
         lo = QVBoxLayout(dlg)
 
         to_row = QHBoxLayout()
-        to_row.addWidget(QLabel("A:"))
+        to_row.addWidget(QLabel(self._t("queue_viewer.to")))
         to_cb = QComboBox()
         to_cb.setEditable(True)
         to_cb.setMinimumWidth(300)
@@ -140,11 +140,11 @@ class QueueViewerDialog(QDialog):
         lo.addWidget(edit)
 
         btn_row = QHBoxLayout()
-        save_btn = QPushButton("Salva")
+        save_btn = QPushButton(self._t("queue_viewer.save"))
         save_btn.clicked.connect(lambda checked, qid=item["id"], ed=edit, cb=to_cb, d=dlg:
                                   self._do_edit(qid, ed.toPlainText(), cb.currentText(), d))
         btn_row.addWidget(save_btn)
-        cancel_btn = QPushButton("Annulla")
+        cancel_btn = QPushButton(self._t("queue_viewer.cancel"))
         cancel_btn.clicked.connect(dlg.reject)
         btn_row.addWidget(cancel_btn)
         lo.addLayout(btn_row)
@@ -173,12 +173,14 @@ class QueueViewerDialog(QDialog):
             self._preview.clear()
             self._refresh()
         else:
-            QMessageBox.warning(self, "Errore", f"Invio fallito: {msg}")
+            QMessageBox.warning(self, self._t("queue_viewer.error"),
+                self._t("queue_viewer.send_failed").replace("{msg}", msg))
 
     def _delete(self):
         if not self._current_item:
             return
-        reply = QMessageBox.question(self, "Elimina", "Rimuovere questa email dalla coda?",
+        reply = QMessageBox.question(self, self._t("queue_viewer.delete"),
+                                      self._t("queue_viewer.delete_confirm"),
                                       QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             from mail.queue import remove
@@ -192,12 +194,12 @@ class QueueViewerDialog(QDialog):
         count = len(get_all())
         if count == 0:
             return
-        reply = QMessageBox.question(self, "Invia tutto",
-            f"Inviare tutte le {count} email in coda?",
+        reply = QMessageBox.question(self, self._t("queue_viewer.send_all"),
+            self._t("queue_viewer.send_all_confirm").replace("{count}", str(count)),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             from mail.queue import send_all
             sent = send_all()
-            QMessageBox.information(self, "Completato",
-                f"Email inviate: {sent}/{count}")
+            QMessageBox.information(self, self._t("queue_viewer.completed"),
+                self._t("queue_viewer.sent_count").replace("{sent}", str(sent)).replace("{count}", str(count)))
             self._refresh()

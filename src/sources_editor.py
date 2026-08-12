@@ -4,11 +4,11 @@ import sys
 import uuid
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QShortcut, QIntValidator
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QListWidget, QGroupBox,
-    QLineEdit, QMessageBox, QComboBox, QTabWidget, QCheckBox,
+    QLineEdit, QMessageBox, QComboBox, QTabWidget,
 )
 from theme import (BG, FG, ENTRY_BG, ENTRY_FG, LABEL_FG, BTN_BG, BTN_FG,
                    SECTION_FG, FRAME_BORDER, BTN_DEL_BG, BTN_DEL_FG, BASE_STYLESHEET)
@@ -26,8 +26,6 @@ LANG_NAMES = {
     "es": "Espanol", "pt": "Portugues", "ja": "日本語", "ko": "한국어", "zh": "中文",
 }
 
-RSS_FILE = os.path.join(ALLOWED, "rss_feeds.json")
-INTERVAL_UNITS = {"min": "minuti", "hours": "ore", "days": "giorni"}
 
 
 def _load(path):
@@ -50,10 +48,8 @@ class SourcesEditor(QMainWindow):
         self.lang = language
         self._current_category = CATEGORIES[0]
         self._current_sources = []
-        self._rss_feeds = []
         self._build_ui()
         self._load_category()
-        self._load_rss_feeds()
 
     def _t(self, path):
         from i18n import t
@@ -89,15 +85,10 @@ class SourcesEditor(QMainWindow):
         root.addWidget(self.tabs)
 
         self._build_online_tab()
-        self._build_rss_tab()
 
-        self.tabs.currentChanged.connect(self._on_tab_changed)
 
         QShortcut(QKeySequence("Ctrl+S"), self, self._save_file)
 
-    def _on_tab_changed(self, index):
-        if index == 1:
-            self._refresh_rss_list()
 
     def _build_online_tab(self):
         online = QWidget()
@@ -170,82 +161,6 @@ class SourcesEditor(QMainWindow):
 
         self.tabs.addTab(online, self._t("sources_editor.tab.online"))
 
-    def _build_rss_tab(self):
-        rss = QWidget()
-        layout = QVBoxLayout(rss)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(8)
-
-        group = QGroupBox(self._t("sources_editor.feeds"))
-        group_layout = QVBoxLayout(group)
-
-        self.rss_list = QListWidget()
-        self.rss_list.currentRowChanged.connect(self._on_rss_select)
-        group_layout.addWidget(self.rss_list)
-
-        row1 = QHBoxLayout()
-        row1.addWidget(QLabel(self._t("sources_editor.name") + ":"))
-        self.rss_name_edit = QLineEdit()
-        row1.addWidget(self.rss_name_edit)
-        row1.addWidget(QLabel(self._t("sources_editor.url") + ":"))
-        self.rss_url_edit = QLineEdit()
-        row1.addWidget(self.rss_url_edit)
-        group_layout.addLayout(row1)
-
-        row2 = QHBoxLayout()
-        self.rss_active_cb = QCheckBox(self._t("sources_editor.active"))
-        self.rss_active_cb.setStyleSheet(f"color: {LABEL_FG};")
-        row2.addWidget(self.rss_active_cb)
-
-        row2.addWidget(QLabel(self._t("sources_editor.interval") + ":"))
-        self.rss_interval_edit = QLineEdit()
-        self.rss_interval_edit.setMaximumWidth(50)
-        self.rss_interval_edit.setValidator(QIntValidator(1, 9999))
-        row2.addWidget(self.rss_interval_edit)
-
-        self.rss_unit_combo = QComboBox()
-        for key, label in INTERVAL_UNITS.items():
-            self.rss_unit_combo.addItem(label, key)
-        row2.addWidget(self.rss_unit_combo)
-
-        row2.addSpacing(10)
-        row2.addWidget(QLabel(self._t("sources_editor.language") + ":"))
-        self.rss_lang_combo = QComboBox()
-        for lc in LANGS:
-            self.rss_lang_combo.addItem(LANG_NAMES.get(lc, lc), lc)
-        idx = self.rss_lang_combo.findData(self.lang)
-        if idx >= 0:
-            self.rss_lang_combo.setCurrentIndex(idx)
-        row2.addWidget(self.rss_lang_combo)
-        row2.addStretch()
-        group_layout.addLayout(row2)
-
-        btn_row = QHBoxLayout()
-        btn_add = QPushButton(self._t("sources_editor.buttons.add"))
-        btn_add.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
-        btn_add.clicked.connect(self._add_rss_feed)
-        btn_row.addWidget(btn_add)
-
-        btn_save = QPushButton(self._t("sources_editor.buttons.save"))
-        btn_save.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
-        btn_save.clicked.connect(self._save_rss_feed)
-        btn_row.addWidget(btn_save)
-
-        btn_del = QPushButton(self._t("sources_editor.buttons.delete"))
-        btn_del.setStyleSheet(f"background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG};")
-        btn_del.clicked.connect(self._delete_rss_feed)
-        btn_row.addWidget(btn_del)
-
-        btn_row.addStretch()
-
-        btn_save_file = QPushButton(self._t("sources_editor.buttons.save_file"))
-        btn_save_file.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
-        btn_save_file.clicked.connect(self._save_rss_file)
-        btn_row.addWidget(btn_save_file)
-        group_layout.addLayout(btn_row)
-
-        layout.addWidget(group)
-        self.tabs.addTab(rss, self._t("sources_editor.tab.rss"))
 
     def _on_cat_change(self, cat):
         if cat:
@@ -274,7 +189,7 @@ class SourcesEditor(QMainWindow):
         desc = self.desc_edit.text().strip()
         link = self.link_edit.text().strip()
         if not desc or not link:
-            QMessageBox.warning(self, "Error", self._t("sources_editor.errors.required"))
+            QMessageBox.warning(self, self._t("sources_editor.errors.title"), self._t("sources_editor.errors.required"))
             return
         row = self.list_widget.currentRow()
         if row < 0 or row >= len(self._current_sources):
@@ -299,117 +214,8 @@ class SourcesEditor(QMainWindow):
         QMessageBox.information(self, "OK", self._t("sources_editor.saved"))
 
     def _save_file(self):
-        if self.tabs.currentIndex() == 0:
-            self._save_online()
-        else:
-            self._save_rss_file()
+        self._save_online()
 
-    def _load_rss_feeds(self):
-        try:
-            with open(RSS_FILE, encoding="utf-8") as f:
-                self._rss_feeds = json.load(f).get("feeds", [])
-        except Exception:
-            self._rss_feeds = []
-        self._refresh_rss_list()
-
-    def _save_rss_feeds(self):
-        with open(RSS_FILE, "w", encoding="utf-8") as f:
-            json.dump({"feeds": self._rss_feeds}, f, ensure_ascii=False, indent=2)
-            f.write("\n")
-
-    def _refresh_rss_list(self):
-        self.rss_list.clear()
-        for feed in self._rss_feeds:
-            status = "\u2713" if feed.get("active", True) else "\u2717"
-            unit = feed.get("interval_unit", "min")
-            interval = feed.get("interval", 0)
-            name = feed.get("name", "")
-            self.rss_list.addItem(f"{status} {name} [{interval}{unit[:1]}]")
-        if self.rss_list.count() > 0:
-            self.rss_list.setCurrentRow(0)
-
-    def _on_rss_select(self, row):
-        if 0 <= row < len(self._rss_feeds):
-            feed = self._rss_feeds[row]
-            self.rss_name_edit.setText(feed.get("name", ""))
-            self.rss_url_edit.setText(feed.get("url", ""))
-            self.rss_active_cb.setChecked(feed.get("active", True))
-            self.rss_interval_edit.setText(str(feed.get("interval", "")))
-            unit = feed.get("interval_unit", "min")
-            idx = self.rss_unit_combo.findData(unit)
-            if idx >= 0:
-                self.rss_unit_combo.setCurrentIndex(idx)
-            lang = feed.get("lang", self.lang)
-            idx_l = self.rss_lang_combo.findData(lang)
-            if idx_l >= 0:
-                self.rss_lang_combo.setCurrentIndex(idx_l)
-
-    def _add_rss_feed(self):
-        self.rss_list.clearSelection()
-        self.rss_name_edit.clear()
-        self.rss_url_edit.clear()
-        self.rss_interval_edit.clear()
-        self.rss_active_cb.setChecked(True)
-        self.rss_unit_combo.setCurrentIndex(0)
-        idx = self.rss_lang_combo.findData(self.lang)
-        if idx >= 0:
-            self.rss_lang_combo.setCurrentIndex(idx)
-        self.rss_name_edit.setFocus()
-
-    def _save_rss_feed(self):
-        name = self.rss_name_edit.text().strip()
-        url = self.rss_url_edit.text().strip()
-        interval_str = self.rss_interval_edit.text().strip()
-        if not name or not url:
-            QMessageBox.warning(self, "Error", self._t("sources_editor.errors.required"))
-            return
-        try:
-            interval = int(interval_str)
-            if interval <= 0:
-                raise ValueError
-        except (ValueError, TypeError):
-            QMessageBox.warning(self, "Error", self._t("sources_editor.errors.invalid_interval"))
-            return
-        unit = self.rss_unit_combo.currentData()
-        active = self.rss_active_cb.isChecked()
-        lang = self.rss_lang_combo.currentData()
-        row = self.rss_list.currentRow()
-        if row < 0 or row >= len(self._rss_feeds):
-            self._rss_feeds.append({
-                "id": uuid.uuid4().hex[:8],
-                "name": name,
-                "url": url,
-                "active": active,
-                "interval": interval,
-                "interval_unit": unit,
-                "lang": lang,
-            })
-            self._refresh_rss_list()
-            self.rss_list.setCurrentRow(len(self._rss_feeds) - 1)
-        else:
-            existing = self._rss_feeds[row]
-            self._rss_feeds[row] = {
-                "id": existing.get("id", uuid.uuid4().hex[:8]),
-                "name": name,
-                "url": url,
-                "active": active,
-                "interval": interval,
-                "interval_unit": unit,
-                "lang": lang,
-            }
-            self._refresh_rss_list()
-            self.rss_list.setCurrentRow(row)
-
-    def _delete_rss_feed(self):
-        row = self.rss_list.currentRow()
-        if row < 0:
-            return
-        del self._rss_feeds[row]
-        self._refresh_rss_list()
-
-    def _save_rss_file(self):
-        self._save_rss_feeds()
-        QMessageBox.information(self, "OK", self._t("sources_editor.saved"))
 
 
 def main():

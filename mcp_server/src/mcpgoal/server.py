@@ -1,4 +1,5 @@
 from contextvars import ContextVar
+import asyncio
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
@@ -33,6 +34,8 @@ from mcpgoal.tools.mail import reply_email as _reply_email
 from mcpgoal.tools.mail import forward_email as _forward_email
 from mcpgoal.tools.mail import search_emails as _search_emails
 from mcpgoal.tools.mail import search_contacts as _search_contacts
+from mcpgoal.tools.model_advice import get_model_advice as _model_advice
+from mcpgoal.tools.svg_gen import generate_svg as _generate_svg
 from mcpgoal.tools.browser import browser_open as _browser_open
 from mcpgoal.tools.browser import browser_read as _browser_read
 from mcpgoal.tools.browser import browser_click as _browser_click
@@ -477,6 +480,27 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def langcheck(text: str, lang: str = "it") -> str:
         """Validate text against Tier 2 linguistic rules (morphology, syntax) for the given language."""
         return await _tool("langcheck", f"lang={lang} len={len(text)}", _check_language(text, lang), config)
+
+    @mcp.tool()
+    async def model_advice() -> str:
+        """Scan HuggingFace for GGUF models that fit this PC and recommend the best upgrade
+        over the currently configured model (smarter and/or better quantization, VRAM-aware,
+        llama.cpp compatible). Call when the user asks for a better/smarter AI model."""
+        return await _tool("model_advice", "", asyncio.to_thread(_model_advice), config)
+
+    @mcp.tool()
+    async def generate_svg(description: str, width: int = 800, height: int = 600,
+                           style: str = "detailed") -> str:
+        """Generate a high-quality detailed SVG image from an SDXL-style description.
+        Accepts normal SDXL prompts (e.g. 'mountain landscape at sunset, cinematic
+        lighting, highly detailed') plus an optional style preset: detailed, flat,
+        realistic, minimal or logo (black line art on transparent background).
+        Validates XML and enriches until rich enough.
+        Returns the saved file path (open it with browser_open to view)."""
+        return await _tool("generate_svg",
+                           f"style={style} {width}x{height} len={len(description[:40])}",
+                           asyncio.to_thread(_generate_svg, description, width, height, style),
+                           config)
 
     @mcp.tool()
     async def savetags(tags: str, entry_id: str = "", content: str = "", source: str = "chat") -> str:

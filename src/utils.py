@@ -404,6 +404,35 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
     if not (msg.tool_calls and mcp and tools):
         return msg
 
+    def _gate_online_tool(tool_name, tool_args, gui):
+        """Security gate for AI online operations: audit + rate limit + consent.
+        Returns None to proceed, or a message string for the AI if blocked."""
+        from tool_auth import (SENSITIVE_TOOLS, ONLINE_TOOLS, audit, check_rate,
+                               mark_call, tool_authorized, grant_tool)
+        if tool_name not in ONLINE_TOOLS and tool_name not in SENSITIVE_TOOLS:
+            return None
+        allowed, wait = check_rate()
+        if not allowed:
+            audit(tool_name, tool_args, "rate_blocked")
+            return ("Error: online operation limit exceeded (max per minute). "
+                    "Wait a moment and retry.")
+        if wait > 0:
+            time.sleep(wait)
+        mark_call()
+        if tool_name in SENSITIVE_TOOLS and not tool_authorized(tool_name):
+            result = "deny"
+            if gui is not None and hasattr(gui, "request_auth"):
+                result = gui.request_auth(tool_name, "MCP tool online", timeout=10)
+            if result == "function":
+                grant_tool(tool_name)
+            elif result == "all":
+                grant_tool(tool_name, allow_all=True)
+            if result not in ("function", "all", "once"):
+                audit(tool_name, tool_args, "denied")
+                return ("Error: action blocked, authorization not granted "
+                        "for the requested online operation.")
+        return None
+
     def _trim_for_context():
         """Estimate prompt tokens (chars/3, conservative for non-OpenAI tokenizers)
         and truncate oversized tool results so the request fits context_limit."""
@@ -450,20 +479,30 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
                     }
                 }]
             })
-            try:
-                args = json.loads(tc.function.arguments)
-                result = mcp.call_tool(tc.function.name, args)
-                print(f"[MCP] Result: {tool_name} -> {str(result)[:200]}")
-                if isinstance(result, dict) and isinstance(result.get("content"), list):
-                    parts = []
-                    for item in result["content"]:
-                        if isinstance(item, dict) and item.get("type") == "text":
-                            parts.append(item.get("text", ""))
-                    out = "\n".join(parts)
-                else:
-                    out = json.dumps(result, ensure_ascii=False) if isinstance(result, dict) else str(result)
-            except Exception as e:
-                out = f"Errore: {e}"
+
+            out = _gate_online_tool(tool_name, tool_args, gui)
+            if out is None:
+                try:
+                    args = json.loads(tc.function.arguments)
+                    result = mcp.call_tool(tc.function.name, args)
+                    print(f"[MCP] Result: {tool_name} -> {str(result)[:200]}")
+                    if isinstance(result, dict) and isinstance(result.get("content"), list):
+                        parts = []
+                        for item in result["content"]:
+                            if isinstance(item, dict) and item.get("type") == "text":
+                                parts.append(item.get("text", ""))
+                        out = "\n".join(parts)
+                    else:
+                        out = json.dumps(result, ensure_ascii=False) if isinstance(result, dict) else str(result)
+                    from tool_auth import audit
+                    audit(tool_name, tool_args, "ok")
+                except Exception as e:
+                    out = f"Error: {e}"
+                    try:
+                        from tool_auth import audit
+                        audit(tool_name, tool_args, f"error: {e}")
+                    except Exception:
+                        pass
             messages.append({
                 "role": "tool",
                 "tool_call_id": tc.id,

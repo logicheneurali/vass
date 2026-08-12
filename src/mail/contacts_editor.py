@@ -9,9 +9,10 @@ from theme import BASE_STYLESHEET, BTN_DEL_BG, BTN_DEL_FG
 
 
 class ContactsDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, lang="it"):
         super().__init__(parent)
-        self.setWindowTitle("Contatti email")
+        self.lang = lang
+        self.setWindowTitle(self._t("contacts_editor.title"))
         self.setMinimumSize(450, 350)
         self.setStyleSheet(BASE_STYLESHEET)
 
@@ -21,11 +22,11 @@ class ContactsDialog(QDialog):
         layout.addWidget(self._list)
 
         btn_row = QHBoxLayout()
-        add_btn = QPushButton("Aggiungi")
+        add_btn = QPushButton(self._t("contacts_editor.add"))
         add_btn.clicked.connect(self._add)
         btn_row.addWidget(add_btn)
 
-        del_btn = QPushButton("Rimuovi")
+        del_btn = QPushButton(self._t("contacts_editor.remove"))
         del_btn.setStyleSheet(
             f"QPushButton {{ background-color: {BTN_DEL_BG}; color: {BTN_DEL_FG}; border: none; border-radius: 3px; padding: 6px 12px; font-weight: bold; }}"
             f"QPushButton:hover {{ background-color: #7e2424; }}")
@@ -37,6 +38,10 @@ class ContactsDialog(QDialog):
 
         self._refresh()
 
+    def _t(self, path):
+        from i18n import t
+        return t(path, self.lang)
+
     def _refresh(self):
         from mail.contacts import get_all
         self._list.clear()
@@ -46,27 +51,27 @@ class ContactsDialog(QDialog):
 
     def _add(self):
         dlg = QDialog(self)
-        dlg.setWindowTitle("Aggiungi contatto")
+        dlg.setWindowTitle(self._t("contacts_editor.add_title"))
         dlg.setMinimumWidth(350)
         dlg.setStyleSheet(BASE_STYLESHEET)
         lo = QVBoxLayout(dlg)
 
-        lo.addWidget(QLabel("Email:"))
+        lo.addWidget(QLabel(self._t("contacts_editor.email")))
         email_edit = QLineEdit()
-        email_edit.setPlaceholderText("nome@esempio.com")
+        email_edit.setPlaceholderText(self._t("contacts_editor.email_placeholder"))
         lo.addWidget(email_edit)
 
-        lo.addWidget(QLabel("Nome visualizzato:"))
+        lo.addWidget(QLabel(self._t("contacts_editor.display_name")))
         name_edit = QLineEdit()
-        name_edit.setPlaceholderText("Mario Rossi")
+        name_edit.setPlaceholderText(self._t("contacts_editor.name_placeholder"))
         lo.addWidget(name_edit)
 
         btn_row = QHBoxLayout()
-        save_btn = QPushButton("Salva")
+        save_btn = QPushButton(self._t("contacts_editor.save"))
         save_btn.clicked.connect(lambda: self._do_add(
             email_edit.text().strip(), name_edit.text().strip(), dlg))
         btn_row.addWidget(save_btn)
-        cancel_btn = QPushButton("Annulla")
+        cancel_btn = QPushButton(self._t("contacts_editor.cancel"))
         cancel_btn.clicked.connect(dlg.reject)
         btn_row.addWidget(cancel_btn)
         lo.addLayout(btn_row)
@@ -85,8 +90,8 @@ class ContactsDialog(QDialog):
         if row < 0:
             return
         text = self._list.currentItem().text()
-        reply = QMessageBox.question(self, "Rimuovi",
-            f"Rimuovere il contatto '{text}'?",
+        reply = QMessageBox.question(self, self._t("contacts_editor.remove"),
+            self._t("contacts_editor.remove_confirm").replace("{name}", text),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             # Remove by rebuilding the contacts list minus this one

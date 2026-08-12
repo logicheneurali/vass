@@ -31,7 +31,8 @@
       "settings_general": "常规",
       "mail_pending": "待发邮件 ({n})",
       "contacts": "联系人",
-      "notifications": "通知"
+      "notifications": "通知",
+      "plugins_ui": "插件"
     },
     "actions": {
       "open_browser": "在浏览器中打开",
@@ -294,7 +295,7 @@
       "test": "Test"
     },
     "permissions": {
-      "title": "Script permissions",
+      "title": "权限（脚本和工具）",
       "no_permissions": "No permissions stored.",
       "stored": "Scripts with stored permissions:",
       "revoke": "Revoke selected",
@@ -302,7 +303,11 @@
       "close": "Close",
       "revoke_confirm": "Revoke permissions for '{name}'?",
       "revoke_all_confirm": "Revoke ALL stored permissions?",
-      "all_revoked": "All permissions have been revoked."
+      "all_revoked": "All permissions have been revoked.",
+      "all": "全部",
+      "unknown": "未知",
+      "tool_scope_all": "所有工具",
+      "tool_scope_always": "始终"
     },
     "close": {
       "title": "Save?",
@@ -313,7 +318,27 @@
     "select_function": "选择一个函数以查看帮助",
     "ask_ai": "向AI提问",
     "ask_ai_placeholder": "描述您想要的脚本...",
-    "ask_ai_loading": "生成中..."
+    "ask_ai_loading": "生成中...",
+    "error": "错误",
+    "test_timeout": "超时（60秒）。VASS可能未在运行。",
+    "test_ok": "脚本执行成功。",
+    "ai_error_title": "AI错误",
+    "ai_client_failed": "无法创建AI客户端：\n{e}",
+    "ai_request_failed": "AI请求失败：\n{e}",
+    "ai_empty_response": "AI返回了空响应。",
+    "info": "信息",
+    "read_failed": "无法读取 {name}：\n{e}",
+    "no_file_selected": "未选择文件。",
+    "save_failed": "保存失败：\n{e}",
+    "empty_editor": "编辑器为空。",
+    "new_script_title": "新建脚本",
+    "new_script_label": "名称（不含.vass）：",
+    "already_exists": "{name} 已存在。",
+    "create_failed": "创建失败：\n{e}",
+    "delete_failed": "删除失败：\n{e}",
+    "keyring_unavailable": "keyring不可用。",
+    "save_prompt_title": "保存？",
+    "save_prompt_msg": "切换脚本前保存更改？"
   },
   "commands_editor": {
     "title": "VASS 命令编辑器",
@@ -627,7 +652,8 @@
     "min_relevance_desc": "相关性低于此值的对话不会保存到永久记忆中。",
     "add_tag": "添加标签",
     "delete_tag": "删除标签",
-    "no_tags": "未配置标签。"
+    "no_tags": "未配置标签。",
+    "error": "错误"
   },
   "delayed": {
     "scheduled": "好的，我将执行'{cmd}'",
@@ -1020,6 +1046,31 @@
       "提交",
       "登录",
       "下载"
+    ],
+    "models": [
+      "模型",
+      "llm",
+      "更聪明",
+      "更新模型",
+      "推荐模型",
+      "新模型",
+      "量化",
+      "升级"
+    ],
+    "image": [
+      "svg",
+      "图像",
+      "画",
+      "绘图",
+      "标志",
+      "图标",
+      "插图",
+      "背景",
+      "横幅",
+      "生成图像",
+      "海报",
+      "信息图",
+      "头像"
     ]
   },
   "tool_names": {
@@ -1142,6 +1193,14 @@
     "search_news": {
       "name": "搜索新闻",
       "desc": "按关键词搜索文章"
+    },
+    "model_advice": {
+      "name": "AI模型建议",
+      "desc": "扫描HuggingFace并推荐最适合此PC的AI模型。"
+    },
+    "generate_svg": {
+      "name": "生成SVG图像",
+      "desc": "根据SDXL风格的描述生成高质量的SVG图像。"
     }
   },
   "mcp_down_tooltip": "MCP服务器不可用",
@@ -1213,8 +1272,42 @@
     "interval": "检查间隔",
     "errors": {
       "required": "所有字段都是必填的。",
-      "invalid_interval": "间隔必须为正整数。"
+      "invalid_interval": "间隔必须为正整数。",
+      "title": "错误"
     },
     "saved": "文件已保存。"
+  },
+  "contacts_editor": {
+    "title": "邮箱联系人",
+    "add": "添加",
+    "remove": "移除",
+    "add_title": "添加联系人",
+    "email": "邮箱：",
+    "email_placeholder": "name@example.com",
+    "display_name": "显示名称：",
+    "name_placeholder": "张三",
+    "save": "保存",
+    "cancel": "取消",
+    "remove_confirm": "移除联系人 '{name}'？"
+  },
+  "queue_viewer": {
+    "title": "VASS - 待发邮件队列",
+    "edit": "编辑",
+    "send": "发送",
+    "delete": "删除",
+    "send_all": "全部发送",
+    "edit_title": "编辑邮件",
+    "to": "收件人：",
+    "save": "保存",
+    "cancel": "取消",
+    "error": "错误",
+    "send_failed": "发送失败：{msg}",
+    "delete_confirm": "从队列中移除这封邮件？",
+    "send_all_confirm": "发送队列中的 {count} 封邮件？",
+    "completed": "完成",
+    "sent_count": "已发送邮件：{sent}/{count}"
+  },
+  "script_runner": {
+    "script_error": "脚本错误：{error}"
   }
 }

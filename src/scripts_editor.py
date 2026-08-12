@@ -388,7 +388,7 @@ class ScriptsEditor(QMainWindow):
         try:
             client = OpenAI(base_url=ai_url, api_key=api_key or "not-needed")
         except Exception as e:
-            QMessageBox.critical(self, "AI Error", f"Failed to create AI client:\n{e}")
+            QMessageBox.critical(self, self._t("scripts_editor.ai_error_title"), self._t("scripts_editor.ai_client_failed").replace("{e}", str(e)))
             return
 
         ref_path = os.path.join(get_project_root(),
@@ -435,14 +435,14 @@ class ScriptsEditor(QMainWindow):
         except Exception as e:
             self.ai_btn.setEnabled(True)
             self.ai_btn.setText(self._t("scripts_editor.ask_ai"))
-            QMessageBox.critical(self, "AI Error", f"AI request failed:\n{e}")
+            QMessageBox.critical(self, self._t("scripts_editor.ai_error_title"), self._t("scripts_editor.ai_request_failed").replace("{e}", str(e)))
             return
         finally:
             self.ai_btn.setEnabled(True)
             self.ai_btn.setText(self._t("scripts_editor.ask_ai"))
 
         if not code:
-            QMessageBox.warning(self, "AI", "AI returned an empty response.")
+            QMessageBox.warning(self, self._t("scripts_editor.ai_error_title"), self._t("scripts_editor.ai_empty_response"))
             return
 
         self.editor.setPlainText(code)
@@ -455,7 +455,7 @@ class ScriptsEditor(QMainWindow):
     def _on_select(self, name):
         if self._dirty:
             reply = QMessageBox.question(
-                self, "Salvare?", "Salvare le modifiche prima di cambiare script?",
+                self, self._t("scripts_editor.save_prompt_title"), self._t("scripts_editor.save_prompt_msg"),
                 QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
             )
             if reply == QMessageBox.Yes:
@@ -483,7 +483,7 @@ class ScriptsEditor(QMainWindow):
             with open(path, encoding="utf-8") as f:
                 content = f.read()
         except Exception as e:
-            QMessageBox.critical(self, "Errore", f"Impossibile leggere {name}:\n{e}")
+            QMessageBox.critical(self, self._t("scripts_editor.error"), self._t("scripts_editor.read_failed").replace("{name}", name).replace("{e}", str(e)))
             return
 
         self.editor.blockSignals(True)
@@ -495,14 +495,14 @@ class ScriptsEditor(QMainWindow):
 
     def _save(self):
         if not self._current_file:
-            QMessageBox.information(self, "Info", "Nessun file selezionato.")
+            QMessageBox.information(self, self._t("scripts_editor.info"), self._t("scripts_editor.no_file_selected"))
             return
         path = os.path.join(self._scripts_dir(), self._current_file)
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(self.editor.toPlainText())
         except Exception as e:
-            QMessageBox.critical(self, "Errore", f"Salvataggio fallito:\n{e}")
+            QMessageBox.critical(self, self._t("scripts_editor.error"), self._t("scripts_editor.save_failed").replace("{e}", str(e)))
             return
         self._dirty = False
         self._update_title()
@@ -516,7 +516,7 @@ class ScriptsEditor(QMainWindow):
     def _test_script(self):
         code = self.editor.toPlainText().strip()
         if not code:
-            QMessageBox.information(self, "Info", "L'editor è vuoto.")
+            QMessageBox.information(self, self._t("scripts_editor.info"), self._t("scripts_editor.empty_editor"))
             return
         import json, time, uuid, os
         queue_path = os.path.join(self._scripts_dir(), "exec_queue.json")
@@ -551,14 +551,19 @@ class ScriptsEditor(QMainWindow):
                 except OSError:
                     pass
         if result is None:
-            QMessageBox.warning(self, "Test", "Timeout (60s). VASS potrebbe non essere in esecuzione.")
+            QMessageBox.warning(self, self._t("scripts_editor.error"),
+                self._t("scripts_editor.test_timeout"))
         elif result.get("status") == "ok":
-            QMessageBox.information(self, "Test", "Script eseguito con successo.")
+            QMessageBox.information(self, self._t("scripts_editor.error"),
+                self._t("scripts_editor.test_ok"))
         else:
-            QMessageBox.critical(self, "Test", f"Errore: {result.get('detail', result.get('message', 'sconosciuto'))}")
+            detail = result.get('detail', result.get('message',
+                self._t("scripts_editor.permissions.unknown")))
+            QMessageBox.critical(self, self._t("scripts_editor.error"),
+                f"{self._t('scripts_editor.error')}: {detail}")
 
     def _new_script(self):
-        name, ok = QInputDialog.getText(self, "Nuovo script", "Nome (senza .vass):")
+        name, ok = QInputDialog.getText(self, self._t("scripts_editor.new_script_title"), self._t("scripts_editor.new_script_label"))
         if not ok or not name.strip():
             return
         name = name.strip()
@@ -566,13 +571,13 @@ class ScriptsEditor(QMainWindow):
             name += ".vass"
         path = os.path.join(self._scripts_dir(), name)
         if os.path.exists(path):
-            QMessageBox.critical(self, "Errore", f"{name} esiste già.")
+            QMessageBox.critical(self, self._t("scripts_editor.error"), self._t("scripts_editor.already_exists").replace("{name}", name))
             return
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(f"# {name}\n")
         except Exception as e:
-            QMessageBox.critical(self, "Errore", f"Creazione fallita:\n{e}")
+            QMessageBox.critical(self, self._t("scripts_editor.error"), self._t("scripts_editor.create_failed").replace("{e}", str(e)))
             return
         self._refresh_list()
         items = self.list_widget.findItems(name, Qt.MatchFlag.MatchExactly)
@@ -599,7 +604,7 @@ class ScriptsEditor(QMainWindow):
         try:
             os.remove(path)
         except Exception as e:
-            QMessageBox.critical(self, "Errore", f"Eliminazione fallita:\n{e}")
+            QMessageBox.critical(self, self._t("scripts_editor.error"), self._t("scripts_editor.delete_failed").replace("{e}", str(e)))
             return
         self._current_file = None
         self.editor.blockSignals(True)
@@ -614,7 +619,7 @@ class ScriptsEditor(QMainWindow):
         try:
             import keyring
         except ImportError:
-            QMessageBox.information(self, "Info", "keyring non disponibile.")
+            QMessageBox.information(self, self._t("scripts_editor.info"), self._t("scripts_editor.keyring_unavailable"))
             return
 
         candidates = set(self._scripts)
@@ -631,12 +636,28 @@ class ScriptsEditor(QMainWindow):
             if data:
                 parts = []
                 if data.get("_all_"):
-                    parts.append("tutto")
+                    parts.append(self._t("scripts_editor.permissions.all"))
                 else:
                     for fn in ("ai", "say", "run"):
                         if data.get(fn):
                             parts.append(fn)
-                entries.append((name.replace(".vass", ""), ", ".join(parts) or "sconosciuto"))
+                entries.append((
+                    f"{name.replace('.vass', '')}  →  "
+                    f"{', '.join(parts) or self._t('scripts_editor.permissions.unknown')}",
+                    "script", name.replace(".vass", "")))
+
+        try:
+            from tool_auth import list_tool_permissions
+            tool_entries = list_tool_permissions()
+        except Exception:
+            tool_entries = []
+        for tool_name, scope in tool_entries:
+            if scope == "all":
+                scope_txt = self._t("scripts_editor.permissions.tool_scope_all")
+            else:
+                scope_txt = self._t("scripts_editor.permissions.tool_scope_always")
+            entries.append((f"tool: {tool_name}  →  {scope_txt}", "tool", tool_name))
+        entries.sort(key=lambda e: e[0])
 
         if not entries:
             QMessageBox.information(self, self._t("scripts_editor.permissions.title"),
@@ -652,8 +673,8 @@ class ScriptsEditor(QMainWindow):
         layout.addWidget(QLabel(self._t("scripts_editor.permissions.stored")))
 
         list_w = QListWidget()
-        for sname, funcs in entries:
-            list_w.addItem(f"{sname}  →  {funcs}")
+        for display, _kind, _key in entries:
+            list_w.addItem(display)
         layout.addWidget(list_w)
 
         btn_row = QHBoxLayout()
@@ -677,17 +698,22 @@ class ScriptsEditor(QMainWindow):
             curr = list_w.currentItem()
             if not curr:
                 return
-            sname = curr.text().split("  →  ")[0]
+            row = list_w.row(curr)
+            display, kind, key = entries[row]
             reply = QMessageBox.question(dlg, self._t("scripts_editor.permissions.revoke"),
-                self._t("scripts_editor.permissions.revoke_confirm").replace("{name}", sname),
+                self._t("scripts_editor.permissions.revoke_confirm").replace("{name}", display),
                 QMessageBox.Yes | QMessageBox.No)
             if reply != QMessageBox.Yes:
                 return
             try:
-                keyring.delete_password("vass-auth", sname)
+                if kind == "tool":
+                    from tool_auth import revoke_tool
+                    revoke_tool(key)
+                else:
+                    keyring.delete_password("vass-auth", key)
             except Exception:
                 pass
-            list_w.takeItem(list_w.row(curr))
+            list_w.takeItem(row)
             if list_w.count() == 0:
                 dlg.accept()
                 QMessageBox.information(self, self._t("scripts_editor.permissions.title"),
@@ -699,13 +725,18 @@ class ScriptsEditor(QMainWindow):
                 QMessageBox.Yes | QMessageBox.No)
             if reply != QMessageBox.Yes:
                 return
-            for sname, _ in entries:
+            for _display, kind, key in entries:
                 try:
-                    keyring.delete_password("vass-auth", sname)
+                    if kind == "tool":
+                        from tool_auth import revoke_tool
+                        revoke_tool(key)
+                    else:
+                        keyring.delete_password("vass-auth", key)
                 except Exception:
                     pass
             dlg.accept()
-            QMessageBox.information(self, "Permessi", "Tutti i permessi sono stati revocati.")
+            QMessageBox.information(self, self._t("scripts_editor.permissions.title"),
+                self._t("scripts_editor.permissions.all_revoked"))
 
         revoke_btn.clicked.connect(do_revoke)
         revoke_all_btn.clicked.connect(do_revoke_all)

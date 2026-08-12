@@ -31,7 +31,8 @@
       "settings_general": "일반",
       "mail_pending": "대기 메일 ({n})",
       "contacts": "연락처",
-      "notifications": "알림"
+      "notifications": "알림",
+      "plugins_ui": "플러그인"
     },
     "actions": {
       "open_browser": "브라우저에서 열기",
@@ -294,7 +295,7 @@
       "test": "Test"
     },
     "permissions": {
-      "title": "Script permissions",
+      "title": "권한 (스크립트 및 도구)",
       "no_permissions": "No permissions stored.",
       "stored": "Scripts with stored permissions:",
       "revoke": "Revoke selected",
@@ -302,7 +303,11 @@
       "close": "Close",
       "revoke_confirm": "Revoke permissions for '{name}'?",
       "revoke_all_confirm": "Revoke ALL stored permissions?",
-      "all_revoked": "All permissions have been revoked."
+      "all_revoked": "All permissions have been revoked.",
+      "all": "전체",
+      "unknown": "알 수 없음",
+      "tool_scope_all": "모든 도구",
+      "tool_scope_always": "항상"
     },
     "close": {
       "title": "Save?",
@@ -313,7 +318,27 @@
     "select_function": "함수를 선택하면 도움말이 표시됩니다",
     "ask_ai": "AI에게 물어보기",
     "ask_ai_placeholder": "원하는 스크립트를 설명하세요...",
-    "ask_ai_loading": "생성 중..."
+    "ask_ai_loading": "생성 중...",
+    "error": "오류",
+    "test_timeout": "시간 초과 (60초). VASS가 실행 중이 아닐 수 있습니다.",
+    "test_ok": "스크립트가 성공적으로 실행되었습니다.",
+    "ai_error_title": "AI 오류",
+    "ai_client_failed": "AI 클라이언트를 만들 수 없습니다:\n{e}",
+    "ai_request_failed": "AI 요청 실패:\n{e}",
+    "ai_empty_response": "AI가 빈 응답을 반환했습니다.",
+    "info": "정보",
+    "read_failed": "{name}을(를) 읽을 수 없습니다:\n{e}",
+    "no_file_selected": "파일이 선택되지 않았습니다.",
+    "save_failed": "저장 실패:\n{e}",
+    "empty_editor": "편집기가 비어 있습니다.",
+    "new_script_title": "새 스크립트",
+    "new_script_label": "이름 (.vass 제외):",
+    "already_exists": "{name}이(가) 이미 존재합니다.",
+    "create_failed": "생성 실패:\n{e}",
+    "delete_failed": "삭제 실패:\n{e}",
+    "keyring_unavailable": "keyring을 사용할 수 없습니다.",
+    "save_prompt_title": "저장하시겠습니까?",
+    "save_prompt_msg": "스크립트를 전환하기 전에 변경 사항을 저장하시겠습니까?"
   },
   "commands_editor": {
     "title": "VASS 명령 편집기",
@@ -627,7 +652,8 @@
     "min_relevance_desc": "이 값 미만의 관련도를 가진 대화는 영구 메모리에 저장되지 않습니다.",
     "add_tag": "태그 추가",
     "delete_tag": "태그 삭제",
-    "no_tags": "구성된 태그가 없습니다."
+    "no_tags": "구성된 태그가 없습니다.",
+    "error": "오류"
   },
   "delayed": {
     "scheduled": "알겠습니다, '{cmd}'을(를) 실행합니다",
@@ -1026,6 +1052,31 @@
       "제출",
       "로그인",
       "다운로드"
+    ],
+    "models": [
+      "모델",
+      "llm",
+      "더 똑똑한",
+      "모델 업데이트",
+      "모델 추천",
+      "새 모델",
+      "양자화",
+      "업그레이드"
+    ],
+    "image": [
+      "svg",
+      "이미지",
+      "그리다",
+      "그림",
+      "로고",
+      "아이콘",
+      "일러스트",
+      "배경",
+      "배너",
+      "이미지 생성",
+      "포스터",
+      "인포그래픽",
+      "아바타"
     ]
   },
   "tool_names": {
@@ -1148,6 +1199,14 @@
     "search_news": {
       "name": "뉴스 검색",
       "desc": "키워드로 기사 검색"
+    },
+    "model_advice": {
+      "name": "AI 모델 추천",
+      "desc": "HuggingFace를 검색하여 이 PC에 가장 적합한 AI 모델을 추천합니다."
+    },
+    "generate_svg": {
+      "name": "SVG 이미지 생성",
+      "desc": "SDXL 스타일 설명에서 고품질 SVG 이미지를 생성합니다."
     }
   },
   "mcp_down_tooltip": "MCP 서버를 사용할 수 없음",
@@ -1219,8 +1278,42 @@
     "interval": "확인 간격",
     "errors": {
       "required": "모든 필드가 필요합니다.",
-      "invalid_interval": "간격은 양의 정수여야 합니다."
+      "invalid_interval": "간격은 양의 정수여야 합니다.",
+      "title": "오류"
     },
     "saved": "파일이 저장되었습니다."
+  },
+  "contacts_editor": {
+    "title": "이메일 연락처",
+    "add": "추가",
+    "remove": "제거",
+    "add_title": "연락처 추가",
+    "email": "이메일:",
+    "email_placeholder": "name@example.com",
+    "display_name": "표시 이름:",
+    "name_placeholder": "홍길동",
+    "save": "저장",
+    "cancel": "취소",
+    "remove_confirm": "연락처 '{name}'을(를) 제거하시겠습니까?"
+  },
+  "queue_viewer": {
+    "title": "VASS - 대기 중인 이메일 큐",
+    "edit": "편집",
+    "send": "보내기",
+    "delete": "삭제",
+    "send_all": "모두 보내기",
+    "edit_title": "이메일 편집",
+    "to": "받는 사람:",
+    "save": "저장",
+    "cancel": "취소",
+    "error": "오류",
+    "send_failed": "전송 실패: {msg}",
+    "delete_confirm": "이 이메일을 큐에서 제거하시겠습니까?",
+    "send_all_confirm": "큐에 있는 {count}개의 이메일을 모두 보내시겠습니까?",
+    "completed": "완료",
+    "sent_count": "전송된 이메일: {sent}/{count}"
+  },
+  "script_runner": {
+    "script_error": "스크립트 오류: {error}"
   }
 }

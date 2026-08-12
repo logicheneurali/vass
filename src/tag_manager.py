@@ -238,7 +238,7 @@ class TagManager(QDialog):
                 self._tags[name] = weight_spin.value()
                 self._rebuild_content()
             elif name:
-                QMessageBox.warning(self, "Error", self._tl("tag_manager.invalid_name"))
+                QMessageBox.warning(self, self._tl("tag_manager.error"), self._tl("tag_manager.invalid_name"))
 
     def _save(self):
         save_tags_config(self._tags, self._min_rel)

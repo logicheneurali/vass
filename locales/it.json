@@ -31,7 +31,8 @@
       "settings_general": "Generali",
       "mail_pending": "Mail in attesa ({n})",
       "contacts": "Contatti",
-      "notifications": "Notifiche"
+      "notifications": "Notifiche",
+      "plugins_ui": "Plugin"
     },
     "actions": {
       "open_browser": "Apri nel browser",
@@ -110,7 +111,7 @@
       "test": "Test"
     },
     "permissions": {
-      "title": "Autorizzazioni script",
+      "title": "Autorizzazioni (script e strumenti)",
       "no_permissions": "Nessuna autorizzazione memorizzata.",
       "stored": "Script con permessi memorizzati:",
       "revoke": "Revoca selezionato",
@@ -118,7 +119,11 @@
       "close": "Chiudi",
       "revoke_confirm": "Revocare i permessi per '{name}'?",
       "revoke_all_confirm": "Revocare TUTTI i permessi memorizzati?",
-      "all_revoked": "Tutti i permessi sono stati revocati."
+      "all_revoked": "Tutti i permessi sono stati revocati.",
+      "all": "tutto",
+      "unknown": "sconosciuto",
+      "tool_scope_all": "tutti i tool",
+      "tool_scope_always": "sempre"
     },
     "close": {
       "title": "Salvare?",
@@ -129,7 +134,27 @@
     "select_function": "Seleziona una funzione per vederne la guida",
     "ask_ai": "Chiedi alla AI",
     "ask_ai_placeholder": "Descrivi lo script che vuoi...",
-    "ask_ai_loading": "Generazione in corso..."
+    "ask_ai_loading": "Generazione in corso...",
+    "error": "Errore",
+    "test_timeout": "Timeout (60s). VASS potrebbe non essere in esecuzione.",
+    "test_ok": "Script eseguito con successo.",
+    "ai_error_title": "Errore AI",
+    "ai_client_failed": "Impossibile creare il client AI:\n{e}",
+    "ai_request_failed": "Richiesta AI fallita:\n{e}",
+    "ai_empty_response": "L'AI ha restituito una risposta vuota.",
+    "info": "Info",
+    "read_failed": "Impossibile leggere {name}:\n{e}",
+    "no_file_selected": "Nessun file selezionato.",
+    "save_failed": "Salvataggio fallito:\n{e}",
+    "empty_editor": "L'editor è vuoto.",
+    "new_script_title": "Nuovo script",
+    "new_script_label": "Nome (senza .vass):",
+    "already_exists": "{name} esiste già.",
+    "create_failed": "Creazione fallita:\n{e}",
+    "delete_failed": "Eliminazione fallita:\n{e}",
+    "keyring_unavailable": "keyring non disponibile.",
+    "save_prompt_title": "Salvare?",
+    "save_prompt_msg": "Salvare le modifiche prima di cambiare script?"
   },
   "settings_editor": {
     "title": "Impostazioni VASS",
@@ -626,7 +651,8 @@
     "min_relevance_desc": "Le conversazioni con rilevanza inferiore a questo valore NON vengono salvate nella memoria permanente.",
     "add_tag": "Aggiungi Tag",
     "delete_tag": "Elimina Tag",
-    "no_tags": "Nessun tag configurato."
+    "no_tags": "Nessun tag configurato.",
+    "error": "Errore"
   },
   "delayed": {
     "scheduled": "Ok, eseguiro' '{cmd}' come richiesto",
@@ -1066,6 +1092,65 @@
       "fai login",
       "compila",
       "registrati"
+    ],
+    "models": [
+      "modello",
+      "modelli",
+      "model",
+      "llm",
+      "ai migliore",
+      "migliore",
+      "miglior modello",
+      "consigliami un modello",
+      "aggiorna il modello",
+      "cambia modello",
+      "nuovo modello",
+      "quantizzazione",
+      "piu' intelligente",
+      "piu intelligente",
+      "upgrade",
+      "consigli",
+      "consiglio",
+      "consigliare",
+      "raccomanda",
+      "raccomandazione",
+      "suggerisci",
+      "suggerimento",
+      "quale modello",
+      "che modello",
+      "modello da usare",
+      "installare un modello",
+      "quale ai",
+      "modello migliore",
+      "modelli migliori",
+      "quale intelligenza artificiale",
+      "nuovo ai",
+      "modello consigliato",
+      "meglio per questo pc",
+      "gira sulla mia scheda",
+      "sta nella vram",
+      "vram"
+    ],
+    "image": [
+      "svg",
+      "immagine",
+      "immagini",
+      "disegna",
+      "disegno",
+      "logo",
+      "icona",
+      "illustrazione",
+      "sfondo",
+      "banner",
+      "genera un'immagine",
+      "crea un'immagine",
+      "poster",
+      "infografica",
+      "avatar",
+      "grafica",
+      "scena",
+      "immagine vettoriale",
+      "vettoriale"
     ]
   },
   "tool_names": {
@@ -1188,6 +1273,14 @@
     "search_news": {
       "name": "Cerca notizie",
       "desc": "Cerca articoli per parole chiave"
+    },
+    "model_advice": {
+      "name": "Consiglio modello AI",
+      "desc": "Scansiona HuggingFace e consiglia il miglior modello AI compatibile con questo PC (VRAM, llama.cpp) rispetto a quello attuale."
+    },
+    "generate_svg": {
+      "name": "Genera immagine SVG",
+      "desc": "Genera un'immagine SVG dettagliata da una descrizione in stile SDXL (soggetto + stile)."
     }
   },
   "mcp_down_tooltip": "Server MCP non disponibile",
@@ -1259,8 +1352,42 @@
     "interval": "Controlla ogni",
     "errors": {
       "required": "Tutti i campi sono obbligatori.",
-      "invalid_interval": "L'intervallo deve essere un numero intero positivo."
+      "invalid_interval": "L'intervallo deve essere un numero intero positivo.",
+      "title": "Errore"
     },
     "saved": "File salvato."
+  },
+  "contacts_editor": {
+    "title": "Contatti email",
+    "add": "Aggiungi",
+    "remove": "Rimuovi",
+    "add_title": "Aggiungi contatto",
+    "email": "Email:",
+    "email_placeholder": "nome@esempio.com",
+    "display_name": "Nome visualizzato:",
+    "name_placeholder": "Mario Rossi",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "remove_confirm": "Rimuovere il contatto '{name}'?"
+  },
+  "queue_viewer": {
+    "title": "VASS - Coda email in attesa",
+    "edit": "Modifica",
+    "send": "Invia",
+    "delete": "Elimina",
+    "send_all": "Invia tutto",
+    "edit_title": "Modifica email",
+    "to": "A:",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "error": "Errore",
+    "send_failed": "Invio fallito: {msg}",
+    "delete_confirm": "Rimuovere questa email dalla coda?",
+    "send_all_confirm": "Inviare tutte le {count} email in coda?",
+    "completed": "Completato",
+    "sent_count": "Email inviate: {sent}/{count}"
+  },
+  "script_runner": {
+    "script_error": "Errore script: {error}"
   }
 }

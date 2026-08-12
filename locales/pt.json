@@ -31,7 +31,8 @@
       "settings_general": "Geral",
       "mail_pending": "Email pendente ({n})",
       "contacts": "Contatos",
-      "notifications": "Notificações"
+      "notifications": "Notificações",
+      "plugins_ui": "Plugins"
     },
     "actions": {
       "open_browser": "Abrir no navegador",
@@ -294,7 +295,7 @@
       "test": "Test"
     },
     "permissions": {
-      "title": "Script permissions",
+      "title": "Permissões (scripts e ferramentas)",
       "no_permissions": "No permissions stored.",
       "stored": "Scripts with stored permissions:",
       "revoke": "Revoke selected",
@@ -302,7 +303,11 @@
       "close": "Close",
       "revoke_confirm": "Revoke permissions for '{name}'?",
       "revoke_all_confirm": "Revoke ALL stored permissions?",
-      "all_revoked": "All permissions have been revoked."
+      "all_revoked": "All permissions have been revoked.",
+      "all": "tudo",
+      "unknown": "desconhecido",
+      "tool_scope_all": "todas as ferramentas",
+      "tool_scope_always": "sempre"
     },
     "close": {
       "title": "Save?",
@@ -313,7 +318,27 @@
     "select_function": "Selecione uma função para ver ajuda",
     "ask_ai": "Perguntar à IA",
     "ask_ai_placeholder": "Descreva o script que deseja...",
-    "ask_ai_loading": "Gerando..."
+    "ask_ai_loading": "Gerando...",
+    "error": "Erro",
+    "test_timeout": "Tempo esgotado (60s). O VASS pode não estar em execução.",
+    "test_ok": "Script executado com sucesso.",
+    "ai_error_title": "Erro de IA",
+    "ai_client_failed": "Falha ao criar o cliente de IA:\n{e}",
+    "ai_request_failed": "Falha no pedido à IA:\n{e}",
+    "ai_empty_response": "A IA devolveu uma resposta vazia.",
+    "info": "Info",
+    "read_failed": "Não é possível ler {name}:\n{e}",
+    "no_file_selected": "Nenhum ficheiro selecionado.",
+    "save_failed": "Falha ao guardar:\n{e}",
+    "empty_editor": "O editor está vazio.",
+    "new_script_title": "Novo script",
+    "new_script_label": "Nome (sem .vass):",
+    "already_exists": "{name} já existe.",
+    "create_failed": "Falha na criação:\n{e}",
+    "delete_failed": "Falha na eliminação:\n{e}",
+    "keyring_unavailable": "keyring indisponível.",
+    "save_prompt_title": "Guardar?",
+    "save_prompt_msg": "Guardar as alterações antes de mudar de script?"
   },
   "commands_editor": {
     "title": "Editor de comandos VASS",
@@ -626,7 +651,8 @@
     "min_relevance_desc": "Conversas com relevância abaixo deste valor NÃO são salvas na memória permanente.",
     "add_tag": "Adicionar Tag",
     "delete_tag": "Excluir Tag",
-    "no_tags": "Nenhum tag configurado."
+    "no_tags": "Nenhum tag configurado.",
+    "error": "Erro"
   },
   "delayed": {
     "scheduled": "Ok, executarei '{cmd}' como pedido",
@@ -1038,6 +1064,34 @@
       "fazer login",
       "baixar",
       "download"
+    ],
+    "models": [
+      "modelo",
+      "modelos",
+      "llm",
+      "melhor ia",
+      "recomende um modelo",
+      "atualizar o modelo",
+      "novo modelo",
+      "quantizacao",
+      "mais inteligente",
+      "upgrade"
+    ],
+    "image": [
+      "svg",
+      "imagem",
+      "desenhar",
+      "desenho",
+      "logo",
+      "icone",
+      "ilustracao",
+      "fundo",
+      "banner",
+      "gerar uma imagem",
+      "cartaz",
+      "infografia",
+      "avatar",
+      "grafico"
     ]
   },
   "tool_names": {
@@ -1160,6 +1214,14 @@
     "search_news": {
       "name": "Buscar noticias",
       "desc": "Buscar artigos por palavras-chave"
+    },
+    "model_advice": {
+      "name": "Conselho modelo IA",
+      "desc": "Examina HuggingFace e recomenda o melhor modelo IA compatível com este PC (VRAM, llama.cpp)."
+    },
+    "generate_svg": {
+      "name": "Gerar imagem SVG",
+      "desc": "Gera uma imagem SVG detalhada a partir de uma descrição estilo SDXL."
     }
   },
   "mcp_down_tooltip": "Servidor MCP indisponivel",
@@ -1231,8 +1293,42 @@
     "interval": "Verificar a cada",
     "errors": {
       "required": "Todos os campos são obrigatórios.",
-      "invalid_interval": "O intervalo deve ser um número inteiro positivo."
+      "invalid_interval": "O intervalo deve ser um número inteiro positivo.",
+      "title": "Erro"
     },
     "saved": "Arquivo salvo."
+  },
+  "contacts_editor": {
+    "title": "Contactos de e-mail",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "add_title": "Adicionar contacto",
+    "email": "E-mail:",
+    "email_placeholder": "nome@exemplo.com",
+    "display_name": "Nome a mostrar:",
+    "name_placeholder": "João Silva",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "remove_confirm": "Remover o contacto '{name}'?"
+  },
+  "queue_viewer": {
+    "title": "VASS - Fila de e-mails pendentes",
+    "edit": "Editar",
+    "send": "Enviar",
+    "delete": "Eliminar",
+    "send_all": "Enviar tudo",
+    "edit_title": "Editar e-mail",
+    "to": "Para:",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "error": "Erro",
+    "send_failed": "Envio falhado: {msg}",
+    "delete_confirm": "Remover este e-mail da fila?",
+    "send_all_confirm": "Enviar todos os {count} e-mails na fila?",
+    "completed": "Concluído",
+    "sent_count": "E-mails enviados: {sent}/{count}"
+  },
+  "script_runner": {
+    "script_error": "Erro de script: {error}"
   }
 }
