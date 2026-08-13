@@ -36,6 +36,7 @@
     },
     "actions": {
       "open_browser": "ブラウザで開く",
+      "open_file": "ファイルを開く",
       "open_queue": "メールキューを開く",
       "copy_text": "テキストをコピー",
       "speak_text": "音声で読み上げ",

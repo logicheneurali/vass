@@ -29,6 +29,55 @@ def get_path(*parts):
     return os.path.join(get_project_root(), *parts)
 
 
+# ── Generated-file extraction ─────────────────────────────────────────────────
+
+_PATH_IN_TEXT_RE = re.compile(
+    r'(?<![\w./\\])(?:[A-Za-z]:[\\/]|/)[^\s"\']+', re.IGNORECASE)
+
+
+def _collect_file_paths(out, allowed_root, seen):
+    """Extract generated file paths from a tool result string.
+
+    Handles both JSON results (dict with a 'path' key, e.g. generate_svg,
+    html_to_pdf, browser_download) and plain text ('Written N bytes to <path>'
+    from write_file). Returns the list of newly found absolute paths that
+    exist on disk and live under allowed_root. Results already present in
+    `seen` are skipped.
+    """
+    found = []
+    candidates = []
+    if isinstance(out, str) and out.strip():
+        try:
+            data = json.loads(out)
+            if isinstance(data, dict):
+                p = data.get("path")
+                if isinstance(p, str) and p.strip():
+                    candidates.append(p)
+        except (ValueError, TypeError):
+            pass
+        if not candidates:
+            candidates = _PATH_IN_TEXT_RE.findall(out)
+    root = os.path.abspath(allowed_root) if allowed_root else ""
+    for p in candidates:
+        p = p.strip().strip("\"'.,;")
+        if not p:
+            continue
+        ap = os.path.abspath(os.path.normpath(p))
+        try:
+            os.path.relpath(ap, root)
+        except ValueError:
+            continue
+        if not (ap == root or ap.startswith(root + os.sep)):
+            continue
+        if not os.path.isfile(ap):
+            continue
+        if ap in seen:
+            continue
+        seen.add(ap)
+        found.append(ap)
+    return found
+
+
 # ── OS autostart (source of truth: OS registry / autostart files) ──────────────
 
 def _autostart_command():
@@ -400,7 +449,7 @@ def call_with_retry(fn, retries=4, delays=(1, 2, 4, 8), log_prefix="[AI]"):
             time.sleep(delay)
 
 
-def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=0.7, log_prefix="[AI]", gui=None, context_limit=0):
+def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=0.7, log_prefix="[AI]", gui=None, context_limit=0, file_links=None):
     if not (msg.tool_calls and mcp and tools):
         return msg
 
@@ -458,6 +507,8 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             print(f"[AI] Context guard: still {total} est tokens after truncation")
 
     MAX_TURNS = 10
+    _seen_paths = set()
+    _allowed_root = os.path.join(get_project_root(), "Allowed_root")
     for _ in range(MAX_TURNS):
         called_this_turn = set()
         for tc in msg.tool_calls:
@@ -508,6 +559,8 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
                 "tool_call_id": tc.id,
                 "content": out
             })
+            if file_links is not None:
+                file_links.extend(_collect_file_paths(out, _allowed_root, _seen_paths))
 
         if "websearch" in called_this_turn and "search_news" not in called_this_turn:
             for tc in msg.tool_calls:

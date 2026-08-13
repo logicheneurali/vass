@@ -36,6 +36,7 @@
     },
     "actions": {
       "open_browser": "Ouvrir dans le navigateur",
+      "open_file": "Ouvrir le fichier",
       "open_queue": "Ouvrir la file d'e-mails",
       "copy_text": "Copier le texte",
       "speak_text": "Lire à voix haute",

@@ -36,6 +36,7 @@
     },
     "actions": {
       "open_browser": "在浏览器中打开",
+      "open_file": "打开文件",
       "open_queue": "打开邮件队列",
       "copy_text": "复制文本",
       "speak_text": "朗读",

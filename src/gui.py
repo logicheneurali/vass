@@ -489,6 +489,7 @@ class InfoPanel(QFrame):
 
     _ACTION_HANDLERS = {
         "open_browser": lambda self, item: self._open_url((item.get("data") or {}).get("link", "")),
+        "open_file": lambda self, item: self._open_file((item.get("data") or {}).get("path", "")),
         "open_queue": lambda self, item: (
             self._open_queue_cb((item.get("data") or {}).get("queue_id", ""))
             if getattr(self, "_open_queue_cb", None) else None),
@@ -503,6 +504,7 @@ class InfoPanel(QFrame):
         "mail": ["open_browser", "speak_text"],
         "auth": ["open_browser", "speak_text"],
         "link": ["open_browser"],
+        "file": ["open_file"],
         "ai": ["copy_text", "speak_text"],
         "mail_queue": ["open_queue"],
         "youtube": ["mark_seen", "open_browser"],
@@ -511,6 +513,7 @@ class InfoPanel(QFrame):
 
     _ACTION_ICONS = {
         "open_browser": "arrow-up-right",
+        "open_file": "folder-open",
         "open_queue": "mail",
         "copy_text": "clipboard-list",
         "speak_text": "volume-2",
@@ -531,6 +534,7 @@ class InfoPanel(QFrame):
             "border-radius: 6px; }"
         )
         self._links = []
+        self._files = []
         self._ai_responses = []
         self._tab = "all"
         self._expanded = False
@@ -648,7 +652,7 @@ class InfoPanel(QFrame):
         ordered = [("all", "all", "clipboard-list",
                     all_label if self._expanded else "", all_label)]
 
-        if self._links:
+        if self._links or self._files:
             links_label = self._t("gui.links")
             ordered.append(("links", "links", "link",
                            links_label if self._expanded else "", links_label))
@@ -738,9 +742,10 @@ class InfoPanel(QFrame):
         if not user_opened:
             self._timer.start(30000)
 
-    def set_links(self, urls, parent_window):
+    def set_links(self, urls, parent_window, files=None):
         self._links = urls
-        if not urls:
+        self._files = files or []
+        if not urls and not self._files:
             return
         self._parent_window = parent_window
         self._switch_tab("links")
@@ -773,7 +778,7 @@ class InfoPanel(QFrame):
 
     def _build_links(self):
         self._clear_scroll()
-        if not self._links:
+        if not self._links and not self._files:
             return
         from urllib.parse import urlparse
         for url in self._links:
@@ -798,6 +803,33 @@ class InfoPanel(QFrame):
             link_lbl.setToolTip(url)
             link_lbl.mousePressEvent = lambda e, it=item: self._on_item_click(it)
             c_layout.addWidget(link_lbl)
+            action_row = QHBoxLayout()
+            action_row.setSpacing(2)
+            for abtn in self._build_action_icons(item):
+                action_row.addWidget(abtn)
+            action_row.addStretch()
+            if action_row.count() > 1:
+                c_layout.addLayout(action_row)
+            self._scroll_layout.addWidget(container)
+        for path in self._files:
+            name = os.path.basename(path)
+            display = path if len(path) <= 50 else path[:47] + "..."
+            item = {"data": {"type": "file", "path": path}}
+            container = QWidget()
+            container.setStyleSheet("background: transparent;")
+            c_layout = QVBoxLayout(container)
+            c_layout.setContentsMargins(4, 3, 4, 3)
+            c_layout.setSpacing(1)
+            file_lbl = QLabel(f"{name}\n{display}")
+            file_lbl.setStyleSheet(
+                f"color: #8fb5d0; background: transparent; font-size: {self._fs(11)}px;"
+                f"padding: 4px 8px; border: 1px solid #0f3460; border-radius: 3px;"
+            )
+            file_lbl.setWordWrap(True)
+            file_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+            file_lbl.setToolTip(path)
+            file_lbl.mousePressEvent = lambda e, it=item: self._on_item_click(it)
+            c_layout.addWidget(file_lbl)
             action_row = QHBoxLayout()
             action_row.setSpacing(2)
             for abtn in self._build_action_icons(item):
@@ -1019,7 +1051,7 @@ class InfoPanel(QFrame):
             px = geo.center().x() - panel_w // 2
 
         if self._tab == "links":
-            count = len(self._links)
+            count = len(self._links) + len(self._files)
             panel_h = min(count * 38 + 52, 280)
         elif self._tab == "ai":
             count = len([r for r in self._ai_responses if r.get("role") == "assistant"])
@@ -1052,6 +1084,21 @@ class InfoPanel(QFrame):
     def _open_url(self, url):
         import webbrowser
         webbrowser.open(url)
+
+    def _open_file(self, path):
+        if not path or not os.path.exists(path):
+            return
+        try:
+            if sys.platform == "win32":
+                os.startfile(path)  # noqa: S606
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path], stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+            else:
+                subprocess.Popen(["xdg-open", path], stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
 
 
 class VassGUI(QMainWindow):
@@ -2822,7 +2869,7 @@ class VassGUI(QMainWindow):
     def hide_tool_indicator(self):
         self.tool_indicator_signal.emit("", "")
 
-    def show_links(self, text):
+    def show_links(self, text, file_paths=None):
         import re
         urls = re.findall(r'https?://[^\s<>"]+', text or "")
         clean = []
@@ -2835,9 +2882,10 @@ class VassGUI(QMainWindow):
                 u = u[:-1]
             if u not in clean:
                 clean.append(u)
-        if clean:
+        if clean or file_paths:
             self._link_panel._t = self._t
-            self.schedule_signal.emit(lambda urls=clean: self._link_panel.set_links(urls, self))
+            self.schedule_signal.emit(
+                lambda urls=clean, f=file_paths: self._link_panel.set_links(urls, self, f))
 
     def hide_link_panel(self):
         self.schedule_signal.emit(lambda: self._link_panel.hide())

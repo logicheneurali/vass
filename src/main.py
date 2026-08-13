@@ -1508,6 +1508,7 @@ class VassApp:
             script_called = False
             ai_response = full_content
             response_from_tool_calls = False
+            file_links = []
             if tool_calls_acc and finish_reason == "tool_calls":
                 tool_calls_list = []
                 for idx in sorted(tool_calls_acc.keys()):
@@ -1529,7 +1530,8 @@ class VassApp:
 
                 pseudo_msg = type("", (), {"tool_calls": tool_calls_list, "content": None})()
                 msg = execute_mcp_tool_calls(messages, pseudo_msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui,
-                                             context_limit=self.context_length or 32768)
+                                             context_limit=self.context_length or 32768,
+                                             file_links=file_links)
                 ai_response = msg.content or ""
                 response_from_tool_calls = True
 
@@ -1539,7 +1541,7 @@ class VassApp:
 
             if ai_response and self.gui:
                 self.gui.schedule_signal.emit(
-                    lambda t=ai_response: self.gui.show_links(t))
+                    lambda t=ai_response, f=file_links: self.gui.show_links(t, f))
 
             print(f"AI Agent Response: {ai_response}")
 

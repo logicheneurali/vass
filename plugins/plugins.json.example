@@ -16,12 +16,6 @@
     "world_events": {
       "enabled": true
     },
-    "image_generator": {
-      "enabled": true
-    },
-    "news_publisher": {
-      "enabled": true
-    },
     "telegram_bot": {
       "enabled": true
     }

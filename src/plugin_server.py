@@ -838,6 +838,18 @@ class PluginServer(threading.Thread):
             print(f"[PluginServer] Config loaded: {config_path}")
             return data
         except FileNotFoundError:
+            # First run: create plugins.json from the distributed example so that
+            # local enable/disable toggles never change the repo's plugins.json.example
+            example_path = config_path + ".example"
+            if os.path.exists(example_path):
+                try:
+                    import shutil
+                    shutil.copy(example_path, config_path)
+                    print(f"[PluginServer] Created {config_path} from example")
+                    with open(config_path, encoding="utf-8") as f:
+                        return json.load(f)
+                except Exception as e:
+                    print(f"[PluginServer] Failed to create config from example: {e}")
             print(f"[PluginServer] Config not found: {config_path}")
         except Exception as e:
             print(f"[PluginServer] Config error: {e}")
