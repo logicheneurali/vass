@@ -1,34 +1,46 @@
-# VASS — Sprachassistent-Software
+# VASS — Sprachassistenz-Software
 
 ## Was ist VASS
 
-VASS ist ein Sprachassistent für Windows, macOS und Linux. Er reagiert auf Sprachbefehle, führt Skripte aus, verwaltet Ereignisse und Erinnerungen und interagiert mit einer lokalen oder entfernten KI über eine OpenAI-kompatible API.
+VASS ist ein Sprachassistent für Windows, macOS und Linux. Er reagiert auf Sprachbefehle, führt Skripte aus, verwaltet Ereignisse und Erinnerungen, liest und beantwortet E-Mails und interagiert über eine OpenAI-kompatible API mit einer lokalen oder entfernten KI. Außerdem hostet er einen MCP-Server, der der KI direkten Zugriff auf Dateien, Browser, Kalender, E-Mail, Nachrichten und Systemwerkzeuge gewährt.
 
-**Standard-Wake-Wort:** "Erika"
+**Standard-Weckwort:** „Erika" (konfigurierbar)
 
-**Hauptmerkmale:**
-- Spracherkennung via Whisper (faster-whisper) mit adaptivem Noise Floor
-- Natürliche Sprachsynthese via Kokoro TTS mit 4-stufiger Fallback-Kette
-- Lokale oder entfernte KI (llama.cpp, OpenAI, kompatible Server)
-- VASScript-Scripting für Desktop-Automatisierung mit 25+ integrierten Funktionen
-- Ereignis- und Ablaufverwaltung mit Editor-GUI
+**Aktuelle Version:** 0.8.7
+
+**Hauptfunktionen:**
+- Spracherkennung über Whisper (faster-whisper) mit Silero VAD und adaptivem Rauschpegel
+- Natürliche Sprachsynthese über Kokoro TTS mit einer mehrstufigen Fallback-Kette
+- Lokale oder entfernte KI (llama.cpp, OpenAI, jeder kompatible Server) mit optionalem llama.cpp-Autostart
+- VASScript-Skripting für Desktop-Automatisierung mit über 70 integrierten Funktionen
+- Ereignis- und Zeitplanverwaltung mit Editor-GUI (Erinnerungen, automatisierte Abläufe)
 - Mehrsprachiger Countdown-Timer (sprachgesteuert, 5 gleichzeitig)
-- MCP-Server mit 21 Tools für KI-Orchestrierung
-- Permanenter Speicher mit automatischer Klassifizierung und Zusammenfassung
-- Konversationsverlauf mit Aktionen pro Nachricht
-- Unterstützung für 9 Sprachen
-- Kontextüberlaufschutz (Abschneiden oder KI-Zusammenfassung)
-- Audiogeräteauswahl (Eingang/Ausgang)
-- Multi-Turn Tool Calling für komplexe KI-Aufgaben
-
+- MCP-Server mit über 50 Werkzeugen für die KI-Orchestrierung (Browser, E-Mail, Nachrichten, Kalender, Orte, Dateien, System)
+- Dauerhaftes Gedächtnis mit automatischer Klassifizierung, Zusammenfassung und Benutzerprofil-Injektion
+- Integrierter E-Mail-Client: Gmail, IMAP, POP3 mit Warteschlange, Kontakten und KI-verfassten E-Mails
+- Plugin-System: interne und externe Plugins über einen lokalen TCP-Socket
+- Benachrichtigungszentrale mit Weiterleitung nach Ereignistyp
+- Gesprächsverlauf-Viewer mit Aktionen pro Nachricht
+- Unterstützung von 9 Sprachen
+- Kontextüberlauf-Schutz (truncate oder KI-Zusammenfassung)
+- Audio-Geräteauswahl (Eingang/Ausgang)
+- Mehrturn-Tool-Aufrufe für komplexe KI-Aufgaben
+- Wettersystem mit 3 Quellen und Geodatenbank für 200.000 Städte
+- Zeitversetzte Sprachbefehle („in 5 Minuten herunterfahren")
+- Echtzeit-Anzeige der MCP-Tool-Aktivität in der GUI
+- Heuristische Kontextkomprimierung mit mehrsprachiger Stoppwort-Unterstützung
+- Token-genaue Kontextzählung (tiktoken)
+- Skript-Sandbox mit SHA-256-Autorisierung und Audit-Protokollierung
+- Sicherheitstor für sensible Online-Werkzeuge (Zustimmung, Ratenlimit, Audit-Protokoll)
+- Optionaler Autostart des Betriebssystems
 
 ---
 
 ## Voraussetzungen
 
 - **Python 3.13** oder höher
-- **KI-Server** (llama.cpp oder OpenAI-kompatibel) bereits auf dem System installiert und konfiguriert. VASS kann llama.cpp automatisch starten, falls konfiguriert, **installiert llama.cpp jedoch NICHT und lädt keine KI-Modelle herunter**: Sie müssen diese separat beziehen.
-- **Internetverbindung** (für Modell-Downloads und entfernte KI)
+- **KI-Server** (llama.cpp oder OpenAI-kompatibel) bereits auf dem System installiert und konfiguriert. VASS kann llama.cpp bei Bedarf automatisch starten, **installiert aber weder llama.cpp noch lädt es KI-Modelle herunter**: Sie müssen diese separat beschaffen.
+- **Internetverbindung** (für TTS/STT-Modell-Downloads und entfernte KI)
 - **NVIDIA-GPU empfohlen** für lokale KI (CPU möglich, aber langsam)
 - **Funktionierendes Mikrofon**
 - Windows 10+, macOS 12+ oder modernes Linux
@@ -39,38 +51,38 @@ VASS ist ein Sprachassistent für Windows, macOS und Linux. Er reagiert auf Spra
 
 ### Grafische Installation (empfohlen)
 
-Laden Sie den Installer von der [Releases-Seite](https://github.com/logicheneurali/vass/releases) herunter und fuehren Sie ihn aus. Der Assistent installiert Python, VASS, llama.cpp und ein KI-Modell automatisch — keine manuelle Einrichtung erforderlich.
+Laden Sie den Installer von der [Releases-Seite](https://github.com/logicheneurali/vass/releases) herunter und führen Sie ihn aus. Der Assistent installiert Python, VASS, llama.cpp und ein KI-Modell automatisch — keine manuelle Einrichtung erforderlich.
 
 ### Geführte Installation
 
-Projekt herunterladen oder klonen, dann den Ordner betreten und das Skript ausführen:
+Laden Sie das Projekt herunter oder klonen Sie es, wechseln Sie dann in den Ordner und führen Sie das Skript aus:
 
 ```bash
 cd vass
 python install.py
 ```
 
-> **Hinweis:** die geführte Installation richtet VASS ein, installiert aber **NICHT den KI-Server oder die Modelle**.
-> Sie müssen bereits einen OpenAI-kompatiblen Server betreiben (llama.cpp, Ollama, LM Studio, Groq, OpenAI, etc.)
-> oder llama.cpp in den VASS-Einstellungen konfigurieren (der ihn automatisch starten kann).
+> **Hinweis:** Die geführte Installation richtet VASS ein, **installiert aber weder den KI-Server noch Modelle**.
+> Sie müssen bereits einen OpenAI-kompatiblen Server verwenden (llama.cpp, Ollama, LM Studio, Groq, OpenAI usw.)
+> oder llama.cpp in den VASS-Einstellungen konfigurieren (dann kann es automatisch gestartet werden).
 
-**Hinweis:** Die gefuhrte Installation ist noch experimentell und funktioniert moglicherweise nicht auf allen Systemen. Bei Problemen verwenden Sie die manuelle Installation unten.
+**Hinweis:** Die geführte Installation ist noch experimentell und funktioniert möglicherweise nicht auf allen Systemen. Wenn Probleme auftreten, verwenden Sie das unten beschriebene manuelle Installationsverfahren.
 
 Der Assistent führt Sie durch:
 1. Sprachauswahl
 2. Prüfung der Voraussetzungen (Python 3.13+, pip)
 3. Zielordner
-4. Parameterkonfiguration (KI-URL, Modell, Wake-Wort)
+4. Parameterkonfiguration (KI-URL, Modell, Weckwort)
 5. Dateikopie
-6. Erstellung einer virtuellen Python-Umgebung (.venv)
+6. Erstellung der Python- virtuellen Umgebung (.venv)
 7. Installation der pip-Abhängigkeiten
-8. Erstellung der settings.ini-Datei
-9. Erstellung des Startprogramms
+8. Erstellung der Datei settings.ini
+9. Erstellung des Starters
 
 ### Manuelle Installation
 
 ```bash
-# Klonen oder kopieren Sie die Dateien in den gewünschten Ordner
+# Dateien in den gewünschten Ordner klonen oder kopieren
 cd VASS
 
 # Virtuelle Umgebung erstellen
@@ -84,38 +96,54 @@ source .venv/bin/activate
 # Abhängigkeiten installieren
 pip install -r requirements.txt
 
-# Chromium für Playwright installieren (Websuchen)
+# Chromium für Playwright installieren (Websuche)
 playwright install chromium
 
-# settings.ini erstellen (von Beispiel-settings.ini kopieren)
+# config/settings.ini erstellen (Kopie von config/settings.example.ini)
 ```
 
 ---
 
 ## Konfiguration
 
-Die Datei `settings.ini` enthält alle Einstellungen. Hier die wichtigsten:
+Alle Einstellungen befinden sich in `config/settings.ini` (die Vorlage ist `config/settings.example.ini`). Hier sind die wichtigsten:
 
 | Abschnitt | Parameter | Beschreibung |
 |---------|-----------|-------------|
 | `[locale]` | `language` | Sprache (it/en/de/fr/es/pt/ja/ko/zh) |
+| `[wakeword]` | `wakeword` | Weckwort (Standard: erika) |
+| `[wakeword]` | `sensitivity` | Erkennungsempfindlichkeit des Weckworts |
+| `[commands]` | `similarity` | Ähnlichkeitsschwelle für den Sprachbefehlsabgleich (Standard 0.6) |
+| `[commands]` | `word_learning_enabled` | Neue gesprochene Wörter im Laufe der Zeit lernen (true/false) |
 | `[ai]` | `url` | URL des OpenAI-kompatiblen KI-Servers |
 | `[ai]` | `model` | Name des KI-Modells |
 | `[ai]` | `system_message` | Persönlichkeit des Assistenten |
-| `[ai]` | `memory_tokens` | Maximale Speichergröße |
-| `[wakeword]` | `wakeword` | Wake-Wort (Standard: erika) |
-| `[wakeword]` | `sensitivity` | Erkennungsempfindlichkeit (0-1) |
-| `[tts]` | `volume` | TTS-Lautstärke (0-1) |
+| `[ai]` | `api_key` | API-Schlüssel (bei Einstellung im System-Keyring gespeichert) |
+| `[ai]` | `mcp_server_url` | URL des gebündelten MCP-Servers (Standard `http://localhost:9988`) |
+| `[ai]` | `memory_tokens` | Maximale Gedächtnisgröße |
+| `[ai]` | `context_length` | Max. Kontext-Tokens (0 = automatisch) |
+| `[ai]` | `overflow_strategy` | Behandlung von Kontextüberlauf: `truncate` oder `summarize` |
+| `[ai]` | `allow_ai_scripts` | Der KI erlauben, VASScript-Skripte auszuführen (true/false) |
+| `[llamacpp]` | `llama_server_path` | Speicherort des llama.cpp-Servers |
+| `[llamacpp]` | `llama_autostart` | llama.cpp mit VASS automatisch starten (true/false) |
+| `[resources]` | `cpu_max`, `ram_max`, `gpu_max`, `vram_max` | Ressourcengrenzen, die KI-Operationen beschränken |
+| `[events]` | `reminder_advance` | Sekunden vor einem Ereignis, in denen die Erinnerung ausgegeben wird (Standard 3600) |
+| `[audio]` | `input_device`, `output_device` | Audio-Geräteauswahl (-1 = Systemstandard) |
+| `[audio]` | `input_volume`, `output_volume` | Eingangs-/Ausgangslautstärke (0-1) |
+| `[audio]` | `app_volume` | Hauptlautstärke für TTS (ersetzt das alte `[tts] volume`) |
+| `[google]` | — | Google-Kalender / Gmail / Google-Home-Integration |
+| `[startup]` | `app_autostart` | VASS beim Anmelden automatisch starten (true/false) |
+| `[debug]` | `debug_enabled` | Ein ausführliches Protokoll nach `log/debug.log` schreiben (true/false) |
 
 Einstellungen werden automatisch neu geladen, wenn sie geändert werden, während VASS läuft.
 
 ---
 
-## Tägliche Nutzung
+## Tägliche Verwendung
 
 ### Start
 
-Doppelklick auf `vass.bat` (Windows) oder `vass.sh`/`vass.command` (macOS/Linux).
+Doppelklicken Sie auf `vass.bat` (Windows) oder `vass.sh`/`vass.command` (macOS/Linux).
 
 Oder vom Terminal aus:
 ```bash
@@ -124,146 +152,170 @@ cd VASS
 .venv/bin/python vass.py         # macOS/Linux
 ```
 
-### Wake-Wort
+> **Hinweis:** Beim ersten Start werden die Modelle für Spracherkennung (Whisper) und Sprachsynthese (Kokoro) automatisch von HuggingFace heruntergeladen. Der erste Start kann mehrere Minuten dauern (~2-4 GB Download). Dies geschieht nur einmal.
 
-Das Wake-Wort ist vom Benutzer in der Datei `settings.ini` **konfigurierbar** und kann ein beliebiges Wort oder eine kurze Phrase sein. Standardmäßig ist es "**Erika**".
+### Weckwort
 
-Wenn VASS das Wake-Wort erkennt, gibt es einen Signalton aus, der anzeigt, dass es bereit ist, den Befehl zu empfangen. Sprechen Sie nach dem Signalton.
+Das Weckwort ist vom Benutzer **konfigurierbar** in der Datei `config/settings.ini` und kann jedes Wort oder jede kurze Phrase sein. Der Standard ist „**Erika**".
+
+Wenn VASS das Weckwort erkennt, gibt es einen Piepton aus, um zu signalisieren, dass es bereit ist, den Befehl entgegenzunehmen. Sprechen Sie nach dem Piepton.
 
 Beispiele:
-- *"Erika"* (auf Signalton warten), dann *"wie ist das wetter?"*
-- *"Erika"* (auf Signalton warten), dann *"lies die nachrichten"*
-- *"Erika"* (auf Signalton warten), dann *"was ist künstliche intelligenz?"*
-- *"Erika"* (auf Signalton warten), dann *"übersetze in englisch guten morgen an alle"*
-- *"Erika"* (auf Signalton warten), dann *"rezept spaghetti carbonara"*
+- *„Erika"* (auf den Piepton warten), dann *„wie ist das Wetter?"*
+- *„Erika"* (auf den Piepton warten), dann *„lies die neuesten Nachrichten"*
+- *„Erika"* (auf den Piepton warten), dann *„was ist künstliche Intelligenz?"*
+- *„Erika"* (auf den Piepton warten), dann *„übersetze ins Italienische guten Morgen zusammen"*
+- *„Erika"* (auf den Piepton warten), dann *„Rezept Pasta Carbonara"*
 
 ### Modi: Chat und Transkription
 
-VASS kann in zwei Modi betrieben werden, die über das Popup-Menü (≡-Taste rechts neben der Haupttaste) ausgewählt werden können:
+VASS kann in zwei Modi betrieben werden, die über das Popup-Menü auswählbar sind (≡-Schaltfläche rechts neben der Hauptschaltfläche):
 
 - **Chat** `[C]` — Die Anwendung erkennt Sprachbefehle und führt Aktionen aus (Skripte, Systembefehle) oder interagiert mit der KI. Die Antwort wird per TTS vorgelesen.
-- **Transkription** `[T]` — Anstatt Befehle zu interpretieren, transkribiert VASS getreu, was der Benutzer nach dem Wake-Wort sagt (immer nach dem Signalton). Der Text wird dann in die aktive Anwendung eingefügt, wodurch VASS zu einem Textdiktiersystem wird.
+- **Transkription** `[T]` — Statt Befehle zu interpretieren, transkribiert VASS getreu, was der Benutzer nach dem Weckwort sagt (immer nach dem Piepton). Der Text wird dann in die aktive Anwendung eingefügt, wodurch VASS zu einem Textdiktatsystem wird.
 
 Der aktuelle Modus wird auf der Hauptschaltfläche angezeigt: `[C]` für Chat, `[T]` für Transkription. Der zuletzt verwendete Modus wird beim Neustart wiederhergestellt.
 
-### Speichermodus
+### Gedächtnismodus
 
 Über das GUI-Menü oder durch Klicken auf die Hauptschaltfläche:
-- **Full** — Die KI erhält die Speicherzusammenfassung
-- **Limited** — Die KI erhält nur den kürzlichen Verlauf
-- **None** — Kein historischer Kontext
+- **Voll** — Die KI erhält die Gedächtniszusammenfassung und Ihr Benutzerprofil
+- **Begrenzt** — Die KI erhält nur den jüngsten Verlauf
+- **Keine** — Kein historischer Kontext
 
 ### Sprachbefehle
 
-Befehle werden in `commands.ini` (Standard-INI-Format) konfiguriert, auch bearbeitbar über den GUI-Editor (`python commands_editor.py`). Jede Zeile ist ein **Satz = Aktion**-Paar: der Satz ist das zu erkennende Muster (kann `{Variablen}` enthalten), die Aktion ist das, was ausgeführt werden soll.
+Befehle werden in `config/commands.ini` konfiguriert (Standard-INI-Format, `phrase = action`), auch über den GUI-Editor bearbeitbar (`python src/commands_editor.py`). Sprachspezifische Dateien `config/commands_{lang}.ini` werden zusätzlich zur Basisdatei geladen. Jede Zeile ist ein **Phrase = Aktion**-Paar: die Phrase ist das zu erkennende Muster (kann `{variables}` enthalten), die Aktion das, was ausgeführt wird.
 
 ```ini
 [general]
-suche nach {begriff} = script:suche
-öffne {programm} = start {programm}
-online suchen nach {escaped_terms} = start firefox "https://duckduckgo.com?q={escaped_terms}"
-wie spät ist es = script:uhrzeit
+search {term} = script:search
+open {program} = start {program}
+search online {escaped_terms} = start firefox "https://duckduckgo.com?q={escaped_terms}"
+what time is it = script:datetime
 
 [system]
-system herunterfahren = shutdown /s /t 60
-bildschirm sperren = rundll32.exe user32.dll,LockWorkStation
+shutdown system = shutdown /s /t 60
+lock screen = rundll32.exe user32.dll,LockWorkStation
 ```
 
-#### Wie das Matching funktioniert
+#### So funktioniert der Abgleich
 
-1. **Fuzzy-Erkennung**: eine exakte Übereinstimmung ist nicht erforderlich. VASS vergleicht den gesprochenen Satz mit allen Mustern mithilfe eines Ähnlichkeitsalgorithmus (`difflib`). Das Muster mit der höchsten Punktzahl über dem Schwellenwert (Standard `0.75`, konfigurierbar in `settings.ini`) wird aktiviert.
+1. **Fuzzy-Erkennung**: Eine exakte Übereinstimmung ist nicht erforderlich. VASS vergleicht die gesprochene Phrase mit allen Mustern mithilfe eines Ähnlichkeitsalgorithmus (`difflib`). Das Muster mit der höchsten Punktzahl über der Schwelle (Standard `0.6`, konfigurierbar in `config/settings.ini` unter `[commands] similarity`) wird aktiviert.
 
-2. **Variablen `{name}`**: erfassen die gesprochenen Wörter an dieser Position. Beispiel: Wenn man *"suche katzen im internet"* sagt, erfasst das System `begriff = "katzen im internet"`.
+2. **Variablen `{name}`**: erfassen die gesprochenen Wörter an dieser Position. Beispiel: *„suche Katzen im Internet"* erfasst `term = "Katzen im Internet"`.
 
-3. **Escaped-Variablen `{escaped_name}`**: wie normale Variablen, aber der erfasste Text wird URL-kodiert (Leerzeichen werden zu `%20`). Nützlich für Websuchen.
+3. **Maskierte Variablen `{escaped_name}`**: wie normale Variablen, aber der erfasste Text wird URL-kodiert (Leerzeichen werden zu `%20`). Nützlich für Websuchen.
 
-4. **KI-Fallback**: Wenn kein Befehl den Ähnlichkeitsschwellenwert überschreitet, wird der Satz zur natürlichen Sprachbeantwortung an die KI gesendet.
+4. **Zeitversetzte Befehle**: Ein `{duration}`-Suffix (z. B. *„in 5 Minuten herunterfahren"*) plant den Befehl ein, sodass er nach der angegebenen Zeit über das Timer-System ausgeführt wird.
 
-#### Komma-Alternativen (Kartesisches Produkt)
+5. **Wortlernen**: Wenn aktiviert, zeichnet VASS auf, wie Sie Wörter aussprechen, um die Erkennung im Laufe der Zeit zu verbessern.
 
-Sie können mehrere Alternativen für jede Wortposition mit Kommas angeben. **Leerzeichen** trennen Wortpositionen, **Kommas** trennen Alternativen innerhalb einer Position. VASS generiert alle möglichen Kombinationen (kartesisches Produkt).
+6. **KI-Fallback**: Wenn kein Befehl die Ähnlichkeitsschwelle überschreitet, wird die Phrase zur natürlichen Antwort an die KI gesendet.
+
+#### Komma-Alternativen (kartesisches Produkt)
+
+Sie können mehrere Alternativen für jede Wortposition mithilfe von Kommas angeben. **Leerzeichen** trennen Wortpositionen, **Kommas** trennen Alternativen innerhalb einer Position. VASS generiert alle möglichen Kombinationen (kartesisches Produkt).
 
 ```ini
 # Einzelne Position: Alternativen für die Präposition
 click the,on text {text}
 ```
-Generiert 3 Muster: `click the text {text}`, `click on text {text}`, `click text {text}`.
+Erzeugt 2 Muster: `click the text {text}`, `click on text {text}`.
 
 ```ini
 # Zwei Positionen: jede Position hat ihre eigenen Alternativen
 aa,xx bb,cc {var}
 ```
-Generiert 4 Muster: `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2x2 = 4).
+Erzeugt 4 Muster: `aa bb {var}`, `aa cc {var}`, `xx bb {var}`, `xx cc {var}` (2x2 = 4).
 
 ```ini
 # Gemischt: festes Wort + Alternativen
 turn on,off {device}
 ```
-Generiert 2 Muster: `turn on {device}`, `turn off {device}` (kein Leerzeichen zwischen `on` und `off` → gleiche Position).
+Erzeugt 2 Muster: `turn on {device}`, `turn off {device}` (kein Leerzeichen zwischen `on` und `off` -> gleiche Position).
 
-Der gesprochene Satz wird mit allen generierten Mustern verglichen. Die beste Fuzzy-Übereinstimmung gewinnt.
+Die gesprochene Phrase wird mit allen generierten Mustern verglichen. Die beste Fuzzy-Übereinstimmung gewinnt.
 
 #### Aktionstypen
 
 | Präfix | Beispiel | Verhalten |
-|--------|----------|-----------|
-| `script:` | `script:suche` | Führt `scripts/suche.vass` aus. Erfasste Variablen werden zu `$param1`, `$param2`, usw. |
-| `vasscript:` | `vasscript:ereignisse` | Wie `script:` (alternativer Präfix) |
-| URL | `https://...` | Im Standardbrowser geöffnet |
-| Befehl | `shutdown /s` | Direkt als Systembefehl ausgeführt |
+|--------|---------|----------|
+| `script:` | `script:search` | Führt `scripts/search.vass` aus. Erfasste Variablen werden zu `$param1`, `$param2` usw. |
+| `vasscript:` | `vasscript:events` | Wie `script:` (alternatives Präfix) |
+| Befehl | `shutdown /s` | Wird direkt als Systembefehl ausgeführt |
 
-#### Namen der Sektionen
+#### Abschnittsnamen
 
-Sektionsnamen wie `[general]` und `[system]` sind nur organisatorische Kategorien — sie beeinflussen das Matching nicht. Entscheidend ist der **Schlüssel** (der zu erkennende Satz).
+Abschnittsnamen wie `[general]` und `[system]` sind nur organisatorische Kategorien — sie beeinflussen den Abgleich nicht. Der **Schlüssel** (die zu erkennende Phrase) ist das, worauf es ankommt.
 
-### VASScript-Skripte erstellen
+### Erstellen von VASScript-Skripten
 
-Öffnen Sie den Skript-Editor aus dem GUI-Menü oder führen Sie aus:
+Öffnen Sie den Skript-Editor über das GUI-Menü oder führen Sie Folgendes aus:
 ```bash
-python scripts_editor.py
+python src/scripts_editor.py
 ```
 
 Alle Skripte gehören in den Ordner `scripts/` mit der Erweiterung `.vass`.
 
-**Autorisierung**: vor der Ausführung eines neuen oder geänderten Skripts zeigt VASS ein Popup, das um Erlaubnis bittet. Skripte werden per SHA-256-Hash überprüft: Wird eine Skriptdatei nach der Autorisierung geändert, werden die Berechtigungen automatisch widerrufen und das Popup erscheint bei der nächsten Ausführung erneut. So kann kein Skript ohne Ihre ausdrückliche Zustimmung auf Ihrem Rechner ausgeführt werden.
+**Autorisierung**: Vor der Ausführung eines neuen oder geänderten Skripts zeigt VASS ein Popup, das um Erlaubnis bittet. Skripte werden über SHA-256-Hash (im System-Keyring gespeichert) verifiziert: Wenn eine Skriptdatei nach der Autorisierung geändert wird, werden die Berechtigungen automatisch widerrufen, und das Popup erscheint bei der nächsten Ausführung erneut. Die Erlaubnis kann pro Funktion oder für das gesamte Skript erteilt werden. Dadurch wird sichergestellt, dass kein Skript ohne Ihre ausdrückliche Zustimmung auf Ihrem Rechner ausgeführt werden kann.
 
 Siehe die Datei [VASCRIPT_REFERENCE.md](../Allowed_root/VASCRIPT_REFERENCE.md) für die vollständige Sprachreferenz.
 
 ### Ereignisse und Erinnerungen
 
-Ereignisse werden über die Datei `events.json` verwaltet. Eine Spracherinnerung wird 1 Stunde im Voraus ausgegeben (konfigurierbar).
+Ereignisse werden über die Datei `Allowed_root/events.json` verwaltet. Eine Sprach-Erinnerung wird 1 Stunde im Voraus ausgegeben (konfigurierbar über `[events] reminder_advance`).
 
-Zeitpläne (automatisierte Abläufe) befinden sich in `schedule.json` und lösen die Befehlsausführung mit TTS-Benachrichtigung aus.
+Zeitpläne (automatisierte Abläufe) befinden sich in `Allowed_root/schedules.json` und lösen die Ausführung von Befehlen mit TTS-Benachrichtigung aus. Zusätzliche Flags: `silent`, `run_on_startup`, `check_already_running`, `wait_for_completion`.
+
+### Plugin-System
+
+VASS stellt einen lokalen TCP-Server (`localhost:8765`) bereit, über den Plugins mit der App kommunizieren: TTS, Benachrichtigungen, KI-Abfragen, RSS-Einträge, Chat, deklarative UIs und mehr. **Interne Plugins** (mit VASS gebündelt) können nicht entfernt werden; **externe Plugins** können über die GUI (Menü Plugins) aktiviert, deaktiviert und entfernt werden.
+
+Gebündelte interne Plugins: automatische Pause bei Rauschen, proaktiver Agent, Benutzerprofil, RSS-Reader, Weltereignisse, Telegram-Bot. Externe Plugins auf der Festplatte verfügbar: Bildgenerator, Nachrichten-Publisher, Zeitachsen-Viewer.
+
+Siehe die Anleitung [PLUGIN_DEV_de.md](PLUGIN_DEV_de.md) für das vollständige Protokoll und die Erstellung eigener Plugins (auch verfügbar als `PLUGIN_DEV_{en,it,fr,es,pt,ja,ko,zh}.md`).
+
+### E-Mail
+
+Konfigurieren Sie ein oder mehrere Konten unter Einstellungen → E-Mail (Gmail über OAuth oder IMAP/POP3 mit einfachem SSL/TLS). Eingehende Nachrichten werden erkannt und gemeldet; die KI kann E-Mails suchen, lesen, beantworten, weiterleiten und senden — gesendete E-Mails landen jedoch immer in einer **Warteschlange**, die Sie über den Ausgang bestätigen und versenden müssen. Kontakte werden verschlüsselt gespeichert.
 
 ---
 
 ## GUI-Oberfläche
 
-- **Hauptschaltfläche** — Klicken zum Ändern des Status (listening/paused). Mausrad für Lautstärke. Ziehen zum Verschieben des Fensters.
-- **Lautstärkebalken** (grün, oben) — Zeigt die aktuelle TTS-Lautstärke an
-- **Mehrzustandsbalken** — Zeigt Speichernutzung, Lautstärke oder Skriptfortschritt je nach Kontext
-- **Auto-Fade** — Das Fenster wird halbtransparent, wenn Sie inaktiv und im Vollbildmodus sind
+- **Hauptschaltfläche** — Klicken, um den Zustand zu ändern (hört zu/pausiert). Mausrad für Lautstärke. Ziehen, um das Fenster zu verschieben.
+- **Lautstärkebalken** (grün, oben) — Zeigt die aktuelle TTS-Lautstärke
+- **Mehrzustandsleiste** — Zeigt je nach Kontext Speichernutzung, Lautstärke oder Skript-/Aktivitätsfortschritt
+- **Benachrichtigungszentrale** (Glocke) — Registerkarten pro Typ mit Nachrichtenaktionen und Alle-als-gelesen-markieren
+- **Tool-Anzeige** — Echtzeit-Symbol, das das von der KI verwendete MCP-Tool anzeigt
+- **Mikrofon-Schaltfläche** — Direkte Spracheingabe im Chat-Modus
+- **Plugin-Menü** — Plugins, Plugin-Einstellungen und Plugin-UIs verwalten
+- **Einstellungsdialog** — Vollständige Konfiguration über die GUI (Menü Einstellungen)
+- **Auto-Ausblenden** — Das Fenster wird im Ruhezustand und im Vollbildmodus halbtransparent
+- **Splash-Screen** — Ladefortschritt beim Start
+- **Design** — Gemeinsames Design für die App und alle Editoren
 
-### Tastenkombinationen
+### Tastenkürzel
 
 | Taste | Aktion |
 |-------|--------|
-| `Strg+S` | Speichern (in Editoren) |
-| Schaltflächenklick | Status ändern |
+| `Ctrl+S` | Speichern (in Editoren) |
+| Schaltflächenklick | Zustand ändern |
 | Mausrad auf Schaltfläche | Lautstärke anpassen |
-| Rechtsklick auf ≡-Taste | Popup-Menü |
-| "Lesen"-Taste in Skripten | Liest das Skript mit TTS vor |
+| Rechtsklick | Kontextmenü |
+| Mittelklick auf Schaltfläche | Beenden |
 
 ---
 
 ## Fehlerbehebung
 
-> **Wichtig:** Diese Anwendung hängt stark vom verwendeten KI-Modell ab. Ineffektive oder für MCP-Tools ungeeignete Modelle können die Funktionalität beeinträchtigen.
+> **Wichtig:** Diese Anwendung hängt stark vom verwendeten KI-Modell ab. Ineffektive Modelle oder Modelle, die nicht für die MCP-Tool-Nutzung geeignet sind, können die Funktionalität beeinträchtigen.
 
 ### VASS startet nicht
 - Python 3.13+ prüfen: `python --version`
-- Prüfen, ob `.venv` existiert und Abhängigkeiten enthält
-- `debug.log` auf Fehler prüfen
+- Sicherstellen, dass `.venv` existiert und die Abhängigkeiten enthält
+- `log/debug.log` prüfen (`[debug] debug_enabled = true` aktivieren) und `log/crash.log`
 
 ### Mikrofon funktioniert nicht
 - Prüfen, ob das Mikrofon angeschlossen und nicht von anderen Apps verwendet wird
@@ -272,13 +324,19 @@ Zeitpläne (automatisierte Abläufe) befinden sich in `schedule.json` und lösen
 
 ### KI antwortet nicht
 - Prüfen, ob der KI-Server unter `http://127.0.0.1:8080/v1` läuft
-- `[ai] url` in `settings.ini` prüfen
-- Bei Verwendung von llama.cpp prüfen, ob das Modell im Ordner `models/` existiert
+- `[ai] url` in `config/settings.ini` prüfen
+- Bei Verwendung von llama.cpp prüfen, ob das Modell existiert und `[llamacpp] llama_server_path` korrekt ist
+- `log/llamacpp.log` auf llama.cpp-Fehler prüfen
 
-### OCR erkennt keinen Text auf dem Bildschirm
+### OCR erkennt Bildschirmtext nicht
 - Schriftgröße oder Textkontrast auf dem Bildschirm erhöhen
 - EasyOCR funktioniert am besten mit großen Schriften und hohem Kontrast
-- Die OCR-Sprache passt sich automatisch an das konfigurierte Gebietsschema an
+- Die OCR-Sprache passt sich automatisch an die konfigurierte Sprache an
+
+### Die KI kann ein Tool nicht verwenden
+- Einige Online-Werkzeuge erfordern Ihre Zustimmung (Sicherheitstor) — prüfen Sie das InfoPanel auf ausstehende Anfragen
+- Prüfen, ob der MCP-Server unter `http://localhost:9988` erreichbar ist (siehe `[ai] mcp_server_url`)
+- `log/mcp_server.log` auf MCP-Fehler prüfen
 
 ---
 
@@ -286,11 +344,16 @@ Zeitpläne (automatisierte Abläufe) befinden sich in `schedule.json` und lösen
 
 | Datei | Beschreibung |
 |------|-------------|
-| `settings.ini` | Hauptkonfiguration |
-| `commands.ini` | Benutzerdefinierte Sprachbefehle |
+| `config/settings.ini` | Hauptkonfiguration |
+| `config/commands.ini` | Basis-Sprachbefehle (plus `commands_{lang}.ini`) |
+| `config/notifications.ini` | Benachrichtigungsweiterleitung nach Ereignistyp |
 | `scripts/*.vass` | Ihre VASScript-Skripte |
-| `events.json` | Ihre Ereignisse und Erinnerungen |
-| `schedule.json` | Automatisierte Abläufe |
-| `memory.json` | Gesprächsverlauf |
-| `debug.log` | Debug-Protokoll |
-| `vass.log` | Anwendungsprotokoll |
+| `Allowed_root/events.json` | Ihre Ereignisse und Erinnerungen |
+| `Allowed_root/schedules.json` | Automatisierte Abläufe |
+| `Allowed_root/memory.json` | Gesprächsverlauf und Gedächtnis |
+| `Allowed_root/private_profile.json` | Benutzerprofil, das in den KI-Kontext eingefügt wird |
+| `plugins/` | Interne und externe Plugins |
+| `log/debug.log` | Ausführliches Debug-Protokoll (wenn aktiviert) |
+| `log/crash.log` | Absturzprotokoll |
+| `log/faulthandler.log` | Ausgabe des Fehlerbehandlers |
+| `log/llamacpp.log` | llama.cpp-Serverprotokoll |
