@@ -449,7 +449,7 @@ def call_with_retry(fn, retries=4, delays=(1, 2, 4, 8), log_prefix="[AI]"):
             time.sleep(delay)
 
 
-def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=0.7, log_prefix="[AI]", gui=None, context_limit=0, file_links=None):
+def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=None, log_prefix="[AI]", gui=None, context_limit=0, file_links=None):
     if not (msg.tool_calls and mcp and tools):
         return msg
 
@@ -583,12 +583,23 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
                     break
 
         _trim_for_context()
+        _sampling = None
+        if temperature is None:
+            try:
+                import model_params
+                _sampling = model_params.sampling_kwargs("tool")
+                temperature = _sampling["temperature"]
+            except Exception:
+                temperature = 0.7
         resp = call_with_retry(lambda: openai_client.chat.completions.create(
             model=model,
             messages=messages,
             tools=tools,
             temperature=temperature,
-            extra_body={"disable_thinking": False}
+            **({k: _sampling[k] for k in ("top_p", "presence_penalty", "frequency_penalty")}
+               if _sampling else {}),
+            extra_body={**({"disable_thinking": False}),
+                        **(_sampling.get("_extra") if _sampling else {})}
         ), log_prefix=log_prefix)
         msg = resp.choices[0].message
         if not msg.tool_calls:

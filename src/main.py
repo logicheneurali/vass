@@ -431,6 +431,7 @@ class VassApp:
                         self.ai_api_key = self.settings.get("api_key", "")
                         self.openai_client.api_key = self.ai_api_key or "not-needed"
                         self.ai_model = self.settings["ai_model"]
+                        self._refresh_ai_params()
                         if not self.ai_model.strip() and self.settings.get("llama_server_path", "").strip():
                             threading.Thread(target=self._auto_select_model, daemon=True).start()
                         elif self.ai_model.strip():
@@ -730,10 +731,31 @@ class VassApp:
                 continue
         self.audio_handler.stop_stream()
 
+    def _refresh_ai_params(self):
+        """Recompute the sampling profile for the current model (auto, debug-only)."""
+        try:
+            import model_params
+            profile = model_params.refresh()
+            if self.debug_enabled:
+                print(f"[ModelParams] {self.ai_model or '?'}: "
+                      f"temp={profile.get('temperature')} tool={profile.get('temperature_tool')} "
+                      f"top_p={profile.get('top_p')} top_k={profile.get('top_k')} "
+                      f"min_p={profile.get('min_p')} repeat={profile.get('repeat_penalty')} "
+                      f"(family={profile.get('family')}, arch={profile.get('arch') or '?'})")
+        except Exception as e:
+            print(f"[ModelParams] refresh error: {e}")
+
     def _start_mcp_server(self):
+        self._refresh_ai_params()
         from mcp_server import McpServerThread
+        try:
+            import model_capabilities
+            vision = model_capabilities.supports_images()
+        except Exception:
+            vision = False
         self._mcp_thread = McpServerThread(
             allow_scripts=self.allow_ai_scripts,
+            vision_enabled=vision,
             debug=getattr(self, 'debug_enabled', False),
         )
         self._mcp_thread.start()
@@ -1276,7 +1298,7 @@ class VassApp:
             system_content = f"{base}\n\n{date_prefix}{now}".strip()
             vas_ref = _load_vascript_reference()
 
-            mcp, tools = init_mcp(self.mcp_server_url, timeout=10)
+            mcp, tools = init_mcp(self.mcp_server_url, timeout=600)
 
             if not self.allow_ai_scripts and tools:
                 tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
@@ -1333,13 +1355,20 @@ class VassApp:
                 lang = self.language or "en"
                 messages[0]["content"] = _compress_heuristic(messages[0]["content"], lang)
                 messages[1]["content"] = _compress_heuristic(messages[1]["content"], lang)
+            _sampling = {}
+            try:
+                import model_params
+                _sampling = model_params.sampling_kwargs("chat")
+            except Exception:
+                pass
             kwargs = dict(
                 model=self.ai_model,
                 messages=messages,
-                temperature=0.7,
                 max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - (self._count_tokens(json.dumps(tools)) if tools else 0) - 256, max(1024, (self.context_length or 4096) // 2))),
-                extra_body={"disable_thinking": True}
+                extra_body={"disable_thinking": True},
             )
+            kwargs.update({k: v for k, v in _sampling.items() if k != "_extra"})
+            kwargs["extra_body"] = {**kwargs["extra_body"], **(_sampling.get("_extra") or {})}
 
             if tools:
                 kwargs["tools"] = tools
@@ -1765,6 +1794,7 @@ class VassApp:
             self.ai_model = selected
             self.settings["ai_model"] = selected
             self._save_setting("ai", "model", selected)
+            self._refresh_ai_params()
             p_text = f"{params/1e9:.1f}B" if params < float("inf") else "?"
             print(f"[Settings] Auto-selected AI model: {selected} ({p_text} params)")
             from i18n import t

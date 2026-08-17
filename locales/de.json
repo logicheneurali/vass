@@ -1089,6 +1089,39 @@
       "infografik",
       "avatar",
       "grafik"
+    ],
+    "security": [
+      "sicherheit",
+      "schwachstelle",
+      "schwachstellen",
+      "cve",
+      "anomalie",
+      "anomalien",
+      "bedrohung",
+      "bedrohungen",
+      "exploit",
+      "firewall",
+      "defender",
+      "uac",
+      "malware",
+      "antivirus",
+      "offene ports",
+      "system pruefen",
+      "sicherheitspruefung",
+      "patch",
+      "sicherheitsupdate"
+    ],
+    "vision": [
+      "bild bewerten",
+      "bild analysieren",
+      "svg bewerten",
+      "logo bewerten",
+      "logo analysieren",
+      "bild prüfen",
+      "was siehst du",
+      "bild beschreiben",
+      "wie sieht das logo aus",
+      "ergebnis bewerten"
     ]
   },
   "tool_names": {

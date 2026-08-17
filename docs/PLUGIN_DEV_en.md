@@ -92,6 +92,7 @@ All commands have the form:
 | `notify` | `text`, `priority` (default `5`), `data` | Shows a desktop notification. The text is translated as above |
 | `ui_register` | `schema` (see §6) | Registers a declarative UI associated with the plugin |
 | `ui_state` | `values` (dict key→value) | Updates the plugin UI state (polled by the GUI every 1 s) |
+| `confirm_exec` | `title`, `command`, `audit_label` | Shows a GUI consent dialog; executes the command **only after explicit user approval** (audited). Response: `cmd_response` |
 
 ### 4.2 Request/response commands
 

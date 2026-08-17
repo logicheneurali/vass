@@ -310,3 +310,39 @@ tools:
     - ::1
     - localhost
     blacklist: []
+  security_scan:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  security_check_cve:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  security_status:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  security_remediate:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  evaluate_image:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
+  evaluate_svg:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []

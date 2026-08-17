@@ -29,11 +29,13 @@ def _setup_mcp_log():
 
 
 class McpServerThread(threading.Thread):
-    def __init__(self, mcp_port=9988, allow_scripts=False, debug=False):
+    def __init__(self, mcp_port=9988, allow_scripts=False, debug=False,
+                 vision_enabled=False):
         super().__init__(daemon=True, name="mcp-server")
         self._port = mcp_port
         self._allow_scripts = allow_scripts
         self._debug = debug
+        self._vision_enabled = vision_enabled
 
     def run(self):
         _setup_mcp_log()
@@ -53,6 +55,7 @@ class McpServerThread(threading.Thread):
         try:
             config = load_config()
             config.allow_scripts = self._allow_scripts
+            config.vision_enabled = self._vision_enabled
             mcp = create_server(config)
             http_app = mcp.streamable_http_app()
             wrapped = _cors_middleware(_client_ip_middleware(http_app))

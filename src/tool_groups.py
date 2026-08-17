@@ -32,6 +32,8 @@ TOOL_GROUPS = {
     "tags":      ["savetags", "search_tags"],
     "models":    ["model_advice"],
     "image":     ["generate_svg"],
+    "security":  ["security_scan", "security_check_cve", "security_status", "security_remediate"],
+    "vision":    ["evaluate_image", "evaluate_svg"],
 }
 
 TOOL_TO_GROUP = {}
@@ -103,6 +105,22 @@ def _default_keywords():
                         "crea un'immagine", "crea una immagine", "poster",
                         "infografica", "avatar", "grafica", "scena",
                         "immagine vettoriale", "vettoriale"},
+        "security":  {"sicurezza", "vulnerabilita", "vulnerabilità", "cve",
+                        "anomalia", "anomalie", "minaccia", "minacce", "exploit",
+                        "controllo sicurezza", "scansione sicurezza", "postura",
+                        "firewall", "defender", "uac", "malware", "antivirus",
+                        "porta aperta", "porte aperte", "autostart",
+                        "verifica sicurezza", "controlla il sistema",
+                        "falle", "falla", "protezione", "attacco", "patch",
+                        "aggiornamento sicurezza"},
+        "vision":    {"valuta immagine", "valuta immagini", "valuta l'immagine",
+                        "valuta il logo", "analizza immagine", "analizza immagini",
+                        "analizza il logo", "valuta svg", "analizza svg",
+                        "immagine generata", "svg generato", "verifica immagine",
+                        "verifica svg", "controlla immagine", "controlla il logo",
+                        "guarda l'immagine", "guarda il logo", "cosa vedi",
+                        "cosa raffigura", "descrivi immagine", "descrivi il logo",
+                        "come viene il logo", "valuta il risultato"},
     }
 
 

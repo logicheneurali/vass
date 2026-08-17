@@ -88,6 +88,7 @@ Tutti i comandi hanno la forma:
 | `notify` | `text`, `priority` (default `5`), `data` | Mostra una notifica desktop. Il testo viene tradotto come sopra |
 | `ui_register` | `schema` (vedi §6) | Registra un'interfaccia dichiarativa associata al plugin |
 | `ui_state` | `values` (dict chiave→valore) | Aggiorna lo stato della UI del plugin (letto dalla GUI ogni 1 s) |
+| `confirm_exec` | `title`, `command`, `audit_label` | Mostra un dialog di consenso nella GUI; esegue il comando **solo dopo approvazione esplicita dell'utente** (audit log). Risposta: `cmd_response` |
 
 ### 4.2 Comandi request/response
 

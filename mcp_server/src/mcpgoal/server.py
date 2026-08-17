@@ -45,6 +45,12 @@ from mcpgoal.tools.browser import browser_download as _browser_download
 from mcpgoal.tools.browser import browser_back as _browser_back
 from mcpgoal.tools.browser import browser_show as _browser_show
 from mcpgoal.tools.browser import browser_check_auth as _browser_check_auth
+from mcpgoal.tools.security import security_scan as _security_scan
+from mcpgoal.tools.security import security_check_cve as _security_check_cve
+from mcpgoal.tools.security import security_status as _security_status
+from mcpgoal.tools.security import security_remediate as _security_remediate
+from mcpgoal.tools.vision import evaluate_image as _evaluate_image
+from mcpgoal.tools.vision import evaluate_svg as _evaluate_svg
 
 _GET_IDLE = None
 try:
@@ -111,6 +117,12 @@ _TOOL_SYNTAX = {
     "calendar_search": "calendar_search(query) — example: calendar_search('dentist')",
     "timer_start": "timer_start(duration) — example: timer_start('5m') or timer_start('1h30m')",
     "timer_list": "timer_list() — no parameters",
+    "security_scan": "security_scan() — no parameters",
+    "security_check_cve": "security_check_cve(packages_json?) — optional JSON list of packages",
+    "security_status": "security_status() — no parameters",
+    "security_remediate": "security_remediate(item_json) — the issue JSON from security_scan",
+    "evaluate_image": "evaluate_image(path, instruction?) — analyze an image inside Allowed_root",
+    "evaluate_svg": "evaluate_svg(path, instruction?) — render SVG to PNG and analyze it",
 }
 
 
@@ -677,5 +689,58 @@ def create_server(config: ServerConfig) -> FastMCP:
         """Check if logged in by searching for expected text on the page (e.g. 'Dashboard', 'Logout').
         Args: text (text that should be visible after successful login)."""
         return await _tool("browser_check_auth", f"text={text}", _browser_check_auth(text), config)
+
+    @mcp.tool()
+    async def security_scan() -> str:
+        """Run a READ-ONLY local security scan: installed software (registry, pip, npm),
+        open ports, running processes, security posture (Defender, firewall, UAC,
+        autostart, Windows updates) and CVE checks on Python/Node packages
+        (OSV.dev + NVD + CISA KEV). Returns a JSON report. No actions are taken."""
+        return await _tool("security_scan", "",
+                           asyncio.to_thread(_security_scan), config)
+
+    @mcp.tool()
+    async def security_check_cve(packages_json: str = "") -> str:
+        """Check known vulnerabilities (CVE) for local packages. packages_json is an
+        optional JSON list of {name, version, source(pip|npm)}; if empty, checks all
+        installed Python/Node packages. Uses OSV.dev, NVD and CISA KEV. Read-only."""
+        return await _tool("security_check_cve", f"len={len(packages_json)}",
+                           asyncio.to_thread(_security_check_cve, packages_json), config)
+
+    @mcp.tool()
+    async def security_status() -> str:
+        """Return the most recent security scan report (cached by the security monitor).
+        Read-only. If no report exists yet, run security_scan first."""
+        return await _tool("security_status", "",
+                           asyncio.to_thread(_security_status), config)
+
+    @mcp.tool()
+    async def security_remediate(item_json: str) -> str:
+        """Apply the remediation for a security issue previously reported.
+        item_json: the JSON object of the issue as returned by security_scan
+        (must contain 'type'/'sub' or CVE data). The user is asked to confirm before
+        execution; only known-safe remediation commands are used. Denied or unknown
+        issues perform no action."""
+        return await _tool("security_remediate", f"len={len(item_json)}",
+                           asyncio.to_thread(_security_remediate, item_json), config)
+
+    if config.vision_enabled:
+        @mcp.tool()
+        async def evaluate_image(path: str, instruction: str = "") -> str:
+            """Analyze an image file with the vision-capable AI model.
+            path: file inside Allowed_root (e.g. a generated PNG). instruction: what
+            to evaluate (optional, Italian/English). Returns the model's analysis."""
+            return await _tool("evaluate_image", f"path={path[:80]}",
+                               asyncio.to_thread(_evaluate_image, path, instruction),
+                               config)
+
+        @mcp.tool()
+        async def evaluate_svg(path: str, instruction: str = "") -> str:
+            """Render an SVG file to PNG and analyze it with the vision-capable AI
+            model. path: SVG inside Allowed_root (e.g. Allowed_root/private_svg/xxx.svg).
+            instruction: what to evaluate (optional). Returns the model's analysis."""
+            return await _tool("evaluate_svg", f"path={path[:80]}",
+                               asyncio.to_thread(_evaluate_svg, path, instruction),
+                               config)
 
     return mcp

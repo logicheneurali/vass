@@ -357,8 +357,85 @@ class PluginServer(threading.Thread):
                     with self._lock:
                         self._plugin_uis[name]["state"].update(values)
                     print(f"[PluginServer] UI state from '{name}': {list(values.keys())[:6]}")
+            elif cmd == "confirm_exec" and sock:
+                self._confirm_and_exec(msg, sock)
         except Exception as e:
             print(f"[PluginServer] Execute '{cmd}' failed: {e}")
+
+    def _confirm_and_exec(self, msg, sock):
+        """Show a GUI consent dialog for a command proposed by a plugin.
+        Only executes if the user explicitly approves (Yes). Always audited."""
+        title = msg.get("title", "VASS — conferma esecuzione")
+        command = (msg.get("command") or "").strip()
+        label = msg.get("audit_label", "confirm_exec") or "confirm_exec"
+        rid = msg.get("request_id", "")
+
+        def _reply(payload):
+            reply = json.dumps({"type": "cmd_response", "request_id": rid,
+                                **payload}, ensure_ascii=False) + "\n"
+            try:
+                sock.sendall(reply.encode("utf-8"))
+            except Exception:
+                pass
+
+        if not command:
+            _reply({"ok": False, "message": "empty command"})
+            return
+
+        app = self._app
+        gui = getattr(app, "gui", None) if app else None
+        if gui is None or not hasattr(gui, "schedule_signal"):
+            _reply({"ok": False, "message": "GUI unavailable"})
+            return
+
+        result = {"ok": False}
+        done = threading.Event()
+
+        def _ask():
+            from PySide6.QtWidgets import QMessageBox
+            box = QMessageBox()
+            box.setWindowTitle(title)
+            box.setText(f"{command}")
+            box.setInformativeText(
+                "Confermi di eseguire questo comando sul tuo sistema?")
+            box.setStandardButtons(QMessageBox.StandardButton.Yes
+                                   | QMessageBox.StandardButton.No)
+            box.setDefaultButton(QMessageBox.StandardButton.No)
+            result["ok"] = box.exec() == QMessageBox.StandardButton.Yes
+            done.set()
+
+        gui.schedule_signal.emit(_ask)
+        done.wait(timeout=120)
+
+        if not result["ok"]:
+            try:
+                from tool_auth import audit
+                audit(label, command, "denied")
+            except Exception:
+                pass
+            _reply({"ok": False, "message": "cancelled by user"})
+            return
+
+        try:
+            from tool_auth import audit
+            audit(label, command, "ok")
+        except Exception:
+            pass
+
+        rc, out, err = 0, "", ""
+        try:
+            r = subprocess.run(command, shell=True, capture_output=True, text=True,
+                               timeout=600,
+                               creationflags=subprocess.CREATE_NO_WINDOW
+                               if sys.platform == "win32" else 0)
+            rc = r.returncode
+            out = r.stdout or ""
+            err = r.stderr or ""
+        except Exception as e:
+            rc = -1
+            err = str(e)
+        _reply({"ok": rc == 0, "exit_code": rc,
+                "output": (out or err or "")[-800:]})
 
     def _maybe_translate(self, text):
         """Translate text if app language is not English."""

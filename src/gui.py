@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from theme import BG, BTN_BG, BTN_FG, LABEL_FG, BTN_DEL_BG, BTN_DEL_FG, ENTRY_BG, DESCRIPTION_FG, FRAME_BORDER, FG, BASE_STYLESHEET
 from activity_tracker import get_tracker, CATEGORY_COLORS
 from icons import icon, icon_dual, pixmap
+from smooth_scroll import SmoothScrollArea
 
 BASE = get_project_root()
 SRC = os.path.join(BASE, "src")
@@ -541,7 +542,7 @@ class InfoPanel(QFrame):
         self._user_opened = False
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
-        self._timer.timeout.connect(self.hide)
+        self._timer.timeout.connect(self._auto_close)
         self._parent_window = None
 
         self._layout = QVBoxLayout(self)
@@ -591,7 +592,7 @@ class InfoPanel(QFrame):
         self._tab_row.addWidget(close_btn)
         self._layout.addLayout(self._tab_row)
 
-        self._scroll = QScrollArea()
+        self._scroll = SmoothScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
@@ -705,6 +706,7 @@ class InfoPanel(QFrame):
     def _switch_tab(self, tab):
         self._tab = tab
         self._build_toolbar(tab)
+        self._mark_btn.setText(self._t("gui.mark_all_read"))
         self._mark_btn.setVisible(tab in ("all", "notifications", "other") or tab not in ("links", "ai"))
         if tab == "links":
             self._build_links()
@@ -713,11 +715,26 @@ class InfoPanel(QFrame):
         else:
             filter_type = "all" if tab in ("all", "notifications") else tab
             self._build_notifications(filter_type)
-        self._scroll.verticalScrollBar().setValue(0)
+        # Scroll to top: animate only when visible and after the layout has settled;
+        # otherwise reset instantly (panel not yet shown / content freshly built).
+        if self.isVisible():
+            QTimer.singleShot(0, lambda: self._scroll.animate_to(0))
+        else:
+            self._scroll.verticalScrollBar().setValue(0)
 
     def _reset_timer(self):
         if self.isVisible() and not self._user_opened:
             self._timer.start(30000)
+
+    def _auto_close(self):
+        """Auto-close only panels the app opened (never user-opened ones)."""
+        if not self._user_opened:
+            self._close_panel()
+
+    def hide_if_auto(self):
+        """Hide unless the user opened the panel manually."""
+        if not self._user_opened:
+            self._close_panel()
 
     def _close_panel(self):
         self._user_opened = False
@@ -739,7 +756,9 @@ class InfoPanel(QFrame):
         self._position(parent_window)
         self.show()
         self.raise_()
-        if not user_opened:
+        if user_opened:
+            self._timer.stop()
+        else:
             self._timer.start(30000)
 
     def set_links(self, urls, parent_window, files=None):
@@ -765,7 +784,8 @@ class InfoPanel(QFrame):
         self._position(parent_window)
         self.show()
         self.raise_()
-        self._timer.start(30000)
+        if not self._user_opened:
+            self._timer.start(30000)
 
     def _clear_scroll(self):
         while self._scroll_layout.count():
@@ -924,6 +944,7 @@ class InfoPanel(QFrame):
             filter_type = "all" if self._tab in ("all", "notifications") else self._tab
             scroll_val = self._scroll.verticalScrollBar().value()
             self._build_notifications(filter_type)
+            self._scroll.stop_animation()
             self._scroll.verticalScrollBar().setValue(scroll_val)
 
     def _run_action(self, action, item):
@@ -966,7 +987,7 @@ class InfoPanel(QFrame):
             self._nm.mark_all_read()
             if hasattr(self, '_update_bell_cb') and self._update_bell_cb:
                 self._update_bell_cb()
-            self.hide()
+            self._close_panel()
 
     def _build_ai_responses(self):
         self._clear_scroll()
@@ -1004,8 +1025,7 @@ class InfoPanel(QFrame):
             last = container
         self._scroll_layout.addStretch()
         if last:
-            QTimer.singleShot(0, lambda c=last: self._scroll.verticalScrollBar().setValue(
-                c.mapTo(self._scroll_widget, QPoint(0, 0)).y()))
+            QTimer.singleShot(0, lambda c=last: self._scroll.scroll_to_widget(c))
 
     def _copy_text(self, text):
         QApplication.clipboard().setText(text)
@@ -1225,6 +1245,10 @@ class VassGUI(QMainWindow):
         self._tool_indicator.setIconSize(QSize(16, 16))
         self._tool_indicator.setVisible(False)
         self._tool_indicator.setToolTip("")
+        self._tool_indicator.setStyleSheet(
+            "QPushButton { background-color: transparent; border: none; padding: 0; }"
+            "QPushButton:hover { background-color: rgba(255,255,255,0.08); }"
+        )
         row.addWidget(self._tool_indicator)
         self._left_side.append(self._tool_indicator)
 
@@ -1798,8 +1822,9 @@ class VassGUI(QMainWindow):
             "QPushButton:hover { color: %s; }"
             % (text_color, QColor(text_color).lighter(130).name())
         )
-        if state == "listening":
+        if state in ("listening", "paused"):
             self.hide_tool_indicator()
+        if state == "listening":
             self.hide_link_panel()
         if not self._compact_mode:
             self.stacked.setCurrentWidget(self.btn)
@@ -2588,7 +2613,13 @@ class VassGUI(QMainWindow):
             title = (schema.get(f"title_{self.language}")
                      or schema.get("title") or name)
             action = self._plugins_ui_menu.addAction(title)
-            action.triggered.connect(lambda checked=False, n=name: self._open_plugin_ui(n))
+            if schema.get("launcher"):
+                # One-click plugins: send the action directly, no dialog window
+                action.triggered.connect(
+                    lambda checked=False, n=name, s=server:
+                        s.send_ui_action(n, {"key": "open", "event": "button"}))
+            else:
+                action.triggered.connect(lambda checked=False, n=name: self._open_plugin_ui(n))
 
     def _open_plugin_ui(self, name):
         if not self.app or not hasattr(self.app, '_plugin_server'):
@@ -2830,6 +2861,9 @@ class VassGUI(QMainWindow):
         "model_advice": "#00bcd4", "generate_svg": "#e67e22",
         "readinfo": "#f1c40f", "read_info": "#f1c40f", "writeinfo": "#f1c40f", "write_info": "#f1c40f", "savetags": "#ff5722", "save_tags": "#ff5722",
         "getidle": "#95a5a6", "get_idle": "#95a5a6",
+        "security_scan": "#e74c3c", "security_check_cve": "#e74c3c",
+        "security_status": "#e74c3c", "security_remediate": "#c0392b",
+        "evaluate_image": "#8e44ad", "evaluate_svg": "#8e44ad",
     }
     _TOOL_ICONS = {
         "browse": "globe", "webfetch": "globe", "websearch": "globe",
@@ -2857,6 +2891,9 @@ class VassGUI(QMainWindow):
         "browser_open": "globe", "browser_read": "globe", "browser_click": "globe",
         "browser_fill": "globe", "browser_submit": "globe", "browser_download": "globe",
         "browser_back": "globe", "browser_show": "globe", "browser_check_auth": "globe",
+        "security_scan": "key", "security_check_cve": "key",
+        "security_status": "key", "security_remediate": "key",
+        "evaluate_image": "eye", "evaluate_svg": "eye",
     }
 
     def show_tool_indicator(self, tool_name):
@@ -2888,7 +2925,7 @@ class VassGUI(QMainWindow):
                 lambda urls=clean, f=file_paths: self._link_panel.set_links(urls, self, f))
 
     def hide_link_panel(self):
-        self.schedule_signal.emit(lambda: self._link_panel.hide())
+        self.schedule_signal.emit(lambda: self._link_panel.hide_if_auto())
 
     def show_ai_responses(self):
         if not self.app:
@@ -2900,16 +2937,20 @@ class VassGUI(QMainWindow):
     def _show_info_panel(self, tab="all"):
         if not self.app:
             return
-        if self._link_panel.isVisible() and self._link_panel._tab == tab:
-            self._link_panel.hide()
+        lp = self._link_panel
+        # Bell click toggles OFF only a panel the user opened on this same tab.
+        # An auto-opened panel is never closed by the bell: it gets upgraded to
+        # a manual (sticky) open, so it can no longer auto-close.
+        if lp.isVisible() and lp._user_opened and lp._tab == tab:
+            lp._close_panel()
             return
         nm = self.app.notification_manager
         self.schedule_signal.emit(lambda: (
-            setattr(self._link_panel, '_t', self._t),
-            setattr(self._link_panel, '_nm', nm),
-            setattr(self._link_panel, '_update_bell_cb', self._update_bell),
-            setattr(self._link_panel, '_open_queue_cb', lambda qid: self.open_mail_queue_with_id(qid)),
-            self._link_panel.show_panel(tab, self, user_opened=True)
+            setattr(lp, '_t', self._t),
+            setattr(lp, '_nm', nm),
+            setattr(lp, '_update_bell_cb', self._update_bell),
+            setattr(lp, '_open_queue_cb', lambda qid: self.open_mail_queue_with_id(qid)),
+            lp.show_panel(tab, self, user_opened=True)
         ))
 
     def set_mcp_status(self, ok):

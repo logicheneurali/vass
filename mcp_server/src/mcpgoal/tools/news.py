@@ -61,7 +61,7 @@ async def search_news(keywords: str) -> str:
     """Search world events by keywords across all dates.
     Use for questions like 'find news about climate', 'cerca notizie su elezioni', 'what happened with X'.
     Args:
-        keywords: space-separated keywords to search in titles, summaries, and categories
+        keywords: space-separated keywords to search in titles, summaries, categories, and per-category summaries
     Returns JSON with matching articles sorted by date (newest first).
     """
     data = _load_events()
@@ -89,6 +89,24 @@ async def search_news(keywords: str) -> str:
                     "significance": art.get("significance", ""),
                     "summary": art.get("summary", ""),
                     "link": art.get("link", ""),
+                })
+        # Days whose articles were cleaned up still carry per-category summaries
+        for cs in day.get("category_summaries", []):
+            text = (
+                (cs.get("summary", "") + " " +
+                 cs.get("category", "")).lower()
+            )
+            if any(t in text for t in terms):
+                links = cs.get("links") or []
+                matches.append({
+                    "date": d,
+                    "title": f"{cs.get('category', 'other').capitalize()} — day summary",
+                    "source": "world events archive",
+                    "category": cs.get("category", "other"),
+                    "location": "",
+                    "significance": "archive",
+                    "summary": cs.get("summary", ""),
+                    "link": links[0] if links else "",
                 })
 
     if not matches:

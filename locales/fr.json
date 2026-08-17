@@ -1093,6 +1093,41 @@
       "infographie",
       "avatar",
       "graphique"
+    ],
+    "security": [
+      "securite",
+      "vulnerabilite",
+      "vulnerabilites",
+      "cve",
+      "anomalie",
+      "anomalies",
+      "menace",
+      "menaces",
+      "exploit",
+      "pare-feu",
+      "firewall",
+      "defender",
+      "uac",
+      "malware",
+      "antivirus",
+      "ports ouverts",
+      "verifier le systeme",
+      "controle de securite",
+      "patch",
+      "mise a jour securite"
+    ],
+    "vision": [
+      "évaluer l'image",
+      "analyser l'image",
+      "évaluer le logo",
+      "analyser le logo",
+      "évaluer svg",
+      "vérifier l'image",
+      "vérifier le logo",
+      "que vois-tu",
+      "décris l'image",
+      "à quoi ressemble le logo",
+      "évaluer le résultat"
     ]
   },
   "tool_names": {

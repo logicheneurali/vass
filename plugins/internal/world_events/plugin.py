@@ -640,12 +640,16 @@ class WorldEventsPlugin:
         events = data.get("events", {})
         for d in list(events):
             if d < cutoff:
-                # Keep summary as historical record, clear heavy fields
+                # Keep summary + per-category summaries as historical record,
+                # clear heavy article fields
                 day = events[d]
                 events[d] = {
                     "summary": day.get("summary", ""),
                     "articles": [],
                     "categories": [],
+                    "category_summaries": day.get("category_summaries", []),
+                    "finalized": day.get("finalized", False),
+                    "cat_finalized": day.get("cat_finalized", False),
                 }
         data["events"] = events
         return data
@@ -674,10 +678,35 @@ class WorldEventsPlugin:
 
 Rewrite the FINAL day summary: coherent, readable, no repetitions. The same story mentioned multiple times = a single mention. Group related events by theme, order by importance. Maximum 4 short paragraphs. Use ONLY facts present in the text above, do not invent anything. Respond ONLY with the summary: no preamble, no JSON, no code fences."""
 
+    _CATEGORY_SUMMARIES_PROMPT = """You are a news editor producing a PER-CATEGORY summary of the world events of {day}.
+
+Below are the day's articles, each with category, significance and a short summary. Produce one concise summary PER CATEGORY that has content, plus at most 2 reference links per category (the most significant articles' links).
+
+Return ONLY valid JSON, no other text, in this exact structure:
+{{
+  "categories": [
+    {{"category": "politics", "summary": "2-3 sentences covering the key political events of the day", "links": ["https://...", "https://..."]}},
+    {{"category": "technology", "summary": "...", "links": ["https://..."]}}
+  ]
+}}
+
+Rules:
+- Include ONLY categories that have actual content (no empty categories).
+- Each summary: 2-3 sentences, factual, in the same language as the articles.
+- links: up to 2 URLs of the most significant articles for that category (empty array if none).
+- Do NOT invent links: use only links present in the input below.
+- Keep it concise; the whole JSON must stay under 4000 characters.
+
+--- ARTICLES OF {day} ---
+{articles}
+"""
+
     def _finalize_summaries(self, data, today):
         """Rewrite the summary of every past day (d < today) that has no
         'finalized' flag. Input is ONLY the accumulated raw summary — no article
-        re-processing. The new summary REPLACES the old one."""
+        re-processing. The new summary REPLACES the old one.
+        Also builds per-category summaries (category_summaries) for every past
+        day that still has articles and lacks a 'cat_finalized' flag."""
         events = data.get("events", {})
         days = sorted(d for d in events if d < today and not events[d].get("finalized"))
         for day in days:
@@ -698,6 +727,74 @@ Rewrite the FINAL day summary: coherent, readable, no repetitions. The same stor
             data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
             self._save_data(data)
             _log(f" Finalize {day}: {len(summary)} -> {len(new_summary)} chars (saved)")
+
+        # Per-category summaries: any past day with articles but no cat_finalized
+        cat_days = sorted(
+            d for d in events
+            if d < today and events[d].get("articles")
+            and not events[d].get("cat_finalized"))
+        for day in cat_days:
+            arts = events[day].get("articles", [])
+            _log(f" Building per-category summaries for {day} ({len(arts)} articles)")
+            summary_text = self._build_category_summaries(day, arts)
+            if summary_text is None:
+                _log(f" Category summaries {day}: AI error/timeout, will retry next cycle")
+                continue
+            events[day]["category_summaries"] = summary_text
+            events[day]["cat_finalized"] = True
+            data["events"] = events
+            data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+            self._save_data(data)
+            _log(f" Category summaries {day}: {len(summary_text)} categories (saved)")
+
+    def _build_category_summaries(self, day, articles):
+        """Ask AI for per-category summaries. Returns a list of
+        {"category", "summary", "links"} or None on failure."""
+        # Keep the most significant articles per category to bound the prompt
+        from collections import OrderedDict
+        per_cat = OrderedDict()
+        for a in articles:
+            cat = a.get("category") or "other"
+            per_cat.setdefault(cat, []).append(a)
+        sig_order = {"high": 0, "medium": 1, "low": 2}
+        selected = []
+        for cat, arts in per_cat.items():
+            arts.sort(key=lambda a: sig_order.get(a.get("significance"), 3))
+            for a in arts[:4]:
+                selected.append({
+                    "category": cat,
+                    "significance": a.get("significance", "low"),
+                    "title": a.get("title", ""),
+                    "summary": (a.get("summary") or "")[:300],
+                    "link": a.get("link", ""),
+                })
+        if not selected:
+            return []
+        lines = json.dumps(selected, ensure_ascii=False, indent=1)
+        prompt = self._CATEGORY_SUMMARIES_PROMPT.format(day=day, articles=lines[:12000])
+        result = self._call_ai(prompt, parse_json=True, max_tokens=4096)
+        if not result or not isinstance(result, dict):
+            return None
+        cats = result.get("categories")
+        if not isinstance(cats, list):
+            return None
+        out = []
+        for c in cats:
+            if not isinstance(c, dict):
+                continue
+            category = str(c.get("category", "")).strip()
+            summary = str(c.get("summary", "")).strip()
+            if not category or not summary:
+                continue
+            links = c.get("links") or []
+            if not isinstance(links, list):
+                links = []
+            out.append({
+                "category": category,
+                "summary": summary,
+                "links": [str(l) for l in links if isinstance(l, str)][:2],
+            })
+        return out if out else None
 
     @staticmethod
     def _resolve_root():

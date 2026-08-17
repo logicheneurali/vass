@@ -28,6 +28,7 @@ _MIN_INTERVAL = 1.0
 SENSITIVE_TOOLS = {
     "browser_click", "browser_fill", "browser_submit", "browser_download",
     "send_email", "reply_email", "forward_email",
+    "security_remediate",
 }
 
 ONLINE_TOOLS = {
@@ -35,6 +36,7 @@ ONLINE_TOOLS = {
     "browser_open", "browser_read", "browser_click", "browser_fill",
     "browser_submit", "browser_download", "browser_back", "browser_show",
     "browser_check_auth",
+    "security_scan", "security_check_cve", "security_status",
 }
 
 
