@@ -396,6 +396,7 @@
   },
   "events": {
     "reminder_message": "Reminder: {description} at {time}",
+    "event_created": "Event added: {description} on {date} at {time}",
     "time_refs": {
       "expired": "expired",
       "in": "in",

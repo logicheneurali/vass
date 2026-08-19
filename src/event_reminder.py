@@ -40,6 +40,7 @@ class EventReminder:
         self._next_schedules = []
         self._alerted_schedules = set()
         self._last_schedule_mtime = 0
+        self._seen_events = None  # set of (date, time, description) seen so far
 
     def _log(self, msg):
         if getattr(self.app, 'debug_enabled', False):
@@ -543,6 +544,7 @@ class EventReminder:
                         self._last_mtime = mtime
                         self._calculate_next_alert()
                         self._classify_new_events()
+                        self._notify_new_events()
                         print(f"[Events] File changed, recalculated")
 
                 if os.path.exists(schedules_path):
@@ -592,6 +594,52 @@ class EventReminder:
                     json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"[EventReminder] classify_new_events error: {e}")
+
+    def _notify_new_events(self):
+        """Notify whenever events.json gains genuinely new events (independent of
+        the AI). Identity is the stable event 'id' — recurring reminders change
+        date/time/name on each fire, so those fields are NOT used for detection.
+        The first load records the baseline; subsequent changes notify."""
+        try:
+            events = self._load_events()
+
+            def _identity(ev):
+                eid = ev.get("id")
+                if eid:
+                    return ("id", eid)
+                # Legacy events without an id: fall back to the full triple.
+                return ("legacy", ev.get("date", ""), ev.get("time", ""),
+                        ev.get("description", ""))
+
+            current = {_identity(ev) for ev in events}
+            if self._seen_events is None:
+                self._seen_events = set(current)
+                return
+            new_events = current - self._seen_events
+            self._seen_events = set(current)
+            if not new_events:
+                return
+            # Map identities back to event objects for the message.
+            by_id = {_identity(ev): ev for ev in events}
+            for ident in sorted(new_events):
+                ev = by_id.get(ident)
+                if not ev:
+                    continue
+                desc = ev.get("description", "")
+                date = ev.get("date", "")
+                time_str = ev.get("time", "")
+                try:
+                    from i18n import t
+                    msg = t("events.event_created", self.lang).format(
+                        description=desc, date=date, time=time_str)
+                except Exception:
+                    msg = f"Event added: {desc} on {date} at {time_str}"
+                print(f"[Events] New event detected: {desc} ({date} {time_str})")
+                self._emit("event_reminder", msg, priority=6,
+                           data={"type": "event"}, with_notification=True,
+                           silent=True)
+        except Exception as e:
+            print(f"[EventReminder] notify_new_events error: {e}")
 
     def _process_events(self):
         if not self._next_alert_ts or time.time() < self._next_alert_ts:

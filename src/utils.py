@@ -449,7 +449,29 @@ def call_with_retry(fn, retries=4, delays=(1, 2, 4, 8), log_prefix="[AI]"):
             time.sleep(delay)
 
 
-def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=None, log_prefix="[AI]", gui=None, context_limit=0, file_links=None):
+class UsageCollector:
+    """Accumulate prompt/completion token usage across multiple AI calls."""
+
+    def __init__(self):
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
+        self.calls = 0
+
+    def add(self, usage):
+        if not usage:
+            return
+        try:
+            self.prompt_tokens += int(getattr(usage, "prompt_tokens", 0) or 0)
+            self.completion_tokens += int(getattr(usage, "completion_tokens", 0) or 0)
+            self.calls += 1
+        except Exception:
+            pass
+
+    def total(self):
+        return self.prompt_tokens + self.completion_tokens
+
+
+def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=None, log_prefix="[AI]", gui=None, context_limit=0, file_links=None, usage=None):
     if not (msg.tool_calls and mcp and tools):
         return msg
 
@@ -601,6 +623,8 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             extra_body={**({"disable_thinking": False}),
                         **(_sampling.get("_extra") if _sampling else {})}
         ), log_prefix=log_prefix)
+        if usage is not None:
+            usage.add(getattr(resp, "usage", None))
         msg = resp.choices[0].message
         if not msg.tool_calls:
             break

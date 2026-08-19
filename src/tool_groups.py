@@ -310,7 +310,7 @@ def select_tool_groups(prompt, lang="it"):
     return result
 
 
-def select_tool_groups_ai(prompt, tools, openai_client, model):
+def select_tool_groups_ai(prompt, tools, openai_client, model, usage=None):
     """Ask AI which tools it needs. Returns set of group names. Falls back to empty set."""
     if not openai_client or not model:
         return set()
@@ -334,6 +334,8 @@ def select_tool_groups_ai(prompt, tools, openai_client, model):
             extra_body={"disable_thinking": True},
         )
         text = resp.choices[0].message.content.lower()
+        if usage is not None:
+            usage.add(getattr(resp, "usage", None))
         requested = {t.strip() for t in text.split(",") if t.strip() and t.strip() != "none"}
         groups = {TOOL_TO_GROUP[t] for t in requested if t in TOOL_TO_GROUP}
         if groups:

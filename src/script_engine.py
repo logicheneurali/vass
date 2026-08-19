@@ -1873,11 +1873,8 @@ class VASScript:
         cached = self._get_cached_weather(cache_key)
         if cached is not None:
             return cached
-        try:
-            result = self._weather_wttr(location)
-            return self._cache_and_return_weather(cache_key, result)
-        except Exception as e:
-            print(f"[Weather] wttr.in failed: {e}")
+        # Prefer coordinate-based sources (Open-Meteo, met.no): more reliable
+        # than wttr.in, which can return stale/wrong data while still succeeding.
         coords = self._resolve_coordinates(location) if location.strip() else None
         if coords:
             lat, lon, _ = coords
@@ -1891,7 +1888,12 @@ class VASScript:
                 return self._cache_and_return_weather(cache_key, result)
             except Exception as e:
                 print(f"[Weather] met.no failed: {e}")
-        elif not location.strip():
+        try:
+            result = self._weather_wttr(location)
+            return self._cache_and_return_weather(cache_key, result)
+        except Exception as e:
+            print(f"[Weather] wttr.in failed: {e}")
+        if not coords and not location.strip():
             return '{"error": "wttr.in auto-location failed, no geonames fallback available"}'
         return '{"error": "all weather sources failed"}'
 

@@ -51,7 +51,7 @@ from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts, log_exc
+from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts, log_exc, UsageCollector
 from activity_tracker import get_tracker
 from gui import VassGUI
 from i18n import t
@@ -425,17 +425,19 @@ class VassApp:
                     mtime = os.path.getmtime(abs_path)
                     if mtime != last_mtime:
                         last_mtime = mtime
+                        old_model = self.ai_model
                         self.settings = self._load_settings()
                         self.command_executor.similarity_threshold = self.settings["command_similarity"]
                         self.command_executor.word_learning_enabled = self.settings.get("word_learning_enabled", False)
                         self.ai_api_key = self.settings.get("api_key", "")
                         self.openai_client.api_key = self.ai_api_key or "not-needed"
                         self.ai_model = self.settings["ai_model"]
-                        self._refresh_ai_params()
-                        if not self.ai_model.strip() and self.settings.get("llama_server_path", "").strip():
-                            threading.Thread(target=self._auto_select_model, daemon=True).start()
-                        elif self.ai_model.strip():
-                            threading.Thread(target=self._verify_model_and_autoselect, daemon=True).start()
+                        if self.ai_model != old_model:
+                            self._refresh_ai_params()
+                            if not self.ai_model.strip() and self.settings.get("llama_server_path", "").strip():
+                                threading.Thread(target=self._auto_select_model, daemon=True).start()
+                            elif self.ai_model.strip():
+                                threading.Thread(target=self._verify_model_and_autoselect, daemon=True).start()
                         old_url = self.ai_url
                         self.ai_url = self.settings["ai_url"]
                         self.system_message = self.settings.get("system_message", "")
@@ -1292,6 +1294,9 @@ class VassApp:
         self._ai_lock.acquire()
         tracker = get_tracker(); tracker.start("AI query", "ai")
         try:
+            metrics = UsageCollector()
+            _t_start = None
+            _t_end = None
             now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
             base = self.system_message or ""
             date_prefix = t("ai.date_prefix", self.language)
@@ -1305,7 +1310,7 @@ class VassApp:
 
             import tool_groups
             kw_groups = tool_groups.select_tool_groups(prompt, self.language)
-            ai_groups = tool_groups.select_tool_groups_ai(prompt, tools, self.openai_client, self.ai_model)
+            ai_groups = tool_groups.select_tool_groups_ai(prompt, tools, self.openai_client, self.ai_model, usage=metrics)
             groups = ai_groups | kw_groups
             tools = tool_groups.resolve_tool_names(groups, tools,
                                                     getattr(self, 'debug_enabled', False))
@@ -1422,9 +1427,12 @@ class VassApp:
             CPS = 0.0
             MIN_SECS_LENGTH = 5.0
             _stream_start = time.time()
+            _t_start = _stream_start
             # total_enqueued = 0
             
             for chunk in stream:
+                if chunk.usage:
+                    metrics.add(chunk.usage)
                 if not chunk.choices:
                     continue
                 delta = chunk.choices[0].delta
@@ -1501,6 +1509,8 @@ class VassApp:
                             lambda: self.openai_client.chat.completions.create(**kwargs),
                             log_prefix="[Stream Retry]")
                         for chunk2 in stream2:
+                            if chunk2.usage:
+                                metrics.add(chunk2.usage)
                             if not chunk2.choices:
                                 continue
                             d2 = chunk2.choices[0].delta
@@ -1560,11 +1570,13 @@ class VassApp:
                 pseudo_msg = type("", (), {"tool_calls": tool_calls_list, "content": None})()
                 msg = execute_mcp_tool_calls(messages, pseudo_msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui,
                                              context_limit=self.context_length or 32768,
-                                             file_links=file_links)
+                                             file_links=file_links,
+                                             usage=metrics)
                 ai_response = msg.content or ""
                 response_from_tool_calls = True
 
             ai_response = strip_think_tags(ai_response)
+            _t_end = time.time()
 
             self._consume_remote_reply(strip_markdown(ai_response) or "")
 
@@ -1670,6 +1682,18 @@ class VassApp:
         finally:
             self._ai_lock.release()
             tracker.end("AI query")
+            try:
+                _elapsed = (_t_end if _t_end else time.time()) - (_t_start if _t_start else time.time())
+                _total = metrics.prompt_tokens + metrics.completion_tokens
+                if _total > 0:
+                    _tok_s = metrics.completion_tokens / _elapsed if _elapsed > 0 else 0.0
+                    print(f"[AI-Stats] model={self.ai_model} prompt={metrics.prompt_tokens} "
+                          f"completion={metrics.completion_tokens} total={_total} "
+                          f"sec={_elapsed:.1f} tok/s={_tok_s:.1f}")
+                else:
+                    print(f"[AI-Stats] model={self.ai_model} usage unavailable")
+            except Exception:
+                pass
 
     def inject_context(self, text):
         self.context_notes.append(text.strip())

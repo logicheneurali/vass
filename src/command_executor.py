@@ -6,6 +6,7 @@ import difflib
 import json
 import math
 import re
+import time
 from urllib.parse import quote
 from utils import fuzzy_ratio
 
@@ -142,16 +143,71 @@ class CommandExecutor:
                 self._word_weights = json.load(f)
         except Exception:
             self._word_weights = {}
+        if self._prune_word_weights():
+            self._save_word_weights()
 
     def _save_word_weights(self):
         if not self.word_learning_enabled:
             return
+        self._prune_word_weights()
         try:
             os.makedirs(os.path.dirname(self._weights_file()), exist_ok=True)
             with open(self._weights_file(), "w", encoding="utf-8") as f:
                 json.dump(self._word_weights, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
+
+    # Pruning thresholds (automatic, bounded growth of word_weights.json)
+    _PRUNE_MAX_ENTRIES = 500          # hard cap on total entries
+    _PRUNE_OLD_DAYS = 60              # entries older than this are "stale"
+    _PRUNE_MIN_USAGE = 3              # stale + used no more than this -> drop
+    _PRUNE_FAIL_DAYS = 180            # entries older than this are "aged"
+    _PRUNE_FAIL_RATE = 0.5            # aged + success rate below this -> drop
+
+    def _prune_word_weights(self):
+        """Drop stale/aged/irrelevant entries. Returns number of removals."""
+        if not self._word_weights:
+            return 0
+        now = time.time()
+        removed = 0
+
+        def _drop(word):
+            nonlocal removed
+            self._word_weights.pop(word, None)
+            removed += 1
+
+        for word, entry in list(self._word_weights.items()):
+            if not isinstance(entry, dict):
+                continue
+            usage = entry.get("success", 0) + entry.get("fail", 0)
+            last_used = entry.get("last_used")
+            if last_used is None:
+                # Legacy entries predate the timestamp: keep only useful ones
+                # (they get a timestamp on their next outcome).
+                if usage <= self._PRUNE_MIN_USAGE:
+                    _drop(word)
+                continue
+            age_days = (now - last_used) / 86400.0
+            if age_days > self._PRUNE_FAIL_DAYS:
+                sr = entry.get("success", 0) / max(usage, 1)
+                if sr < self._PRUNE_FAIL_RATE:
+                    _drop(word)
+                    continue
+            if age_days > self._PRUNE_OLD_DAYS and usage <= self._PRUNE_MIN_USAGE:
+                _drop(word)
+
+        if len(self._word_weights) > self._PRUNE_MAX_ENTRIES:
+            ranked = sorted(self._word_weights.items(),
+                            key=lambda x: x[1].get("weight", 1.0), reverse=True)
+            keep = set(w for w, _ in ranked[:self._PRUNE_MAX_ENTRIES])
+            for word in list(self._word_weights.keys()):
+                if word not in keep:
+                    _drop(word)
+
+        if removed:
+            print(f"[WordWeights] Pruned {removed} entries "
+                  f"({len(self._word_weights)} remaining)")
+        return removed
 
     def track_command_outcome(self, transcribed_text, success):
         if not self.word_learning_enabled or not transcribed_text:
@@ -168,6 +224,7 @@ class CommandExecutor:
             usage = entry["success"] + entry["fail"]
             sr = (entry["success"] + 1) / (entry["fail"] + 1)
             entry["weight"] = round(sr * (1 + math.log(usage + 1) * 0.1), 4)
+            entry["last_used"] = int(time.time())
             self._word_weights[w] = entry
         self._save_word_weights()
 

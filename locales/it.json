@@ -396,6 +396,7 @@
   },
   "events": {
     "reminder_message": "Promemoria: {description} alle {time}",
+    "event_created": "Evento aggiunto: {description} il {date} alle {time}",
     "time_refs": {
       "expired": "scaduto",
       "in": "tra",
