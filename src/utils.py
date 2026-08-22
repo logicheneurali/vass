@@ -506,7 +506,11 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
 
     def _trim_for_context():
         """Estimate prompt tokens (chars/3, conservative for non-OpenAI tokenizers)
-        and truncate oversized tool results so the request fits context_limit."""
+        and truncate oversized tool results so the request fits context_limit.
+
+        Trims to an absolute budget shared across tool messages, not a fixed
+        1/3 of each message, so even a single huge result (e.g. a 90-day news
+        range) is cut down to fit the model's real context window."""
         if context_limit <= 0:
             return
         budget = int(context_limit * 0.85)
@@ -517,16 +521,23 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
         tool_msgs = [m for m in messages
                      if m.get("role") == "tool" and isinstance(m.get("content"), str)
                      and len(m["content"]) > 600]
+        if not tool_msgs:
+            return
+        # Per-message budget: split the context budget across the tool messages.
+        per_msg = max(1200, budget // max(1, len(tool_msgs)))
         tool_msgs.sort(key=lambda m: len(m["content"]), reverse=True)
         for m in tool_msgs:
+            c = m["content"]
+            if len(c) <= per_msg:
+                continue
+            keep = max(400, per_msg // 2)
+            m["content"] = c[:keep] + "\n...[risultato troncato per contesto]...\n" + c[-keep // 2:]
+            total -= max(0, (len(c) - len(m["content"])) // 3)
             if total + 1024 <= budget:
                 break
-            c = m["content"]
-            keep = max(600, len(c) // 3)
-            m["content"] = c[:keep] + "\n...[risultato troncato per contesto]...\n" + c[-keep // 2:]
-            total -= (len(c) - len(m["content"]))
         if total + 1024 > budget:
-            print(f"[AI] Context guard: still {total} est tokens after truncation")
+            print(f"[AI] Context guard: still {total} est tokens after truncation "
+                  f"(budget {budget})")
 
     MAX_TURNS = 10
     _seen_paths = set()
@@ -557,6 +568,20 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             if out is None:
                 try:
                     args = json.loads(tc.function.arguments)
+                    # Bound tools to a fraction of the model context so huge
+                    # results (e.g. a 90-day news range) never overflow the
+                    # window. Dynamic: only tools that declare max_chars in
+                    # their schema receive it — no hardcoded tool list.
+                    tool_def = next((t for t in tools
+                                     if t.get("function", {}).get("name") == tool_name),
+                                    None)
+                    if tool_def is not None:
+                        schema = (tool_def.get("function", {}).get("parameters") or {})
+                        props = schema.get("properties", {}) if isinstance(schema, dict) else {}
+                        if "max_chars" in props:
+                            args.setdefault(
+                                "max_chars",
+                                max(8000, int((context_limit or 4096) * 2)))
                     result = mcp.call_tool(tc.function.name, args)
                     print(f"[MCP] Result: {tool_name} -> {str(result)[:200]}")
                     if isinstance(result, dict) and isinstance(result.get("content"), list):
@@ -576,6 +601,13 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
                         audit(tool_name, tool_args, f"error: {e}")
                     except Exception:
                         pass
+            # Trim BEFORE appending so a single oversized tool result never
+            # enters the conversation at full size.
+            if context_limit > 0 and isinstance(out, str) and len(out) > 20000:
+                per_msg = max(1200, int(context_limit * 0.85) // 4)
+                if len(out) > per_msg:
+                    keep = max(400, per_msg // 2)
+                    out = out[:keep] + "\n...[risultato troncato per contesto]...\n" + out[-keep // 2:]
             messages.append({
                 "role": "tool",
                 "tool_call_id": tc.id,

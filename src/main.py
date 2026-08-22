@@ -14,6 +14,16 @@ import sys
 import configparser
 import faulthandler
 
+# Windows console: force UTF-8 output so prints with non-cp1252 chars
+# (em-dash, middle dot, ellipsis, ...) never crash with UnicodeEncodeError.
+for _stream_name in ("stdout", "stderr"):
+    _stream = getattr(sys, _stream_name, None)
+    if _stream is not None:
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError, ValueError):
+            pass
+
 try:
     import numpy as np
 except ImportError:
@@ -1378,16 +1388,7 @@ class VassApp:
             if tools:
                 kwargs["tools"] = tools
 
-            ctx_available = (self.context_length or 4096)
-            if self.context_length <= 0:
-                for _ in range(50):
-                    if self.context_length > 0:
-                        break
-                    time.sleep(0.1)
-                if self.context_length <= 0:
-                    # Detection may have failed or been skipped; retry once.
-                    self._detect_context_length()
-                ctx_available = (self.context_length or 4096)
+            ctx_available = self._effective_context_length()
             prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
             if tools:
                 prompt_tokens_est += self._count_tokens(json.dumps(tools))
@@ -1404,6 +1405,31 @@ class VassApp:
                     messages[0]["content"] = messages[0]["content"][:trim_at]
                     kwargs["max_tokens"] = max(200, ctx_available - self._count_tokens(messages[0]["content"]) - self._count_tokens(messages[1]["content"]) - 128)
                     print(f"[AI] Trimmed system prompt by {excess} chars to fit context")
+            # Final guard (runs regardless of tools): if the request still
+            # exceeds the model context (e.g. an oversized user message or a
+            # huge tool result), trim the oversized messages to a hard budget
+            # instead of sending an overflowing prompt that llama rejects.
+            prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
+            if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
+                budget_chars = max(1200, int(ctx_available * 0.5) * 3)
+                # Trim oversized tool messages first.
+                for m in messages:
+                    if m.get("role") != "tool":
+                        continue
+                    content = m.get("content")
+                    if isinstance(content, str) and len(content) > budget_chars:
+                        m["content"] = (content[:budget_chars // 2]
+                                        + "\n...[risultato troncato per contesto]...\n"
+                                        + content[-budget_chars // 4:])
+                # Then trim the user message to the same hard budget.
+                if len(messages[1]["content"]) > budget_chars:
+                    messages[1]["content"] = (
+                        messages[1]["content"][:budget_chars // 2]
+                        + "\n...[richiesta troncata per contesto]...\n"
+                        + messages[1]["content"][-budget_chars // 4:])
+                prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
+                kwargs["max_tokens"] = max(200, ctx_available - prompt_tokens_est - 128)
+                print(f"[AI] Final context guard: trimmed oversized messages to ~{budget_chars} chars")
 
             print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools) if tools else 0}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}, max_tokens={kwargs.get('max_tokens', 'N/A')}")
 
@@ -1569,7 +1595,7 @@ class VassApp:
 
                 pseudo_msg = type("", (), {"tool_calls": tool_calls_list, "content": None})()
                 msg = execute_mcp_tool_calls(messages, pseudo_msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui,
-                                             context_limit=self.context_length or 32768,
+                                             context_limit=self._effective_context_length(),
                                              file_links=file_links,
                                              usage=metrics)
                 ai_response = msg.content or ""
@@ -1722,6 +1748,15 @@ class VassApp:
             json.dump(existing, f, ensure_ascii=False, indent=2)
         print(f"[Memory] inject_memory: {vid} ({len(text)} chars)")
         return vid
+
+    def _effective_context_length(self):
+        """Return the real model context window (detected from the running
+        server), falling back to a conservative default. Never hardcoded to a
+        fixed value — it depends on the loaded model and hardware."""
+        if self.context_length > 0:
+            return self.context_length
+        self._detect_context_length()
+        return self.context_length or 4096
 
     def _detect_context_length(self):
         ctx = 0

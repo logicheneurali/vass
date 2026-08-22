@@ -580,25 +580,25 @@ def create_server(config: ServerConfig) -> FastMCP:
         return await _tool("search_nearby", f"tag={osm_key}={osm_value}", _search_nearby(osm_key, osm_value, near, radius, limit), config)
 
     @mcp.tool()
-    async def read_news(date: str) -> str:
+    async def read_news(date: str, max_chars: int = 20000) -> str:
         """Read world events for a specific date from the daily events digest.
         Use for questions like 'what happened today', 'cosa è successo ieri', 'news from July 28'.
-        Args: date in YYYY-MM-DD format. Returns summary, articles, categories, and top_headlines."""
-        return await _tool("read_news", f"date={date}", _read_news(date), config)
+        Args: date in YYYY-MM-DD format, max_chars optional cap. Returns summary, articles, categories."""
+        return await _tool("read_news", f"date={date}", _read_news(date, max_chars), config)
 
     @mcp.tool()
-    async def read_news_range(from_date: str, to_date: str) -> str:
+    async def read_news_range(from_date: str, to_date: str, max_chars: int = 20000) -> str:
         """Read world events for a date range from the daily events digest.
-        Args: from_date, to_date in YYYY-MM-DD format (inclusive).
-        Returns summary, articles, categories, and top_headlines for each date in the range."""
-        return await _tool("read_news_range", f"from={from_date} to={to_date}", _read_news_range(from_date, to_date), config)
+        Args: from_date, to_date in YYYY-MM-DD format (inclusive), max_chars optional cap.
+        Returns the daily summary per date; ranges longer than 3 days use summary-only."""
+        return await _tool("read_news_range", f"from={from_date} to={to_date}", _read_news_range(from_date, to_date, max_chars), config)
 
     @mcp.tool()
-    async def search_news(keywords: str) -> str:
+    async def search_news(keywords: str, max_chars: int = 20000) -> str:
         """Search world events by keywords across all saved dates.
         Use for questions like 'find news about climate', 'cerca notizie su elezioni', 'search for X'.
-        Args: keywords (space-separated). Returns matching articles sorted by date (newest first)."""
-        return await _tool("search_news", f"keywords={keywords}", _search_news(keywords), config)
+        Args: keywords (space-separated), max_chars optional cap. Returns matching articles sorted by date (newest first)."""
+        return await _tool("search_news", f"keywords={keywords}", _search_news(keywords, max_chars), config)
 
     @mcp.tool()
     async def send_email(to: str, subject: str, body: str) -> str:
