@@ -1313,6 +1313,7 @@
     "script": "Scripts",
     "profile": "Profile",
     "world_event": "World",
+    "watch": "Watch",
     "other": "Other"
   },
   "sources_editor": {

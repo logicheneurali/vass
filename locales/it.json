@@ -1369,8 +1369,8 @@
     "script": "Script",
     "profile": "Profilo",
     "world_event": "Mondo",
-    "other": "Altro"
-  },
+    "watch": "Visione",
+    "other": "Altro"  },
   "sources_editor": {
     "categories": "Categorie",
     "language": "Lingua",

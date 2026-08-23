@@ -510,6 +510,7 @@ class InfoPanel(QFrame):
         "mail_queue": ["open_queue"],
         "youtube": ["mark_seen", "open_browser"],
         "world_event": ["speak_text"],
+        "watch": ["open_browser", "speak_text"],
     }
 
     _ACTION_ICONS = {
