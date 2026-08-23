@@ -1056,19 +1056,25 @@ class InfoPanel(QFrame):
             self._position(self._parent_window)
 
     def _position(self, parent):
-        geo = parent.geometry()
+        # In compact mode the window is a 36x36 dot; anchor the panel to the
+        # normal (non-compact) geometry so size and placement make sense.
+        if getattr(parent, "_compact_mode", False) and parent._normal_geometry:
+            geo_x, geo_y, geo_w, geo_h = parent._normal_geometry
+        else:
+            g = parent.geometry()
+            geo_x, geo_y, geo_w, geo_h = g.x(), g.y(), g.width(), g.height()
         screen = QApplication.primaryScreen().availableGeometry()
 
         if self._expanded:
-            panel_w = int(geo.width() * 3.0)
+            panel_w = int(geo_w * 3.0)
             mid_x = screen.left() + screen.width() // 2
-            if geo.center().x() < mid_x:
-                px = geo.left()
+            if geo_x + geo_w // 2 < mid_x:
+                px = geo_x
             else:
-                px = geo.right() - panel_w
+                px = geo_x + geo_w - panel_w
         else:
-            panel_w = int(geo.width() * 1.25)
-            px = geo.center().x() - panel_w // 2
+            panel_w = int(geo_w * 1.25)
+            px = geo_x + geo_w // 2 - panel_w // 2
 
         if self._tab == "links":
             count = len(self._links) + len(self._files)
@@ -1085,18 +1091,18 @@ class InfoPanel(QFrame):
 
         if self._expanded:
             mid_x = screen.left() + screen.width() // 2
-            if geo.center().x() < mid_x:
-                px = geo.left()
+            if geo_x + geo_w // 2 < mid_x:
+                px = geo_x
             else:
-                px = geo.right() - panel_w
+                px = geo_x + geo_w - panel_w
         else:
-            px = geo.center().x() - panel_w // 2
+            px = geo_x + geo_w // 2 - panel_w // 2
 
         mid_y = screen.top() + screen.height() // 2
-        if geo.center().y() < mid_y:
-            py = geo.bottom() + 8
+        if geo_y + geo_h // 2 < mid_y:
+            py = geo_y + geo_h + 8
         else:
-            py = geo.top() - panel_h - 8
+            py = geo_y - panel_h - 8
         px = max(screen.left(), min(px, screen.right() - panel_w))
         py = max(screen.top(), min(py, screen.bottom() - panel_h))
         self.setGeometry(px, py, panel_w, panel_h)
