@@ -478,7 +478,7 @@ class WorldEventsPlugin:
             '          "location": "global" or country/region name,\n'
             '          "actor": "main entity doing the action (e.g. leader europei, Trump)",\n'
             '          "action": "short verb/noun phrase (e.g. riunione, attacco, sanzioni)",\n'
-            '          "reactions": "brief reactions/context (optional)",\n'
+            '          "outcome": "brief result/outcome (optional)",\n'
             '          "summary": "concise summary"\n'
             "        }\n"
             "      ],\n"
@@ -666,6 +666,8 @@ class WorldEventsPlugin:
                 "location": a.get("location", ""),
                 "actor": actor,
                 "action": action,
+                "title": (a.get("title") or "")[:90],
+                "outcome": (a.get("outcome") or a.get("reactions") or "")[:120],
                 "significance": a.get("significance", ""),
             })
         return out
@@ -848,15 +850,15 @@ Rules:
         return out if out else None
 
     _BACKFILL_PROMPT = """Extract structured fields for each news article. Return ONLY valid JSON as a list, one entry per article in the SAME order:
-[{{"index": 0, "actor": "...", "action": "...", "reactions": "..."}}, ...]
+[{{"index": 0, "actor": "...", "action": "...", "outcome": "..."}}, ...]
 
 Rules:
 - actor: the main entity doing the action (e.g. "leader europei", "Trump").
 - action: a short verb/noun phrase (e.g. "riunione", "attacco", "sanzioni").
-- reactions: brief reactions/context (optional, empty string if none).
+- outcome: the brief result/outcome (optional, empty string if none).
 - Keep every field short (max 8 words), in the same language as the article.
 - If an article contains MULTIPLE distinct actions, return one list entry per action (same actor, one per action).
-- Preserve the exact input order; every article must appear at least once.
+- Return EXACTLY one list entry per article (same count as the input articles); never skip or merge.
 
 Articles:
 {articles}
@@ -864,55 +866,79 @@ Articles:
 
     def _backfill_one_day(self, data, today):
         """Arrichisce con actor/action un giorno passato per ciclo (dal più
-        vecchio) che ha articoli ma nessun campo actor. 1 giorno per ciclo per
-        non bloccare il flusso odierno; salva subito quando riesce."""
+        vecchio) che ha articoli senza campo actor. 1 giorno per ciclo per non
+        bloccare il flusso odierno; salva subito quando riesce. Un giorno resta
+        candidato finché tutti i suoi articoli hanno actor (o viene ripulito)."""
         events = data.get("events", {})
         candidates = [
             d for d in events
             if d < today and events[d].get("articles")
-            and not any(a.get("actor") for a in events[d]["articles"])
+            and any(not a.get("actor") for a in events[d]["articles"])
         ]
         if not candidates:
             return False
         day = min(candidates)  # oldest first (closest to cleanup)
         articles = events[day]["articles"]
-        _log(f" Backfill structured fields for {day} ({len(articles)} articles)")
+        done = [a for a in articles if a.get("actor")]
+        missing = [a for a in articles if not a.get("actor")]
+        _log(f" Backfill structured fields for {day}: "
+             f"{len(done)}/{len(articles)} done, {len(missing)} missing")
 
         # Process in chunks to bound the AI prompt.
         chunk = 170
         got_any = False
-        for start in range(0, len(articles), chunk):
-            part = articles[start:start + chunk]
-            lines = json.dumps([
-                {"index": i, "title": a.get("title", ""),
-                 "summary": (a.get("summary") or "")[:300],
-                 "location": a.get("location", "")}
-                for i, a in enumerate(part)
-            ], ensure_ascii=False, indent=1)
-            result = self._call_ai(
-                self._BACKFILL_PROMPT.format(articles=lines[:12000]),
-                parse_json=True, max_tokens=4096)
-            if not isinstance(result, list):
-                _log(f" Backfill {day}: AI error/no list, will retry next cycle")
-                return got_any
-            for item in result:
-                if not isinstance(item, dict):
-                    continue
-                idx = item.get("index")
-                if not isinstance(idx, int) or not (0 <= idx < len(part)):
-                    continue
-                art = part[idx]
-                if item.get("actor") or item.get("action"):
-                    art["actor"] = str(item.get("actor", "")).strip()
-                    art["action"] = str(item.get("action", "")).strip()
-                    art["reactions"] = str(item.get("reactions", "")).strip()
-                    got_any = True
+        for start in range(0, len(missing), chunk):
+            part = missing[start:start + chunk]
+            attempts = 0
+            while attempts < 2:
+                attempts += 1
+                lines = json.dumps([
+                    {"index": i, "title": a.get("title", ""),
+                     "summary": (a.get("summary") or "")[:300],
+                     "location": a.get("location", "")}
+                    for i, a in enumerate(part)
+                ], ensure_ascii=False, indent=1)
+                result = self._call_ai(
+                    self._BACKFILL_PROMPT.format(articles=lines[:12000]),
+                    parse_json=True, max_tokens=4096)
+                if not isinstance(result, list):
+                    _log(f" Backfill {day}: AI error/no list, will retry next cycle")
+                    return got_any
+                filled = set()
+                for item in result:
+                    if not isinstance(item, dict):
+                        continue
+                    idx = item.get("index")
+                    if not isinstance(idx, int) or not (0 <= idx < len(part)):
+                        continue
+                    art = part[idx]
+                    if item.get("actor") or item.get("action"):
+                        art["actor"] = str(item.get("actor", "")).strip()
+                        art["action"] = str(item.get("action", "")).strip()
+                        # outcome replaces the legacy reactions field.
+                        if "outcome" in item:
+                            art["outcome"] = str(item.get("outcome", "")).strip()
+                        elif "reactions" in item:
+                            art["outcome"] = str(item.get("reactions", "")).strip()
+                        art.pop("reactions", None)
+                        filled.add(idx)
+                        got_any = True
+                remaining = [i for i in range(len(part)) if i not in filled]
+                if not remaining:
+                    break
+                # Retry only the articles the AI skipped.
+                part = [part[i] for i in remaining]
+                _log(f" Backfill {day}: chunk attempt {attempts} filled "
+                     f"{len(filled)}/{len(part)+len(filled)}, retrying {len(remaining)}")
         if got_any:
-            events[day]["backfilled"] = True
+            # Keep the day as a candidate unless every article now has actor.
+            if all(a.get("actor") for a in articles):
+                events[day]["backfilled"] = True
             data["events"] = events
             data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
             self._save_data(data)
-            _log(f" Backfill {day}: done ({len(articles)} articles)")
+            _log(f" Backfill {day}: saved "
+                 f"({sum(1 for a in articles if a.get('actor'))}/{len(articles)})")
         return got_any
 
     @staticmethod

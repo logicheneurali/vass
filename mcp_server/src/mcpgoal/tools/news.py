@@ -119,7 +119,9 @@ async def search_news(keywords: str, max_chars: int = 20000) -> str:
             text = (
                 (ef.get("actor", "") + " " +
                  ef.get("action", "") + " " +
-                 ef.get("location", "")).lower()
+                 ef.get("location", "") + " " +
+                 ef.get("title", "") + " " +
+                 ef.get("outcome", "")).lower()
             )
             if any(t in text for t in terms):
                 cats = day.get("categories", [])
@@ -130,7 +132,7 @@ async def search_news(keywords: str, max_chars: int = 20000) -> str:
                     "category": cats[0] if cats else "other",
                     "location": ef.get("location", ""),
                     "significance": ef.get("significance", "archive"),
-                    "summary": "",
+                    "summary": ef.get("title", "") or ef.get("outcome", ""),
                     "link": "",
                 })
 
