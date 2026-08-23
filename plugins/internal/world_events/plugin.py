@@ -57,6 +57,7 @@ class WorldEventsPlugin:
             cfg.read(ini_path, encoding="utf-8")
         return {
             "max_age_days": cfg.getint("storage", "max_age_days", fallback=30),
+            "history_days": cfg.getint("storage", "history_days", fallback=365),
             "max_events_per_day": cfg.getint("storage", "max_events_per_day", fallback=100),
             "interval_min": cfg.getint("schedule", "interval_min", fallback=60),
             "idle_seconds": cfg.getint("schedule", "idle_seconds", fallback=300),
@@ -168,6 +169,10 @@ class WorldEventsPlugin:
         # Finalize summaries of past days (one per cycle) before processing today
         if self._config.get("finalize", True):
             self._finalize_summaries(data, today)
+
+        # Backfill structured actor/action fields on one past day per cycle
+        # (oldest first, before its articles are cleaned up).
+        self._backfill_one_day(data, today)
 
         rss_items = self._fetch_rss_items()
         if rss_items:
@@ -471,6 +476,9 @@ class WorldEventsPlugin:
             '          "category": "politics|science|technology|sports|environment|health|economy|other",\n'
             '          "significance": "high|medium|low",\n'
             '          "location": "global" or country/region name,\n'
+            '          "actor": "main entity doing the action (e.g. leader europei, Trump)",\n'
+            '          "action": "short verb/noun phrase (e.g. riunione, attacco, sanzioni)",\n'
+            '          "reactions": "brief reactions/context (optional)",\n'
             '          "summary": "concise summary"\n'
             "        }\n"
             "      ],\n"
@@ -485,6 +493,9 @@ class WorldEventsPlugin:
             "- location: use 'global' if event affects multiple nations or the entire planet.\n"
             "  Otherwise use the specific country or region (e.g. 'Spain', 'Italy', 'France', 'EU', 'Asia').\n"
             "- Set significance: high=major world impact, medium=notable, low=minor.\n"
+            "- actor/action: short phrases (max 8 words), in the same language as the article.\n"
+            "- If an article contains MULTIPLE distinct actions, list each action in a "
+            "separate article entry (same actor/location, one per action).\n"
             "- summary: a 2-3 sentence overview of the day.\n"
             "- Preserve ALL original links from the RSS items and Wikipedia sources.\n"
             "- Write ALL text (titles, summaries, categories) in the same language as the source articles.\n"
@@ -634,19 +645,59 @@ class WorldEventsPlugin:
         base["events"] = base_events
         return base
 
+    @staticmethod
+    def _dedup_events(articles, day):
+        """One row per distinct (actor, action, location): the same event from
+        multiple sources collapses to a single row, while distinct actions in
+        one article stay as separate rows. Returns list of compact dicts."""
+        seen = set()
+        out = []
+        for a in articles:
+            actor = (a.get("actor") or "").strip()
+            action = (a.get("action") or "").strip()
+            if not actor and not action:
+                continue
+            key = (actor.lower(), action.lower(), (a.get("location") or "").lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({
+                "date": day,
+                "location": a.get("location", ""),
+                "actor": actor,
+                "action": action,
+                "significance": a.get("significance", ""),
+            })
+        return out
+
     def _clean_old_events(self, data):
         max_age = self._config["max_age_days"]
+        history = self._config.get("history_days", 365)
         cutoff = (date.today() - timedelta(days=max_age)).isoformat()
+        hist_cutoff = (date.today() - timedelta(days=history)).isoformat()
         events = data.get("events", {})
         for d in list(events):
-            if d < cutoff:
-                # Keep summary + per-category summaries as historical record,
-                # clear heavy article fields
+            if d < hist_cutoff:
+                # Beyond history_days: drop structured events too, keep summary.
                 day = events[d]
                 events[d] = {
                     "summary": day.get("summary", ""),
                     "articles": [],
                     "categories": [],
+                    "category_summaries": day.get("category_summaries", []),
+                    "finalized": day.get("finalized", False),
+                    "cat_finalized": day.get("cat_finalized", False),
+                }
+            elif d < cutoff:
+                # Keep summary + per-category summaries as historical record,
+                # clear heavy article fields but keep structured events_fixed.
+                day = events[d]
+                events[d] = {
+                    "summary": day.get("summary", ""),
+                    "articles": [],
+                    "categories": [],
+                    "events_fixed": self._dedup_events(
+                        day.get("articles", []), d),
                     "category_summaries": day.get("category_summaries", []),
                     "finalized": day.get("finalized", False),
                     "cat_finalized": day.get("cat_finalized", False),
@@ -795,6 +846,74 @@ Rules:
                 "links": [str(l) for l in links if isinstance(l, str)][:2],
             })
         return out if out else None
+
+    _BACKFILL_PROMPT = """Extract structured fields for each news article. Return ONLY valid JSON as a list, one entry per article in the SAME order:
+[{{"index": 0, "actor": "...", "action": "...", "reactions": "..."}}, ...]
+
+Rules:
+- actor: the main entity doing the action (e.g. "leader europei", "Trump").
+- action: a short verb/noun phrase (e.g. "riunione", "attacco", "sanzioni").
+- reactions: brief reactions/context (optional, empty string if none).
+- Keep every field short (max 8 words), in the same language as the article.
+- If an article contains MULTIPLE distinct actions, return one list entry per action (same actor, one per action).
+- Preserve the exact input order; every article must appear at least once.
+
+Articles:
+{articles}
+"""
+
+    def _backfill_one_day(self, data, today):
+        """Arrichisce con actor/action un giorno passato per ciclo (dal più
+        vecchio) che ha articoli ma nessun campo actor. 1 giorno per ciclo per
+        non bloccare il flusso odierno; salva subito quando riesce."""
+        events = data.get("events", {})
+        candidates = [
+            d for d in events
+            if d < today and events[d].get("articles")
+            and not any(a.get("actor") for a in events[d]["articles"])
+        ]
+        if not candidates:
+            return False
+        day = min(candidates)  # oldest first (closest to cleanup)
+        articles = events[day]["articles"]
+        _log(f" Backfill structured fields for {day} ({len(articles)} articles)")
+
+        # Process in chunks to bound the AI prompt.
+        chunk = 170
+        got_any = False
+        for start in range(0, len(articles), chunk):
+            part = articles[start:start + chunk]
+            lines = json.dumps([
+                {"index": i, "title": a.get("title", ""),
+                 "summary": (a.get("summary") or "")[:300],
+                 "location": a.get("location", "")}
+                for i, a in enumerate(part)
+            ], ensure_ascii=False, indent=1)
+            result = self._call_ai(
+                self._BACKFILL_PROMPT.format(articles=lines[:12000]),
+                parse_json=True, max_tokens=4096)
+            if not isinstance(result, list):
+                _log(f" Backfill {day}: AI error/no list, will retry next cycle")
+                return got_any
+            for item in result:
+                if not isinstance(item, dict):
+                    continue
+                idx = item.get("index")
+                if not isinstance(idx, int) or not (0 <= idx < len(part)):
+                    continue
+                art = part[idx]
+                if item.get("actor") or item.get("action"):
+                    art["actor"] = str(item.get("actor", "")).strip()
+                    art["action"] = str(item.get("action", "")).strip()
+                    art["reactions"] = str(item.get("reactions", "")).strip()
+                    got_any = True
+        if got_any:
+            events[day]["backfilled"] = True
+            data["events"] = events
+            data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+            self._save_data(data)
+            _log(f" Backfill {day}: done ({len(articles)} articles)")
+        return got_any
 
     @staticmethod
     def _resolve_root():

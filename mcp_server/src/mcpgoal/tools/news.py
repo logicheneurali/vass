@@ -114,6 +114,25 @@ async def search_news(keywords: str, max_chars: int = 20000) -> str:
                     "summary": cs.get("summary", ""),
                     "link": links[0] if links else "",
                 })
+        # Compact structured events from cleaned-up days (actor/action/location).
+        for ef in day.get("events_fixed", []):
+            text = (
+                (ef.get("actor", "") + " " +
+                 ef.get("action", "") + " " +
+                 ef.get("location", "")).lower()
+            )
+            if any(t in text for t in terms):
+                cats = day.get("categories", [])
+                matches.append({
+                    "date": d,
+                    "title": f"{ef.get('actor', '')} — {ef.get('action', '')}".strip(" —"),
+                    "source": "world events archive",
+                    "category": cats[0] if cats else "other",
+                    "location": ef.get("location", ""),
+                    "significance": ef.get("significance", "archive"),
+                    "summary": "",
+                    "link": "",
+                })
 
     if not matches:
         return json.dumps(
@@ -125,19 +144,22 @@ async def search_news(keywords: str, max_chars: int = 20000) -> str:
 
 def _day_view(day, summary_only):
     """A lightweight view of one day: full day summary + categories, and
-    (unless summary_only) the article list capped to a few entries."""
+    (unless summary_only) the article list capped to a few entries. Days whose
+    articles were cleaned up expose the compact events_fixed instead."""
     view = {
         "summary": day.get("summary", ""),
         "categories": day.get("categories", []),
     }
-    if not summary_only:
-        articles = day.get("articles", [])[:8]
-        view["articles"] = articles
+    articles = day.get("articles", [])
+    if not articles and day.get("events_fixed"):
+        view["events"] = day["events_fixed"]
+    elif not summary_only:
+        view["articles"] = articles[:8]
     else:
         # Keep just the first line of each article title so the range still
         # gives a sense of what happened without shipping every article.
         view["topics"] = [a.get("title", "")[:120]
-                          for a in day.get("articles", [])[:20]]
+                          for a in articles[:20]]
     return view
 
 
