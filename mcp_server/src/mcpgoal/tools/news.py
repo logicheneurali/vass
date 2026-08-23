@@ -31,7 +31,7 @@ async def read_news(date: str, max_chars: int = 20000) -> str:
     if date not in events:
         return json.dumps({"results": [], "message": f"No events found for {date}"}, ensure_ascii=False)
 
-    view = _day_view(events[date], summary_only=False)
+    view = _day_view(events[date], summary_only=False, day_date=date)
     return _to_json({"results": {date: view}}, max_chars)
 
 
@@ -58,7 +58,8 @@ async def read_news_range(from_date: str, to_date: str, max_chars: int = 20000) 
     # Long ranges: keep only each day's summary (lightweight). Short ranges
     # (<=3 days) include full articles so details remain available.
     summary_only = len(days) > 3
-    result = {d: _day_view(events[d], summary_only=summary_only) for d in days}
+    result = {d: _day_view(events[d], summary_only=summary_only, day_date=d)
+              for d in days}
     return _to_json({"results": result}, max_chars)
 
 
@@ -86,16 +87,29 @@ async def search_news(keywords: str, max_chars: int = 20000) -> str:
                  art.get("source", "")).lower()
             )
             if any(t in text for t in terms):
-                matches.append({
-                    "date": d,
-                    "title": art.get("title", ""),
-                    "source": art.get("source", ""),
-                    "category": art.get("category", ""),
-                    "location": art.get("location", ""),
-                    "significance": art.get("significance", ""),
-                    "summary": art.get("summary", ""),
-                    "link": art.get("link", ""),
-                })
+                # Compact form when the article has structured fields.
+                if art.get("actor") or art.get("action"):
+                    matches.append({
+                        "date": d,
+                        "title": f"{art.get('actor', '')} — {art.get('action', '')}".strip(" —"),
+                        "source": art.get("source", ""),
+                        "category": art.get("category", ""),
+                        "location": art.get("location", ""),
+                        "significance": art.get("significance", ""),
+                        "summary": art.get("title", "") or art.get("outcome", ""),
+                        "link": "",
+                    })
+                else:
+                    matches.append({
+                        "date": d,
+                        "title": art.get("title", ""),
+                        "source": art.get("source", ""),
+                        "category": art.get("category", ""),
+                        "location": art.get("location", ""),
+                        "significance": art.get("significance", ""),
+                        "summary": art.get("summary", ""),
+                        "link": art.get("link", ""),
+                    })
         # Days whose articles were cleaned up still carry per-category summaries
         for cs in day.get("category_summaries", []):
             text = (
@@ -144,24 +158,57 @@ async def search_news(keywords: str, max_chars: int = 20000) -> str:
     return _to_json({"results": matches}, max_chars)
 
 
-def _day_view(day, summary_only):
-    """A lightweight view of one day: full day summary + categories, and
-    (unless summary_only) the article list capped to a few entries. Days whose
-    articles were cleaned up expose the compact events_fixed instead."""
+def _compact_events(day, day_date):
+    """Compact structured events for a day: use stored events_fixed when the
+    day was cleaned up, otherwise derive them on the fly from articles that
+    have actor/action (deduplicated by actor+action+location). Falls back to
+    the raw articles when no structured fields are available yet."""
+    if day.get("events_fixed"):
+        return day["events_fixed"]
+    seen = set()
+    out = []
+    for a in day.get("articles", []):
+        actor = (a.get("actor") or "").strip()
+        action = (a.get("action") or "").strip()
+        if not actor and not action:
+            continue
+        key = (actor.lower(), action.lower(), (a.get("location") or "").lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({
+            "date": day_date,
+            "location": a.get("location", ""),
+            "actor": actor,
+            "action": action,
+            "title": (a.get("title") or "")[:90],
+            "outcome": (a.get("outcome") or a.get("reactions") or "")[:120],
+            "significance": a.get("significance", ""),
+        })
+    return out
+
+
+def _day_view(day, summary_only, day_date=""):
+    """A lightweight view of one day: full day summary + categories, and the
+    compact structured events (stored events_fixed or derived on the fly from
+    articles with actor/action). Days without structured fields fall back to
+    the article list (or topics for long ranges)."""
     view = {
         "summary": day.get("summary", ""),
         "categories": day.get("categories", []),
     }
-    articles = day.get("articles", [])
-    if not articles and day.get("events_fixed"):
-        view["events"] = day["events_fixed"]
-    elif not summary_only:
-        view["articles"] = articles[:8]
+    events = _compact_events(day, day_date)
+    if events:
+        view["events"] = events
     else:
-        # Keep just the first line of each article title so the range still
-        # gives a sense of what happened without shipping every article.
-        view["topics"] = [a.get("title", "")[:120]
-                          for a in articles[:20]]
+        articles = day.get("articles", [])
+        if not summary_only:
+            view["articles"] = articles[:8]
+        else:
+            # Keep just the first line of each article title so the range still
+            # gives a sense of what happened without shipping every article.
+            view["topics"] = [a.get("title", "")[:120]
+                              for a in articles[:20]]
     return view
 
 
