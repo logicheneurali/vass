@@ -864,23 +864,31 @@ Articles:
 {articles}
 """
 
+    @staticmethod
+    def _article_complete(a):
+        """An article is complete when it has actor+action and an outcome
+        (or its legacy reactions field to be normalized)."""
+        if not (a.get("actor") or a.get("action")):
+            return False
+        return bool(a.get("outcome") or a.get("reactions"))
+
     def _backfill_one_day(self, data, today):
-        """Arrichisce con actor/action un giorno passato per ciclo (dal più
-        vecchio) che ha articoli senza campo actor. 1 giorno per ciclo per non
+        """Arrichisce con actor/action/outcome un giorno passato per ciclo (dal
+        più vecchio) che ha articoli incompleti. 1 giorno per ciclo per non
         bloccare il flusso odierno; salva subito quando riesce. Un giorno resta
-        candidato finché tutti i suoi articoli hanno actor (o viene ripulito)."""
+        candidato finché tutti i suoi articoli sono completi (o viene ripulito)."""
         events = data.get("events", {})
         candidates = [
             d for d in events
             if d < today and events[d].get("articles")
-            and any(not a.get("actor") for a in events[d]["articles"])
+            and any(not self._article_complete(a) for a in events[d]["articles"])
         ]
         if not candidates:
             return False
         day = min(candidates)  # oldest first (closest to cleanup)
         articles = events[day]["articles"]
-        done = [a for a in articles if a.get("actor")]
-        missing = [a for a in articles if not a.get("actor")]
+        done = [a for a in articles if self._article_complete(a)]
+        missing = [a for a in articles if not self._article_complete(a)]
         _log(f" Backfill structured fields for {day}: "
              f"{len(done)}/{len(articles)} done, {len(missing)} missing")
 
@@ -912,17 +920,23 @@ Articles:
                     if not isinstance(idx, int) or not (0 <= idx < len(part)):
                         continue
                     art = part[idx]
-                    if item.get("actor") or item.get("action"):
-                        art["actor"] = str(item.get("actor", "")).strip()
-                        art["action"] = str(item.get("action", "")).strip()
-                        # outcome replaces the legacy reactions field.
-                        if "outcome" in item:
-                            art["outcome"] = str(item.get("outcome", "")).strip()
-                        elif "reactions" in item:
-                            art["outcome"] = str(item.get("reactions", "")).strip()
-                        art.pop("reactions", None)
-                        filled.add(idx)
-                        got_any = True
+                    # Only overwrite fields that are missing; never clobber
+                    # already-extracted actor/action/outcome.
+                    actor = str(item.get("actor", "")).strip()
+                    action = str(item.get("action", "")).strip()
+                    outcome = str(item.get("outcome", "")).strip()
+                    if not actor and not action and not outcome:
+                        continue
+                    if not art.get("actor") and actor:
+                        art["actor"] = actor
+                    if not art.get("action") and action:
+                        art["action"] = action
+                    if not art.get("outcome"):
+                        art["outcome"] = outcome or str(
+                            item.get("reactions", "")).strip()
+                    art.pop("reactions", None)
+                    filled.add(idx)
+                    got_any = True
                 remaining = [i for i in range(len(part)) if i not in filled]
                 if not remaining:
                     break
@@ -931,14 +945,15 @@ Articles:
                 _log(f" Backfill {day}: chunk attempt {attempts} filled "
                      f"{len(filled)}/{len(part)+len(filled)}, retrying {len(remaining)}")
         if got_any:
-            # Keep the day as a candidate unless every article now has actor.
-            if all(a.get("actor") for a in articles):
+            # Keep the day as a candidate unless every article is complete.
+            if all(self._article_complete(a) for a in articles):
                 events[day]["backfilled"] = True
             data["events"] = events
             data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
             self._save_data(data)
             _log(f" Backfill {day}: saved "
-                 f"({sum(1 for a in articles if a.get('actor'))}/{len(articles)})")
+                 f"({sum(1 for a in articles if self._article_complete(a))}"
+                 f"/{len(articles)})")
         return got_any
 
     @staticmethod
