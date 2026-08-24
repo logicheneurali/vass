@@ -383,7 +383,9 @@
   "ai": {
     "date_prefix": "Date et heure actuelles : ",
     "error": "Erreur de connexion avec l'intelligence artificielle.",
-    "blacklisted": "Requête bloquée : contient des mots interdits."
+    "blacklisted": "Requête bloquée : contient des mots interdits.",
+    "tool_no_reply": "J'ai exécuté les outils de recherche mais je n'ai pas pu formuler de réponse. Essayez de reformuler votre question.",
+    "tool_no_reply_links": "J'ai exécuté les outils et généré des résultats, mais je n'ai pas pu formuler de réponse textuelle. Essayez de reformuler votre question."
   },
   "tts": {
     "fallback_language": "fr-FR"

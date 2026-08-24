@@ -383,7 +383,9 @@
   "ai": {
     "date_prefix": "Aktuelles Datum und Uhrzeit: ",
     "error": "Verbindungsfehler mit der künstlichen Intelligenz.",
-    "blacklisted": "Anfrage blockiert: enthält verbotene Wörter."
+    "blacklisted": "Anfrage blockiert: enthält verbotene Wörter.",
+    "tool_no_reply": "Ich habe die Suchwerkzeuge ausgeführt, konnte aber keine Antwort formulieren. Versuchen Sie, die Frage umzuformulieren.",
+    "tool_no_reply_links": "Ich habe die Werkzeuge ausgeführt und einige Ergebnisse erzeugt, konnte aber keine Textantwort formulieren. Versuchen Sie, die Frage umzuformulieren."
   },
   "tts": {
     "fallback_language": "de-DE"

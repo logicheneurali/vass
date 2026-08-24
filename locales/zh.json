@@ -384,7 +384,9 @@
   "ai": {
     "date_prefix": "当前日期和时间：",
     "error": "与人工智能的连接出错。",
-    "blacklisted": "请求被阻止：包含禁用词。"
+    "blacklisted": "请求被阻止：包含禁用词。",
+    "tool_no_reply": "我运行了搜索工具，但无法组织出回答。请尝试重新表述您的问题。",
+    "tool_no_reply_links": "我运行了工具并生成了一些结果，但无法组织出文本回答。请尝试重新表述您的问题。"
   },
   "tts": {
     "fallback_language": "zh-CN"

@@ -383,7 +383,9 @@
   "ai": {
     "date_prefix": "Fecha y hora actual: ",
     "error": "Error de conexión con la inteligencia artificial.",
-    "blacklisted": "Solicitud bloqueada: contiene palabras no permitidas."
+    "blacklisted": "Solicitud bloqueada: contiene palabras no permitidas.",
+    "tool_no_reply": "Ejecuté las herramientas de búsqueda pero no pude formular una respuesta. Intenta reformular tu pregunta.",
+    "tool_no_reply_links": "Ejecuté las herramientas y generé algunos resultados, pero no pude formular una respuesta de texto. Intenta reformular tu pregunta."
   },
   "tts": {
     "fallback_language": "es-ES"
