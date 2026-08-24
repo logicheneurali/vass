@@ -1,8 +1,0 @@
-{
-  "email": true,
-  "calendar": true,
-  "events": true,
-  "timers": true,
-  "files": true,
-  "max_external_entries": 10
-}

@@ -86,6 +86,7 @@ Allowed_root/browser_profile/
 Allowed_root/downloads/
 **/memory_files_tracker.json
 **/memory_files_config.json
+**/memory_sources.json
 **/word_weights.json
 **/tags_config.json
 test_wake_*.wav
