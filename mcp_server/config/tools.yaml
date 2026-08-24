@@ -256,6 +256,12 @@ tools:
     - ::1
     - localhost
     blacklist: []
+  weather:
+    whitelist:
+    - 127.0.0.1
+    - ::1
+    - localhost
+    blacklist: []
   send_email:
     whitelist:
     - 127.0.0.1

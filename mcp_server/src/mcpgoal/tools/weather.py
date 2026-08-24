@@ -260,3 +260,10 @@ def get_weather(location: str):
     result["location"] = location
     _cache[key] = (now, result)
     return result
+
+
+async def weather_async(location: str) -> str:
+    """Async wrapper for the MCP tool: runs the blocking fetch in a thread."""
+    import asyncio
+    return json.dumps(await asyncio.to_thread(get_weather, location),
+                      ensure_ascii=False)

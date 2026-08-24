@@ -29,7 +29,7 @@ from mcpgoal.tools.places import search_nearby as _search_nearby
 from mcpgoal.tools.news import read_news as _read_news
 from mcpgoal.tools.news import read_news_range as _read_news_range
 from mcpgoal.tools.news import search_news as _search_news
-from mcpgoal.tools.weather import get_weather as _get_weather
+from mcpgoal.tools.weather import weather_async as _weather_async
 from mcpgoal.tools.mail import send_email as _send_email
 from mcpgoal.tools.mail import reply_email as _reply_email
 from mcpgoal.tools.mail import forward_email as _forward_email
@@ -607,7 +607,7 @@ def create_server(config: ServerConfig) -> FastMCP:
         'che tempo fa a X', 'temperatura a X'.
         Args: location (city or region name, e.g. 'Messina', 'Milano'). Returns current temperature, feels-like, humidity, wind, description."""
         return await _tool("weather", f"location={location}",
-                           json.dumps(_get_weather(location), ensure_ascii=False), config)
+                           _weather_async(location), config)
 
     @mcp.tool()
     async def send_email(to: str, subject: str, body: str) -> str:
