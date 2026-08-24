@@ -17,7 +17,7 @@ STANDALONE_GROUPS = {"compute", "time", "lang"}
 # Map of group name → list of MCP tool names belonging to that group.
 # interact, script, execute are excluded — they require allow_ai_scripts.
 TOOL_GROUPS = {
-        "web":       ["browse", "webfetch", "websearch", "search_places", "search_nearby", "search_news"],
+        "web":       ["browse", "webfetch", "websearch", "search_places", "search_nearby", "search_news", "weather"],
         "mail":      ["search_emails", "send_email", "reply_email", "forward_email", "search_contacts"],
         "browser":   ["browser_open", "browser_read", "browser_click", "browser_fill", "browser_submit", "browser_download", "browser_back", "browser_show", "browser_check_auth"],
     "news":      ["read_news", "read_news_range", "search_news"],

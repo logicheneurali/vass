@@ -1253,6 +1253,14 @@ class VassApp:
         if self.debug_enabled:
             print(f"[Delayed] _process_delayed_command: end state={self.state}")
 
+    def _tool_empty_fallback(self, prompt, file_links):
+        """The tool loop ran (tools were called) but the model returned no
+        final text. Give an honest reply instead of a silent empty answer."""
+        import i18n
+        if file_links:
+            return i18n.t("ai.tool_no_reply_links", self.language)
+        return i18n.t("ai.tool_no_reply", self.language)
+
     def _handle_ai_fallback(self, prompt_original):
         self.set_state("waiting")
         if self.blacklist:
@@ -1600,6 +1608,10 @@ class VassApp:
                                              usage=metrics)
                 ai_response = msg.content or ""
                 response_from_tool_calls = True
+                # Honest fallback: the tool loop ran but the model produced no
+                # final text. Don't leave the user with a silent empty reply.
+                if not ai_response.strip():
+                    ai_response = self._tool_empty_fallback(prompt, file_links)
 
             ai_response = strip_think_tags(ai_response)
             _t_end = time.time()

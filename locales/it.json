@@ -383,7 +383,9 @@
   "ai": {
     "date_prefix": "Data e ora correnti: ",
     "error": "Errore di connessione con l'intelligenza artificiale.",
-    "blacklisted": "Richiesta bloccata: contiene parole non consentite."
+    "blacklisted": "Richiesta bloccata: contiene parole non consentite.",
+    "tool_no_reply": "Ho eseguito gli strumenti di ricerca ma non sono riuscito a formulare una risposta. Prova a riformulare la domanda.",
+    "tool_no_reply_links": "Ho eseguito gli strumenti e generato alcuni risultati, ma non sono riuscito a formulare una risposta testuale. Prova a riformulare la domanda."
   },
   "tts": {
     "fallback_language": "it-IT"

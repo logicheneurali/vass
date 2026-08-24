@@ -383,7 +383,9 @@
   "ai": {
     "date_prefix": "Current date and time: ",
     "error": "Connection error with the artificial intelligence.",
-    "blacklisted": "Request blocked: contains forbidden words."
+    "blacklisted": "Request blocked: contains forbidden words.",
+    "tool_no_reply": "I ran the search tools but could not formulate a reply. Try rephrasing your question.",
+    "tool_no_reply_links": "I ran the tools and generated some results, but could not formulate a text reply. Try rephrasing your question."
   },
   "tts": {
     "fallback_language": "en-US"

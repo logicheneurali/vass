@@ -542,8 +542,20 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
     MAX_TURNS = 10
     _seen_paths = set()
     _allowed_root = os.path.join(get_project_root(), "Allowed_root")
+    _last_call = None                  # (tool_name, tool_args) of previous turn
     for _ in range(MAX_TURNS):
         called_this_turn = set()
+        if not msg.tool_calls:
+            break
+        # Loop guard: if the model repeats the exact same single tool call that
+        # just produced a result, stop instead of spinning (e.g. webfetch the
+        # same URL forever after a failed extraction).
+        if len(msg.tool_calls) == 1:
+            tc0 = msg.tool_calls[0]
+            if (tc0.function.name, tc0.function.arguments) == _last_call:
+                print(f"[AI] Loop guard: repeated tool call "
+                      f"{tc0.function.name}() with identical args — stopping")
+                break
         for tc in msg.tool_calls:
             tool_name = tc.function.name
             tool_args = tc.function.arguments
@@ -658,6 +670,11 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
         if usage is not None:
             usage.add(getattr(resp, "usage", None))
         msg = resp.choices[0].message
+        # Remember this turn's single tool call for the loop guard.
+        _last_call = None
+        if msg.tool_calls and len(msg.tool_calls) == 1:
+            tc1 = msg.tool_calls[0]
+            _last_call = (tc1.function.name, tc1.function.arguments)
         if not msg.tool_calls:
             break
 

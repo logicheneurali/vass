@@ -29,6 +29,7 @@ from mcpgoal.tools.places import search_nearby as _search_nearby
 from mcpgoal.tools.news import read_news as _read_news
 from mcpgoal.tools.news import read_news_range as _read_news_range
 from mcpgoal.tools.news import search_news as _search_news
+from mcpgoal.tools.weather import get_weather as _get_weather
 from mcpgoal.tools.mail import send_email as _send_email
 from mcpgoal.tools.mail import reply_email as _reply_email
 from mcpgoal.tools.mail import forward_email as _forward_email
@@ -599,6 +600,14 @@ def create_server(config: ServerConfig) -> FastMCP:
         Use for questions like 'find news about climate', 'cerca notizie su elezioni', 'search for X'.
         Args: keywords (space-separated), max_chars optional cap. Returns matching articles sorted by date (newest first)."""
         return await _tool("search_news", f"keywords={keywords}", _search_news(keywords, max_chars), config)
+
+    @mcp.tool()
+    async def weather(location: str) -> str:
+        """Current weather for a city/region. Use for questions like 'what's the weather in X',
+        'che tempo fa a X', 'temperatura a X'.
+        Args: location (city or region name, e.g. 'Messina', 'Milano'). Returns current temperature, feels-like, humidity, wind, description."""
+        return await _tool("weather", f"location={location}",
+                           json.dumps(_get_weather(location), ensure_ascii=False), config)
 
     @mcp.tool()
     async def send_email(to: str, subject: str, body: str) -> str:
