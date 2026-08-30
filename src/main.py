@@ -1371,7 +1371,7 @@ class VassApp:
             if notes_block:
                 notes_block = f"Context notes (low priority, can be ignored if context is full):\n{notes_block}\n\n"
             messages = [
-                {"role": "system", "content": notes_block + memory_content + system_content + tools_block},
+                {"role": "system", "content": system_content + notes_block + memory_content + tools_block},
                 {"role": "user", "content": prompt}
             ]
             if self.compress_context:

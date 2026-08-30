@@ -475,9 +475,9 @@ def create_server(config: ServerConfig) -> FastMCP:
         return await _tool("clipboardset", f"len={len(text)}", _clip_set(text), config)
 
     @mcp.tool()
-    async def websearch(query: str) -> str:
-        """Search the web using DuckDuckGo. Returns top results with title, URL, and snippet in JSON."""
-        return await _tool("websearch", f"q={query[:80]}", _search_web(query), config)
+    async def websearch(query: str, page: int = 1) -> str:
+        """Search the web. Returns top results with title, URL, and snippet in JSON. When the query targets a specific site (e.g. 'site:amazon.it ...') it queries that site's own search directly and returns the rendered page text. Use the optional page argument (2, 3, ...) to get more results from subsequent result pages."""
+        return await _tool("websearch", f"q={query[:80]} p={page}", _search_web(query, page=page), config)
 
     @mcp.tool()
     async def webfetch(url: str) -> str:

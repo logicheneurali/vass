@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from . import to_num
 
 
-async def browse(url: str, timeout: float = 60.0) -> str:
+async def browse(url: str, timeout: float = 60.0, max_lines: int = 1000) -> str:
     timeout = to_num(timeout, 60.0)
     parsed = urlparse(url)
     if not parsed.scheme:
@@ -23,4 +23,4 @@ async def browse(url: str, timeout: float = 60.0) -> str:
             tag.decompose()
         text = soup.get_text(separator="\n", strip=True)
         lines = [line for line in text.splitlines() if line.strip()]
-        return "\n".join(lines[:200])
+        return "\n".join(lines[:max_lines])

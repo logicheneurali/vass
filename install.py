@@ -895,8 +895,11 @@ def _verify_imports(dest: Path):
         ("mojimoji", "mojimoji"), ("pypinyin", "pypinyin"),
         ("ordered-set", "ordered_set"), ("jieba", "jieba"),
         ("cn2an", "cn2an"), ("dateparser", "dateparser"),
-        ("playwright", "playwright"), ("PyAutoGUI", "pyautogui"),
+        ("playwright", "playwright"),
         ("pyperclip", "pyperclip"), ("spacy", "spacy"),
+        ("matplotlib", "matplotlib"), ("geopandas", "geopandas"),
+        ("webrtcvad", "webrtcvad"), ("kokoro", "kokoro"),
+        ("openwakeword", "openwakeword"), ("pydub", "pydub"),
         ("cryptography", "cryptography"),
         ("tiktoken", "tiktoken"),
         ("google-auth", "google.auth"),
@@ -909,6 +912,9 @@ def _verify_imports(dest: Path):
         ("PySide6", "PySide6"),
         ("loguru", "loguru"),
         ("transformers", "transformers"),
+        ("yfinance", "yfinance"),
+        ("python-dateutil", "dateutil"),
+        ("pydantic", "pydantic"),
     ]
     py = venv_python(dest)
     results = []
@@ -1155,16 +1161,63 @@ def main():
     venv_dir = dest / ".venv"
     print(f"  {_('venv_creating', venv_dir)}")
     rc, _out, stderr = run([sys.executable, "-m", "venv", str(venv_dir)])
-    if rc != 0:
-        if "ensurepip" in stderr.lower() or "ensurepip" in _out.lower():
-            print(f"  {C_RED}{_('venv_fail_ensurepip')}{C_RESET}")
+    without_pip = False
+    if rc != 0 and ("ensurepip" in stderr.lower() or "ensurepip" in _out.lower()):
+        print(f"  {C_YELLOW}venv ensurepip failed, retrying --without-pip + bootstrap...{C_RESET}")
+        rc2, _out2, stderr2 = run([sys.executable, "-m", "venv", "--without-pip", str(venv_dir)])
+        if rc2 == 0:
+            rc, stderr = 0, ""
+            without_pip = True
         else:
-            print(f"  {C_RED}{_('venv_fail')}{C_RESET}\n{stderr[:500]}")
+            print(f"  {C_RED}{_('venv_fail_ensurepip')}{C_RESET}")
+            print(f"  {C_DIM}stderr: {stderr2[:500]}{C_RESET}")
+            sys.exit(1)
+    if rc != 0:
+        print(f"  {C_RED}{_('venv_fail')}{C_RESET}\n{stderr[:500]}")
         sys.exit(1)
+    # Bootstrap pip if venv was created without it (Debian/Ubuntu ensurepip disabled)
+    venv_py = venv_python(dest)
+    rc_pip, _, _ = run([venv_py, "-m", "pip", "--version"])
+    if rc_pip != 0 or without_pip:
+        print(f"  {C_YELLOW}pip not found in venv, bootstrapping...{C_RESET}")
+        bootstrapped = False
+        # 1) ensurepip
+        rc_e, _, _ = run([venv_py, "-m", "ensurepip", "--upgrade"])
+        rc_pip2, _, _ = run([venv_py, "-m", "pip", "--version"])
+        if rc_pip2 == 0:
+            bootstrapped = True
+            print(f"  {C_GREEN}pip bootstrapped via ensurepip{C_RESET}")
+        else:
+            # 2) get-pip.py
+            try:
+                import urllib.request, tempfile
+                url = "https://bootstrap.pypa.io/get-pip.py"
+                tmp = os.path.join(tempfile.gettempdir(), "vass-get-pip.py")
+                print(f"  {C_DIM}Downloading get-pip.py...{C_RESET}")
+                urllib.request.urlretrieve(url, tmp)
+                rc_g, _, err_g = run([venv_py, tmp])
+                try:
+                    os.remove(tmp)
+                except Exception:
+                    pass
+                rc_pip3, _, _ = run([venv_py, "-m", "pip", "--version"])
+                if rc_pip3 == 0:
+                    bootstrapped = True
+                    print(f"  {C_GREEN}pip bootstrapped via get-pip.py{C_RESET}")
+                else:
+                    print(f"  {C_RED}get-pip.py failed: {err_g[:400]}{C_RESET}")
+            except Exception as e:
+                print(f"  {C_RED}pip bootstrap failed: {e}{C_RESET}")
+        if not bootstrapped:
+            print(f"  {C_RED}FATAL: pip not available in venv and bootstrap failed.{C_RESET}")
+            print(f"  {C_YELLOW}On Debian/Ubuntu: sudo apt-get install -y python3-pip python3-venv python3.13-venv{C_RESET}")
+            sys.exit(1)
     print(f"  {C_GREEN}{_('venv_ok')}{C_RESET}")
 
     print(f"  {_('venv_pip_upgrade')}")
-    run(venv_pip(dest) + ["install", "--upgrade", "pip"], show=False)
+    rc_u, _, err_u = run(venv_pip(dest) + ["install", "--upgrade", "pip"], show=False)
+    if rc_u != 0:
+        print(f"  {C_YELLOW}pip upgrade warning: {err_u[:300]}{C_RESET}")
 
     # ── STEP 6: Install dependencies ─────────────────────────────────────────
     step(7, _("step_pip"))

@@ -419,7 +419,7 @@ class VASScript:
                 if self.app.allow_ai_scripts:
                     vas_ref = _load_vascript_reference()
                     tools_block += vas_ref
-                system_content = memory_content + system_content + tools_block
+                system_content = system_content + memory_content + tools_block
 
             messages = [{"role": "system", "content": system_content}] if system_content else []
             messages.append({"role": "user", "content": prompt})
