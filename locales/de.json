@@ -8,7 +8,8 @@
       "playing": "Wiedergabe",
       "paused": "Pausiert",
       "running_script": "Skriptausführung",
-      "loading": "Initialisierung..."
+      "loading": "Initialisierung...",
+      "downloading_models": "Modelle werden heruntergeladen..."
     },
     "menu": {
       "menu": "Menü",
@@ -162,6 +163,7 @@
       "auto_context_selection": "Automatische Kontextauswahl",
       "paused_opacity": "Pause-Deckkraft",
       "compact_mode": "Kompakter Modus",
+      "force_x11": "X11-Modus erzwingen (Wayland)",
       "app_autostart": "VASS beim Systemstart starten",
       "work_start_hour": "Arbeitsbeginn",
       "work_end_hour": "Arbeitsende",
@@ -227,6 +229,7 @@
       "compress_context": "Entfernt Artikel, Prapositionen und Konjunktionen aus dem an die KI gesendeten Text, um die Token-Anzahl zu reduzieren.",
       "auto_context_selection": "Überspringt die Speicherinjektion, wenn die Anfrage keinen Kontext benötigt (z.B. Berechnungen, Uhrzeit, Übersetzungen).",
       "compact_mode": "Reduziert das Fenster auf 36x36 Pixel mit konzentrischen Kreisen und transparentem Hintergrund",
+      "force_x11": "X11 (XWayland) für Fensterposition/-größe verwenden. Neustart erforderlich.",
       "app_autostart": "Registriert oder entfernt VASS beim Systemstart. Der angezeigte Status spiegelt die Systemregistrierung wider."
     },
     "section_labels": {

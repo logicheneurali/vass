@@ -7,6 +7,7 @@
       "playing": "재생 중",
       "paused": "일시 정지",
       "loading": "초기화 중...",
+      "downloading_models": "모델 다운로드 중...",
       "running_script": "스크립트 실행",
       "waiting_resources": "리소스 대기 중"
     },
@@ -162,6 +163,7 @@
       "auto_context_selection": "컨텍스트 자동 선택",
       "paused_opacity": "일시정지 불투명도",
       "compact_mode": "컴팩트 모드",
+      "force_x11": "X11 모드 강제 (Wayland)",
       "app_autostart": "시스템 시작 시 VASS 실행",
       "work_start_hour": "근무 시작",
       "work_end_hour": "근무 종료",
@@ -227,6 +229,7 @@
       "compress_context": "AI에 전송되는 텍스트에서 관사, 전치사, 접속사를 제거하여 토큰 수를 줄입니다.",
       "auto_context_selection": "요청이 컨텍스트를 필요로 하지 않는 경우(계산, 시간, 번역 등) 메모리 주입을 건너뜁니다.",
       "compact_mode": "창을 36x36 픽셀로 축소하고 동심원과 투명 배경을 표시합니다",
+      "force_x11": "X11 (XWayland)를 사용하여 창 위치/크기 저장. 다시 시작이 필요합니다.",
       "app_autostart": "시스템 시작 시 VASS를 등록하거나 제거합니다. 표시된 상태는 시스템 레지스트리를 반영합니다."
     },
     "section_labels": {

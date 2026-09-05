@@ -19,6 +19,37 @@ from activity_tracker import get_tracker, CATEGORY_COLORS
 from icons import icon, icon_dual, pixmap
 from smooth_scroll import SmoothScrollArea
 
+
+def _is_wayland():
+    if os.environ.get("QT_QPA_PLATFORM", "").lower() in ("xcb", "x11"):
+        return False
+    return bool(os.environ.get("WAYLAND_DISPLAY") or os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland")
+
+
+def _get_window_pos(widget):
+    """Get window position. Works correctly on X11/XCB. On Wayland uses mapToGlobal as best-effort."""
+    if _is_wayland():
+        try:
+            gpos = widget.mapToGlobal(QPoint(0, 0))
+            return gpos.x(), gpos.y()
+        except Exception:
+            return 0, 0
+    return widget.x(), widget.y()
+
+
+def _try_system_move(widget):
+    """Try Wayland compositor-initiated move. Returns True if handled."""
+    if not _is_wayland():
+        return False
+    try:
+        wh = widget.windowHandle()
+        if wh is not None and hasattr(wh, "startSystemMove"):
+            wh.startSystemMove()
+            return True
+    except Exception:
+        pass
+    return False
+
 BASE = get_project_root()
 SRC = os.path.join(BASE, "src")
 SVG_PATH = os.path.join(BASE, "vass.svg")
@@ -434,6 +465,8 @@ class _CompactWidget(QWidget):
                 win._exit_app()
             return
         if event.button() == Qt.MouseButton.LeftButton:
+            if _try_system_move(win or self):
+                return
             now = time.monotonic()
             interval = QApplication.instance().doubleClickInterval() / 1000.0
             if self._last_click_time and now - self._last_click_time < interval:
@@ -472,8 +505,10 @@ class _CompactWidget(QWidget):
                     if hasattr(win, '_clamp_to_screen'):
                         win._clamp_to_screen()
                     if hasattr(win, 'app') and win.app:
-                        win._pending_pos = (win.x(), win.y(), win.width(), win.height())
-                        win._pos_debounce.start()
+                        x, y = _get_window_pos(win)
+                        if x or y:
+                            win._pending_pos = (x, y, win.width(), win.height())
+                            win._pos_debounce.start()
         self._drag_pos = None
         self._drag_start = None
 
@@ -1174,7 +1209,10 @@ class VassGUI(QMainWindow):
         )
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setStyleSheet("QMainWindow { background-color: #101010; }")
-        self.setGeometry(x, y, width, height)
+        if _is_wayland():
+            self.setFixedSize(width, height)
+        else:
+            self.setGeometry(x, y, width, height)
 
         ico_path = os.path.join(BASE, "vass.ico")
         if os.path.exists(ico_path):
@@ -1529,6 +1567,8 @@ class VassGUI(QMainWindow):
                 pass
 
     def _clamp_to_screen(self):
+        if _is_wayland():
+            return
         screen = QApplication.primaryScreen()
         if not screen:
             return
@@ -1603,9 +1643,14 @@ class VassGUI(QMainWindow):
             else:
                 center_x = self.x() + self.width() // 2
                 self._normal_geometry = (self.x(), self.y(), self.width(), self.height())
-                self.setGeometry(center_x - 18, self.y(), self.width(), self.height())
+                if _is_wayland():
+                    self.setFixedSize(self.width(), self.height())
+                else:
+                    self.setGeometry(center_x - 18, self.y(), self.width(), self.height())
                 if self.app:
-                    self.save_layout(self.x(), self.y(), self.width(), self.height())
+                    x, y = _get_window_pos(self)
+                    if x or y:
+                        self.save_layout(x, y, self.width(), self.height())
             self.volume_top_bar.hide()
             self.memory_bar.hide()
             for w in self._left_side:
@@ -1668,9 +1713,12 @@ class VassGUI(QMainWindow):
             else:
                 x, y = self.x(), self.y()
             self._apply_window_size()
-            self.move(x, y)
+            if not _is_wayland():
+                self.move(x, y)
             if self.app:
-                self.save_layout(self.x(), self.y(), self.width(), self.height())
+                gx, gy = _get_window_pos(self)
+                if gx or gy:
+                    self.save_layout(gx, gy, self.width(), self.height())
             self._on_set_state(self._current_state, self._current_detail)
 
     def _build_loading_widget(self):
@@ -1705,6 +1753,8 @@ class VassGUI(QMainWindow):
             self._exit_app()
             return
         if event.button() == Qt.MouseButton.LeftButton:
+            if _try_system_move(self):
+                return
             self._drag_start = event.globalPosition().toPoint()
             self._drag_pos = self._drag_start
             self._drag_started = False
@@ -1733,8 +1783,10 @@ class VassGUI(QMainWindow):
             else:
                 self._clamp_to_screen()
                 if self.app:
-                    self._pending_pos = (self.x(), self.y(), self.width(), self.height())
-                    self._pos_debounce.start()
+                    x, y = _get_window_pos(self)
+                    if x or y:
+                        self._pending_pos = (x, y, self.width(), self.height())
+                        self._pos_debounce.start()
         self._drag_pos = None
         self._drag_start = None
 
@@ -1749,9 +1801,11 @@ class VassGUI(QMainWindow):
 
     def moveEvent(self, event):
         super().moveEvent(event)
-        if self.app and not self._compact_mode:
-            self._pending_pos = (self.x(), self.y(), self.width(), self.height())
-            self._pos_debounce.start()
+        if self.app and not self._compact_mode and sys.platform != "linux":
+            x, y = _get_window_pos(self)
+            if x or y:
+                self._pending_pos = (x, y, self.width(), self.height())
+                self._pos_debounce.start()
 
     def _apply_window_size(self):
         """Apply window size exclusively from layout.ini (single source of truth)."""
@@ -1864,7 +1918,8 @@ class VassGUI(QMainWindow):
             self._poll_activity()
         if state in ("waiting", "waiting_resources"):
             self._fade_anim.stop()
-            self._pulse_anim.start()
+            if not _is_wayland():
+                self._pulse_anim.start()
         else:
             self._pulse_anim.stop()
             if state == "paused":
@@ -1886,6 +1941,8 @@ class VassGUI(QMainWindow):
         self.btn.setText(fm.elidedText(self._btn_full_text, Qt.TextElideMode.ElideRight, available))
 
     def _fade_opacity(self, target):
+        if _is_wayland():
+            return
         self._fade_anim.stop()
         self._fade_anim.setStartValue(self.windowOpacity())
         self._fade_anim.setEndValue(target)
@@ -2006,6 +2063,7 @@ class VassGUI(QMainWindow):
         self._left_side_visibility = {}
         w = self._restore_from_layout() or self.width()
         self._rebalance_spacers(force_width=w)
+        self._enforce_layout_size()
 
     def _restore_from_layout(self):
         import configparser
@@ -2132,6 +2190,13 @@ class VassGUI(QMainWindow):
     def set_loading_progress(self, value, maximum=100, detail=""):
         if hasattr(self, '_splash') and self._splash is not None:
             self.splash_progress_signal.emit(value, maximum, detail)
+        # also update compact loading label for when splash is gone
+        if hasattr(self, 'loading_label') and detail:
+            try:
+                self.loading_label.setText(detail)
+                self.loading_label.setWordWrap(True)
+            except Exception:
+                pass
 
     def _on_splash_progress(self, value, maximum, detail):
         if hasattr(self, '_splash') and self._splash is not None:
@@ -2798,6 +2863,8 @@ class VassGUI(QMainWindow):
             return False
 
     def _auto_fade_loop(self):
+        if _is_wayland():
+            return
         import time as _time
         prev_opacity = 1.0
         fading = False
@@ -3007,7 +3074,25 @@ class VassGUI(QMainWindow):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:
             self._exit_app()
+        elif event.button() == Qt.MouseButton.LeftButton:
+            if _try_system_move(self):
+                super().mousePressEvent(event)
+                return
+            # fallback: allow drag on empty window area (X11)
+            self._drag_start = event.globalPosition().toPoint()
+            self._drag_pos = self._drag_start
+            self._drag_started = False
         super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if hasattr(self, "_drag_pos") and self._drag_pos is not None:
+            self._ui_move(event)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if hasattr(self, "_drag_pos") and self._drag_pos is not None:
+            self._ui_release(event)
+        super().mouseReleaseEvent(event)
 
 
 class PluginManagerDialog(QDialog):

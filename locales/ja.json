@@ -7,6 +7,7 @@
       "playing": "再生中",
       "paused": "一時停止",
       "loading": "初期化中...",
+      "downloading_models": "モデルをダウンロード中...",
       "running_script": "スクリプト実行",
       "waiting_resources": "リソース待機中"
     },
@@ -162,6 +163,7 @@
       "auto_context_selection": "コンテキスト自動選択",
       "paused_opacity": "一時停止の不透明度",
       "compact_mode": "コンパクトモード",
+      "force_x11": "X11モードを強制 (Wayland)",
       "app_autostart": "システム起動時にVASSを起動",
       "work_start_hour": "勤務開始",
       "work_end_hour": "勤務終了",
@@ -227,6 +229,7 @@
       "compress_context": "AIに送信されるテキストから冠詞、前置詞、接続詞を削除し、トークン数を削減します。",
       "auto_context_selection": "リクエストがコンテキストを必要としない場合（計算、時刻、翻訳など）、メモリの注入をスキップします。",
       "compact_mode": "ウィンドウを36x36ピクセルに縮小し、同心円と透明な背景を表示します",
+      "force_x11": "X11 (XWayland) を使用してウィンドウの位置/サイズを保存。再起動が必要です。",
       "app_autostart": "システム起動時にVASSを登録または削除します。表示される状態はシステムレジストリを反映します。"
     },
     "section_labels": {

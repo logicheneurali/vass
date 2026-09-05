@@ -7,6 +7,7 @@
       "playing": "Reproduzindo",
       "paused": "Pausado",
       "loading": "Inicializando...",
+      "downloading_models": "Baixando modelos...",
       "running_script": "Executando script",
       "waiting_resources": "Waiting for resources"
     },
@@ -162,6 +163,7 @@
       "auto_context_selection": "Seleção automática de contexto",
       "paused_opacity": "Opacidade pausa",
       "compact_mode": "Modo compacto",
+      "force_x11": "Forçar modo X11 (Wayland)",
       "app_autostart": "Iniciar o VASS na inicialização do sistema",
       "work_start_hour": "Início expediente",
       "work_end_hour": "Fim expediente",
@@ -227,6 +229,7 @@
       "compress_context": "Remove artigos, preposicoes e conjuncoes do texto enviado a IA para reduzir o numero de tokens.",
       "auto_context_selection": "Pula a injeção de memória quando a solicitação não precisa de contexto (ex. cálculos, hora, traduções).",
       "compact_mode": "Reduz a janela para 36x36 pixels com círculos concêntricos e fundo transparente",
+      "force_x11": "Usar X11 (XWayland) para posição/tamanho da janela. Requer reinicialização.",
       "app_autostart": "Registra ou remove o VASS na inicialização do sistema. O estado exibido reflete o registro do sistema."
     },
     "section_labels": {

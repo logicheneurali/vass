@@ -7,6 +7,7 @@
       "playing": "播放中",
       "paused": "暂停",
       "loading": "初始化中...",
+      "downloading_models": "正在下载模型...",
       "running_script": "执行脚本",
       "waiting_resources": "等待资源"
     },
@@ -162,6 +163,7 @@
       "auto_context_selection": "自动上下文选择",
       "paused_opacity": "暂停不透明度",
       "compact_mode": "紧凑模式",
+      "force_x11": "强制X11模式 (Wayland)",
       "app_autostart": "系统启动时启动VASS",
       "work_start_hour": "工作开始",
       "work_end_hour": "工作结束",
@@ -227,6 +229,7 @@
       "compress_context": "从发送给AI的文本中移除冠词、介词和连词以减少token数量。",
       "auto_context_selection": "当请求不需要上下文时（如计算、时间、翻译），跳过内存注入。",
       "compact_mode": "将窗口缩小为36x36像素，显示同心圆和透明背景",
+      "force_x11": "使用X11 (XWayland) 保存窗口位置/大小。需要重启。",
       "app_autostart": "在系统启动时注册或移除VASS。显示的状态反映系统注册表。"
     },
     "section_labels": {
