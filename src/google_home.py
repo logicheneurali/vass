@@ -1,9 +1,8 @@
 """Google Home integration via Assistant SDK gRPC."""
 import os
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 import json
 import tempfile
-
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 from google_auth import get_google_credentials, check_google_auth
 
