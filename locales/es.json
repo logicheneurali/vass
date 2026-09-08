@@ -421,7 +421,8 @@
     "schedule_done": "Procedimiento {description} ejecutado!",
     "schedule_failed": "Procedimiento {description} fallido!",
     "start_message": "El evento {description} esta comenzando",
-    "event_default": "Evento"
+    "event_default": "Evento",
+    "event_created": "Evento aggiunto: {description} il {date} alle {time}"
   },
   "history_viewer": {
     "title": "Conversation History",
@@ -1307,7 +1308,8 @@
     "script": "Scripts",
     "profile": "Perfil",
     "world_event": "Mundo",
-    "other": "Otro"
+    "other": "Otro",
+    "watch": "Visione"
   },
   "sources_editor": {
     "categories": "Categorías",

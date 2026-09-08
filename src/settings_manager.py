@@ -50,6 +50,7 @@ def load_settings(settings_file):
         result["word_learning_enabled"] = config.get("commands", "word_learning_enabled", fallback="false").lower() == "true"
         lang = result.get("language", "en")
         result["kokoro_voice"] = config.get("tts", "kokoro_voice", fallback=_KOKORO_DEFAULT_VOICE.get(lang, "af_heart"))
+        result["tts_device"] = config.get("tts", "tts_device", fallback="auto")
 
         app_volume = config.getfloat("audio", "app_volume", fallback=None)
         if app_volume is None:
@@ -129,6 +130,7 @@ def load_settings(settings_file):
         result["word_learning_enabled"] = False
         result["app_volume"] = 1.0
         result["kokoro_voice"] = _KOKORO_DEFAULT_VOICE.get(lang, "af_heart")
+        result["tts_device"] = "auto"
         result["mcp_server_url"] = "http://localhost:9988"
         result["memory_tokens"] = 5000
         result["blacklist"] = ""
@@ -168,7 +170,7 @@ def load_settings(settings_file):
         }
         config["wakeword"] = {"sensitivity": "0.010", "wakeword": "vass"}
         config["commands"] = {"similarity": "0.6", "word_learning_enabled": "false"}
-        config["tts"] = {"tts_engine": "kokoro", "kokoro_voice": _KOKORO_DEFAULT_VOICE.get(lang, "af_heart")}
+        config["tts"] = {"tts_engine": "kokoro", "kokoro_voice": _KOKORO_DEFAULT_VOICE.get(lang, "af_heart"), "tts_device": "auto"}
         config["llamacpp"] = {
             "llama_server_path": "",
             "llama_server_working_directory": "",

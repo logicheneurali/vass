@@ -103,8 +103,6 @@ class TtsEngine:
         dur = len(audio_data) / sr
         print(f"[TTS] generate_to_file: saved to {output_path} ({dur:.1f}s)")
         return dur
-        if text:
-            print(f"[TTS] Enqueued: {text[:60]}")
 
     def _flush_deferred(self):
         """Move deferred TTS messages to speak queue when AI is no longer busy."""
@@ -213,13 +211,49 @@ class TtsEngine:
         self._kokoro_code = lang_code
         self._kokoro_voice = self._kokoro_voice_override or voice
 
+    def _resolve_tts_device(self):
+        """Resolve the TTS device from settings. Returns 'cpu', 'cuda', or None (auto).
+        Also reloads the pipeline if the device setting changed since last load."""
+        device_setting = getattr(self._app, 'tts_device', 'auto') if self._app else 'auto'
+        if device_setting == 'cpu':
+            dev = 'cpu'
+        elif device_setting == 'cuda':
+            dev = 'cuda'
+        else:
+            dev = None  # auto-detect (default KPipeline behavior)
+
+        # Reload pipeline if device setting changed
+        if hasattr(self, '_last_tts_device') and self._last_tts_device != dev:
+            print(f"[TTS] Device setting changed from {self._last_tts_device} to {dev}, reloading pipeline")
+            self._last_tts_device = dev
+            if self._kokoro_code and not getattr(self, '_device_reload_guard', False):
+                self._device_reload_guard = True
+                try:
+                    from kokoro import KPipeline
+                    if dev is None:
+                        self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
+                    else:
+                        self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code, device=dev)
+                    print(f"[TTS] Pipeline reloaded with device={dev}")
+                except Exception as e:
+                    print(f"[TTS] Pipeline reload failed: {e}")
+                finally:
+                    self._device_reload_guard = False
+        elif not hasattr(self, '_last_tts_device'):
+            self._last_tts_device = dev
+        return dev
+
     def preload(self):
         def _load():
             try:
                 self._init_kokoro()
-                print(f"[TTS] Preloading Kokoro pipeline (lang={self._kokoro_code}, voice={self._kokoro_voice})...")
+                device = self._resolve_tts_device()
+                print(f"[TTS] Preloading Kokoro pipeline (lang={self._kokoro_code}, voice={self._kokoro_voice}, device={device})...")
                 from kokoro import KPipeline
-                self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
+                if device is None:
+                    self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
+                else:
+                    self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code, device=device)
                 print("[TTS] Kokoro pipeline ready")
             except ImportError as e:
                 print(f"[TTS] Kokoro preload failed (missing dependency): {e}")
@@ -357,7 +391,7 @@ class TtsEngine:
             self.gui.volume_top_bar.set_volume(self.app_volume)
         self.gui.start_tts_playback(
             data=self._tts_data,
-            samplerate=sample_rate,
+            samplerate=self._tts_sr,
             total_samples=len(self._tts_data),
             on_complete=None
         )
@@ -390,10 +424,14 @@ class TtsEngine:
                 self._init_kokoro()
             if self._kokoro_code is None:
                 return None
+            device = self._resolve_tts_device()
             if self._kokoro_pipeline is None or self._kokoro_pipeline.lang_code != self._kokoro_code:
                 from kokoro import KPipeline
-                print(f"[TTS] Loading Kokoro pipeline (lang={self._kokoro_code}, voice={self._kokoro_voice})...")
-                self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
+                print(f"[TTS] Loading Kokoro pipeline (lang={self._kokoro_code}, voice={self._kokoro_voice}, device={device})...")
+                if device is None:
+                    self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
+                else:
+                    self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code, device=device)
             words = text.split()
             since_punct = 0
             for i, w in enumerate(words):
@@ -415,6 +453,24 @@ class TtsEngine:
                 print(f"[TTS] Kokoro generated: {len(all_audio)} chunks, {dur:.1f}s")
                 return audio, 24000
             print(f"[TTS] Kokoro generated no audio")
+            return None
+        except RuntimeError as e:
+            error_str = str(e).lower()
+            if ('out of memory' in error_str or 'cuda' in error_str or 'cudabackenderror' in error_str):
+                print(f"[TTS] GPU memory error, retrying on CPU: {e}")
+                try:
+                    self._kokoro_code = None
+                    self._init_kokoro()
+                    # Force CPU when falling back from CUDA OOM
+                    from kokoro import KPipeline
+                    print(f"[TTS] Loading Kokoro pipeline on CPU (lang={self._kokoro_code})...")
+                    self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code, device='cpu')
+                    # Retry with CPU pipeline
+                    return self._generate_kokoro_audio(text, speed)
+                except Exception as e2:
+                    print(f"[TTS] CPU fallback also failed: {e2}")
+                    return None
+            print(f"[TTS] Kokoro generation failed: {e}")
             return None
         except Exception as e:
             print(f"[TTS] Kokoro generation failed: {e}")
@@ -446,7 +502,11 @@ class TtsEngine:
         import uuid
         try:
             from kokoro import KPipeline
-            pipeline = KPipeline(lang_code=lang_code)
+            device = self._resolve_tts_device()
+            if device is None:
+                pipeline = KPipeline(lang_code=lang_code)
+            else:
+                pipeline = KPipeline(lang_code=lang_code, device=device)
             wav_path = os.path.join(get_project_root(), f"tts_output_{uuid.uuid4().hex[:8]}.wav")
             generator = pipeline(text, voice=voice, speed=speed,
                                   split_pattern=r'(?<=[.!?])\s+|\n+')
@@ -567,6 +627,13 @@ class TtsEngine:
 
     def update_settings(self, app_volume):
         self.app_volume = app_volume
+        # Re-resolve device in case settings changed
+        device = self._resolve_tts_device()
+        if device is not None and self._kokoro_code and (self._kokoro_pipeline is None or self._kokoro_pipeline.lang_code != self._kokoro_code):
+            from kokoro import KPipeline
+            print(f"[TTS] Settings changed - Loading Kokoro pipeline (lang={self._kokoro_code}, device={device})...")
+            self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code, device=device)
+            print(f"[TTS] Pipeline reloaded with device={device}")
 
     def update_output_device(self, device_id):
         self.output_device = None if device_id < 0 else device_id

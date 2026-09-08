@@ -472,36 +472,57 @@ def _close_macos(name: str, timeout: float) -> str:
 
 
 def _close_linux(name: str, timeout: float) -> str:
-    # Try wmctrl graceful close
+    # Try xdotool graceful close (XDG-specific, best effort)
     try:
         r = subprocess.run(
-            ["wmctrl", "-l"], capture_output=True, text=True, timeout=5
+            ["xdotool", "--idwindow", name], capture_output=True, text=True, timeout=5
         )
-        for line in r.stdout.splitlines():
-            if name.lower() in line.lower():
-                wid = line.split(None, 1)[0]
-                subprocess.run(
-                    ["wmctrl", "-i", "-c", wid], capture_output=True, timeout=5
-                )
+        if r.stdout.strip():
+            wid = r.stdout.strip().splitlines()[0]
+            subprocess.run(
+                ["xdotool", "windowclose", "-id=" + wid], capture_output=True, timeout=5
+            )
     except Exception:
         pass
 
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            r = subprocess.run(
-                ["pgrep", "-f", name], capture_output=True, text=True, timeout=5
-            )
-            if not r.stdout.strip():
-                return "true"
-        except Exception:
-            pass
-        time.sleep(0.2)
-
+    # Find PIDs via pgrep (partial match on full command line)
     try:
-        subprocess.run(
-            ["pkill", "-9", "-f", name], capture_output=True, timeout=5
+        r = subprocess.run(
+            ["pgrep", "-f", name], capture_output=True, text=True, timeout=5
         )
-        return "true"
     except Exception:
         return "false"
+
+    pids = [int(p) for p in r.stdout.strip().splitlines() if p.strip()]
+    if not pids:
+        return "true"
+
+    # Graceful: SIGTERM each PID
+    for pid in pids:
+        try:
+            os.kill(pid, 15)
+        except Exception:
+            pass
+
+    # Wait for exit
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        still_alive = False
+        for pid in pids:
+            try:
+                os.kill(pid, 0)
+                still_alive = True
+                break
+            except (OSError, ProcessLookupError):
+                pass
+        if not still_alive:
+            return "true"
+        time.sleep(0.2)
+
+    # Force kill survivors
+    for pid in pids:
+        try:
+            os.kill(pid, 9)
+        except Exception:
+            pass
+    return "true"

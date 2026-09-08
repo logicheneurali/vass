@@ -45,6 +45,33 @@ except ImportError:
     sys.exit(1)
 
 os.makedirs("log", exist_ok=True)
+
+# Ensure keyring uses a persistent backend on Linux (not the default Chainer)
+if sys.platform == "linux":
+    try:
+        import keyring
+        backend = keyring.get_keyring()
+        if backend.__class__.__name__ == "ChainerBackend":
+            print(f"[Auth] Chaining Chainer, attempting to set libsecret backend")
+            try:
+                import keyring.backends.libsecret
+                keyring.set_keyring(keyring.backends.libsecret.Keyring())
+                print(f"[Auth] Keyring backend: keyring.backends.libsecret.Keyring")
+            except Exception:
+                try:
+                    import keyring.backends.dbus
+                    keyring.set_keyring(keyring.backends.dbus.DBusKeyring())
+                    print(f"[Auth] Keyring backend: keyring.backends.dbus.DBusKeyring")
+                except Exception:
+                    try:
+                        import keyring.backends.kwallet
+                        keyring.set_keyring(keyring.backends.kwallet.KWalletKeyring())
+                        print(f"[Auth] Keyring backend: keyring.backends.kwallet.KWalletKeyring")
+                    except Exception:
+                        print(f"[Auth] No persistent keyring backend available")
+    except Exception:
+        pass
+
 _faulthandler_file = open("log/faulthandler.log", "w")
 faulthandler.enable(_faulthandler_file)
 
@@ -1370,8 +1397,13 @@ class VassApp:
             notes_block = "\n".join(self.context_notes)
             if notes_block:
                 notes_block = f"Context notes (low priority, can be ignored if context is full):\n{notes_block}\n\n"
+            # Language reinforcement: append the language instruction right
+            # before the tools_block so it stays closest to the user message
+            # and isn't drowned out by the massive English tool descriptions.
+            lang_instruction = t("ai.lang_instruction", self.language)
+            system_content_with_lang = f"{system_content}\n{lang_instruction}".strip()
             messages = [
-                {"role": "system", "content": system_content + notes_block + memory_content + tools_block},
+                {"role": "system", "content": system_content_with_lang + notes_block + memory_content + tools_block},
                 {"role": "user", "content": prompt}
             ]
             if self.compress_context:
@@ -1995,6 +2027,20 @@ def main():
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QIcon
         from PySide6.QtCore import QTimer
+    
+        # force_x11: force the xcb (X11) Qt platform so window coordinates
+        # are reliable on Wayland (XWayland) as well as on native X11.
+        if sys.platform != "win32":
+            try:
+                import configparser as _cp
+                _sf = os.path.join(get_project_root(), "config", "settings.ini")
+                if os.path.exists(_sf):
+                    _cfg = _cp.ConfigParser()
+                    _cfg.read(_sf, encoding="utf-8")
+                    if _cfg.getboolean("gui", "force_x11", fallback=False):
+                        os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
+            except Exception:
+                pass
     
         qapp = QApplication(sys.argv)
         ico_path = os.path.join(get_project_root(), "vass.ico")

@@ -422,7 +422,8 @@
     "schedule_done": "手順 {description} が完了しました！",
     "schedule_failed": "手順 {description} が失敗しました！",
     "start_message": "イベント {description} が開始します",
-    "event_default": "イベント"
+    "event_default": "イベント",
+    "event_created": "Evento aggiunto: {description} il {date} alle {time}"
   },
   "history_viewer": {
     "title": "Conversation History",
@@ -1287,7 +1288,8 @@
     "script": "スクリプト",
     "profile": "プロフィール",
     "world_event": "世界",
-    "other": "その他"
+    "other": "その他",
+    "watch": "Visione"
   },
   "sources_editor": {
     "categories": "カテゴリ",

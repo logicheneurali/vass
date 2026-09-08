@@ -422,7 +422,8 @@
     "schedule_done": "程序 {description} 已执行!",
     "schedule_failed": "程序 {description} 失败!",
     "start_message": "事件 {description} 即将开始",
-    "event_default": "事件"
+    "event_default": "事件",
+    "event_created": "Evento aggiunto: {description} il {date} alle {time}"
   },
   "history_viewer": {
     "title": "Conversation History",
@@ -1283,7 +1284,8 @@
     "script": "脚本",
     "profile": "资料",
     "world_event": "世界",
-    "other": "其他"
+    "other": "其他",
+    "watch": "Visione"
   },
   "sources_editor": {
     "categories": "分类",

@@ -422,7 +422,8 @@
     "schedule_done": "절차 {description} 완료됨!",
     "schedule_failed": "절차 {description} 실패함!",
     "start_message": "이벤트 {description}이(가) 시작됩니다",
-    "event_default": "이벤트"
+    "event_default": "이벤트",
+    "event_created": "Evento aggiunto: {description} il {date} alle {time}"
   },
   "history_viewer": {
     "title": "Conversation History",
@@ -1288,7 +1289,8 @@
     "script": "스크립트",
     "profile": "프로필",
     "world_event": "세계",
-    "other": "기타"
+    "other": "기타",
+    "watch": "Visione"
   },
   "sources_editor": {
     "categories": "카테고리",

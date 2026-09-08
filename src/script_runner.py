@@ -167,26 +167,6 @@ class ScriptRunner:
                     pass
             keyring.set_password("vass-auth", script, _json.dumps(data))
 
-        def _migrate_auth_ini():
-            ini_path = os.path.join(script_dir, "auth.ini")
-            if not os.path.exists(ini_path):
-                return
-            cfg = configparser.ConfigParser()
-            cfg.read(ini_path)
-            migrated = False
-            for sec in cfg.sections():
-                existing = _auth_get(sec)
-                for opt in cfg.options(sec):
-                    if cfg.getboolean(sec, opt):
-                        existing[opt] = True
-                _auth_set(sec, existing)
-                migrated = True
-            if migrated:
-                os.remove(ini_path)
-                print(f"[Auth] Migrato auth.ini in Credential Manager")
-
-        _migrate_auth_ini()
-
         def _load_auth(func_name=None):
             data = _auth_get(script_name)
             if is_file and script_path and "_hash" in data:

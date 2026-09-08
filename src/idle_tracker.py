@@ -1,3 +1,5 @@
+import glob
+import os
 import sys
 import time
 
@@ -53,6 +55,7 @@ class IdleTracker:
         return 0
 
     def _idle_linux(self):
+        # Try xprintidle first (from xscreensaver, may not be installed).
         try:
             import subprocess
             r = subprocess.run(
@@ -63,6 +66,34 @@ class IdleTracker:
                 return int(r.stdout.strip()) / 1000.0
         except Exception:
             pass
+
+        # Fallback: read the last input event timestamp from /dev/input/event.
+        # This gives per-user input idle without any extra packages.
+        try:
+            import glob
+            last_event_time = 0.0
+            for evfile in glob.glob("/dev/input/event*"):
+                try:
+                    st = os.stat(evfile).st_mtime
+                    if st > last_event_time:
+                        last_event_time = st
+                except Exception:
+                    pass
+            if last_event_time:
+                return time.time() - last_event_time
+        except Exception:
+            pass
+
+        # Last resort: /proc/uptime as a rough system-wide idle proxy.
+        # Not per-user accurate, but prevents the "never idle" deadlock.
+        try:
+            uptime = float(open("/proc/uptime").read().split()[0])
+            total_cpu = sum(float(p) for p in open("/proc/stat").read()
+                            .split("cpu ")[1].split())
+            return max(uptime - total_cpu, 0.0)
+        except Exception:
+            pass
+
         return 0
 
     def get_total_idle_seconds(self):

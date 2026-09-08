@@ -382,12 +382,20 @@ def strip_think_tags(text):
 def start_llama_server(path, working_directory="", arguments="", skip_if_running=True):
     if not path.strip():
         return None, "path not configured"
-    exe = os.path.join(path.strip(), "llama-server.exe" if sys.platform == "win32" else "llama-server")
+    base_path = path.strip()
+    exe = os.path.join(base_path, "llama-server.exe" if sys.platform == "win32" else "llama-server")
     if not os.path.isfile(exe):
-        return None, f"llama-server not found in {path}"
+        # Linux fallback: try to find llama-server in PATH and use its directory
+        if sys.platform != "win32":
+            found = shutil.which("llama-server")
+            if found:
+                base_path = os.path.dirname(found)
+                exe = found
+        if not os.path.isfile(exe):
+            return None, f"llama-server not found in {path} (and not in PATH on Linux)"
     if skip_if_running and is_process_running("llama-server"):
         return None, "already running"
-    cwd = working_directory.strip() or path.strip()
+    cwd = working_directory.strip() or base_path
     args = arguments.strip()
     cmd = [exe] + (args.split() if args else [])
     print(f"[llama.cpp] Starting: {' '.join(cmd)} (cwd={cwd})")

@@ -67,7 +67,7 @@ _SECTION_DEFAULTS = {
     "gui": {"paused_opacity": "0.5", "compact_mode": "false"},
     "audio": {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "app_volume": "1.0"},
     "ai": {"compress_context": "false", "auto_context_selection": "false"},
-    "tts": {"kokoro_voice": "af_heart"},
+    "tts": {"tts_engine": "kokoro", "kokoro_voice": "af_heart", "tts_device": "auto"},
     "google": {
         "calendar_enabled": "false", "calendar_sync_enabled": "false",
         "calendar_sync_minutes": "30", "calendar_sync_days": "7",
@@ -342,6 +342,17 @@ class SettingsEditor(QMainWindow):
                     idx = entry.findText(current_val)
                     if idx >= 0:
                         entry.setCurrentIndex(idx)
+                    group_layout.addWidget(entry, row, 1)
+                elif key == "tts_device":
+                    entry = QComboBox()
+                    entry.addItems(["auto", "cpu", "cuda"])
+                    current_val = self.config.get(section, key)
+                    idx = entry.findText(current_val)
+                    if idx < 0:
+                        idx = entry.findText("auto")
+                        if idx < 0:
+                            idx = 0
+                    entry.setCurrentIndex(idx)
                     group_layout.addWidget(entry, row, 1)
                 elif key == "kokoro_voice":
                     entry = QComboBox()

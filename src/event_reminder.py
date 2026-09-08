@@ -260,6 +260,35 @@ class EventReminder:
         now_ts = time.time()
         new_date = item["date"]
         new_time = item["time"]
+        # Calculate total step duration to avoid excessive looping.
+        # For small units (m/h) across many days, the 366-iteration limit
+        # is insufficient. We compute the needed iterations directly.
+        try:
+            from datetime import datetime as _dt, timedelta as _td
+            m = re.match(r"^(\d+)([mhdwM])$", recur)
+            if m:
+                step_size, unit = int(m.group(1)), m.group(2)
+                if unit == "m":
+                    step = _td(minutes=step_size)
+                elif unit == "h":
+                    step = _td(hours=step_size)
+                elif unit == "d":
+                    step = _td(days=step_size)
+                elif unit == "w":
+                    step = _td(weeks=step_size)
+                else:
+                    step = _td(days=1)  # fallback for M
+                current_dt = _dt.strptime(f"{new_date} {new_time}", "%Y-%m-%d %H:%M")
+                next_dt = current_dt + step
+                now_dt = _dt.fromtimestamp(now_ts)
+                if next_dt <= now_dt:
+                    if step.total_seconds() > 0:
+                        days_ahead = max(1, int(((now_dt - current_dt).total_seconds()) / step.total_seconds()) + 1)
+                        new_date, new_time = current_dt.strftime("%Y-%m-%d"), current_dt.strftime("%H:%M")
+                        for _ in range(days_ahead):
+                            new_date, new_time = self._advance_recurrence(new_date, new_time, recur)
+        except Exception:
+            pass
         for _ in range(366):
             try:
                 d, t = self._advance_recurrence(new_date, new_time, recur)
