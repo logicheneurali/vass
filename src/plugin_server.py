@@ -6,6 +6,7 @@ import json
 import os
 import select
 import shutil
+import shlex
 import socket
 import subprocess
 import sys
@@ -424,10 +425,23 @@ class PluginServer(threading.Thread):
 
         rc, out, err = 0, "", ""
         try:
-            r = subprocess.run(command, shell=True, capture_output=True, text=True,
-                               timeout=600,
-                               creationflags=subprocess.CREATE_NO_WINDOW
-                               if sys.platform == "win32" else 0)
+            if sys.platform == "win32":
+                tokens = shlex.split(command)
+                safe_cmd = shlex.join(tokens)
+                r = subprocess.run(
+                    ["cmd", "/c", safe_cmd],
+                    capture_output=True, text=True,
+                    timeout=600,
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+            else:
+                tokens = shlex.split(command)
+                safe_cmd = shlex.join(tokens)
+                r = subprocess.run(
+                    ["/bin/sh", "-c", safe_cmd],
+                    capture_output=True, text=True,
+                    timeout=600
+                )
             rc = r.returncode
             out = r.stdout or ""
             err = r.stderr or ""

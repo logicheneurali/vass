@@ -712,16 +712,69 @@ class WorldEventsPlugin:
         if threshold == "none":
             return
 
-        # Extract today's summary from the newly processed data
-        summary = self._extract_summary(data)
-        if not summary:
+        # Build filtered notification from articles with significance >= threshold
+        # (not from the day summary text which has no significance tags)
+        notification = self._build_filtered_notification(data, threshold)
+        if not notification:
             return
 
         self._send_cmd("notify", {
-            "text": summary,
+            "text": notification,
             "priority": 5,
             "data": {"type": "world_event"},
         })
+
+    def _build_filtered_notification(self, data, threshold):
+        """Build notification text from articles filtered by significance >= threshold.
+
+        The day summary text is a human-readable paragraph with no significance tags,
+        so we cannot filter it. Instead we use the raw articles JSON which has
+        ``significance: high|medium|low`` for each entry.
+        """
+        sig_order = {"high": 0, "medium": 1, "low": 2}
+        threshold_idx = sig_order.get(threshold, 2)  # 0=high, 1=medium, 2=low
+
+        events = data.get("events", {})
+        if not events:
+            return None
+
+        # Find the most recent day with articles
+        day_data = None
+        for day_key in reversed(sorted(events.keys())):
+            day = events[day_key]
+            if day.get("articles"):
+                day_data = day
+                break
+
+        if not day_data:
+            return None
+
+        # Filter articles by significance
+        filtered = []
+        for art in day_data.get("articles", []):
+            art_sig = art.get("significance", "low")
+            if sig_order.get(art_sig, 2) <= threshold_idx:
+                filtered.append(art)
+
+        if not filtered:
+            return None
+
+        # Group by category
+        categories = {}
+        for art in filtered:
+            cat = art.get("category", "other")
+            categories.setdefault(cat, []).append(art)
+
+        # Build notification text: one line per category with top headlines
+        lines = []
+        for cat in sorted(categories.keys()):
+            arts = categories[cat]
+            # Take up to 3 top headlines per category (already sorted by significance)
+            headlines = [a.get("title", "")[:80] for a in arts[:3]]
+            if headlines:
+                lines.append(f"[{cat.upper()}] " + "  •  ".join(headlines))
+
+        return "\n".join(lines[:15])  # Max 15 lines
 
     _FINALIZE_PROMPT = """You are a news editor. Below is the RAW daily world events summary for {day}, accumulated by concatenating several partial elaborations: it contains repetitions, and the same story appears multiple times (often from different sources).
 

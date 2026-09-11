@@ -88,7 +88,7 @@ from audio_handler import AudioHandler
 from voice_recognition import VoiceRecognition
 from command_executor import CommandExecutor
 from openai import OpenAI
-from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, kill_process, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, start_llama_server, clean_for_tts, log_exc, UsageCollector
+from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, init_mcp, beep, paste_text, parse_blacklist, is_local_url, strip_markdown, cleanup_orphan_files, is_script_command, strip_script_prefix, strip_think_tags, clean_for_tts, log_exc, UsageCollector
 from activity_tracker import get_tracker
 from gui import VassGUI
 from i18n import t
@@ -240,13 +240,6 @@ class VassApp:
         self.mcp_process = None
         self.memory_tokens = self.settings.get("memory_tokens", 5000)
         self.blacklist = parse_blacklist(self.settings.get("blacklist", ""))
-        self.llama_server_path = self.settings.get("llama_server_path", "")
-        self.llama_server_working_directory = self.settings.get("llama_server_working_directory", "")
-        self.llama_server_arguments = self.settings.get("llama_server_arguments", "")
-        self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
-        self.llama_process = None
-
-
         self._silent_frames = 0
         self._mic_recording = False
         self._memory_cache = None
@@ -288,11 +281,9 @@ class VassApp:
         self.voice_recognition.debug_enabled = self.debug_enabled
         self.command_executor = CommandExecutor(similarity_threshold=self.command_similarity, language=self.language, word_learning_enabled=self.word_learning_enabled, app=self)
         self.openai_client = OpenAI(base_url=self.ai_url, api_key=self.ai_api_key or "not-needed")
-        # If llama.cpp is set to auto-start, defer context/model detection until
-        # the server is actually ready. Otherwise probe immediately.
-        if self.context_length <= 0 and not (self.llama_autostart and self.llama_server_path.strip()):
+        if self.context_length <= 0:
             threading.Thread(target=self._detect_context_length, daemon=True).start()
-        if not self.ai_model.strip() and self.llama_server_path.strip() and not self.llama_autostart:
+        if not self.ai_model.strip():
             threading.Thread(target=self._auto_select_model, daemon=True).start()
         self.running = False
         self._state_vars_lock = threading.Lock()
@@ -471,7 +462,7 @@ class VassApp:
                         self.ai_model = self.settings["ai_model"]
                         if self.ai_model != old_model:
                             self._refresh_ai_params()
-                            if not self.ai_model.strip() and self.settings.get("llama_server_path", "").strip():
+                            if not self.ai_model.strip():
                                 threading.Thread(target=self._auto_select_model, daemon=True).start()
                             elif self.ai_model.strip():
                                 threading.Thread(target=self._verify_model_and_autoselect, daemon=True).start()
@@ -493,8 +484,7 @@ class VassApp:
                         self.mcp_server_url = self.settings["mcp_server_url"]
                         self.memory_tokens = self.settings.get("memory_tokens", 5000)
                         self.blacklist = parse_blacklist(self.settings.get("blacklist", ""))
-                        self.llama_server_path = self.settings.get("llama_server_path", "")
-                        self.llama_autostart = self.settings.get("llama_autostart", "false").lower() == "true"
+
                         self.app_volume = self.settings.get("app_volume", 1.0)
                         self.tts.update_settings(self.app_volume)
                         self.gui.volume_top_bar.set_volume(self.app_volume)
@@ -596,8 +586,7 @@ class VassApp:
         threading.Thread(target=self.script_runner.watch_queue, daemon=True).start()
         if self.mcp_server_url and os.path.exists(os.path.join(get_project_root(), "mcp_server", "run_server.py")):
             threading.Thread(target=self._start_mcp_server, daemon=True).start()
-        if self.llama_server_path.strip() and self.llama_autostart:
-            threading.Thread(target=self._start_llamacpp, daemon=True).start()
+
         if self.event_reminder:
             threading.Thread(target=self.event_reminder.run, daemon=True).start()
             # Run startup schedules after a short delay for services to initialize
@@ -893,44 +882,6 @@ class VassApp:
             except Exception as e:
                 print(f"[GCal] Sync error: {e}")
 
-    def _wait_for_llamacpp_ready(self, timeout=60):
-        """Poll /v1/models until llama-server responds or timeout expires."""
-        import urllib.request
-        import json
-        url = f"{self.ai_url.rstrip('/')}/models"
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            try:
-                with urllib.request.urlopen(url, timeout=2) as resp:
-                    models = json.loads(resp.read()).get("data", [])
-                if models:
-                    return True
-            except Exception:
-                log_exc()
-            time.sleep(0.5)
-        return False
-
-    def _start_llamacpp(self):
-        proc, status = start_llama_server(
-            self.llama_server_path,
-            self.llama_server_working_directory,
-            self.llama_server_arguments,
-        )
-        if proc:
-            self.llama_process = proc
-        print(f"[llama.cpp] {status}")
-        print("[llama.cpp] Waiting for server readiness...")
-        if self._wait_for_llamacpp_ready(timeout=60):
-            print("[llama.cpp] Server ready")
-            if self.context_length <= 0:
-                self._detect_context_length()
-            if not self.ai_model.strip():
-                self._auto_select_model()
-            elif self.llama_server_path.strip():
-                self._verify_model_and_autoselect()
-        else:
-            print("[llama.cpp] Server did not become ready within 60s")
-
     def stop(self):
         self.running = False
         try:
@@ -941,9 +892,7 @@ class VassApp:
         if _debug_log_file is not None:
             _debug_log_file.close()
             _debug_log_file = None
-        if self.llama_process:
-            kill_process(self.llama_process)
-            self.llama_process = None
+
         if hasattr(self, '_plugin_server') and self._plugin_server:
             try:
                 self._plugin_server.stop()
@@ -1840,28 +1789,12 @@ class VassApp:
             print(f"[Settings] Context length auto-detect failed ({e})")
 
         if self.context_length <= 0:
-            try:
-                import shlex
-                args = shlex.split(self.llama_server_arguments, posix=False)
-                for i, arg in enumerate(args):
-                    if arg in ("-c", "--ctx-size") and i + 1 < len(args):
-                        ctx = int(args[i+1])
-                        break
-            except Exception:
-                log_exc()
-            if ctx > 0:
-                self.context_length = ctx
-                print(f"[Settings] Context length detected from llama arguments: {ctx} tokens")
-                return
-
-        if self.context_length <= 0:
             self.context_length = 4096
             print(f"[Settings] Context length fallback: {self.context_length} tokens")
 
     def _auto_select_model(self):
         ai_model = self.settings.get("ai_model", "").strip()
-        llama_path = self.settings.get("llama_server_path", "").strip()
-        if ai_model or not llama_path:
+        if ai_model:
             return
 
         try:
@@ -1989,19 +1922,27 @@ def main():
         
         if args.compress_memory:
             import subprocess
-            llama_proc = None
-            llama_path = config.get("llamacpp", "llama_server_path", fallback="").strip()
-            if llama_path:
-                exe = os.path.join(llama_path, "llama-server.exe")
+            proc = None
+            # Read from plugin settings first, fallback to global config
+            plugin_settings = os.path.join(get_project_root(), "plugins", "internal", "llamacpp_server", "settings.ini")
+            plugin_cfg = configparser.ConfigParser()
+            if os.path.exists(plugin_settings):
+                plugin_cfg.read(plugin_settings, encoding="utf-8")
+            model_path = (plugin_cfg.get("server", "llama_server_path", fallback="").strip() 
+                          or config.get("llamacpp", "llama_server_path", fallback="").strip())
+            if model_path:
+                exe = os.path.join(model_path, "llama-server.exe")
                 if os.path.isfile(exe):
-                    cwd = config.get("llamacpp", "llama_server_working_directory", fallback="").strip() or llama_path
-                    args_str = config.get("llamacpp", "llama_server_arguments", fallback="").strip()
+                    cwd = (plugin_cfg.get("server", "llama_server_working_directory", fallback="").strip()
+                           or config.get("llamacpp", "llama_server_working_directory", fallback="").strip()) or model_path
+                    args_str = (plugin_cfg.get("server", "llama_server_arguments", fallback="").strip()
+                                or config.get("llamacpp", "llama_server_arguments", fallback="").strip())
                     cmd = [exe] + (args_str.split() if args_str else [])
                     print(f"[llama.cpp] Avvio: {' '.join(cmd)} (cwd={cwd})")
-                    llama_proc = subprocess.Popen(cmd, cwd=cwd, creationflags=subprocess.CREATE_NO_WINDOW)
+                    proc = subprocess.Popen(cmd, cwd=cwd, creationflags=subprocess.CREATE_NO_WINDOW)
                     time.sleep(5)
                 else:
-                    print(f"[llama.cpp] llama-server.exe non trovato in: {llama_path}")
+                    print(f"[llama.cpp] llama-server.exe non trovato in: {model_path}")
             ai_url = config.get("ai", "url", fallback="http://127.0.0.1:8080/v1")
             ai_model = config.get("ai", "model", fallback="gemma-4-E2B-it-Q8_0")
             client = OpenAI(base_url=ai_url, api_key="not-needed")
@@ -2018,9 +1959,9 @@ def main():
                 app.memory.trim_if_needed(force=True)
             except Exception as e:
                 print(f"[Memory] Compression failed: {e}")
-            if llama_proc:
-                llama_proc.kill()
-                llama_proc.wait(timeout=5)
+            if proc:
+                proc.kill()
+                proc.wait(timeout=5)
             sys.exit(0)
     
         import ctypes

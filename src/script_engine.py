@@ -55,6 +55,9 @@ def _recur_label(recur):
 
 
 class VASScript:
+
+    # Dispatch table: VASScript function name -> handler method
+    _HANDLERS = {}
     _ocr_reader = None
     _ocr_active_langs = None
     _weather_cache = {}
@@ -81,6 +84,13 @@ class VASScript:
         self.vars["_tr_fail"] = t("scripts.tr_fail", lang)
         self._running = False
         self._auth_all = False
+        # Ensure dispatch table is populated (safe to call multiple times)
+        self._build_handlers()
+
+    @staticmethod
+    def _tof(v):
+        try: return float(v)
+        except Exception: return 0.0
 
     def _ocr_langs(self):
         lang = getattr(self.app, "language", "en")
@@ -367,10 +377,6 @@ class VASScript:
 
         evaluated = _eval_all(args)
 
-        def _tof(v):
-            try: return float(v)
-            except Exception: return 0.0
-
         if name in _SIDE_EFFECT_FUNCTIONS and not self._auth_all and self.auth_callback:
             result = self.auth_callback(self.script_name, name)
             if result == "deny":
@@ -379,805 +385,910 @@ class VASScript:
             if result == "all":
                 self._auth_all = True
 
-        if name == "ai":
-            prompt = evaluated[0] if evaluated else ""
-            explicit_memory = len(evaluated) > 1
-            use_memory = explicit_memory and evaluated[1].strip().lower() in ("true", "1", "yes", "memory")
 
-            if not explicit_memory and getattr(self.app, 'auto_context_selection', False):
-                import tool_groups
-                use_memory = tool_groups.needs_memory(prompt, self.app.language)
-                if getattr(self.app, 'debug_enabled', False):
-                    print(f"[DEBUG] needs_memory({prompt[:80]}) = {use_memory}  (lang={self.app.language})")
+        # Dispatch table: maps function names to unbound handler functions
+        if name not in self._HANDLERS:
+            raise ValueError(f"unknown function: {name}()")
+        return self._HANDLERS[name](self, evaluated)
 
-            mcp, tools = init_mcp(self.app.mcp_server_url, timeout=120, log_prefix="[VASScript]")
+    def _handle_add(self, evaluated):
+        try:
+            a = float(evaluated[0]) if evaluated else 0
+            b = float(evaluated[1]) if len(evaluated) > 1 else 0
+            result = a + b
+            return str(int(result)) if result == int(result) else str(result)
+        except (ValueError, TypeError):
+            return "0"
 
-            if tools and not self.app.allow_ai_scripts:
-                tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
 
+    def _handle_addevent(self, evaluated):
+        d = evaluated[0] if evaluated else ""
+        t = evaluated[1] if len(evaluated) > 1 else "00:00"
+        dur = evaluated[2] if len(evaluated) > 2 else "60"
+        desc = evaluated[3] if len(evaluated) > 3 else ""
+        recur = evaluated[4] if len(evaluated) > 4 else ""
+        return self._manage_events("add", d, t, dur, desc, recur)
+
+
+    def _handle_ai(self, evaluated):
+        prompt = evaluated[0] if evaluated else ""
+        explicit_memory = len(evaluated) > 1
+        use_memory = explicit_memory and evaluated[1].strip().lower() in ("true", "1", "yes", "memory")
+        if not explicit_memory and getattr(self.app, 'auto_context_selection', False):
             import tool_groups
-            explicit_groups = [str(evaluated[i]).strip() for i in range(2, len(evaluated)) if evaluated[i]]
-            if explicit_groups:
-                tools = tool_groups.resolve_tool_names(explicit_groups, tools,
-                                                        getattr(self.app, 'debug_enabled', False))
-            elif tools:
-                groups = tool_groups.select_tool_groups(prompt, self.app.language)
-                tools = tool_groups.resolve_tool_names(groups, tools,
-                                                        getattr(self.app, 'debug_enabled', False))
-
-            system_content = ""
-            if use_memory:
-                now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
-                base = self.app.system_message or ""
-                from i18n import t as _ti18n
-                date_prefix = _ti18n("ai.date_prefix", self.app.language)
-                system_content = f"{base}\n\n{date_prefix}{now}".strip()
-
-                memory_content = self.app.memory.build_content(prompt)
-                from prompts import MCP_PROMPT, append_tool_descriptions, _load_vascript_reference
-                tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
-                if self.app.allow_ai_scripts:
-                    vas_ref = _load_vascript_reference()
-                    tools_block += vas_ref
-                system_content = system_content + memory_content + tools_block
-
-            messages = [{"role": "system", "content": system_content}] if system_content else []
-            messages.append({"role": "user", "content": prompt})
-
-            kwargs = dict(
-                model=self.app.ai_model,
-                messages=messages,
-                temperature=0.7,
-                extra_body={"disable_thinking": True},
-            )
-            if tools:
-                kwargs["tools"] = tools
-
+            use_memory = tool_groups.needs_memory(prompt, self.app.language)
             if getattr(self.app, 'debug_enabled', False):
-                if messages:
-                    sys_txt = messages[0].get("content", "")
-                    sys_len = len(sys_txt)
-                    print(f"[Debug] --- [VASScript] AI Request ---")
-                    print(f"[Debug] [VASScript] System ({sys_len} chars):\n{sys_txt[:1000]}{'...[truncated]' if sys_len > 1000 else ''}")
-                usr_txt = messages[-1].get("content", "") if messages else prompt
-                print(f"[Debug] [VASScript] User ({len(usr_txt)} chars):\n{usr_txt}")
+                print(f"[DEBUG] needs_memory({prompt[:80]}) = {use_memory}  (lang={self.app.language})")
+        mcp, tools = init_mcp(self.app.mcp_server_url, timeout=120, log_prefix="[VASScript]")
+        if tools and not self.app.allow_ai_scripts:
+            tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
+        import tool_groups
+        explicit_groups = [str(evaluated[i]).strip() for i in range(2, len(evaluated)) if evaluated[i]]
+        if explicit_groups:
+            tools = tool_groups.resolve_tool_names(explicit_groups, tools,
+                                                    getattr(self.app, 'debug_enabled', False))
+        elif tools:
+            groups = tool_groups.select_tool_groups(prompt, self.app.language)
+            tools = tool_groups.resolve_tool_names(groups, tools,
+                                                    getattr(self.app, 'debug_enabled', False))
+        system_content = ""
+        if use_memory:
+            now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
+            base = self.app.system_message or ""
+            from i18n import t as _ti18n
+            date_prefix = _ti18n("ai.date_prefix", self.app.language)
+            system_content = f"{base}\n\n{date_prefix}{now}".strip()
+            memory_content = self.app.memory.build_content(prompt)
+            from prompts import MCP_PROMPT, append_tool_descriptions, _load_vascript_reference
+            tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
+            if self.app.allow_ai_scripts:
+                vas_ref = _load_vascript_reference()
+                tools_block += vas_ref
+            system_content = system_content + memory_content + tools_block
+        messages = [{"role": "system", "content": system_content}] if system_content else []
+        messages.append({"role": "user", "content": prompt})
+        kwargs = dict(
+            model=self.app.ai_model,
+            messages=messages,
+            temperature=0.7,
+            extra_body={"disable_thinking": True},
+        )
+        if tools:
+            kwargs["tools"] = tools
+        if getattr(self.app, 'debug_enabled', False):
+            if messages:
+                sys_txt = messages[0].get("content", "")
+                sys_len = len(sys_txt)
+                print(f"[Debug] --- [VASScript] AI Request ---")
+                print(f"[Debug] [VASScript] System ({sys_len} chars):\n{sys_txt[:1000]}{'...[truncated]' if sys_len > 1000 else ''}")
+            usr_txt = messages[-1].get("content", "") if messages else prompt
+            print(f"[Debug] [VASScript] User ({len(usr_txt)} chars):\n{usr_txt}")
+        self.app._ai_lock.acquire()
+        try:
+            msg = call_with_retry(lambda: self.app.openai_client.chat.completions.create(**kwargs), log_prefix="[VASScript]").choices[0].message
+            msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]", gui=self.app.gui)
+        except Exception as e:
+            print(f"[VASScript] AI error: {e}")
+            return f"error: {e}"
+        finally:
+            self.app._ai_lock.release()
+        resp = msg.content or ""
+        if getattr(self.app, 'debug_enabled', False):
+            print(f"[Debug] --- [VASScript] AI Response ({len(resp)} chars) ---\n{resp}")
+        return resp
 
-            self.app._ai_lock.acquire()
-            try:
-                msg = call_with_retry(lambda: self.app.openai_client.chat.completions.create(**kwargs), log_prefix="[VASScript]").choices[0].message
-                msg = execute_mcp_tool_calls(messages, msg, mcp, tools, self.app.openai_client, self.app.ai_model, log_prefix="[VASScript]", gui=self.app.gui)
-            except Exception as e:
-                print(f"[VASScript] AI error: {e}")
-                return f"error: {e}"
-            finally:
-                self.app._ai_lock.release()
 
-            resp = msg.content or ""
-            if getattr(self.app, 'debug_enabled', False):
-                print(f"[Debug] --- [VASScript] AI Response ({len(resp)} chars) ---\n{resp}")
+    def _handle_ai_raw(self, evaluated):
+        prompt = evaluated[0] if evaluated else ""
+        messages = [{"role": "user", "content": prompt}]
+        kwargs = dict(
+            model=self.app.ai_model,
+            messages=messages,
+            temperature=0.3,
+            extra_body={"disable_thinking": True},
+        )
+        self.app._ai_lock.acquire()
+        try:
+            msg = call_with_retry(
+                lambda: self.app.openai_client.chat.completions.create(**kwargs),
+                retries=2, delays=(1, 2), log_prefix="[VASScript]"
+            ).choices[0].message
+        except Exception as e:
+            print(f"[VASScript] AI raw error: {e}")
+            return f"error: {e}"
+        finally:
+            self.app._ai_lock.release()
+        resp = msg.content or ""
+        return resp
 
-            return resp
 
-        if name == "ai_raw":
-            prompt = evaluated[0] if evaluated else ""
-            messages = [{"role": "user", "content": prompt}]
-            kwargs = dict(
-                model=self.app.ai_model,
-                messages=messages,
-                temperature=0.3,
-                extra_body={"disable_thinking": True},
-            )
-            self.app._ai_lock.acquire()
-            try:
-                msg = call_with_retry(
-                    lambda: self.app.openai_client.chat.completions.create(**kwargs),
-                    retries=2, delays=(1, 2), log_prefix="[VASScript]"
-                ).choices[0].message
-            except Exception as e:
-                print(f"[VASScript] AI raw error: {e}")
-                return f"error: {e}"
-            finally:
-                self.app._ai_lock.release()
-            resp = msg.content or ""
-            return resp
-
-        if name == "say":
-            text = evaluated[0] if evaluated else ""
-            if not text.strip():
-                return ""
-            if self._silent:
-                return ""
-            speed = float(_tof(evaluated[1])) if len(evaluated) > 1 else 1.0
-            self._do_say(text, speed)
+    def _handle_clipboardget(self, evaluated):
+        try:
+            import pyperclip
+            return pyperclip.paste()
+        except Exception:
             return ""
 
-        if name == "say_async":
-            text = evaluated[0] if evaluated else ""
-            self.app.tts.enqueue(text)
-            return ""
 
-        if name == "listen":
-            prompt = evaluated[0] if evaluated else ""
-            if prompt:
-                self._do_say(prompt)
-            result = self.app._listen_once()
-            return result
-
-        if name == "exit":
-            self._running = False
-            return ""
-
-        if name == "wait":
-            secs = float(evaluated[0]) if evaluated else 0
-            time.sleep(secs)
-            return ""
-
-        if name == "trim":
-            return (evaluated[0] if evaluated else "").strip()
-
-        if name == "len":
-            return str(len(evaluated[0] if evaluated else ""))
-
-        if name in ("tonum", "to_num"):
-            val = evaluated[0] if evaluated else ""
-            try:
-                f = float(val)
-                return str(int(f)) if f == int(f) else str(f)
-            except (ValueError, TypeError):
-                return val
-
-        if name == "add":
-            try:
-                a = float(evaluated[0]) if evaluated else 0
-                b = float(evaluated[1]) if len(evaluated) > 1 else 0
-                result = a + b
-                return str(int(result)) if result == int(result) else str(result)
-            except (ValueError, TypeError):
-                return "0"
-
-        if name == "sub":
-            try:
-                a = float(evaluated[0]) if evaluated else 0
-                b = float(evaluated[1]) if len(evaluated) > 1 else 0
-                result = a - b
-                return str(int(result)) if result == int(result) else str(result)
-            except (ValueError, TypeError):
-                return "0"
-
-        if name == "mul":
-            try:
-                a = float(evaluated[0]) if evaluated else 0
-                b = float(evaluated[1]) if len(evaluated) > 1 else 1
-                result = a * b
-                return str(int(result)) if result == int(result) else str(result)
-            except (ValueError, TypeError):
-                return "0"
-
-        if name == "div":
-            try:
-                a = float(evaluated[0]) if evaluated else 0
-                b = float(evaluated[1]) if len(evaluated) > 1 else 1
-                result = a / b if b != 0 else 0
-                return str(int(result)) if result == int(result) else str(result)
-            except (ValueError, TypeError):
-                return "0"
-
-        if name == "contains":
-            text = evaluated[0] if evaluated else ""
-            substr = evaluated[1] if len(evaluated) > 1 else ""
-            return str(substr in text)
-
-        if name == "equals":
-            a = evaluated[0] if evaluated else ""
-            b = evaluated[1] if len(evaluated) > 1 else ""
-            return str(a == b)
-
-        if name == "run":
-            cmd = evaluated[0] if evaluated else ""
-            deny_list = [
-                "remove-item", "rm ", "del ", "format-", "clear-", "stop-",
-                "restart-computer", "shutdown", "stop-computer", "rm -rf"
-            ]
-            cmd_lower = cmd.lower()
-            for bad in deny_list:
-                if bad in cmd_lower:
-                    return f"error: command blocked by security policy (contains '{bad}')"
-            print(f"[Security] run() executing: {cmd[:200]}")
-            try:
-                if sys.platform == "win32":
-                    result = subprocess.run(
-                        ["powershell", "-NoProfile", "-Command", cmd],
-                        capture_output=True, text=True, encoding="utf-8", errors="replace",
-                        creationflags=subprocess.CREATE_NO_WINDOW,
-                        timeout=30,
-                        cwd=os.path.join(get_project_root(), "Allowed_root")
-                    )
-                else:
-                    result = subprocess.run(
-                        cmd, shell=True,
-                        capture_output=True, text=True, encoding="utf-8", errors="replace",
-                        timeout=30,
-                        cwd=os.path.join(get_project_root(), "Allowed_root")
-                    )
-                output = (result.stdout or "").strip()
-                if result.stderr:
-                    stderr = result.stderr.strip()
-                    if stderr:
-                        output = (output + "\n" + stderr).strip()
-                return output or ("ok" if result.returncode == 0 else f"error: exit code {result.returncode}")
-            except Exception as e:
-                return f"error: {e}"
-
-        if name == "launch_app":
-            query = evaluated[0] if evaluated else ""
-            args = evaluated[1] if len(evaluated) > 1 else ""
-            if not str(query).strip():
-                return "error: no app name specified"
-            from app_launcher import launch
-            return launch(str(query), str(args))
-
-        if name == "close":
-            target = evaluated[0] if evaluated else ""
-            timeout_val = float(evaluated[1]) if len(evaluated) > 1 else 5.0
-            if not str(target).strip():
-                return "false"
-            from app_launcher import close_app
-            return close_app(str(target), timeout_val)
-
-        if name == "list_apps":
-            from app_launcher import list_apps as _list_apps
-            apps = _list_apps()
-            out = [{"name": a["name"], "path": a["path"]} for a in apps]
-            return json.dumps(out, ensure_ascii=False)
-
-        if name == "screen_highlight":
-            cx = int(_tof(evaluated[0])) if evaluated else 0
-            cy = int(_tof(evaluated[1])) if len(evaluated) > 1 else 0
-            w = int(_tof(evaluated[2])) if len(evaluated) > 2 else 100
-            h = int(_tof(evaluated[3])) if len(evaluated) > 3 else 50
-            dur = _tof(evaluated[4]) if len(evaluated) > 4 else 1.0
-            self.app.gui.show_highlight(cx - w // 2, cy - h // 2, w, h, dur)
-            return ""
-
-        if name == "screen_click":
-            from pynput.mouse import Button, Controller
-            if not evaluated:
-                Controller().click(Button.left)
-                return "ok"
-            x = int(_tof(evaluated[0])) if evaluated else 0
-            y = int(_tof(evaluated[1])) if len(evaluated) > 1 else 0
-            if sys.platform == "win32":
-                import ctypes
-                dc = ctypes.windll.user32.GetDC(0)
-                dpi = ctypes.windll.gdi32.GetDeviceCaps(dc, 88)
-                ctypes.windll.user32.ReleaseDC(0, dc)
-                if dpi != 96:
-                    scale = dpi / 96.0
-                    x = int(x / scale)
-                    y = int(y / scale)
-            mouse = Controller()
-            try:
-                cx, cy = mouse.position
-                dist = math.hypot(x - cx, y - cy)
-                dur = max(0.05, min(0.5, dist * dist / 80000))
-                steps = max(5, int(dur * 60))
-                for i in range(1, steps + 1):
-                    t = i / steps
-                    t = t * (2 - t)
-                    wx = int(cx + (x - cx) * t)
-                    wy = int(cy + (y - cy) * t)
-                    mouse.position = (wx, wy)
-                    time.sleep(dur / steps)
-                time.sleep(0.05)
-                mouse.position = (x, y)
-                mouse.click(Button.left)
-            except Exception as e:
-                return f"errore click: {e}"
+    def _handle_clipboardset(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        try:
+            import pyperclip
+            pyperclip.copy(text)
             return "ok"
+        except Exception:
+            return "error"
 
-        if name == "screen_search":
-            query = evaluated[0] if evaluated else ""
-            if not query:
-                return ""
-            import mss
-            import numpy as np
-            with mss.MSS() as sct:
-                monitor = sct.monitors[1]
-                img = sct.grab(monitor)
-                frame = np.array(img)
-            frame = self._preprocess_screen(frame)
-            if getattr(self.app, 'debug_enabled', False):
-                import uuid, os as _os
-                _os.makedirs("log", exist_ok=True)
-                from PIL import Image as _PILImage
-                debug_path = _os.path.join("log", f"ocr_debug_{uuid.uuid4().hex[:6]}.png")
-                _PILImage.fromarray(frame[:,:,:3]).save(debug_path)
-                print(f"[OCR Debug] Saved preprocessed image: {debug_path}")
-            lang_codes = self._ocr_langs()
-            if VASScript._ocr_reader is None or VASScript._ocr_active_langs != lang_codes:
-                import easyocr
-                VASScript._ocr_reader = easyocr.Reader(
-                    lang_codes, gpu=True, verbose=False
-                )
-                VASScript._ocr_active_langs = lang_codes
-            results = VASScript._ocr_reader.readtext(frame)
-            matches = []
-            for bbox, text, conf in results:
-                ql = query.lower()
-                tl = text.lower()
-                if ql in tl:
-                    ratio = 1.0
+
+    def _handle_close(self, evaluated):
+        target = evaluated[0] if evaluated else ""
+        timeout_val = float(evaluated[1]) if len(evaluated) > 1 else 5.0
+        if not str(target).strip():
+            return "false"
+        from app_launcher import close_app
+        return close_app(str(target), timeout_val)
+
+
+    def _handle_compress_memory(self, evaluated):
+        try:
+            self.app._trim_memory_if_needed(force=True)
+            return "ok: memory compression completed"
+        except Exception as e:
+            return f"error: {e}"
+
+
+    def _handle_contains(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        substr = evaluated[1] if len(evaluated) > 1 else ""
+        return str(substr in text)
+
+
+    def _handle_div(self, evaluated):
+        try:
+            a = float(evaluated[0]) if evaluated else 0
+            b = float(evaluated[1]) if len(evaluated) > 1 else 1
+            result = a / b if b != 0 else 0
+            return str(int(result)) if result == int(result) else str(result)
+        except (ValueError, TypeError):
+            return "0"
+
+
+    def _handle_equals(self, evaluated):
+        a = evaluated[0] if evaluated else ""
+        b = evaluated[1] if len(evaluated) > 1 else ""
+        return str(a == b)
+
+
+    def _handle_exit(self, evaluated):
+        self._running = False
+        return ""
+
+
+    def _handle_fetch_json(self, evaluated):
+        url = evaluated[0] if evaluated else ""
+        return self._fetch_json(url)
+
+
+    def _handle_fetch_text(self, evaluated):
+        url = evaluated[0] if evaluated else ""
+        return self._fetch_web(url, "webfetch")
+
+
+    def _handle_filter_json(self, evaluated):
+        raw = evaluated[0] if evaluated else "[]"
+        fmt = evaluated[1] if len(evaluated) > 1 else "{item}"
+        filters = [f.strip() for f in evaluated[2:] if f.strip()]
+        try:
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                if "data" in data and isinstance(data["data"], list):
+                    data = data["data"]
                 else:
-                    ratio = fuzzy_ratio(ql, tl)
-                    if ratio < 0.70:
-                        continue
-                xs = [p[0] for p in bbox]
-                ys = [p[1] for p in bbox]
-                min_x, max_x = min(xs), max(xs)
-                min_y, max_y = min(ys), max(ys)
-                cx = (min_x + max_x) / 2
-                cy = (min_y + max_y) / 2
-                matches.append({
-                    "text": text,
-                    "x": int(cx),
-                    "y": int(cy),
-                    "w": int(max_x - min_x),
-                    "h": int(max_y - min_y),
-                    "ratio": ratio,
-                })
-            if matches:
-                matches.sort(key=lambda m: m["ratio"], reverse=True)
-                best = matches[0]
-                self.vars["_sx"] = str(best["x"])
-                self.vars["_sy"] = str(best["y"])
-                self.vars["_sw"] = str(best["w"])
-                self.vars["_sh"] = str(best["h"])
+                    data = [data]
+        except Exception:
+            return raw
+        import re as _re
+        def _fj_nested(item, key, default=""):
+            parts = key.split(".")
+            val = item
+            for p in parts:
+                if isinstance(val, dict):
+                    val = val.get(p)
+                else:
+                    return default
+                if val is None:
+                    return default
+            return str(val)
+        for f in filters:
+            m = _re.match(r'^([\w.]+)\s*(>=|<=|>|<|=)\s*(.*)$', f)
+            if not m:
+                continue
+            key, op, val = m.group(1), m.group(2), m.group(3).strip()
+            filtered = []
+            for item in data:
+                field_val = _fj_nested(item, key)
+                try:
+                    fv = float(val)
+                    ff = float(field_val)
+                    numeric = True
+                except (ValueError, TypeError):
+                    numeric = False
+                if numeric and op != "=":
+                    cond = (
+                        (op == ">=" and ff >= fv) or
+                        (op == "<=" and ff <= fv) or
+                        (op == ">" and ff > fv) or
+                        (op == "<" and ff < fv)
+                    )
+                elif numeric and op == "=":
+                    cond = ff == fv
+                elif op == "=":
+                    cond = field_val.lower() == val.lower()
+                else:
+                    cond = (
+                        (op == ">=" and field_val >= val) or
+                        (op == "<=" and field_val <= val) or
+                        (op == ">" and field_val > val) or
+                        (op == "<" and field_val < val)
+                    )
+                if cond:
+                    filtered.append(item)
+            data = filtered
+        if not data:
+            return ""
+        lines = []
+        for item in data:
+            try:
+                lines.append(fmt.format(**item))
+            except (KeyError, ValueError, AttributeError):
+                lines.append(_re.sub(r'\{([\w.]+)\}', lambda m: _fj_nested(item, m.group(1)), fmt))
+        return "\n".join(lines)
+
+
+    def _handle_form(self, evaluated):
+        title = evaluated[0] if evaluated else ""
+        fields = evaluated[1:]
+        return self.app.gui.request_form(title, fields)
+
+
+    def _handle_gcal_add(self, evaluated):
+        if not self._gcal_enabled():
+            return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
+        summary = evaluated[0] if evaluated else ""
+        start = evaluated[1] if len(evaluated) > 1 else ""
+        end = evaluated[2] if len(evaluated) > 2 else ""
+        desc = evaluated[3] if len(evaluated) > 3 else ""
+        return self._gcal_add(summary, start, end, desc)
+
+
+    def _handle_gcal_search(self, evaluated):
+        if not self._gcal_enabled():
+            return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
+        query = evaluated[0] if evaluated else ""
+        return self._gcal_search(query)
+
+
+    def _handle_gcal_today(self, evaluated):
+        if not self._gcal_enabled():
+            return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
+        return self._gcal_list("today")
+
+
+    def _handle_gcal_tomorrow(self, evaluated):
+        if not self._gcal_enabled():
+            return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
+        return self._gcal_list("tomorrow")
+
+
+    def _handle_get_weather(self, evaluated):
+        loc = evaluated[0] if evaluated else ""
+        return self._do_weather(loc)
+
+
+    def _handle_getdatetime(self, evaluated):
+        from datetime import datetime
+        lang = (evaluated[0] if evaluated else "").strip().lower()
+        now = datetime.now()
+        ts = int(now.timestamp())
+        if not lang:
+            dt_str = now.strftime("%Y-%m-%d %H:%M")
+        else:
+            months = {
+                "it": ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+                       "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
+                "en": ["January", "February", "March", "April", "May", "June",
+                       "July", "August", "September", "October", "November", "December"],
+                "de": ["Januar", "Februar", "März", "April", "Mai", "Juni",
+                       "Juli", "August", "September", "Oktober", "November", "Dezember"],
+                "fr": ["janvier", "février", "mars", "avril", "mai", "juin",
+                       "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+                "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                       "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+                "pt": ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+                       "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
+            }
+            m = months.get(lang, months["en"])
+            mn = m[now.month - 1]
+            day = str(now.day)
+            year = str(now.year)
+            hm = now.strftime("%H:%M")
+            if lang == "it":
+                dt_str = f"{day} {mn} {year} {hm}"
+            elif lang in ("en", "fr"):
+                dt_str = f"{mn} {day}, {year} {hm}"
+            elif lang == "de":
+                dt_str = f"{day}. {mn} {year} {hm}"
+            elif lang == "es":
+                dt_str = f"{day} de {mn} de {year} {hm}"
+            elif lang == "pt":
+                dt_str = f"{day} de {mn} de {year} {hm}"
+            elif lang == "ja":
+                dt_str = f"{year}年{now.month}月{day}日 {hm}"
+            elif lang == "ko":
+                dt_str = f"{year}년 {now.month}월 {day}일 {hm}"
+            elif lang == "zh":
+                dt_str = f"{year}年{now.month}月{day}日 {hm}"
             else:
-                self.vars["_sx"] = ""
-                self.vars["_sy"] = ""
-                self.vars["_sw"] = ""
-                self.vars["_sh"] = ""
-            return json.dumps(matches, ensure_ascii=False)
+                dt_str = now.strftime("%Y-%m-%d %H:%M")
+        result = {
+            "datetime": dt_str,
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%H:%M"),
+            "hour": now.strftime("%H"),
+            "minute": now.strftime("%M"),
+            "timestamp": str(ts),
+            "year": str(now.year),
+            "month": str(now.month),
+            "day": str(now.day),
+        }
+        self.vars["datetime"] = dt_str
+        self.vars["date"] = now.strftime("%Y-%m-%d")
+        self.vars["time"] = now.strftime("%H:%M")
+        self.vars["hour"] = now.strftime("%H")
+        self.vars["minute"] = now.strftime("%M")
+        self.vars["timestamp"] = str(ts)
+        self.vars["year"] = str(now.year)
+        self.vars["month"] = str(now.month)
+        self.vars["day"] = str(now.day)
+        return json.dumps(result)
 
-        if name in ("sendtext", "send_text"):
-            text = evaluated[0] if evaluated else ""
-            if text:
-                from pynput.keyboard import Controller, Key
-                import random as _random
-                kb = Controller()
-                for ch in text:
-                    if ch == "\n":
-                        kb.press(Key.enter)
-                        kb.release(Key.enter)
-                    elif ch == "\t":
-                        kb.press(Key.tab)
-                        kb.release(Key.tab)
-                    else:
-                        kb.press(ch)
-                        kb.release(ch)
-                    time.sleep(_random.uniform(0.10, 0.15))
-            return "ok"
 
-        if name in ("setactivewindow", "set_active_window"):
-            name_arg = evaluated[0] if evaluated else ""
-            if name_arg:
-                from window_manager import set_active_window
-                return "ok" if set_active_window(name_arg) else "not found"
-            return "not found"
-
-        if name in ("addevent", "add_event"):
-            d = evaluated[0] if evaluated else ""
-            t = evaluated[1] if len(evaluated) > 1 else "00:00"
-            dur = evaluated[2] if len(evaluated) > 2 else "60"
-            desc = evaluated[3] if len(evaluated) > 3 else ""
-            recur = evaluated[4] if len(evaluated) > 4 else ""
-            return self._manage_events("add", d, t, dur, desc, recur)
-
-        if name in ("listevents", "list_events"):
-            until = evaluated[0] if evaluated else ""
-            return self._manage_events("list", until)
-
-        if name in ("removeevent", "delevent", "remove_event", "delete_event"):
-            ename = evaluated[0] if evaluated else ""
-            date = evaluated[1] if len(evaluated) > 1 else ""
-            time_arg = evaluated[2] if len(evaluated) > 2 else ""
-            return self._manage_events("remove", ename, date, time_arg)
-
-        if name in ("readinfo", "read_info"):
-            vid = evaluated[0] if evaluated else ""
-            return self._manage_info("read", vid)
-
-        if name in ("writeinfo", "write_info"):
-            text = evaluated[0] if evaluated else ""
-            return self._manage_info("write", text)
-
-        if name in ("readstate", "read_state"):
-            key = evaluated[0] if evaluated else ""
-            with VASScript._state_lock:
-                val = VASScript._state.get(key, "")
+    def _handle_getidle(self, evaluated):
+        if hasattr(self.app, 'idle_tracker') and self.app.idle_tracker:
+            seconds = self.app.idle_tracker.get_total_idle_seconds()
             if getattr(self.app, 'debug_enabled', False):
-                print(f"[VASScript] readstate({key!r}) -> {val!r}")
+                import time as _t
+                input_idle = self.app.idle_tracker.get_input_idle_seconds()
+                voice_idle = _t.time() - self.app.idle_tracker._last_voice_ts
+                fullscreen = self.app.idle_tracker._is_fullscreen()
+                print(f"[VASScript] getidle() -> input={input_idle:.1f}s voice={voice_idle:.1f}s fullscreen={fullscreen} total={seconds:.1f}s")
+        else:
+            try:
+                from idle_tracker import IdleTracker
+                seconds = IdleTracker().get_total_idle_seconds()
+            except ImportError:
+                seconds = -1
+        return '{"idle_seconds": ' + f'{seconds:.1f}' + '}'
+
+
+    def _handle_google_home_ask(self, evaluated):
+        mute = evaluated[1].strip().lower() == "false" if len(evaluated) > 1 else False
+        return self._gh_exec(evaluated[0] if evaluated else "", play_audio=not mute)
+
+
+    def _handle_google_home_command(self, evaluated):
+        mute = evaluated[1].strip().lower() == "false" if len(evaluated) > 1 else False
+        return self._gh_exec(evaluated[0] if evaluated else "", play_audio=not mute)
+
+
+    def _handle_inject(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        self.app.inject_context(text)
+        return "ok"
+
+
+    def _handle_inject_memory(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        return self.app.inject_memory(text)
+
+
+    def _handle_launch_app(self, evaluated):
+        query = evaluated[0] if evaluated else ""
+        args = evaluated[1] if len(evaluated) > 1 else ""
+        if not str(query).strip():
+            return "error: no app name specified"
+        from app_launcher import launch
+        return launch(str(query), str(args))
+
+
+    def _handle_len(self, evaluated):
+        return str(len(evaluated[0] if evaluated else ""))
+
+
+    def _handle_list_apps(self, evaluated):
+        from app_launcher import list_apps as _list_apps
+        apps = _list_apps()
+        out = [{"name": a["name"], "path": a["path"]} for a in apps]
+        return json.dumps(out, ensure_ascii=False)
+
+
+    def _handle_listen(self, evaluated):
+        prompt = evaluated[0] if evaluated else ""
+        if prompt:
+            self._do_say(prompt)
+        result = self.app._listen_once()
+        return result
+
+
+    def _handle_listevents(self, evaluated):
+        until = evaluated[0] if evaluated else ""
+        return self._manage_events("list", until)
+
+
+    def _handle_mul(self, evaluated):
+        try:
+            a = float(evaluated[0]) if evaluated else 0
+            b = float(evaluated[1]) if len(evaluated) > 1 else 1
+            result = a * b
+            return str(int(result)) if result == int(result) else str(result)
+        except (ValueError, TypeError):
+            return "0"
+
+
+    def _handle_notify(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        priority = int(evaluated[1]) if len(evaluated) > 1 and evaluated[1].strip().isdigit() else 1
+        link = evaluated[2] if len(evaluated) > 2 else ""
+        data = {"type": "script"}
+        if link:
+            data["link"] = link
+        return self.app.notification_manager.add(text, priority, data=data)
+
+
+    def _handle_prettyevents(self, evaluated):
+        raw = evaluated[0] if evaluated else "[]"
+        try:
+            events = json.loads(raw)
+            if isinstance(events, dict):
+                events = [events]
+        except Exception:
+            return raw
+        from datetime import datetime as _dt
+        from i18n import t as _t
+        lang = getattr(self.app, "language", "en")
+        tr = lambda k: _t(f"events.time_refs.{k}", lang)
+        now = _dt.now()
+        parsed = []
+        for ev in events:
+            edate = ev.get("date", "")
+            etime = ev.get("time", "")
+            desc = ev.get("description", "")
+            dur = ev.get("duration", 0)
+            recur = ev.get("recur", "")
+            try:
+                dt = _dt.strptime(f"{edate} {etime}", "%Y-%m-%d %H:%M")
+                dt_ts = dt.timestamp()
+            except Exception:
+                dt_ts = 0
+                dt = None
+            parsed.append((dt_ts, dt, desc, dur, recur, etime))
+        parsed.sort(key=lambda x: x[0])
+        lines = []
+        for dt_ts, dt, desc, dur, recur, etime in parsed:
+            if dt is None:
+                relative = tr("unknown_date")
+            else:
+                diff = dt_ts - now.timestamp()
+                if diff < 0:
+                    relative = tr("expired")
+                elif diff < 3600:
+                    m = int(diff // 60)
+                    relative = f"{tr('in')} {m} {tr('minute_s')}" if m > 1 else f"{tr('in')} 1 {tr('minute_s')}"
+                elif diff < 86400:
+                    h = int(diff // 3600)
+                    m = int((diff % 3600) // 60)
+                    if m > 0:
+                        relative = f"{tr('in')} {h}{tr('hour_h')}{m:02d}"
+                    else:
+                        relative = f"{tr('in')} {h} {tr('hour_s')}" if h > 1 else f"{tr('in')} 1 {tr('hour_s').rstrip('s')}"
+                elif diff < 604800:
+                    d = int(diff // 86400)
+                    relative = tr("tomorrow") if d == 1 else f"{tr('in')} {d} {tr('days')}"
+                elif diff < 2592000:
+                    w = int(diff // 604800)
+                    relative = f"{tr('in')} 1 {tr('week_s')}" if w == 1 else f"{tr('in')} {w} {tr('weeks')}"
+                else:
+                    m = int(diff // 2592000)
+                    relative = f"{tr('in')} 1 {tr('month_s')}" if m == 1 else f"{tr('in')} {m} {tr('months')}"
+            time_str = dt.strftime("%H:%M") if dt else etime
+            line = f"{relative} {tr('at')} {time_str} - {desc} ({dur} {tr('minute_s')})"
+            if recur:
+                line += f" [{tr('every')} {_recur_label(recur)}]"
+            lines.append(line)
+        return "\n".join(lines)
+
+
+    def _handle_print(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        print(f"[VASScript] {text}", flush=True)
+        return ""
+
+
+    def _handle_readfile(self, evaluated):
+        filepath = evaluated[0] if evaluated else ""
+        if not filepath:
+            return "error: path required"
+        import os as _os
+        base = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "Allowed_root")
+        p = _os.path.normpath(_os.path.join(base, filepath))
+        if not p.startswith(_os.path.normpath(base)):
+            return "error: access denied"
+        try:
+            with open(p, encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            return f"error: {e}"
+
+
+    def _handle_readinfo(self, evaluated):
+        vid = evaluated[0] if evaluated else ""
+        return self._manage_info("read", vid)
+
+
+    def _handle_readstate(self, evaluated):
+        key = evaluated[0] if evaluated else ""
+        with VASScript._state_lock:
+            val = VASScript._state.get(key, "")
+        if getattr(self.app, 'debug_enabled', False):
+            print(f"[VASScript] readstate({key!r}) -> {val!r}")
+        return val
+
+
+    def _handle_removeevent(self, evaluated):
+        ename = evaluated[0] if evaluated else ""
+        date = evaluated[1] if len(evaluated) > 1 else ""
+        time_arg = evaluated[2] if len(evaluated) > 2 else ""
+        return self._manage_events("remove", ename, date, time_arg)
+
+
+    def _handle_rss_fetch(self, evaluated):
+        return "error: rss_fetch is deprecated — RSS polling is now handled by the rss_reader plugin"
+
+
+    def _handle_run(self, evaluated):
+        cmd = evaluated[0] if evaluated else ""
+        deny_list = [
+            "remove-item", "rm ", "del ", "format-", "clear-", "stop-",
+            "restart-computer", "shutdown", "stop-computer", "rm -rf"
+        ]
+        cmd_lower = cmd.lower()
+        for bad in deny_list:
+            if bad in cmd_lower:
+                return f"error: command blocked by security policy (contains '{bad}')"
+        print(f"[Security] run() executing: {cmd[:200]}")
+        try:
+            if sys.platform == "win32":
+                result = subprocess.run(
+                    ["powershell", "-NoProfile", "-Command", cmd],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                    timeout=30,
+                    cwd=os.path.join(get_project_root(), "Allowed_root")
+                )
+            else:
+                tokens = shlex.split(cmd)
+                safe_cmd = shlex.join(tokens)
+                result = subprocess.run(
+                    safe_cmd, shell=True,
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    timeout=30,
+                    cwd=os.path.join(get_project_root(), "Allowed_root")
+                )
+            output = (result.stdout or "").strip()
+            if result.stderr:
+                stderr = result.stderr.strip()
+                if stderr:
+                    output = (output + "\n" + stderr).strip()
+            return output or ("ok" if result.returncode == 0 else f"error: exit code {result.returncode}")
+        except Exception as e:
+            return f"error: {e}"
+
+
+    def _handle_savetags(self, evaluated):
+        tags = evaluated[0] if evaluated else ""
+        return self._manage_memory_tags(tags)
+
+
+    def _handle_say(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        if not text.strip():
+            return ""
+        if self._silent:
+            return ""
+        speed = float(self._tof(evaluated[1])) if len(evaluated) > 1 else 1.0
+        self._do_say(text, speed)
+        return ""
+
+
+    def _handle_say_async(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        self.app.tts.enqueue(text)
+        return ""
+
+
+    def _handle_screen_click(self, evaluated):
+        from pynput.mouse import Button, Controller
+        if not evaluated:
+            Controller().click(Button.left)
+            return "ok"
+        x = int(self._tof(evaluated[0])) if evaluated else 0
+        y = int(self._tof(evaluated[1])) if len(evaluated) > 1 else 0
+        if sys.platform == "win32":
+            import ctypes
+            dc = ctypes.windll.user32.GetDC(0)
+            dpi = ctypes.windll.gdi32.GetDeviceCaps(dc, 88)
+            ctypes.windll.user32.ReleaseDC(0, dc)
+            if dpi != 96:
+                scale = dpi / 96.0
+                x = int(x / scale)
+                y = int(y / scale)
+        mouse = Controller()
+        try:
+            cx, cy = mouse.position
+            dist = math.hypot(x - cx, y - cy)
+            dur = max(0.05, min(0.5, dist * dist / 80000))
+            steps = max(5, int(dur * 60))
+            for i in range(1, steps + 1):
+                t = i / steps
+                t = t * (2 - t)
+                wx = int(cx + (x - cx) * t)
+                wy = int(cy + (y - cy) * t)
+                mouse.position = (wx, wy)
+                time.sleep(dur / steps)
+            time.sleep(0.05)
+            mouse.position = (x, y)
+            mouse.click(Button.left)
+        except Exception as e:
+            return f"errore click: {e}"
+        return "ok"
+
+
+    def _handle_screen_highlight(self, evaluated):
+        cx = int(self._tof(evaluated[0])) if evaluated else 0
+        cy = int(self._tof(evaluated[1])) if len(evaluated) > 1 else 0
+        w = int(self._tof(evaluated[2])) if len(evaluated) > 2 else 100
+        h = int(self._tof(evaluated[3])) if len(evaluated) > 3 else 50
+        dur = self._tof(evaluated[4]) if len(evaluated) > 4 else 1.0
+        self.app.gui.show_highlight(cx - w // 2, cy - h // 2, w, h, dur)
+        return ""
+
+
+    def _handle_screen_search(self, evaluated):
+        query = evaluated[0] if evaluated else ""
+        if not query:
+            return ""
+        import numpy as np
+        # Take screenshot — mss doesn't work under Wayland (returns all zeros)
+        # Fall back to PIL.ImageGrab which works on all Linux display servers
+        frame = None
+        try:
+            import mss as _mss
+            with _mss.MSS() as _sct:
+                _monitor = _sct.monitors[1]
+                _img = _sct.grab(_monitor)
+                _frame = np.array(_img)
+                # Check if mss returned valid data (Wayland returns all zeros)
+                if _frame.sum() > 0:
+                    frame = _frame
+        except Exception:
+            pass
+        if frame is None or frame.sum() == 0:
+            from PIL import ImageGrab as _PILImageGrab
+            _pil_img = _PILImageGrab.grab()
+            frame = np.array(_pil_img)
+        frame = self._preprocess_screen(frame)
+        if getattr(self.app, 'debug_enabled', False):
+            import uuid, os as _os
+            _os.makedirs("log", exist_ok=True)
+            from PIL import Image as _PILImage
+            debug_path = _os.path.join("log", f"ocr_debug_{uuid.uuid4().hex[:6]}.png")
+            _PILImage.fromarray(frame[:,:,:3]).save(debug_path)
+            print(f"[OCR Debug] Saved preprocessed image: {debug_path}")
+        lang_codes = self._ocr_langs()
+        if VASScript._ocr_reader is None or VASScript._ocr_active_langs != lang_codes:
+            import easyocr
+            VASScript._ocr_reader = easyocr.Reader(
+                lang_codes, gpu=True, verbose=False
+            )
+            VASScript._ocr_active_langs = lang_codes
+        results = VASScript._ocr_reader.readtext(frame)
+        matches = []
+        for bbox, text, conf in results:
+            ql = query.lower()
+            tl = text.lower()
+            if ql in tl:
+                ratio = 1.0
+            else:
+                ratio = fuzzy_ratio(ql, tl)
+                if ratio < 0.70:
+                    continue
+            xs = [p[0] for p in bbox]
+            ys = [p[1] for p in bbox]
+            min_x, max_x = min(xs), max(xs)
+            min_y, max_y = min(ys), max(ys)
+            cx = (min_x + max_x) / 2
+            cy = (min_y + max_y) / 2
+            matches.append({
+                "text": text,
+                "x": int(cx),
+                "y": int(cy),
+                "w": int(max_x - min_x),
+                "h": int(max_y - min_y),
+                "ratio": ratio,
+            })
+        if matches:
+            matches.sort(key=lambda m: m["ratio"], reverse=True)
+            best = matches[0]
+            self.vars["_sx"] = str(best["x"])
+            self.vars["_sy"] = str(best["y"])
+            self.vars["_sw"] = str(best["w"])
+            self.vars["_sh"] = str(best["h"])
+        else:
+            self.vars["_sx"] = ""
+            self.vars["_sy"] = ""
+            self.vars["_sw"] = ""
+            self.vars["_sh"] = ""
+        return json.dumps(matches, ensure_ascii=False)
+
+
+    def _handle_search_web(self, evaluated):
+        query = evaluated[0] if evaluated else ""
+        return self._fetch_web(query, "websearch")
+
+
+    def _handle_sendtext(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        if text:
+            from pynput.keyboard import Controller, Key
+            import random as _random
+            kb = Controller()
+            for ch in text:
+                if ch == "\n":
+                    kb.press(Key.enter)
+                    kb.release(Key.enter)
+                elif ch == "\t":
+                    kb.press(Key.tab)
+                    kb.release(Key.tab)
+                else:
+                    kb.press(ch)
+                    kb.release(ch)
+                time.sleep(_random.uniform(0.10, 0.15))
+        return "ok"
+
+
+    def _handle_setactivewindow(self, evaluated):
+        name_arg = evaluated[0] if evaluated else ""
+        if name_arg:
+            from window_manager import set_active_window
+            return "ok" if set_active_window(name_arg) else "not found"
+        return "not found"
+
+
+    def _handle_sub(self, evaluated):
+        try:
+            a = float(evaluated[0]) if evaluated else 0
+            b = float(evaluated[1]) if len(evaluated) > 1 else 0
+            result = a - b
+            return str(int(result)) if result == int(result) else str(result)
+        except (ValueError, TypeError):
+            return "0"
+
+
+    def _handle_timer_cancel(self, evaluated):
+        tid = evaluated[0] if evaluated else ""
+        return self.app.timer_manager.cancel(tid)
+
+
+    def _handle_timer_list(self, evaluated):
+        return self.app.timer_manager.list_all()
+
+
+    def _handle_timer_start(self, evaluated):
+        dur = evaluated[0] if evaluated else ""
+        return self.app.timer_manager.start(dur)
+
+
+    def _handle_tonum(self, evaluated):
+        val = evaluated[0] if evaluated else ""
+        try:
+            f = float(val)
+            return str(int(f)) if f == int(f) else str(f)
+        except (ValueError, TypeError):
             return val
 
-        if name in ("writestate", "write_state"):
-            key = evaluated[0] if evaluated else ""
-            val = evaluated[1] if len(evaluated) > 1 else ""
-            if key:
-                with VASScript._state_lock:
-                    VASScript._state[key] = val
-                if getattr(self.app, 'debug_enabled', False):
-                    print(f"[VASScript] writestate({key!r}, {val!r}) -> ok")
-                return "ok"
-            return "error: key required"
 
-        if name in ("clipboardget", "clipboard_get"):
-            try:
-                import pyperclip
-                return pyperclip.paste()
-            except Exception:
-                return ""
+    def _handle_trim(self, evaluated):
+        return (evaluated[0] if evaluated else "").strip()
 
-        if name in ("clipboardset", "clipboard_set"):
-            text = evaluated[0] if evaluated else ""
-            try:
-                import pyperclip
-                pyperclip.copy(text)
-                return "ok"
-            except Exception:
-                return "error"
 
-        if name in ("savetags", "save_tags"):
-            tags = evaluated[0] if evaluated else ""
-            return self._manage_memory_tags(tags)
+    def _handle_wait(self, evaluated):
+        secs = float(evaluated[0]) if evaluated else 0
+        time.sleep(secs)
+        return ""
 
-        if name == "timer_start":
-            dur = evaluated[0] if evaluated else ""
-            return self.app.timer_manager.start(dur)
 
-        if name == "timer_list":
-            return self.app.timer_manager.list_all()
+    def _handle_writefile(self, evaluated):
+        filepath = evaluated[0] if evaluated else ""
+        content = evaluated[1] if len(evaluated) > 1 else ""
+        if not filepath:
+            return "error: path required"
+        import os as _os
+        base = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "Allowed_root")
+        p = _os.path.normpath(_os.path.join(base, filepath))
+        if not p.startswith(_os.path.normpath(base)):
+            return "error: access denied"
+        try:
+            _os.makedirs(_os.path.dirname(p), exist_ok=True)
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(content)
+            return f"ok: wrote {len(content)} bytes to {filepath}"
+        except Exception as e:
+            return f"error: {e}"
 
-        if name == "timer_cancel":
-            tid = evaluated[0] if evaluated else ""
-            return self.app.timer_manager.cancel(tid)
 
-        if name == "notify":
-            text = evaluated[0] if evaluated else ""
-            priority = int(evaluated[1]) if len(evaluated) > 1 and evaluated[1].strip().isdigit() else 1
-            link = evaluated[2] if len(evaluated) > 2 else ""
-            data = {"type": "script"}
-            if link:
-                data["link"] = link
-            return self.app.notification_manager.add(text, priority, data=data)
+    def _handle_writeinfo(self, evaluated):
+        text = evaluated[0] if evaluated else ""
+        return self._manage_info("write", text)
 
-        if name == "form":
-            title = evaluated[0] if evaluated else ""
-            fields = evaluated[1:]
-            return self.app.gui.request_form(title, fields)
 
-        if name == "inject":
-            text = evaluated[0] if evaluated else ""
-            self.app.inject_context(text)
+    def _handle_writestate(self, evaluated):
+        key = evaluated[0] if evaluated else ""
+        val = evaluated[1] if len(evaluated) > 1 else ""
+        if key:
+            with VASScript._state_lock:
+                VASScript._state[key] = val
+            if getattr(self.app, 'debug_enabled', False):
+                print(f"[VASScript] writestate({key!r}, {val!r}) -> ok")
             return "ok"
+        return "error: key required"
 
-        if name == "inject_memory":
-            text = evaluated[0] if evaluated else ""
-            return self.app.inject_memory(text)
 
-        if name == "compress_memory":
-            try:
-                self.app._trim_memory_if_needed(force=True)
-                return "ok: memory compression completed"
-            except Exception as e:
-                return f"error: {e}"
+    @classmethod
+    def _build_handlers(cls):
+        """Auto-build dispatch table from all _handle_* methods."""
+        import inspect
+        for _name, _method in inspect.getmembers(cls, predicate=inspect.isfunction):
+            if _name.startswith("_handle_"):
+                fn_name = _name[len("_handle_"):]
+                # Store unbound function — it will be called as self._HANDLERS[name](...) 
+                # where self is the instance, so Python auto-binds it.
+                cls._HANDLERS[fn_name] = _method
 
-        if name == "fetch_text":
-            url = evaluated[0] if evaluated else ""
-            return self._fetch_web(url, "webfetch")
-
-        if name == "fetch_json":
-            url = evaluated[0] if evaluated else ""
-            return self._fetch_json(url)
-
-        if name == "search_web":
-            query = evaluated[0] if evaluated else ""
-            return self._fetch_web(query, "websearch")
-
-        if name == "gcal_today":
-            if not self._gcal_enabled():
-                return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
-            return self._gcal_list("today")
-
-        if name == "gcal_tomorrow":
-            if not self._gcal_enabled():
-                return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
-            return self._gcal_list("tomorrow")
-
-        if name == "gcal_add":
-            if not self._gcal_enabled():
-                return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
-            summary = evaluated[0] if evaluated else ""
-            start = evaluated[1] if len(evaluated) > 1 else ""
-            end = evaluated[2] if len(evaluated) > 2 else ""
-            desc = evaluated[3] if len(evaluated) > 3 else ""
-            return self._gcal_add(summary, start, end, desc)
-
-        if name == "gcal_search":
-            if not self._gcal_enabled():
-                return "error: Google Calendar is not enabled (calendar_enabled=false in settings.ini)"
-            query = evaluated[0] if evaluated else ""
-            return self._gcal_search(query)
-
-        if name == "google_home_command":
-            mute = evaluated[1].strip().lower() == "false" if len(evaluated) > 1 else False
-            return self._gh_exec(evaluated[0] if evaluated else "", play_audio=not mute)
-
-        if name == "google_home_ask":
-            mute = evaluated[1].strip().lower() == "false" if len(evaluated) > 1 else False
-            return self._gh_exec(evaluated[0] if evaluated else "", play_audio=not mute)
-
-        if name == "get_weather":
-            loc = evaluated[0] if evaluated else ""
-            return self._do_weather(loc)
-
-        if name in ("getidle", "get_idle"):
-            if hasattr(self.app, 'idle_tracker') and self.app.idle_tracker:
-                seconds = self.app.idle_tracker.get_total_idle_seconds()
-                if getattr(self.app, 'debug_enabled', False):
-                    import time as _t
-                    input_idle = self.app.idle_tracker.get_input_idle_seconds()
-                    voice_idle = _t.time() - self.app.idle_tracker._last_voice_ts
-                    fullscreen = self.app.idle_tracker._is_fullscreen()
-                    print(f"[VASScript] getidle() -> input={input_idle:.1f}s voice={voice_idle:.1f}s fullscreen={fullscreen} total={seconds:.1f}s")
-            else:
-                try:
-                    from idle_tracker import IdleTracker
-                    seconds = IdleTracker().get_total_idle_seconds()
-                except ImportError:
-                    seconds = -1
-            return '{"idle_seconds": ' + f'{seconds:.1f}' + '}'
-
-        if name in ("getdatetime", "get_datetime"):
-            from datetime import datetime
-            lang = (evaluated[0] if evaluated else "").strip().lower()
-            now = datetime.now()
-            ts = int(now.timestamp())
-            if not lang:
-                dt_str = now.strftime("%Y-%m-%d %H:%M")
-            else:
-                months = {
-                    "it": ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
-                           "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
-                    "en": ["January", "February", "March", "April", "May", "June",
-                           "July", "August", "September", "October", "November", "December"],
-                    "de": ["Januar", "Februar", "März", "April", "Mai", "Juni",
-                           "Juli", "August", "September", "Oktober", "November", "Dezember"],
-                    "fr": ["janvier", "février", "mars", "avril", "mai", "juin",
-                           "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
-                    "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio",
-                           "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
-                    "pt": ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
-                           "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
-                }
-                m = months.get(lang, months["en"])
-                mn = m[now.month - 1]
-                day = str(now.day)
-                year = str(now.year)
-                hm = now.strftime("%H:%M")
-                if lang == "it":
-                    dt_str = f"{day} {mn} {year} {hm}"
-                elif lang in ("en", "fr"):
-                    dt_str = f"{mn} {day}, {year} {hm}"
-                elif lang == "de":
-                    dt_str = f"{day}. {mn} {year} {hm}"
-                elif lang == "es":
-                    dt_str = f"{day} de {mn} de {year} {hm}"
-                elif lang == "pt":
-                    dt_str = f"{day} de {mn} de {year} {hm}"
-                elif lang == "ja":
-                    dt_str = f"{year}年{now.month}月{day}日 {hm}"
-                elif lang == "ko":
-                    dt_str = f"{year}년 {now.month}월 {day}일 {hm}"
-                elif lang == "zh":
-                    dt_str = f"{year}年{now.month}月{day}日 {hm}"
-                else:
-                    dt_str = now.strftime("%Y-%m-%d %H:%M")
-            result = {
-                "datetime": dt_str,
-                "date": now.strftime("%Y-%m-%d"),
-                "time": now.strftime("%H:%M"),
-                "hour": now.strftime("%H"),
-                "minute": now.strftime("%M"),
-                "timestamp": str(ts),
-                "year": str(now.year),
-                "month": str(now.month),
-                "day": str(now.day),
-            }
-            self.vars["datetime"] = dt_str
-            self.vars["date"] = now.strftime("%Y-%m-%d")
-            self.vars["time"] = now.strftime("%H:%M")
-            self.vars["hour"] = now.strftime("%H")
-            self.vars["minute"] = now.strftime("%M")
-            self.vars["timestamp"] = str(ts)
-            self.vars["year"] = str(now.year)
-            self.vars["month"] = str(now.month)
-            self.vars["day"] = str(now.day)
-            return json.dumps(result)
-
-        if name in ("prettyevents", "pretty_events"):
-            raw = evaluated[0] if evaluated else "[]"
-            try:
-                events = json.loads(raw)
-                if isinstance(events, dict):
-                    events = [events]
-            except Exception:
-                return raw
-            from datetime import datetime as _dt
-            from i18n import t as _t
-            lang = getattr(self.app, "language", "en")
-            tr = lambda k: _t(f"events.time_refs.{k}", lang)
-            now = _dt.now()
-            parsed = []
-            for ev in events:
-                edate = ev.get("date", "")
-                etime = ev.get("time", "")
-                desc = ev.get("description", "")
-                dur = ev.get("duration", 0)
-                recur = ev.get("recur", "")
-                try:
-                    dt = _dt.strptime(f"{edate} {etime}", "%Y-%m-%d %H:%M")
-                    dt_ts = dt.timestamp()
-                except Exception:
-                    dt_ts = 0
-                    dt = None
-                parsed.append((dt_ts, dt, desc, dur, recur, etime))
-            parsed.sort(key=lambda x: x[0])
-            lines = []
-            for dt_ts, dt, desc, dur, recur, etime in parsed:
-                if dt is None:
-                    relative = tr("unknown_date")
-                else:
-                    diff = dt_ts - now.timestamp()
-                    if diff < 0:
-                        relative = tr("expired")
-                    elif diff < 3600:
-                        m = int(diff // 60)
-                        relative = f"{tr('in')} {m} {tr('minute_s')}" if m > 1 else f"{tr('in')} 1 {tr('minute_s')}"
-                    elif diff < 86400:
-                        h = int(diff // 3600)
-                        m = int((diff % 3600) // 60)
-                        if m > 0:
-                            relative = f"{tr('in')} {h}{tr('hour_h')}{m:02d}"
-                        else:
-                            relative = f"{tr('in')} {h} {tr('hour_s')}" if h > 1 else f"{tr('in')} 1 {tr('hour_s').rstrip('s')}"
-                    elif diff < 604800:
-                        d = int(diff // 86400)
-                        relative = tr("tomorrow") if d == 1 else f"{tr('in')} {d} {tr('days')}"
-                    elif diff < 2592000:
-                        w = int(diff // 604800)
-                        relative = f"{tr('in')} 1 {tr('week_s')}" if w == 1 else f"{tr('in')} {w} {tr('weeks')}"
-                    else:
-                        m = int(diff // 2592000)
-                        relative = f"{tr('in')} 1 {tr('month_s')}" if m == 1 else f"{tr('in')} {m} {tr('months')}"
-                time_str = dt.strftime("%H:%M") if dt else etime
-                line = f"{relative} {tr('at')} {time_str} - {desc} ({dur} {tr('minute_s')})"
-                if recur:
-                    line += f" [{tr('every')} {_recur_label(recur)}]"
-                lines.append(line)
-            return "\n".join(lines)
-
-        if name == "filter_json":
-            raw = evaluated[0] if evaluated else "[]"
-            fmt = evaluated[1] if len(evaluated) > 1 else "{item}"
-            filters = [f.strip() for f in evaluated[2:] if f.strip()]
-            try:
-                data = json.loads(raw)
-                if isinstance(data, dict):
-                    if "data" in data and isinstance(data["data"], list):
-                        data = data["data"]
-                    else:
-                        data = [data]
-            except Exception:
-                return raw
-            import re as _re
-            def _fj_nested(item, key, default=""):
-                parts = key.split(".")
-                val = item
-                for p in parts:
-                    if isinstance(val, dict):
-                        val = val.get(p)
-                    else:
-                        return default
-                    if val is None:
-                        return default
-                return str(val)
-            for f in filters:
-                m = _re.match(r'^([\w.]+)\s*(>=|<=|>|<|=)\s*(.*)$', f)
-                if not m:
-                    continue
-                key, op, val = m.group(1), m.group(2), m.group(3).strip()
-                filtered = []
-                for item in data:
-                    field_val = _fj_nested(item, key)
-                    try:
-                        fv = float(val)
-                        ff = float(field_val)
-                        numeric = True
-                    except (ValueError, TypeError):
-                        numeric = False
-                    if numeric and op != "=":
-                        cond = (
-                            (op == ">=" and ff >= fv) or
-                            (op == "<=" and ff <= fv) or
-                            (op == ">" and ff > fv) or
-                            (op == "<" and ff < fv)
-                        )
-                    elif numeric and op == "=":
-                        cond = ff == fv
-                    elif op == "=":
-                        cond = field_val.lower() == val.lower()
-                    else:
-                        cond = (
-                            (op == ">=" and field_val >= val) or
-                            (op == "<=" and field_val <= val) or
-                            (op == ">" and field_val > val) or
-                            (op == "<" and field_val < val)
-                        )
-                    if cond:
-                        filtered.append(item)
-                data = filtered
-            if not data:
-                return ""
-            lines = []
-            for item in data:
-                try:
-                    lines.append(fmt.format(**item))
-                except (KeyError, ValueError, AttributeError):
-                    lines.append(_re.sub(r'\{([\w.]+)\}', lambda m: _fj_nested(item, m.group(1)), fmt))
-            return "\n".join(lines)
-
-        if name == "print":
-            text = evaluated[0] if evaluated else ""
-            print(f"[VASScript] {text}", flush=True)
-            return ""
-
-        if name in ("readfile", "read_file"):
-            filepath = evaluated[0] if evaluated else ""
-            if not filepath:
-                return "error: path required"
-            import os as _os
-            base = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "Allowed_root")
-            p = _os.path.normpath(_os.path.join(base, filepath))
-            if not p.startswith(_os.path.normpath(base)):
-                return "error: access denied"
-            try:
-                with open(p, encoding="utf-8") as f:
-                    return f.read()
-            except Exception as e:
-                return f"error: {e}"
-
-        if name in ("writefile", "write_file"):
-            filepath = evaluated[0] if evaluated else ""
-            content = evaluated[1] if len(evaluated) > 1 else ""
-            if not filepath:
-                return "error: path required"
-            import os as _os
-            base = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "Allowed_root")
-            p = _os.path.normpath(_os.path.join(base, filepath))
-            if not p.startswith(_os.path.normpath(base)):
-                return "error: access denied"
-            try:
-                _os.makedirs(_os.path.dirname(p), exist_ok=True)
-                with open(p, "w", encoding="utf-8") as f:
-                    f.write(content)
-                return f"ok: wrote {len(content)} bytes to {filepath}"
-            except Exception as e:
-                return f"error: {e}"
-
-        if name == "rss_fetch":
-            return "error: rss_fetch is deprecated — RSS polling is now handled by the rss_reader plugin"
-
-        raise ValueError(f"unknown function: {name}()")
+        # Register multi-name aliases
+        _aliases = {
+            "to_num": cls._HANDLERS["tonum"],
+            "send_text": cls._HANDLERS["sendtext"],
+            "set_active_window": cls._HANDLERS["setactivewindow"],
+            "add_event": cls._HANDLERS["addevent"],
+            "list_events": cls._HANDLERS["listevents"],
+            "delevent": cls._HANDLERS["removeevent"],
+            "remove_event": cls._HANDLERS["removeevent"],
+            "delete_event": cls._HANDLERS["removeevent"],
+            "read_info": cls._HANDLERS["readinfo"],
+            "write_info": cls._HANDLERS["writeinfo"],
+            "read_state": cls._HANDLERS["readstate"],
+            "write_state": cls._HANDLERS["writestate"],
+            "clipboard_get": cls._HANDLERS["clipboardget"],
+            "clipboard_set": cls._HANDLERS["clipboardset"],
+            "save_tags": cls._HANDLERS["savetags"],
+            "get_idle": cls._HANDLERS["getidle"],
+            "get_datetime": cls._HANDLERS["getdatetime"],
+            "pretty_events": cls._HANDLERS["prettyevents"],
+            "read_file": cls._HANDLERS["readfile"],
+            "write_file": cls._HANDLERS["writefile"],
+        }
+        for _k, _v in _aliases.items():
+            cls._HANDLERS[_k] = _v
 
     def _manage_memory_tags(self, tags):
         from pathlib import Path

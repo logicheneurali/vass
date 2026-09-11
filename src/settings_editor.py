@@ -32,7 +32,7 @@ QSlider::sub-page:horizontal {{
 """
 
 
-BOOLEAN_KEYS = {"llama_autostart", "calendar_enabled", "calendar_sync_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode", "app_autostart"}
+BOOLEAN_KEYS = {"calendar_enabled", "calendar_sync_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode", "app_autostart"}
 HIDDEN_KEYS = {"lastmode", "output_volume", "input_device_name", "output_device_name", "x", "y", "width", "height",
                "gmail_enabled", "gmail_sync_minutes", "gmail_max_results"}
 
@@ -103,7 +103,7 @@ class SettingsEditor(QMainWindow):
         self._original_api_key = self._load_original_api_key()
         self._google_disabled = False
         self.build_ui()
-        QTimer.singleShot(0, self._update_llama_start_btn)
+
 
     def _get_supported_languages(self):
         supported = []
@@ -281,27 +281,6 @@ class SettingsEditor(QMainWindow):
                         entry.setCurrentIndex(idx)
                     group_layout.addWidget(entry, row, 1)
                 elif key in BOOLEAN_KEYS:
-                    if key == "llama_autostart":
-                        entry = QPushButton()
-                        entry.setCheckable(True)
-                        current_val = self.config.get(section, key, fallback="false")
-                        entry.setChecked(current_val.lower() == "true")
-                        self._update_llama_btn(entry)
-                        entry.toggled.connect(lambda checked, b=entry: self._update_llama_btn(b))
-                        cw = QWidget()
-                        cw_layout = QHBoxLayout(cw)
-                        cw_layout.setContentsMargins(0, 0, 0, 0)
-                        cw_layout.setSpacing(6)
-                        cw_layout.addWidget(entry)
-                        start_btn = QPushButton(t("settings_editor.buttons.start_llama", self.lang))
-                        start_btn.setFixedWidth(80)
-                        start_btn.clicked.connect(self._start_llama_server)
-                        self._llama_start_btn = start_btn
-                        cw_layout.addWidget(start_btn)
-                        cw_layout.addStretch()
-                        group_layout.addWidget(cw, row, 1)
-                        entry = cw
-                    else:
                         entry = QCheckBox()
                         if section == "startup" and key == "app_autostart":
                             from utils import is_autostart_enabled
@@ -775,23 +754,6 @@ class SettingsEditor(QMainWindow):
         self.close()
 
 
-    def _update_llama_start_btn(self):
-        if not hasattr(self, '_llama_start_btn'):
-            return
-        from utils import get_project_root, is_process_running
-        if is_process_running("llama-server"):
-            self._llama_start_btn.setText(t("settings_editor.buttons.restart_llama", self.lang))
-        else:
-            self._llama_start_btn.setText(t("settings_editor.buttons.start_llama", self.lang))
-
-    def _update_llama_btn(self, btn):
-        if btn.isChecked():
-            btn.setText("🟢 " + t("settings_editor.buttons.llama_on", self.lang))
-            btn.setStyleSheet(f"background-color: {BTN_BG}; color: #2ecc71; border: none; border-radius: 3px; padding: 4px 10px; font-weight: bold;")
-        else:
-            btn.setText("🔴 " + t("settings_editor.buttons.llama_off", self.lang))
-            btn.setStyleSheet(f"background-color: {BTN_BG}; color: #e74c3c; border: none; border-radius: 3px; padding: 4px 10px; font-weight: bold;")
-
     def _launch_google_setup(self):
         import subprocess, os
         path = os.path.join(get_project_root(), "src", "setup_google.py")
@@ -823,33 +785,6 @@ class SettingsEditor(QMainWindow):
             except Exception as e:
                 menu.addAction(t("settings_editor.model_menu_error", self.lang).replace("{err}", str(e))).setEnabled(False)
         menu.exec(field.mapToGlobal(field.rect().topRight()))
-
-    def _start_llama_server(self):
-        from utils import get_project_root, start_llama_server, is_process_running
-        import subprocess, sys, time as _time
-        path = self._get_entry_text(("llamacpp", "llama_server_path"))
-        if not path:
-            QMessageBox.warning(self, "llama.cpp",
-                self._t("settings_editor.errors.llama_no_path"))
-            return
-        cwd = self._get_entry_text(("llamacpp", "llama_server_working_directory"))
-        args = self._get_entry_text(("llamacpp", "llama_server_arguments"))
-        if is_process_running("llama-server"):
-            print("[llama.cpp] Killing existing server...")
-            if sys.platform == "win32":
-                subprocess.run(["taskkill", "/F", "/IM", "llama-server.exe"],
-                               capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            else:
-                subprocess.run(["pkill", "-f", "llama-server"], capture_output=True)
-            _time.sleep(1)
-        proc, status = start_llama_server(path, cwd, args, skip_if_running=False)
-        self._update_llama_start_btn()
-        if status == "started":
-            QMessageBox.information(self, "llama.cpp",
-                self._t("settings_editor.errors.llama_started"))
-        else:
-            QMessageBox.warning(self, "llama.cpp",
-                self._t("settings_editor.errors.llama_not_found").format(path=path))
 
     def _get_entry_text(self, key):
         entry = self.entries.get(key)

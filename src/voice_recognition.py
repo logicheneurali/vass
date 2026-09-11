@@ -42,6 +42,7 @@ class VoiceRecognition:
         self.wake_variants = wake_variants or [self.wake_word]
         self.wakeword_model = None
         self.whisper_model = None
+        self._model_loaded = False
 
         # VAD (Voice Activity Detection) state
         self.energy_threshold = sensitivity
@@ -94,12 +95,31 @@ class VoiceRecognition:
         return self._noise_floor * multiplier + max(0.001, self.energy_threshold)
 
     def load_models(self):
-        self.wakeword_model = WhisperModel("tiny", device="cpu", compute_type="int8")
+        # Try loading from local cache first (no HF network contact)
+        try:
+            self._load_models_from_cache(local_files_only=True)
+            return  # Success — model was in cache
+        except FileNotFoundError:
+            # Model not in cache — download from HF
+            print("[Whisper] Model not cached, downloading from HuggingFace...")
+            self._load_models_from_cache(local_files_only=False)
+
+    def _load_models_from_cache(self, local_files_only=True):
+        self.wakeword_model = WhisperModel(
+            "tiny", device="cpu", compute_type="int8",
+            local_files_only=local_files_only
+        )
         transcribe_device = "cpu"
-        #transcribe_device = "cuda" if _cuda_available() else "cpu"
+        # transcribe_device = "cuda" if _cuda_available() else "cpu"
         transcribe_type = "float16" if transcribe_device == "cuda" else "int8"
         print(f"[Whisper] Transcription device={transcribe_device} compute_type={transcribe_type}")
-        self.whisper_model = WhisperModel(self.transcription_model, device=transcribe_device, compute_type=transcribe_type)
+        self.whisper_model = WhisperModel(
+            self.transcription_model, device=transcribe_device,
+            compute_type=transcribe_type, local_files_only=local_files_only
+        )
+        self._model_loaded = True
+        source = "local cache" if local_files_only else "HuggingFace"
+        print(f"[Whisper] Model '{self.transcription_model}' loaded from {source}")
 
     def _update_statistics(self, energy, audio_chunk):
         self._energy_history.append(float(energy))

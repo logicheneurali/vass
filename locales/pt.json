@@ -388,7 +388,8 @@
     "error": "Erro de conexão com a inteligência artificial.",
     "blacklisted": "Requisição bloqueada: contém palavras proibidas.",
     "tool_no_reply": "Executei as ferramentas de pesquisa, mas não consegui formular uma resposta. Tente reformular sua pergunta.",
-    "tool_no_reply_links": "Executei as ferramentas e gerei alguns resultados, mas não consegui formular uma resposta em texto. Tente reformular sua pergunta."
+    "tool_no_reply_links": "Executei as ferramentas e gerei alguns resultados, mas não consegui formular uma resposta em texto. Tente reformular sua pergunta.",
+    "lang_instruction": "Respondi always in Portuguese. If user writes in Portuguese, reply in Portuguese. If user writes in another language, still reply in Portuguese."
   },
   "tts": {
     "fallback_language": "pt-BR"

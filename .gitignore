@@ -111,6 +111,7 @@ tts_output_*.wav
 *.log
 log/
 mcp_server/LOG/
+*log.txt
 
 # VASS - dev files
 CHANGELOG.md
@@ -153,3 +154,4 @@ Allowed_root/model_advice_cache.json
 Allowed_root/browser_netflix_cache.json
 vass.sh
 /.pi
+PLAN_*.md

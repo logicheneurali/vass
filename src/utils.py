@@ -195,19 +195,6 @@ def log_exc(msg=""):
 
 # ── System / process utilities ───────────────────────────────────────────────
 
-def is_process_running(name):
-    try:
-        if sys.platform == "win32":
-            r = subprocess.run(["tasklist"], capture_output=True, text=True,
-                               creationflags=subprocess.CREATE_NO_WINDOW)
-            return name.lower() in r.stdout.lower()
-        else:
-            r = subprocess.run(["pgrep", "-f", name], capture_output=True)
-            return r.returncode == 0
-    except Exception:
-        return False
-
-
 def kill_port(port):
     try:
         if sys.platform == "win32":
@@ -224,20 +211,6 @@ def kill_port(port):
                 subprocess.run(["kill", "-9", pid])
         else:
             subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
-    except Exception:
-        pass
-
-
-def kill_process(proc):
-    try:
-        proc.terminate()
-        proc.wait(timeout=3)
-    except subprocess.TimeoutExpired:
-        try:
-            proc.kill()
-            proc.wait(timeout=2)
-        except Exception:
-            pass
     except Exception:
         pass
 
@@ -378,39 +351,6 @@ def strip_think_tags(text):
 
 
 # ── Process launcher ─────────────────────────────────────────────────────────
-
-def start_llama_server(path, working_directory="", arguments="", skip_if_running=True):
-    if not path.strip():
-        return None, "path not configured"
-    base_path = path.strip()
-    exe = os.path.join(base_path, "llama-server.exe" if sys.platform == "win32" else "llama-server")
-    if not os.path.isfile(exe):
-        # Linux fallback: try to find llama-server in PATH and use its directory
-        if sys.platform != "win32":
-            found = shutil.which("llama-server")
-            if found:
-                base_path = os.path.dirname(found)
-                exe = found
-        if not os.path.isfile(exe):
-            return None, f"llama-server not found in {path} (and not in PATH on Linux)"
-    if skip_if_running and is_process_running("llama-server"):
-        return None, "already running"
-    cwd = working_directory.strip() or base_path
-    args = arguments.strip()
-    cmd = [exe] + (args.split() if args else [])
-    print(f"[llama.cpp] Starting: {' '.join(cmd)} (cwd={cwd})")
-    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-    log_dir = os.path.join(get_project_root(), "log")
-    os.makedirs(log_dir, exist_ok=True)
-    log_path = os.path.join(log_dir, "llamacpp.log")
-    log_file = open(log_path, "w", encoding="utf-8")
-    log_file.write(f"--- llama.cpp started at {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
-    log_file.write(f"Command: {' '.join(cmd)}\nWorking dir: {cwd}\n\n")
-    log_file.flush()
-    proc = subprocess.Popen(cmd, cwd=cwd, creationflags=creationflags,
-                            stdout=log_file, stderr=subprocess.STDOUT)
-    return proc, "started"
-
 
 # ── File / memory utilities ──────────────────────────────────────────────────
 

@@ -2,13 +2,123 @@ import glob
 import os
 import sys
 import time
+import threading
 
 _fullscreen_warned = set()
 
 
+class _LinuxIdleDetector:
+    """Tracks Linux idle state using CPU and GPU load polling.
+
+    On Linux, monitors CPU and GPU utilization to detect user activity.
+    High CPU or GPU usage indicates the user is likely active.
+    Falls back to 0 if neither CPU nor GPU metrics are available.
+    """
+
+    def __init__(self):
+        self._last_input_ts = time.time()
+        self._lock = threading.Lock()
+        self._psutil_available = False
+        try:
+            import psutil
+            self._psutil = psutil
+            self._psutil_available = True
+        except ImportError:
+            self._psutil = None
+
+        self._gpu_available = False
+        self._gpu = None
+        try:
+            import GPUtil
+            gpus = GPUtil.getGPUs()
+            if gpus:
+                self._gpu_available = True
+                self._gpu = gpus[0]
+        except Exception:
+            pass
+
+        # Rolling average for CPU load to smooth out瞬时 spikes
+        self._cpu_samples = []
+        self._cpu_avg_window = 3  # last 3 samples
+
+        # Start background monitoring thread
+        self._start_cpu_gpu_loop()
+
+    def _get_cpu_load(self):
+        """Calculate CPU load percentage using psutil if available.
+        
+        Maintains a rolling average of the last N samples to smooth
+        out instantaneous spikes. Returns the current rolling average.
+        Falls back to 0.0 if psutil is not installed.
+        """
+        if not self._psutil_available:
+            return 0.0
+        try:
+            current = self._psutil.cpu_percent(interval=0.0)
+            self._cpu_samples.append(current)
+            if len(self._cpu_samples) > self._cpu_avg_window:
+                self._cpu_samples.pop(0)
+            return sum(self._cpu_samples) / len(self._cpu_samples)
+        except Exception:
+            return 0.0
+
+    def _get_gpu_load(self):
+        """Get GPU utilization percentage (compute load, not memory)."""
+        try:
+            if self._has_gpu:
+                return self._gpu.load * 100.0
+        except Exception:
+            pass
+        return 0.0
+
+    def _start_cpu_gpu_loop(self):
+        """Start background thread to poll CPU/GPU and update last input timestamp."""
+        t = threading.Thread(target=self._cpu_gpu_poll_loop, daemon=True)
+        t.start()
+
+    def _cpu_gpu_poll_loop(self):
+        """Poll CPU and GPU load periodically to detect user activity.
+        
+        Only this thread calls _get_cpu_load() to ensure consistent delta calculation.
+        CPU threshold set to 25% (with 3-sample rolling average) to catch
+        sustained heavy loads while ignoring short background noise.
+        GPU threshold set to 50% for compute activity detection.
+        """
+        cpu_threshold = 25.0  # 25% CPU sustained = user actively running something
+        gpu_threshold = 50.0  # 50% GPU = active compute
+
+        while True:
+            try:
+                cpu_load = self._get_cpu_load()
+                gpu_load = self._get_gpu_load() if self._gpu_available else 0.0
+
+                if cpu_load > cpu_threshold or gpu_load > gpu_threshold:
+                    with self._lock:
+                        self._last_input_ts = time.time()
+            except Exception:
+                pass
+            time.sleep(1.0)
+
+    # ------------------------------------------------------------------ #
+    #  Public API
+    # ------------------------------------------------------------------ #
+
+    def get_idle_seconds(self):
+        """Return idle seconds based on CPU/GPU load."""
+        try:
+            with self._lock:
+                last = self._last_input_ts
+            return max(time.time() - last, 0.0)
+        except Exception:
+            return time.time() - self._last_input_ts if hasattr(self, '_last_input_ts') else 0.0
+
 class IdleTracker:
     def __init__(self):
         self._last_voice_ts = time.time()
+        if sys.platform == "linux":
+            self._linux_detector = _LinuxIdleDetector()
+        else:
+            self._linux_detector = None
 
     def update_voice_activity(self):
         self._last_voice_ts = time.time()
@@ -55,45 +165,9 @@ class IdleTracker:
         return 0
 
     def _idle_linux(self):
-        # Try xprintidle first (from xscreensaver, may not be installed).
-        try:
-            import subprocess
-            r = subprocess.run(
-                ["xprintidle"],
-                capture_output=True, text=True, timeout=5
-            )
-            if r.returncode == 0 and r.stdout.strip():
-                return int(r.stdout.strip()) / 1000.0
-        except Exception:
-            pass
-
-        # Fallback: read the last input event timestamp from /dev/input/event.
-        # This gives per-user input idle without any extra packages.
-        try:
-            import glob
-            last_event_time = 0.0
-            for evfile in glob.glob("/dev/input/event*"):
-                try:
-                    st = os.stat(evfile).st_mtime
-                    if st > last_event_time:
-                        last_event_time = st
-                except Exception:
-                    pass
-            if last_event_time:
-                return time.time() - last_event_time
-        except Exception:
-            pass
-
-        # Last resort: /proc/uptime as a rough system-wide idle proxy.
-        # Not per-user accurate, but prevents the "never idle" deadlock.
-        try:
-            uptime = float(open("/proc/uptime").read().split()[0])
-            total_cpu = sum(float(p) for p in open("/proc/stat").read()
-                            .split("cpu ")[1].split())
-            return max(uptime - total_cpu, 0.0)
-        except Exception:
-            pass
-
+        # Use the new CPU/GPU-based detector.
+        if hasattr(self, '_linux_detector') and self._linux_detector:
+            return self._linux_detector.get_idle_seconds()
         return 0
 
     def get_total_idle_seconds(self):

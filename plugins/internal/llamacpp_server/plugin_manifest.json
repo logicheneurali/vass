@@ -1,0 +1,10 @@
+{
+  "name": "llamacpp_server",
+  "version": "1.0.0",
+  "min_app": "0.6.8",
+  "platform": "*",
+  "description": "llama.cpp server lifecycle management",
+  "description_it": "Gestione ciclo di vita server llama.cpp",
+  "subscribe": ["idle_check", "resource_check"],
+  "commands": ["llama_start", "llama_stop", "llama_restart", "llama_status"]
+}
