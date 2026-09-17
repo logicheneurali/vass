@@ -32,7 +32,7 @@ QSlider::sub-page:horizontal {{
 """
 
 
-BOOLEAN_KEYS = {"calendar_enabled", "calendar_sync_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode", "app_autostart"}
+BOOLEAN_KEYS = {"calendar_enabled", "calendar_sync_enabled", "google_home_enabled", "word_learning_enabled", "allow_ai_scripts", "debug_enabled", "compress_context", "auto_context_selection", "compact_mode", "app_autostart", "force_x11"}
 HIDDEN_KEYS = {"lastmode", "output_volume", "input_device_name", "output_device_name", "x", "y", "width", "height",
                "gmail_enabled", "gmail_sync_minutes", "gmail_max_results"}
 
@@ -64,7 +64,7 @@ _KOKORO_VOICES = {
 
 
 _SECTION_DEFAULTS = {
-    "gui": {"paused_opacity": "0.5", "compact_mode": "false"},
+    "gui": {"paused_opacity": "0.5", "compact_mode": "false", "force_x11": "true"},
     "audio": {"input_device": "-1", "output_device": "-1", "input_volume": "1.0", "app_volume": "1.0"},
     "ai": {"compress_context": "false", "auto_context_selection": "false"},
     "tts": {"tts_engine": "kokoro", "kokoro_voice": "af_heart", "tts_device": "auto"},

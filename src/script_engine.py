@@ -441,6 +441,21 @@ class VASScript:
             memory_content = self.app.memory.build_content(prompt)
             from prompts import MCP_PROMPT, append_tool_descriptions, _load_vascript_reference
             tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
+            if tools:
+                news_tools = {t["function"]["name"] for t in tools}
+                if "read_news" in news_tools:
+                    tools_block += (
+                        "\n\nDAILY NEWS: When asked for news on a specific date (today, yesterday, a named date),"
+                        "\nALWAYS use read_news(date='YYYY-MM-DD') with the EXACT date from the system time."
+                        "\nDo NOT use search_news or websearch for daily news — they search ALL dates"
+                        "\nand return identical results regardless of which day is asked about."
+                        "\nExamples:"
+                        "\n- 'news today' -> read_news(date='2026-09-16')"
+                        "\n- 'yesterday news' -> read_news(date='2026-09-15')"
+                        "\n- 'what happened on July 28' -> read_news(date='2026-07-28')"
+                        "\n- 'news of yesterday' -> read_news(date='2026-09-15')"
+                        "\nThe current date is provided in the system time — use it directly."
+                    )
             if self.app.allow_ai_scripts:
                 vas_ref = _load_vascript_reference()
                 tools_block += vas_ref

@@ -29,6 +29,174 @@ def _log(msg):
         pass
 
 
+_UI_SCHEMA = {"id": "user_profile", "title_it": "Profilo utente",
+              "title": "User Profile", "sections": []}
+
+
+def _format_list(value) -> list:
+    """Render any profile value (str/number/bool/list/dict) into display rows."""
+    if value is None:
+        return []
+    if isinstance(value, bool):
+        return [{"value": "yes" if value else "no"}]
+    if isinstance(value, str):
+        return [{"value": value}] if value.strip() else []
+    if isinstance(value, (int, float)):
+        return [{"value": str(value)}]
+    if isinstance(value, list):
+        if not value:
+            return []
+        first = value[0]
+        if isinstance(first, dict):
+            return value
+        return [{"value": str(v)} for v in value]
+    if isinstance(value, dict):
+        return [{"key": k, "value": str(v)} for k, v in value.items()]
+    return [{"value": str(value)}]
+
+
+def _format_label(value) -> str:
+    """Render any profile value into a single-line display string."""
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value)
+    if isinstance(value, dict):
+        return ", ".join(f"{k}: {v}" for k, v in value.items())
+    return str(value)
+
+
+def _empty(value):
+    if value is None:
+        return True
+    if isinstance(value, (str, list, dict)):
+        return len(value) == 0
+    if isinstance(value, bool):
+        return False
+    return False
+
+
+# Section definitions: (schema_key, title_it, title, rows, data_fn, predicate).
+# data_fn(profile) -> the raw section data; predicate(data) -> True to show section.
+_SECTIONS = [
+    ("informazioni_personali", "Informazioni personali", "Personal",
+     [
+        {"kind": "text", "key": "profile_name", "label_it": "Nome", "label": "Name"},
+        {"kind": "text", "key": "profile_location", "label_it": "Ubicazione",
+         "label": "Location"},
+        {"kind": "text", "key": "profile_age", "label_it": "Età", "label": "Age"},
+        {"kind": "label", "key": "profile_family", "label_it": "Familia",
+         "label": "Family"},
+        {"kind": "label", "key": "profile_pets", "label_it": "Animals",
+         "label": "Pets"},
+        {"kind": "button", "key": "refresh", "label_it": "Aggiorna", "label": "Refresh"},
+        {"kind": "label", "key": "profile_empty", "label_it": "(profilo vuoto)",
+         "label": "(profile empty)"},
+     ],
+     lambda p: p.get("personal", {}),
+     lambda d: not _empty(d)),
+    ("salute", "Salute", "Health",
+     [
+        {"kind": "list", "key": "health_conditions", "label_it": "Condizioni",
+         "label": "Conditions",
+         "columns": [{"key": "value", "label_it": "Condizione", "label": "Condition"}]},
+        {"kind": "list", "key": "health_medications", "label_it": "Farmaci",
+         "label": "Medications",
+         "columns": [{"key": "name", "label_it": "Farmaco", "label": "Medicine"},
+                     {"key": "dosage", "label_it": "Dosaggio", "label": "Dosage"},
+                     {"key": "frequency", "label_it": "Freqenza", "label": "Frequency"}]},
+        {"kind": "list", "key": "health_doctors", "label_it": "Medici",
+         "label": "Doctors",
+         "columns": [{"key": "name", "label_it": "Nome", "label": "Name"},
+                     {"key": "specialty", "label_it": "Specialità", "label": "Specialty"}]},
+        {"kind": "list", "key": "health_appointments", "label_it": "Appuntamenti",
+         "label": "Appointments",
+         "columns": [{"key": "description", "label_it": "Descrizione",
+                      "label": "Description"},
+                     {"key": "date", "label_it": "Data", "label": "Date"}]},
+     ],
+     lambda p: p.get("health", {}),
+     lambda d: not (_empty(d.get("conditions")) and _empty(d.get("medications"))
+                    and _empty(d.get("doctors")) and _empty(d.get("appointments")))),
+    ("finanza", "Finanza", "Finance",
+     [
+        {"kind": "list", "key": "finance_subscriptions", "label_it": "Sottoscrizioni",
+         "label": "Subscriptions",
+         "columns": [{"key": "name", "label_it": "Nome", "label": "Name"},
+                     {"key": "amount", "label_it": "Importo", "label": "Amount"},
+                     {"key": "date", "label_it": "Data", "label": "Date"}]},
+        {"kind": "list", "key": "finance_recent_expenses", "label_it": "Spese recenti",
+         "label": "Recent expenses",
+         "columns": [{"key": "description", "label_it": "Descrizione",
+                      "label": "Description"},
+                     {"key": "amount", "label_it": "Importo", "label": "Amount"},
+                     {"key": "date", "label_it": "Data", "label": "Date"}]},
+     ],
+     lambda p: p.get("finance", {}),
+     lambda d: not (_empty(d.get("subscriptions")) and _empty(d.get("recent_expenses")))),
+    ("preferenze", "Preferenze", "Preferences",
+     [
+        {"kind": "label", "key": "pref_food", "label_it": "Cibo", "label": "Food"},
+        {"kind": "label", "key": "pref_tech", "label_it": "Tecnologia", "label": "Tech"},
+        {"kind": "label", "key": "pref_habits", "label_it": "Abitudini", "label": "Habits"},
+        {"kind": "label", "key": "pref_interests", "label_it": "Interessi",
+         "label": "Interests"},
+     ],
+     lambda p: p.get("preferences", {}),
+     lambda d: not (_empty(d.get("food")) and _empty(d.get("tech")) and _empty(d.get("habits"))
+                    and _empty(d.get("interests")))),
+    ("contatti", "Contatti", "Contacts",
+     [
+        {"kind": "list", "key": "contacts", "label_it": "Contatti", "label": "Contacts",
+         "columns": [{"key": "name", "label_it": "Nome", "label": "Name"},
+                     {"key": "role", "label_it": "Ruolo", "label": "Role"},
+                     {"key": "context", "label_it": "Contesto", "label": "Context"}]},
+     ],
+     lambda p: p.get("contacts", []),
+     lambda d: not _empty(d)),
+    ("routine", "Routine", "Routines",
+     [
+        {"kind": "list", "key": "routines", "label_it": "Routine", "label": "Routines",
+         "columns": [{"key": "task", "label_it": "Attività", "label": "Task"},
+                     {"key": "time", "label_it": "Orario", "label": "Time"},
+                     {"key": "days", "label_it": "Giorni", "label": "Days"}]},
+     ],
+     lambda p: p.get("routines", []),
+     lambda d: not _empty(d)),
+]
+
+
+def _build_schema(profile):
+    """Assemble the profile-viewer schema dynamically from the profile contents.
+
+    A section appears only when its data predicate is satisfied, so the rendered
+    dialog reflects exactly what private_profile.json currently contains.
+    """
+    schema = {"id": "user_profile", "title_it": "Profilo utente",
+              "title": "User Profile", "sections": []}
+    for key, title_it, title, rows, data_fn, pred in _SECTIONS:
+        data = data_fn(profile)
+        if pred(data):
+            schema["sections"].append({"title_it": title_it, "title": title, "rows": rows})
+    return schema
+
+
+def _empty(value):
+    if value is None:
+        return True
+    if isinstance(value, (str, list, dict)):
+        return len(value) == 0
+    if isinstance(value, bool):
+        return False
+    return False
+
+
 class UserProfilePlugin:
     def __init__(self):
         self._host = "localhost"
@@ -84,6 +252,13 @@ class UserProfilePlugin:
         self._sock.sendall(hello.encode("utf-8"))
         _log(f" Connected to VASS on {self._host}:{self._port}")
 
+        # Register the profile-viewer UI (schema built dynamically from the profile)
+        # and push the initial profile state.
+        profile = self._load_profile()
+        self._dynamic_schema = _build_schema(profile)
+        self._send_cmd("ui_register", {"schema": self._dynamic_schema})
+        self._send_cmd("ui_state", {"values": self._render_profile_state()})
+
         threading.Thread(target=self._profile_loop, daemon=True).start()
 
         buf = b""
@@ -121,6 +296,8 @@ class UserProfilePlugin:
             _log(f" <= received: type={msg_type} rid={msg.get('request_id','-')[:8]}")
         if msg_type == "error":
             _log(f" Server error: {msg.get('msg', 'unknown')}")
+        elif msg_type == "cmd" and msg.get("cmd") == "ui_action":
+            self._handle_ui_action(msg.get("action") or {})
         else:
             self._pending.append(msg)
             if len(self._pending) > 100:
@@ -353,6 +530,51 @@ class UserProfilePlugin:
                 return json.load(f)
         except Exception:
             return {}
+
+    def _render_profile_state(self) -> dict:
+        """Build the ui_state dict that renders the profile viewer."""
+        profile = self._load_profile()
+        state = {}
+        personal = profile.get("personal", {}) or {}
+        health = profile.get("health", {}) or {}
+        finance = profile.get("finance", {}) or {}
+        prefs = profile.get("preferences", {}) or {}
+        contacts = profile.get("contacts", []) or []
+        routines = profile.get("routines", []) or []
+
+        state["profile_name"] = _format_label(personal.get("name"))
+        state["profile_location"] = _format_label(personal.get("location"))
+        state["profile_age"] = _format_label(personal.get("age"))
+        state["profile_family"] = _format_label(personal.get("family"))
+        state["profile_pets"] = _format_label(personal.get("pets"))
+
+        state["health_conditions"] = _format_list(health.get("conditions"))
+        state["health_medications"] = _format_list(health.get("medications"))
+        state["health_doctors"] = _format_list(health.get("doctors"))
+        state["health_appointments"] = _format_list(health.get("appointments"))
+
+        state["finance_subscriptions"] = _format_list(finance.get("subscriptions"))
+        state["finance_recent_expenses"] = _format_list(finance.get("recent_expenses"))
+
+        state["pref_food"] = _format_label(prefs.get("food"))
+        state["pref_tech"] = _format_label(prefs.get("tech"))
+        state["pref_habits"] = _format_label(prefs.get("habits"))
+        state["pref_interests"] = _format_label(prefs.get("interests"))
+
+        state["contacts"] = _format_list(contacts) or []
+        state["routines"] = _format_list(routines) or []
+
+        if not (personal or health or finance or prefs or contacts or routines):
+            state["profile_empty"] = True
+        return state
+
+    def _handle_ui_action(self, action):
+        """Handle UI actions from the profile viewer dialog."""
+        key = action.get("key", "")
+        event = action.get("event", "")
+        if key == "refresh" and event in ("button", "click"):
+            _log(" Refresh requested from profile viewer")
+            self._send_cmd("ui_state", {"values": self._render_profile_state()})
 
     def _save_profile(self, data):
         path = os.path.join(self._resolve_root(), "Allowed_root", "private_profile.json")

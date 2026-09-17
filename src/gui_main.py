@@ -107,6 +107,7 @@ class VassGUI(QMainWindow):
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setStyleSheet("QMainWindow { background-color: #101010; }")
         if _is_wayland():
+            self.setGeometry(x, y, width, height)
             self.setFixedSize(width, height)
         else:
             self.setGeometry(x, y, width, height)

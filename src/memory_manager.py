@@ -141,7 +141,7 @@ class MemoryManager:
                     except Exception:
                         log_exc()
                 if summary_text and summary_text != "No Info":
-                    if summary_text.startswith("writeinfo("):
+                    if isinstance(summary_text, str) and summary_text.startswith("writeinfo("):
                         try:
                             inner = summary_text[len("writeinfo("):]
                             if inner.startswith("'") and inner.endswith("')"):

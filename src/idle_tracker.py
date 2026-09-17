@@ -1,98 +1,151 @@
 import glob
 import os
+import select
 import sys
 import time
 import threading
+
+try:
+    import evdev
+except ImportError:
+    evdev = None
 
 _fullscreen_warned = set()
 
 
 class _LinuxIdleDetector:
-    """Tracks Linux idle state using CPU and GPU load polling.
+    """Tracks Linux idle state using evdev input events.
 
-    On Linux, monitors CPU and GPU utilization to detect user activity.
-    High CPU or GPU usage indicates the user is likely active.
-    Falls back to 0 if neither CPU nor GPU metrics are available.
+    On Linux, opens the keyboard and mouse input devices directly from the
+    kernel input layer and polls them with select(). Any key press or mouse
+    movement resets the last-activity timestamp. This works regardless of the
+    display server (X11, Xwayland, or Wayland) because it reads raw input
+    events from /dev/input, bypassing the window system entirely.
+    Falls back to CPU/GPU load polling if evdev is not available.
     """
 
     def __init__(self):
         self._last_input_ts = time.time()
         self._lock = threading.Lock()
-        self._psutil_available = False
-        try:
-            import psutil
-            self._psutil = psutil
-            self._psutil_available = True
-        except ImportError:
-            self._psutil = None
+        self._devs = self._find_input_devices()
+        if self._devs:
+            self._start_evdev_loop()
+        else:
+            self._start_cpu_gpu_loop()
 
-        self._gpu_available = False
-        self._gpu = None
+    def _find_input_devices(self):
+        """Return list of (InputDevice, fd) for keyboard and mouse devices.
+        
+        Also includes game controllers / joysticks / gamepads, so any real
+        input device the user can hold or operate counts as activity. The fd
+        is opened once and reused for select(). Returns an empty list if evdev
+        is not installed or no usable input devices are found.
+        """
+        if evdev is None:
+            return []
+
+        devs = []
         try:
-            import GPUtil
-            gpus = GPUtil.getGPUs()
-            if gpus:
-                self._gpu_available = True
-                self._gpu = gpus[0]
+            paths = evdev.list_devices()
         except Exception:
-            pass
+            return []
 
-        # Rolling average for CPU load to smooth out瞬时 spikes
-        self._cpu_samples = []
-        self._cpu_avg_window = 3  # last 3 samples
+        for path in paths:
+            try:
+                dev = evdev.InputDevice(path)
+            except Exception:
+                continue
+            name = dev.name.lower()
+            # Keep any device that reflects genuine user activity: keyboard,
+            # mouse, joystick, gamepad or game controller. Exclude only the
+            # multimedia/system nodes (Consumer Control, System Control, etc.)
+            # which do not correspond to a device the user actually holds.
+            if not ('keyboard' in name or 'mouse' in name
+                    or 'joystick' in name or 'gamepad' in name
+                    or 'controller' in name or 'game' in name
+                    or 'wheel' in name or 'arcade' in name):
+                continue
+            if 'system' in name or 'consumer' in name:
+                continue
+            try:
+                fd = dev.fileno()
+            except Exception:
+                continue
+            devs.append((dev, fd))
 
-        # Start background monitoring thread
-        self._start_cpu_gpu_loop()
+        return devs
+
+    def _start_evdev_loop(self):
+        """Start background thread that polls input devices for activity."""
+        t = threading.Thread(target=self._evdev_poll_loop, daemon=True)
+        t.start()
+
+    def _evdev_poll_loop(self):
+        """Poll input devices with select() and reset the timestamp on activity.
+        
+        Blocks up to 1 second per iteration using select(). When any device is
+        ready, drain its queued events with read(); if any key/mouse event is
+        found, update the last-activity timestamp. select() is used rather than
+        blocking reads so the loop can wake periodically to stay responsive.
+        """
+        while True:
+            try:
+                ready_fds = [(dev, fd) for dev, fd in self._devs]
+                fds = [fd for _, fd in ready_fds]
+                if not fds:
+                    time.sleep(1.0)
+                    continue
+                try:
+                    readable, _, _ = select.select(fds, [], [], 1.0)
+                except (ValueError, OSError):
+                    # A device fd was closed or became invalid; re-scan.
+                    self._devs = self._find_input_devices()
+                    time.sleep(1.0)
+                    continue
+                if not readable:
+                    continue
+                for dev, fd in ready_fds:
+                    if fd not in readable:
+                        continue
+                    try:
+                        for ev in dev.read():
+                            if ev.type in (evdev.ecodes.EV_KEY, evdev.ecodes.EV_REL, evdev.ecodes.EV_ABS):
+                                with self._lock:
+                                    self._last_input_ts = time.time()
+                                break
+                    except (BlockingIOError, OSError, ValueError):
+                        continue
+                    except Exception:
+                        continue
+            except Exception:
+                pass
 
     def _get_cpu_load(self):
-        """Calculate CPU load percentage using psutil if available.
-        
-        Maintains a rolling average of the last N samples to smooth
-        out instantaneous spikes. Returns the current rolling average.
-        Falls back to 0.0 if psutil is not installed.
-        """
-        if not self._psutil_available:
+        """Fallback CPU load percentage using psutil if available."""
+        try:
+            import psutil
+        except ImportError:
             return 0.0
         try:
-            current = self._psutil.cpu_percent(interval=0.0)
-            self._cpu_samples.append(current)
-            if len(self._cpu_samples) > self._cpu_avg_window:
-                self._cpu_samples.pop(0)
-            return sum(self._cpu_samples) / len(self._cpu_samples)
+            return psutil.cpu_percent(interval=0.0)
         except Exception:
             return 0.0
-
-    def _get_gpu_load(self):
-        """Get GPU utilization percentage (compute load, not memory)."""
-        try:
-            if self._has_gpu:
-                return self._gpu.load * 100.0
-        except Exception:
-            pass
-        return 0.0
 
     def _start_cpu_gpu_loop(self):
-        """Start background thread to poll CPU/GPU and update last input timestamp."""
+        """Fallback: start background thread to poll CPU/GPU load."""
         t = threading.Thread(target=self._cpu_gpu_poll_loop, daemon=True)
         t.start()
 
     def _cpu_gpu_poll_loop(self):
-        """Poll CPU and GPU load periodically to detect user activity.
+        """Fallback CPU/GPU load polling for when evdev is unavailable.
         
-        Only this thread calls _get_cpu_load() to ensure consistent delta calculation.
-        CPU threshold set to 25% (with 3-sample rolling average) to catch
-        sustained heavy loads while ignoring short background noise.
-        GPU threshold set to 50% for compute activity detection.
+        A sustained CPU load above the threshold suggests the user is active
+        (typing, running apps). This is a coarse fallback; evdev is preferred.
         """
-        cpu_threshold = 25.0  # 25% CPU sustained = user actively running something
-        gpu_threshold = 50.0  # 50% GPU = active compute
-
+        cpu_threshold = 25.0
         while True:
             try:
-                cpu_load = self._get_cpu_load()
-                gpu_load = self._get_gpu_load() if self._gpu_available else 0.0
-
-                if cpu_load > cpu_threshold or gpu_load > gpu_threshold:
+                if self._get_cpu_load() > cpu_threshold:
                     with self._lock:
                         self._last_input_ts = time.time()
             except Exception:
@@ -104,13 +157,13 @@ class _LinuxIdleDetector:
     # ------------------------------------------------------------------ #
 
     def get_idle_seconds(self):
-        """Return idle seconds based on CPU/GPU load."""
+        """Return idle seconds based on input device activity (or CPU/GPU fallback)."""
         try:
             with self._lock:
                 last = self._last_input_ts
             return max(time.time() - last, 0.0)
         except Exception:
-            return time.time() - self._last_input_ts if hasattr(self, '_last_input_ts') else 0.0
+            return 0.0
 
 class IdleTracker:
     def __init__(self):

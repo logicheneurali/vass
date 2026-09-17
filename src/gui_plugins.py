@@ -483,6 +483,13 @@ class PluginUiDialog(QDialog):
         layout.setContentsMargins(14, 14, 14, 14)
         layout.setSpacing(10)
 
+        # Content rows are wrapped in a scroll area so tall profiles scroll
+        # instead of being clipped by the dialog height.
+        container = QWidget()
+        content_layout = QVBoxLayout(container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(10)
+
         for section in schema.get("sections", []):
             sec_title = (section.get(f"title_{lang}")
                          or section.get("title") or "")
@@ -493,11 +500,22 @@ class PluginUiDialog(QDialog):
             sec_layout.setSpacing(6)
             for row in section.get("rows", []):
                 self._build_row(sec_layout, row)
-            layout.addWidget(box)
+            content_layout.addWidget(box)
 
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(container)
+        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        layout.addWidget(scroll, 1)
+
+        # Close button stays outside the scroll area so it is always reachable.
+        btn_row = QHBoxLayout()
+        btn_row.addStretch(1)
         close_btn = QPushButton(self._t("gui.close"))
         close_btn.clicked.connect(self.accept)
-        layout.addWidget(close_btn, 0, Qt.AlignmentFlag.AlignRight)
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
 
         self._sync_state()
         self._timer = QTimer(self)

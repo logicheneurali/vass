@@ -1341,6 +1341,19 @@ class VassApp:
                         "\nNEVER fill credentials yourself — the user handles authentication. Ask the user to log in."
                         "\nAfter login, use browser_check_auth() to verify before proceeding."
                     )
+                if "read_news" in {t["function"]["name"] for t in tools}:
+                    tools_block += (
+                        "\n\nDAILY NEWS: When asked for news on a specific date (today, yesterday, a named date),"
+                        "\nALWAYS use read_news(date='YYYY-MM-DD') with the EXACT date from the system time."
+                        "\nDo NOT use search_news or websearch for daily news — they search ALL dates"
+                        "\nand return identical results regardless of which day is asked about."
+                        "\nExamples:"
+                        "\n- 'news today' -> read_news(date='2026-09-16')"
+                        "\n- 'yesterday news' -> read_news(date='2026-09-15')"
+                        "\n- 'what happened on July 28' -> read_news(date='2026-07-28')"
+                        "\n- 'news of yesterday' -> read_news(date='2026-09-15')"
+                        "\nThe current date is provided in the system time — use it directly."
+                    )
             if self.allow_ai_scripts:
                 tools_block += VASSCRIPT_TOOLS_PROMPT + vas_ref
             notes_block = "\n".join(self.context_notes)
@@ -1891,12 +1904,6 @@ class VassApp:
         return self.tts.get_position()
 
 def main():
-        import argparse
-        parser = argparse.ArgumentParser(description="VASS Voice Assistant")
-        parser.add_argument("--compress-memory", action="store_true", help="Comprimi memory.json tramite AI e poi esci")
-        parser.add_argument("--version", action="version", version=f"VASS v{__version__}")
-        args, _ = parser.parse_known_args()
-    
         # Load settings first to get GUI params
         import configparser
         import os
@@ -1920,50 +1927,6 @@ def main():
             gui_language = "en"
             compact_mode = False
         
-        if args.compress_memory:
-            import subprocess
-            proc = None
-            # Read from plugin settings first, fallback to global config
-            plugin_settings = os.path.join(get_project_root(), "plugins", "internal", "llamacpp_server", "settings.ini")
-            plugin_cfg = configparser.ConfigParser()
-            if os.path.exists(plugin_settings):
-                plugin_cfg.read(plugin_settings, encoding="utf-8")
-            model_path = (plugin_cfg.get("server", "llama_server_path", fallback="").strip() 
-                          or config.get("llamacpp", "llama_server_path", fallback="").strip())
-            if model_path:
-                exe = os.path.join(model_path, "llama-server.exe")
-                if os.path.isfile(exe):
-                    cwd = (plugin_cfg.get("server", "llama_server_working_directory", fallback="").strip()
-                           or config.get("llamacpp", "llama_server_working_directory", fallback="").strip()) or model_path
-                    args_str = (plugin_cfg.get("server", "llama_server_arguments", fallback="").strip()
-                                or config.get("llamacpp", "llama_server_arguments", fallback="").strip())
-                    cmd = [exe] + (args_str.split() if args_str else [])
-                    print(f"[llama.cpp] Avvio: {' '.join(cmd)} (cwd={cwd})")
-                    proc = subprocess.Popen(cmd, cwd=cwd, creationflags=subprocess.CREATE_NO_WINDOW)
-                    time.sleep(5)
-                else:
-                    print(f"[llama.cpp] llama-server.exe non trovato in: {model_path}")
-            ai_url = config.get("ai", "url", fallback="http://127.0.0.1:8080/v1")
-            ai_model = config.get("ai", "model", fallback="gemma-4-E2B-it-Q8_0")
-            client = OpenAI(base_url=ai_url, api_key="not-needed")
-            mem_tokens = config.getint("ai", "memory_tokens", fallback=5000)
-            app = VassApp.__new__(VassApp)
-            app.openai_client = client
-            app.ai_model = ai_model
-            app.memory_tokens = mem_tokens
-            app._ai_lock = threading.Lock()
-            app.memory_mode = "full"
-            from memory_manager import MemoryManager
-            app.memory = MemoryManager(app)
-            try:
-                app.memory.trim_if_needed(force=True)
-            except Exception as e:
-                print(f"[Memory] Compression failed: {e}")
-            if proc:
-                proc.kill()
-                proc.wait(timeout=5)
-            sys.exit(0)
-    
         import ctypes
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QIcon

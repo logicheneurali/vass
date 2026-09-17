@@ -163,6 +163,27 @@ class LlmacppServerPlugin:
             _log(f"Error killing process {pid}: {e}")
             return False
 
+    def _external_server_on_port(self) -> bool:
+        """True if a llama-server is already listening on the configured port.
+
+        Detects servers started outside this plugin (e.g. an external router on
+        the default 8080) so we can monitor instead of launching a conflicting
+        second instance. Uses /v1/health first (router always answers it), then
+        falls back to /v1/models.
+        """
+        import urllib.request
+        port = self._config["port"]
+        for path in ("/v1/health", "/v1/models"):
+            url = f"http://localhost:{port}{path}"
+            try:
+                with urllib.request.urlopen(url, timeout=2) as resp:
+                    if resp.status < 400:
+                        _log(f"External llama-server detected on port {port} ({path})")
+                        return True
+            except Exception:
+                pass
+        return False
+
     def _is_process_running(self, name: str) -> bool:
         """Check if a process with the given name is running on the system."""
         try:
@@ -208,6 +229,16 @@ class LlmacppServerPlugin:
             if not os.path.isfile(exe):
                 _log(f"llama-server not found in {path} (and not in PATH)")
                 return None, f"llama-server not found in {path} (and not in PATH)"
+
+        # Check if a llama-server is already listening on the configured port
+        # (started externally — e.g. a router). If so, monitor only; do NOT
+        # launch a conflicting second instance.
+        if self._external_server_on_port():
+            _log(f"External llama-server detected on port {self._config['port']} — monitoring only")
+            if self._wait_for_ready(timeout=15):
+                return None, "already running"
+            else:
+                return None, "already running but not responding"
 
         # Check if a llama-server is already running (externally or managed)
         if self._is_process_running("llama-server"):
