@@ -332,16 +332,20 @@ class LlmacppServerPlugin:
                 with urllib.request.urlopen(url, timeout=2) as resp:
                     data = json.loads(resp.read())
                     models = data.get("data", [])
-                if models:
+                # The router keeps every model unloaded (--load-mode none), so
+                # /v1/models lists registered models, not a single loaded one.
+                # Only report a model that is actually loaded (or loading).
+                loaded = next((m for m in models
+                               if isinstance(m, dict)
+                               and m.get("status", {}).get("value")
+                               in ("loaded", "loading")), None)
+                if loaded is not None:
                     _log("Server ready")
                     self._ready = True
-                    # Extract model info
-                    first_model = models[0]
-                    if isinstance(first_model, dict):
-                        self._current_model = first_model.get("id", "")
-                        self._context_length = first_model.get(
-                            "max_sequence_length",
-                            first_model.get("context_length", 0))
+                    self._current_model = loaded.get("id", "")
+                    self._context_length = loaded.get(
+                        "max_sequence_length",
+                        loaded.get("context_length", 0))
                     return True
             except Exception:
                 pass
@@ -597,6 +601,7 @@ class LlmacppServerPlugin:
 
             # Send state notification
             if self._ready:
+                model_label = f": {self._current_model}" if self._current_model else ""
                 _log(f"Server ready — model={self._current_model}, ctx={self._context_length}")
                 self._send_state({
                     "llama_server_ready": True,
@@ -605,8 +610,7 @@ class LlmacppServerPlugin:
                 })
                 self._refresh_status()
                 self._send_notify(
-                    f"llama.cpp server started (autostart): "
-                    f"{self._current_model}",
+                    f"llama.cpp server started (autostart){model_label}",
                     priority=4)
             else:
                 _log("Server failed to become ready within timeout")
