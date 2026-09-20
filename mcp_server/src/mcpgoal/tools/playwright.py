@@ -363,6 +363,41 @@ async def _brave_search(query, max_results):
     return [], _is_blocked_page(r.status_code, r.text)
 
 
+async def _freeserp_web_search(query, max_results):
+    """freeserp.ai generic web search (index=web) via plain HTTP JSON.
+
+    Keyless, no-signup upstream over Common Crawl, so it never serves an
+    anti-bot/challenge page: the only HTTP failure is a real upstream error
+    (non-2xx, e.g. 502), which is retried by the engine rotation like any
+    other failure. This engine never blocks, so it fills the exact gap when
+    the scraping engines (Brave/DDG/Mojeek) are all cooling down.
+
+    Returns {title, url, snippet}; on a real upstream error returns (None, True)
+    so the rotation retries without cooling this engine down.
+    """
+    r = await _http_get("https://freeserp.ai/api.php",
+                        {"index": "web", "q": query, "size": max_results})
+    if r.status_code != 200:
+        # Non-2xx means the upstream genuinely failed (no results expected).
+        # Block this engine briefly so the rotation retries, but do not treat
+        # it as an anti-bot block.
+        return [], True
+    try:
+        data = r.json()
+    except Exception:
+        return [], True
+    results = []
+    for hit in data.get("results", []):
+        title = (hit.get("title") or "").strip()
+        url = (hit.get("url") or "").strip()
+        snippet = (hit.get("snippet") or hit.get("description") or "").strip()
+        if title and url:
+            results.append({"title": title, "url": url, "snippet": snippet})
+    if results:
+        return results[:max_results], False
+    return [], False
+
+
 async def _ddg_playwright_search(query, max_results):
     """DDG via real browser — bypasses most anti-bot, but DDG may still block."""
     import urllib.parse
@@ -398,6 +433,7 @@ _ENGINES = {
     "ddg_html": _ddg_html_search,
     "mojeek": _mojeek_search,
     "ddg_playwright": _ddg_playwright_search,
+    "freeserp_web": _freeserp_web_search,
 }
 
 
