@@ -495,10 +495,84 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             print(f"[AI] Context guard: still {total} est tokens after truncation "
                   f"(budget {budget})")
 
+    def _result_text(result):
+        """Normalize an MCP tool result into a plain text string.
+
+        The MCP server wraps each call in {content:[...structuredContent:{...}]}.
+        Prefer the first text element; fall back to structuredContent.result;
+        then to the raw dict/string. Guarantees `out` is always a str, so the
+        caller can never crash on a None/mapped result.
+        """
+        if isinstance(result, dict) and isinstance(result.get("content"), list):
+            parts = []
+            for item in result["content"]:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+            if parts:
+                return "\n".join(parts)
+        # No structured content list: try structuredContent.result (single tool).
+        if isinstance(result, dict) and isinstance(result.get("structuredContent"), dict):
+            sc = result["structuredContent"].get("result")
+            if isinstance(sc, str):
+                return sc
+        if isinstance(result, dict):
+            return json.dumps(result, ensure_ascii=False)
+        return str(result)
+
+    def _web_fallback(args):
+        """Re-issue an empty/failed web/news query against the web stack.
+
+        Returns a list of (tool_name, tool_args) to run, or None when there is
+        nothing useful to try. Used when read_news returns no events for the
+        requested date (the local archive only covers past dates).
+        """
+        web_names = ("websearch", "news_search", "webfetch", "search_places",
+                     "search_nearby", "weather")
+        if not any(n in _available_tool_names for n in web_names):
+            return None
+        try:
+            args = json.loads(args) if isinstance(args, str) else dict(args or {})
+        except Exception:
+            return None
+        fallback = []
+        # 1) Keyword search across the whole news archive (date-independent).
+        if "news_search" in _available_tool_names:
+            fallback.append(("news_search", args))
+        # 2) A fresh web search with the same query so the AI can summarize real
+        #    online results when the local archive has nothing for this date.
+        if "websearch" in _available_tool_names:
+            query = args.get("query") or args.get("keywords") or args.get("q")
+            if query:
+                fallback.append(("websearch", {"query": query}))
+        return fallback or None
+
+    def _run_extra_tool(name, a, messages, mcp):
+        """Run one extra MCP tool call (used by the read_news web fallback)
+        and append its normalized result to the conversation. Returns None."""
+        try:
+            result = mcp.call_tool(name, a)
+        except Exception as e:
+            print(f"[MCP] Fallback {name} failed: {e}")
+            return
+        print(f"[MCP] Fallback: {name}({a}) -> {str(result)[:160]}")
+        messages.append({
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [{"id": f"{name}_fb", "type": "function",
+                            "function": {"name": name, "arguments": json.dumps(a)}}]
+        })
+        messages.append({
+            "role": "tool",
+            "tool_call_id": f"{name}_fb",
+            "content": _result_text(result)
+        })
+
     MAX_TURNS = 15
     _seen_paths = set()
     _allowed_root = os.path.join(get_project_root(), "Allowed_root")
     _last_call = None                  # (tool_name, tool_args) of previous turn
+    # Names of tools actually available to this loop (for fallback decisions).
+    _available_tool_names = {t.get("function", {}).get("name") for t in tools if isinstance(t, dict)}
     for _ in range(MAX_TURNS):
         called_this_turn = set()
         if not msg.tool_calls:
@@ -557,16 +631,29 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
                                 max(8000, int((context_limit or 4096) * 2)))
                     result = mcp.call_tool(tc.function.name, args)
                     print(f"[MCP] Result: {tool_name} -> {str(result)[:200]}")
-                    if isinstance(result, dict) and isinstance(result.get("content"), list):
-                        parts = []
-                        for item in result["content"]:
-                            if isinstance(item, dict) and item.get("type") == "text":
-                                parts.append(item.get("text", ""))
-                        out = "\n".join(parts)
-                    else:
-                        out = json.dumps(result, ensure_ascii=False) if isinstance(result, dict) else str(result)
+                    # Normalize any MCP result shape into a plain text string
+                    # (structured content list -> first text element, else the
+                    # structuredContent.result wrapper, else the raw JSON).
+                    # Guarantees `out` is always a str, never a mapping/None.
+                    out = _result_text(result)
                     from tool_auth import audit
                     audit(tool_name, tool_args, "ok")
+                    # Empty/failed read_news for today: the local archive only
+                    # covers past dates, so the query returns nothing. Re-issue
+                    # against the web stack (keyword news_search + a fresh
+                    # websearch) so the model still summarizes real results.
+                    if tool_name == "read_news":
+                        try:
+                            parsed = json.loads(out) if isinstance(out, str) else out
+                            empty = (isinstance(parsed, dict)
+                                     and not parsed.get("results"))
+                        except Exception:
+                            empty = False
+                        if empty:
+                            extra = _web_fallback(tc.function.arguments)
+                            if extra:
+                                for name, a in extra:
+                                    _run_extra_tool(name, a, messages, mcp)
                 except Exception as e:
                     out = f"Error: {e}"
                     try:

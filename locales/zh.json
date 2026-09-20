@@ -1241,6 +1241,9 @@
       "desc": "根据SDXL风格的描述生成高质量的SVG图像。"
     }
   },
+  "activity_categories": {
+    "plugin": "插件"
+  },
   "mcp_down_tooltip": "MCP服务器不可用",
   "plugins": {
     "title": "插件管理",

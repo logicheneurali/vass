@@ -1245,6 +1245,9 @@
       "desc": "SDXLスタイルの説明から高品質なSVG画像を生成します。"
     }
   },
+  "activity_categories": {
+    "plugin": "プラグイン"
+  },
   "mcp_down_tooltip": "MCPサーバーが利用できません",
   "plugins": {
     "title": "プラグイン管理",

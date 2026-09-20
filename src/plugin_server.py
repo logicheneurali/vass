@@ -474,7 +474,7 @@ class PluginServer(threading.Thread):
             print(f"[PluginServer] Translation failed: {e}")
         return text
 
-    def _call_ai(self, prompt, temperature=0.1, max_tokens=300, extra_body=None):
+    def _call_ai(self, prompt, temperature=0.1, max_tokens=300, extra_body=None, sock=None):
         """Proxy LLM call for plugins. Blocks until response received."""
         if not self._app or not self._app.openai_client:
             print(f"[PluginServer] _call_ai: openai_client is None, returning error")
@@ -482,7 +482,9 @@ class PluginServer(threading.Thread):
         body = {"temperature": temperature, "max_tokens": max_tokens}
         if extra_body:
             body["extra_body"] = extra_body
-        tracker = get_tracker(); tracker.start("Plugin AI", "plugin")
+        plugin_name = self._client_name(sock) if sock else None
+        tracker_label = f"Plugin AI - {plugin_name}" if plugin_name else "Plugin AI"
+        tracker = get_tracker(); tracker.start(tracker_label, "plugin")
         t0 = time.time()
         print(f"[PluginServer] _call_ai: model={self._app.ai_model} url={self._app.ai_url} prompt_len={len(prompt)} max_tokens={max_tokens}")
         try:
@@ -504,7 +506,7 @@ class PluginServer(threading.Thread):
             print(f"[PluginServer] _call_ai: FAILED in {dur:.1f}s: {e}")
             return json.dumps({"error": str(e)})
         finally:
-            tracker.end("Plugin AI")
+            tracker.end(tracker_label)
 
     def _handle_ai_query(self, msg, sock):
         """Execute an AI query in a background thread so the select loop stays responsive."""
@@ -515,6 +517,7 @@ class PluginServer(threading.Thread):
                     temperature=msg.get("temperature", 0.1),
                     max_tokens=msg.get("max_tokens", 300),
                     extra_body=msg.get("extra_body", None),
+                    sock=sock,
                 )
                 reply = json.dumps({
                     "type": "ai_response",

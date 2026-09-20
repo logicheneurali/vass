@@ -1261,6 +1261,9 @@
       "desc": "Erzeugt ein detailliertes SVG-Bild aus einer SDXL-Stil-Beschreibung."
     }
   },
+  "activity_categories": {
+    "plugin": "Plugin"
+  },
   "mcp_down_tooltip": "MCP-Server nicht verfuegbar",
   "plugins": {
     "title": "Plugin-Verwaltung",

@@ -1265,6 +1265,9 @@
       "desc": "Genera una imagen SVG detallada a partir de una descripción estilo SDXL."
     }
   },
+  "activity_categories": {
+    "plugin": "Plugin"
+  },
   "mcp_down_tooltip": "Servidor MCP no disponible",
   "plugins": {
     "title": "Gestión de Plugins",
