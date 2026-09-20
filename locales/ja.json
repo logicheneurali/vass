@@ -740,7 +740,13 @@
       "転送",
       "メッセージ",
       "作成",
-      "受信箱"
+      "受信箱",
+      "youtube",
+      "ビデオ",
+      "チャンネル",
+      "ビデオを見る",
+      "youtubeで見る",
+      "クリップ"
     ],
     "calendar": [
       "カレンダー",
@@ -1243,6 +1249,10 @@
     "generate_svg": {
       "name": "SVG画像を生成",
       "desc": "SDXLスタイルの説明から高品質なSVG画像を生成します。"
+    },
+    "youtube_search": {
+      "name": "YouTube検索",
+      "desc": "YouTubeのビデオを検索し、タイトル、作者、日付、再生回数を返します"
     }
   },
   "activity_categories": {

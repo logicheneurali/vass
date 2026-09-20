@@ -738,7 +738,13 @@
       "转发",
       "消息",
       "写信",
-      "收件箱"
+      "收件箱",
+      "youtube",
+      "视频",
+      "频道",
+      "观看视频",
+      "在 youtube 上观看",
+      "片段"
     ],
     "calendar": [
       "日历",
@@ -1239,6 +1245,10 @@
     "generate_svg": {
       "name": "生成SVG图像",
       "desc": "根据SDXL风格的描述生成高质量的SVG图像。"
+    },
+    "youtube_search": {
+      "name": "YouTube 搜索",
+      "desc": "搜索 YouTube 视频，返回标题、作者、日期和观看次数"
     }
   },
   "activity_categories": {

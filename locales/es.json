@@ -747,7 +747,13 @@
       "mensaje",
       "correo",
       "buzón",
-      "redactar"
+      "redactar",
+      "youtube",
+      "video",
+      "canal",
+      "mira un vídeo",
+      "mira en youtube",
+      "clip"
     ],
     "calendar": [
       "calendario",
@@ -1263,6 +1269,10 @@
     "generate_svg": {
       "name": "Generar imagen SVG",
       "desc": "Genera una imagen SVG detallada a partir de una descripción estilo SDXL."
+    },
+    "youtube_search": {
+      "name": "Búsqueda YouTube",
+      "desc": "Busca videos en YouTube y devuelve título, autor, fecha y número de vistas"
     }
   },
   "activity_categories": {

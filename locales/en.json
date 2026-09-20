@@ -749,7 +749,13 @@
       "message",
       "compose",
       "draft",
-      "outbox"
+      "outbox",
+      "youtube",
+      "video",
+      "channel",
+      "watch a video",
+      "watch on youtube",
+      "clip"
     ],
     "calendar": [
       "calendar",
@@ -1273,6 +1279,10 @@
     "generate_svg": {
       "name": "Generate SVG image",
       "desc": "Generates a detailed SVG image from an SDXL-style description (subject + style)."
+    },
+    "youtube_search": {
+      "name": "YouTube Search",
+      "desc": "Search YouTube videos and returns title, author, publish date and view count"
     }
   },
   "activity_categories": {

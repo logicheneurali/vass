@@ -17,6 +17,7 @@ from mcpgoal.tools.vasscript import timer_start as _timer_start
 from mcpgoal.tools.vasscript import timer_list as _timer_list
 from mcpgoal.tools.vasscript import clipboard_set as _clip_set
 from mcpgoal.tools.playwright import search_web as _search_web
+from mcpgoal.tools.playwright import search_youtube as _search_youtube
 from mcpgoal.tools.playwright import fetch_page as _fetch_page
 from mcpgoal.tools.documents import html_to_pdf as _html_to_pdf
 from mcpgoal.tools.langcheck import check_language as _check_language
@@ -478,6 +479,14 @@ def create_server(config: ServerConfig) -> FastMCP:
     async def websearch(query: str, page: int = 1) -> str:
         """Search the web. Returns top results with title, URL, and snippet in JSON. When the query targets a specific site (e.g. 'site:amazon.it ...') it queries that site's own search directly and returns the rendered page text. Use the optional page argument (2, 3, ...) to get more results from subsequent result pages."""
         return await _tool("websearch", f"q={query[:80]} p={page}", _search_web(query, page=page), config)
+
+    @mcp.tool()
+    async def youtube_search(query: str, max_results: int = 10) -> str:
+        """Search YouTube for videos. Returns top matches with title, URL, author,
+        publish date, and view count in JSON. Use for 'find a YouTube video about X'.
+        Args: query (search terms), max_results optional cap (default 10)."""
+        return await _tool("youtube_search", f"q={query[:80]} n={max_results}",
+                           _search_youtube(query, max_results), config)
 
     @mcp.tool()
     async def webfetch(url: str) -> str:

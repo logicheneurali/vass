@@ -751,7 +751,13 @@
       "posta",
       "destinatario",
       "componi",
-      "spedisci"
+      "spedisci",
+      "youtube",
+      "video",
+      "canale",
+      "guarda un video",
+      "guarda su youtube",
+      "clip"
     ],
     "calendar": [
       "calendario",
@@ -1329,6 +1335,10 @@
     "generate_svg": {
       "name": "Genera immagine SVG",
       "desc": "Genera un'immagine SVG dettagliata da una descrizione in stile SDXL (soggetto + stile)."
+    },
+    "youtube_search": {
+      "name": "Ricerca YouTube",
+      "desc": "Cerca video su YouTube e restituisce titolo, autore, data e visualizzazioni"
     }
   },
   "activity_categories": {

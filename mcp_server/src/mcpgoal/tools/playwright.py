@@ -170,6 +170,50 @@ async def _get_visible_page():
     return _page
 
 
+async def search_youtube(query: str, max_results: int = 10) -> str:
+    """Search YouTube for videos via yt-dlp. Returns a JSON array of {title, url,
+    author, published, views} for the top matches. Uses yt-dlp's flat-playlist on
+    the YouTube search-URL, so no video/audio/caption is ever downloaded.
+    Args:
+        query: search terms.
+        max_results: optional cap on results returned (default 10).
+    Returns: JSON string (array under "results", or {"error": ...} on failure).
+    """
+    try:
+        import subprocess
+        if isinstance(max_results, str):
+            max_results = int(max_results) if max_results.strip() else 10
+        if isinstance(query, list):
+            query = " ".join(query)
+        import shutil
+        exe = shutil.which("yt-dlp") or "yt-dlp"
+        # TSV fields: title, url, uploader, upload_date(YYYYMMDD), view_count.
+        fmt = "%(title)s\t%(url)s\t%(uploader)s\t%(upload_date)s\t%(view_count)s"
+        args = [
+            exe, "--no-warnings", "--flat-playlist",
+            f"--playlist-end={max_results}", "--print", fmt,
+            "https://www.youtube.com/results?search_query=" +
+            quote(query.replace("+", "%20")),
+        ]
+        proc = subprocess.run(args, capture_output=True, text=True, timeout=30)
+        rows = []
+        for line in (proc.stdout or "").splitlines():
+            parts = line.split("\t")
+            while len(parts) < 5:
+                parts.append("")
+            title, url, author, published, views = parts[:5]
+            rows.append({
+                "title": title.strip(),
+                "url": url.strip(),
+                "author": author.strip(),
+                "published": published.strip(),
+                "views": int(views) if views.isdigit() else None,
+            })
+        return json.dumps({"results": rows}, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
 async def search_web(query: str, max_results: int = 10, page: int = 1) -> str:
     """Search the web with automatic engine rotation when engines block bots.
     Returns JSON array of {title, url, snippet}. For site:<domain> queries it

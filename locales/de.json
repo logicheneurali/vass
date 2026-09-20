@@ -744,7 +744,13 @@
       "antwort",
       "weiterleiten",
       "posteingang",
-      "verfassen"
+      "verfassen",
+      "youtube",
+      "video",
+      "kanal",
+      "sieh ein video an",
+      "sieh auf youtube an",
+      "clip"
     ],
     "calendar": [
       "kalender",
@@ -1259,6 +1265,10 @@
     "generate_svg": {
       "name": "SVG-Bild erzeugen",
       "desc": "Erzeugt ein detailliertes SVG-Bild aus einer SDXL-Stil-Beschreibung."
+    },
+    "youtube_search": {
+      "name": "YouTube-Suche",
+      "desc": "Durchsucht YouTube-Videos und gibt Titel, Autor, Datum und Aufrufe zurück"
     }
   },
   "activity_categories": {

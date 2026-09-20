@@ -46,6 +46,7 @@ grpcio>=1.60.0
 GPUtil>=1.4.0
 cryptography>=42.0.0
 feedparser
+yt-dlp==2026.08.19
 loguru>=0.7.0
 transformers>=4.40.0
 yfinance>=1.6.0
