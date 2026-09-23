@@ -286,8 +286,11 @@ class TtsEngine:
         if hasattr(self, '_sd_stream') and self._sd_stream is not None:
             try:
                 self._sd_stream.stop()
+                self._sd_stream.close()
             except Exception:
                 pass
+            finally:
+                self._sd_stream = None
         self._wav_to_clean = wav_path
         import sounddevice as sd
         import soundfile as sf
@@ -346,8 +349,11 @@ class TtsEngine:
         if hasattr(self, '_sd_stream') and self._sd_stream is not None:
             try:
                 self._sd_stream.stop()
+                self._sd_stream.close()
             except Exception:
                 pass
+            finally:
+                self._sd_stream = None
         self._tts_sr = sample_rate
         peak = np.max(np.abs(audio_data))
         if peak > 0:
@@ -588,9 +594,12 @@ class TtsEngine:
         self._sd_abort.set()
         if hasattr(self, '_sd_stream') and getattr(self, '_sd_stream', None):
             try:
-                self._sd_stream.abort()
+                self._sd_stream.stop()
+                self._sd_stream.close()
             except Exception:
                 pass
+            finally:
+                self._sd_stream = None
         self._cleanup_wav()
         self._on_tts_done()
 
@@ -601,8 +610,11 @@ class TtsEngine:
         if hasattr(self, '_sd_stream') and self._sd_stream is not None:
             try:
                 self._sd_stream.stop()
+                self._sd_stream.close()
             except Exception:
                 pass
+            finally:
+                self._sd_stream = None
         self._tts_paused = True
         print(f"[TTS] Paused at sample {self._tts_pause_pos}")
 

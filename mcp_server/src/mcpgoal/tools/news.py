@@ -1,13 +1,13 @@
 """World news tools — read daily events digest from private_world_events.json."""
 import json
 import os
+from datetime import datetime, timezone
 
 
-_WORLD_EVENTS_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.dirname(os.path.abspath(__file__)))))),
-    "Allowed_root", "private_world_events.json",
-)
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))))
+_WORLD_EVENTS_PATH = os.path.join(_ROOT, "Allowed_root", "private_world_events.json")
+_RSS_CACHE_PATH = os.path.join(_ROOT, "Allowed_root", "rss_cache.json")
 
 
 def _load_events():
@@ -16,6 +16,93 @@ def _load_events():
             return json.load(f)
     except Exception:
         return {"events": {}}
+
+
+def _load_rss_cache():
+    try:
+        with open(_RSS_CACHE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"feeds": {}}
+
+
+def _rss_items_for_date(date_str):
+    """RSS items whose pubDate falls on the requested calendar date (UTC).
+    Returns (items_list, is_fresh) where is_fresh is True only if at least
+    one feed was polled today (UTC)."""
+    rss = _load_rss_cache()
+    feeds = rss.get("feeds", {})
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    is_fresh = False
+    items = []
+    for feed_id, feed_data in feeds.items():
+        last_poll = feed_data.get("last_poll", "")
+        if last_poll:
+            poll_date = last_poll[:10] if len(last_poll) >= 10 else ""
+            if poll_date == today:
+                is_fresh = True
+        for item in feed_data.get("items", []):
+            pub = (item.get("pubDate") or "").strip()
+            if not pub:
+                continue
+            # Try to extract YYYY-MM-DD from various formats
+            pub_day = pub[:10] if len(pub) >= 10 else ""
+            if pub_day == date_str:
+                items.append(item)
+    return items, is_fresh
+
+
+async def _fallback_search(keywords):
+    """Search RSS cache (freshness-gated) and fall back to live web search.
+    Returns a list of normalized article dicts with provenance tags."""
+    from mcpgoal.tools.playwright import search_web as _search_web
+    terms = [k.lower() for k in keywords.split()]
+    matches = []
+
+    # Try RSS cache first (freshness-gated)
+    items, is_fresh = _rss_items_for_date(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    if is_fresh and items:
+        for item in items:
+            tags = item.get("tags", "")
+            if isinstance(tags, list):
+                tags = " ".join(str(t) for t in tags)
+            text = (
+                (item.get("title", "") + " " +
+                 item.get("summary", "") + " " + str(tags)).lower()
+            )
+            if any(t in text for t in terms):
+                matches.append({
+                    "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "title": item.get("title", ""),
+                    "source": "rss cache",
+                    "category": "",
+                    "location": "",
+                    "significance": "",
+                    "summary": item.get("summary", ""),
+                    "link": item.get("link", ""),
+                })
+        if matches:
+            return matches
+
+    # Fall back to live web search
+    try:
+        raw = await _search_web(keywords)
+        results = json.loads(raw)
+        if isinstance(results, list):
+            for r in results:
+                matches.append({
+                    "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "title": r.get("title", ""),
+                    "source": "web",
+                    "category": "",
+                    "location": "",
+                    "significance": "",
+                    "summary": r.get("snippet", ""),
+                    "link": r.get("url", ""),
+                })
+    except Exception:
+        pass
+    return matches
 
 
 async def read_news(date: str, max_chars: int = 20000) -> str:
@@ -28,11 +115,48 @@ async def read_news(date: str, max_chars: int = 20000) -> str:
     data = _load_events()
     events = data.get("events", {})
 
-    if date not in events:
-        return json.dumps({"results": [], "message": f"No events found for {date}"}, ensure_ascii=False)
+    if date in events:
+        view = _day_view(events[date], summary_only=False, day_date=date)
+        return _to_json({"results": {date: view}}, max_chars)
 
-    view = _day_view(events[date], summary_only=False, day_date=date)
-    return _to_json({"results": {date: view}}, max_chars)
+    # Fallback 1: RSS cache for this date
+    rss_items, is_fresh = _rss_items_for_date(date)
+    if is_fresh and rss_items:
+        today_str = date
+        summary_parts = []
+        articles = []
+        cats = set()
+        for item in rss_items[:50]:
+            summary_parts.append(item.get("summary", item.get("title", "")))
+            title = item.get("title", "")
+            link = item.get("link", "")
+            source = "rss cache"
+            tags = item.get("tags", "")
+            if isinstance(tags, list):
+                tags = " ".join(str(t) for t in tags)
+            art = {
+                "title": title,
+                "link": link,
+                "source": source,
+                "summary": (item.get("summary") or "")[:300],
+            }
+            if tags:
+                art["tags"] = tags
+                cats.update(t.strip() for t in tags.split(",") if t.strip())
+            articles.append(art)
+        view = {
+            "summary": " | ".join(summary_parts[:3]) if summary_parts else "",
+            "categories": sorted(cats)[:10],
+            "articles": articles[:8],
+        }
+        return _to_json({"results": {today_str: view}}, max_chars)
+
+    # Fallback 2: websearch
+    fallback = await _fallback_search(f"world news on {date}")
+    if fallback:
+        return _to_json({"results": fallback}, max_chars)
+
+    return json.dumps({"results": [], "message": f"No events found for {date}"}, ensure_ascii=False)
 
 
 async def read_news_range(from_date: str, to_date: str, max_chars: int = 20000) -> str:
@@ -50,22 +174,64 @@ async def read_news_range(from_date: str, to_date: str, max_chars: int = 20000) 
     events = data.get("events", {})
 
     days = sorted(d for d in events if from_date <= d <= to_date)
-    if not days:
-        return json.dumps(
-            {"results": {}, "message": f"No events found between {from_date} and {to_date}"},
-            ensure_ascii=False)
+    if days:
+        summary_only = len(days) > 3
+        result = {d: _day_view(events[d], summary_only=summary_only, day_date=d)
+                  for d in days}
+        return _to_json({"results": result}, max_chars)
 
-    # Long ranges: keep only each day's summary (lightweight). Short ranges
-    # (<=3 days) include full articles so details remain available.
-    summary_only = len(days) > 3
-    result = {d: _day_view(events[d], summary_only=summary_only, day_date=d)
-              for d in days}
-    return _to_json({"results": result}, max_chars)
+    # No archive data: try RSS cache across the range
+    result = {}
+    from_dt = datetime.strptime(from_date, "%Y-%m-%d")
+    to_dt = datetime.strptime(to_date, "%Y-%m-%d")
+    day = from_dt
+    while day <= to_dt:
+        date_str = day.strftime("%Y-%m-%d")
+        rss_items, is_fresh = _rss_items_for_date(date_str)
+        if is_fresh and rss_items:
+            summary_parts = []
+            articles = []
+            cats = set()
+            for item in rss_items[:30]:
+                summary_parts.append(item.get("summary", item.get("title", "")))
+                title = item.get("title", "")
+                link = item.get("link", "")
+                tags = item.get("tags", "")
+                art = {
+                    "title": title,
+                    "link": link,
+                    "source": "rss cache",
+                    "summary": (item.get("summary") or "")[:300],
+                }
+                if tags:
+                    if isinstance(tags, list):
+                        tags = " ".join(str(t) for t in tags)
+                    art["tags"] = tags
+                    cats.update(t.strip() for t in tags.split(",") if t.strip())
+                articles.append(art)
+            result[date_str] = {
+                "summary": " | ".join(summary_parts[:3]) if summary_parts else "",
+                "categories": sorted(cats)[:10],
+                "articles": articles[:8],
+            }
+        day = day.replace(day=day.day + 1)
+
+    if result:
+        return _to_json({"results": result}, max_chars)
+
+    # Fallback to websearch
+    fallback = await _fallback_search(f"world news from {from_date} to {to_date}")
+    if fallback:
+        return _to_json({"results": fallback}, max_chars)
+
+    return json.dumps(
+        {"results": {}, "message": f"No events found between {from_date} and {to_date}"},
+        ensure_ascii=False)
 
 
 async def search_news(keywords: str, max_chars: int = 20000) -> str:
     """Search world events by keywords across all dates.
-    Use for questions like 'find news about climate', 'cerca notizie su elezioni', 'what happened with X'.
+    Use for questions like 'find news about climate', 'cerca noticias su elections', 'what happened with X'.
     Args:
         keywords: space-separated keywords to search in titles, summaries, categories, and per-category summaries
         max_chars: optional cap on the returned JSON size.
@@ -150,12 +316,17 @@ async def search_news(keywords: str, max_chars: int = 20000) -> str:
                     "link": "",
                 })
 
-    if not matches:
-        return json.dumps(
-            {"results": [], "message": f"No articles matching '{keywords}' found"},
-            ensure_ascii=False)
+    if matches:
+        return _to_json({"results": matches}, max_chars)
 
-    return _to_json({"results": matches}, max_chars)
+    # Fallback: RSS + websearch
+    fallback = await _fallback_search(keywords)
+    if fallback:
+        return _to_json({"results": fallback}, max_chars)
+
+    return json.dumps(
+        {"results": [], "message": f"No articles matching '{keywords}' found"},
+        ensure_ascii=False)
 
 
 def _compact_events(day, day_date):

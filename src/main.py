@@ -1758,9 +1758,13 @@ class VassApp:
     def _effective_context_length(self):
         """Return the real model context window (detected from the running
         server), falling back to a conservative default. Never hardcoded to a
-        fixed value — it depends on the loaded model and hardware."""
-        if self.context_length > 0:
-            return self.context_length
+        fixed value — it depends on the loaded model and hardware.
+
+        Always re-query the running server before returning: a value that was
+        frozen at the 4096 startup fallback (when the server was down) must be
+        corrected as soon as the model server becomes available. Detection is
+        idempotent — it only updates self.context_length when it learns a real
+        value, so an already-correct value is left untouched."""
         self._detect_context_length()
         return self.context_length or 4096
 
