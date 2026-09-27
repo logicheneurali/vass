@@ -26,9 +26,36 @@ def get_seen_ids():
     return {m["id"] for m in data.get("messages", [])}
 
 
+def _can_decrypt(text, f):
+    """Return True if `text` is not ciphertext, or decrypts with `f`.
+
+    Prevents persisting messages whose fields were encrypted under a Fernet key
+    that no longer matches the current one (leaving them unreadable forever).
+    """
+    if not isinstance(text, str):
+        return False
+    if not text.startswith("gAAAAA"):
+        return True
+    if not f:
+        return False
+    try:
+        f.decrypt(text.encode()).decode()
+        return True
+    except Exception:
+        return False
+
+
 def append_new(messages, source, account):
     data = load()
+    from utils import _get_fernet
+    f = _get_fernet()
     for msg in messages:
+        # Skip messages whose fields cannot be decrypted with the current key:
+        # they would be an unreadable, permanently useless record.
+        fields = [msg.get("from", ""), msg.get("subject", ""), msg.get("body", "")]
+        if not all(_can_decrypt(v, f) for v in fields):
+            print(f"[Mail] Skipping undecryptable message {msg.get('id')!r} from {account}")
+            continue
         entry = {
             "id": msg["id"],
             "source": source,

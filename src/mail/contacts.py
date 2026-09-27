@@ -110,10 +110,36 @@ def search(keywords, threshold=0.60, max_results=20):
     return [c for _, c in scored[:max_results]]
 
 
+def _is_decryptable(text, f):
+    """Return True if `text` is not ciphertext, or is ciphertext decryptable with `f`.
+
+    Used to avoid persisting records produced under a Fernet key that no longer
+    matches the current one (e.g. after a key regeneration), which would leave
+    the contact permanently unreadable.
+    """
+    if not isinstance(text, str):
+        return False
+    if not text.startswith("gAAAAA"):
+        return True
+    if not f:
+        return False
+    try:
+        f.decrypt(text.encode()).decode()
+        return True
+    except Exception:
+        return False
+
+
 def add_from_message(msg):
     """Extract and add both email and display name from an incoming message's 'from' field."""
     from_addr = msg.get("from", "")
     if not from_addr or from_addr == "?":
+        return
+    # Skip from-headers whose ciphertext cannot be decrypted with the current
+    # Fernet key: they would be an unreadable record permanently.
+    f = _get_fernet()
+    if not _is_decryptable(from_addr, f):
+        print(f"[Contacts] Skipping undecryptable 'from' from mail store: {from_addr!r}")
         return
     # Extract "Name <email>" format
     match = re.match(r'"?([^"]*)"?\s*<([^>]+)>', from_addr)
@@ -121,6 +147,6 @@ def add_from_message(msg):
         display_name = match.group(1).strip()
         email_addr = match.group(2).strip()
         add(email_addr, display_name)
-    else:
+    elif "@" in from_addr:
         # Just an email, no display name
         add(from_addr.strip())
