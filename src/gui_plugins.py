@@ -473,6 +473,9 @@ class PluginUiDialog(QDialog):
         self._list_widgets = {}     # key -> QListWidget
         self._slider_labels = {}    # key -> QLabel (value display)
         self._last_state = None
+        # Set once the plugin requests "_clear_selection": its lists are then
+        # never auto-selected (see _sync_state).
+        self._keep_unselected = False
 
         title = (schema.get(f"title_{lang}") or schema.get("title") or name)
         self.setWindowTitle(title)
@@ -637,9 +640,15 @@ class PluginUiDialog(QDialog):
             lw = QListWidget()
             self._fill_list(lw, row.get("items", []), row)
 
-            def _on_select(current, _prev, k=key):
-                item_id = current.data(Qt.ItemDataRole.UserRole) if current else ""
-                self._emit(k, "select", {"selected": item_id})
+            def _on_select(current, previous, k=key):
+                # Only genuine user clicks reach this handler: _fill_list and
+                # _select_row both move the selection with blockSignals on.
+                # previous is legitimately None when the user clicks the first
+                # row while nothing is selected, so it must not be used to
+                # filter events out (doing so silently dropped that click).
+                if current is None:
+                    return
+                self._emit(k, "select", {"selected": current.data(Qt.ItemDataRole.UserRole)})
 
             lw.currentItemChanged.connect(_on_select)
             layout.addWidget(lw)
@@ -670,6 +679,22 @@ class PluginUiDialog(QDialog):
             lw.addItem(li)
         lw.blockSignals(False)
 
+    @staticmethod
+    def _select_row(lw, row):
+        """Set the current row without emitting currentItemChanged.
+
+        Selection is moved programmatically by _sync_state (repopulation and
+        the "_clear_selection" request). Those movements are not user intent,
+        so they must never reach _on_select: doing so would make the plugin
+        refill the form and re-select a row the user never clicked. Signals are
+        blocked here so _on_select only ever sees genuine clicks.
+        """
+        lw.blockSignals(True)
+        try:
+            lw.setCurrentRow(row)
+        finally:
+            lw.blockSignals(False)
+
     # ── state sync ───────────────────────────────────────────────
 
     def _sync_state(self):
@@ -681,7 +706,25 @@ class PluginUiDialog(QDialog):
             return
         if state == self._last_state:
             return
+        # Special key "_clear_selection" (the "_" prefix keeps it from ever
+        # matching a widget/list key): the plugin asks for its lists to be left
+        # unselected, so the next Save appends instead of editing a phantom
+        # selection. The plugin server state keeps this key, so from the first
+        # request on this dialog the auto-select-first-row behaviour is off for
+        # this plugin only (plugins that never send it are unaffected).
+        clear = bool(state.get("_clear_selection"))
+        prev_clear = (isinstance(self._last_state, dict)
+                      and bool(self._last_state.get("_clear_selection")))
         self._last_state = copy.deepcopy(state)
+        if clear:
+            self._keep_unselected = True
+            if not prev_clear:
+                # "Add" resets the form but leaves the list contents untouched,
+                # so waiting for a repopulation would keep the previously
+                # selected row and the next Save would edit that row instead of
+                # appending a new record. Drop the selection right now.
+                for lw in self._list_widgets.values():
+                    self._select_row(lw, -1)
 
         for key, w in self._widgets.items():
             if key not in state:
@@ -721,15 +764,23 @@ class PluginUiDialog(QDialog):
                 continue  # dati invariati: preserva selezione e scroll
             sel_id = (lw.currentItem().data(Qt.ItemDataRole.UserRole)
                       if lw.currentItem() else "")
+            print(f"[{self._name} GUI] _sync_state list '{key}': "
+                  f"current_ids={current_ids}, new_ids={new_ids}, "
+                  f"sel_id={sel_id!r}, keep_unselected={self._keep_unselected}")
             self._fill_list(lw, items, self._find_row(key))
             if not items:
+                continue
+            if self._keep_unselected:
+                # The plugin asked for unselected lists: never re-select a row
+                # the user did not click.
+                self._select_row(lw, -1)
                 continue
             row = 0
             for i in range(lw.count()):
                 if lw.item(i).data(Qt.ItemDataRole.UserRole) == sel_id:
                     row = i
                     break
-            lw.setCurrentRow(row)
+            self._select_row(lw, row)
 
     def _find_row(self, key):
         for section in self._schema.get("sections", []):

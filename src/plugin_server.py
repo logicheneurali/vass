@@ -356,8 +356,17 @@ class PluginServer(threading.Thread):
                 values = msg.get("values")
                 if name and isinstance(values, dict) and name in self._plugin_uis:
                     with self._lock:
+                        old = dict(self._plugin_uis[name]["state"])
                         self._plugin_uis[name]["state"].update(values)
-                    print(f"[PluginServer] UI state from '{name}': {list(values.keys())[:6]}")
+                        new = dict(self._plugin_uis[name]["state"])
+                    print(f"[PluginServer] UI state from '{name}' — keys: {list(values.keys())}, "
+                          f"old_sources_len={len(old.get('sources', []))}, "
+                          f"new_sources_len={len(new.get('sources', []))}, "
+                          f"_clear_selection={values.get('_clear_selection')}")
+                else:
+                    print(f"[PluginServer] ui_state REJECTED: name={name!r}, "
+                          f"values_type={type(values).__name__}, "
+                          f"in_uis={name in self._plugin_uis if name else None}")
             elif cmd == "confirm_exec" and sock:
                 self._confirm_and_exec(msg, sock)
         except Exception as e:
@@ -900,6 +909,8 @@ class PluginServer(threading.Thread):
                     target = sock
                     break
         if target is None:
+            print(f"[PluginServer] send_ui_action to '{name}' dropped: "
+                  f"no connected client with that name")
             return False
         try:
             msg = json.dumps({"type": "cmd", "cmd": "ui_action",

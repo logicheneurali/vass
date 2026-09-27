@@ -141,6 +141,12 @@ class RssReaderPlugin:
         selected = values.get("feeds_selected", "") or ""
         if event == "select":
             selected = action.get("selected", "")
+        if key == "save":
+            mode = "edit" if selected else "append"
+        else:
+            mode = "n/a"
+        print(f"[RSS] ui_action key={key!r} event={event!r} "
+              f"selected={selected!r} mode={mode}")
         if key == "feeds" and event == "select":
             self._load_feeds()
             feed = next((f for f in self._feeds if f.get("id") == selected), None)
@@ -157,6 +163,7 @@ class RssReaderPlugin:
             self._send_ui_state({
                 "feed_name": "", "feed_url": "", "feed_active": True,
                 "feed_interval": 60, "feed_unit": "min", "feed_lang": "it",
+                "_clear_selection": True,
             })
         elif key == "save":
             name = str(values.get("feed_name", "")).strip()
@@ -186,7 +193,7 @@ class RssReaderPlugin:
                     "interval_unit": unit, "lang": lang,
                 })
             self._save_feeds_file()
-            self._send_ui_state(self._feeds_state())
+            self._send_ui_state({**self._feeds_state(), "_clear_selection": True})
         elif key == "delete":
             if selected:
                 self._load_feeds()

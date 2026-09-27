@@ -155,3 +155,5 @@ Allowed_root/browser_netflix_cache.json
 vass.sh
 /.pi
 PLAN_*.md
+Allowed_root/media_watcher_notified.json
+Allowed_root/media_watcher_profiles.json
