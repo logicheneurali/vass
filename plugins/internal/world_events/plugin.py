@@ -833,6 +833,7 @@ class WorldEventsPlugin:
                     "category_summaries": day.get("category_summaries", []),
                     "finalized": day.get("finalized", False),
                     "cat_finalized": day.get("cat_finalized", False),
+                    "rss_done": day.get("rss_done", False),
                 }
             elif d < cutoff:
                 # Keep summary + per-category summaries as historical record,
@@ -848,6 +849,7 @@ class WorldEventsPlugin:
                     "category_summaries": day.get("category_summaries", []),
                     "finalized": day.get("finalized", False),
                     "cat_finalized": day.get("cat_finalized", False),
+                    "rss_done": day.get("rss_done", False),
                 }
         data["events"] = events
         return data
@@ -1170,7 +1172,12 @@ Articles:
         _events_loop to log.
         """
         events = data.get("events", {})
-        history = max(1, self._config.get("history_days", 365))
+        # Bound by BOTH storage limits, not just history_days: _clean_old_events
+        # clears a day's articles once it is older than max_age_days, so
+        # backfilling such a day would be discarded on the very next cycle while
+        # its links leaving `seen` makes it a fresh candidate again - forever.
+        history = max(1, min(self._config.get("history_days", 365),
+                             self._config.get("max_age_days", 365)))
         cutoff = (date.today() - timedelta(days=history)).isoformat()
 
         cache = self._load_rss_cache_index()
@@ -1209,6 +1216,7 @@ Articles:
                or events.get(target, {}).get("summary") or None)
 
         got_result = False
+        failed = False
         for n, batch in enumerate(batches):
             prompt = self._build_prompt(batch, None, existing_summary=acc,
                                         day=target)
@@ -1219,6 +1227,7 @@ Articles:
             result = self._call_ai(prompt)
             if not (isinstance(result, dict) and "error" not in result):
                 # Leave the day retryable: this is an outage, not exhaustion.
+                failed = True
                 _log(f" Past-day batch {n + 1}/{len(batches)} for {target}: "
                      f"no usable AI result (reason logged above), "
                      f"will retry next cycle")
@@ -1235,7 +1244,13 @@ Articles:
 
         after = len(data.get("events", {}).get(target, {}).get("articles", []))
 
-        if got_result and after <= before:
+        if not got_result or failed:
+            # A partial round must NOT retire the day: the remaining batches
+            # were never asked for, so exhaustion was never established.
+            return (f"Skip: past-day reprocessing of {target} failed "
+                    f"({before} -> {after} articles)")
+
+        if after <= before:
             # The model answered but stored nothing new: every remaining item
             # was dropped by it or already present. Without retiring the day it
             # would be re-picked on every cycle and block all older ones.
@@ -1248,9 +1263,6 @@ Articles:
             self._save_data(data)
             _log(f" Past day {target}: no new articles, marked rss_done")
             return None
-
-        if not got_result:
-            return f"Skip: past-day reprocessing of {target} failed"
 
         _log(f" Reprocessed {target}: {before} -> {after} article(s)")
         return None
