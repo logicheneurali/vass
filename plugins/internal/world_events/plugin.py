@@ -638,22 +638,42 @@ class WorldEventsPlugin:
         if today not in events:
             events[today] = {
                 "summary": "",
+                "summary_raw": "",
                 "articles": [],
                 "categories": [],
             }
 
         day = events[today]
+        summary_changed = False
         if summary:
-            existing = day.get("summary", "")
-            day["summary"] = (existing + "\n" + summary).strip() if existing else summary
+            # Append-only. "summary_raw" is never replaced, so a day processed
+            # any number of times keeps every elaboration. "summary" is the
+            # readable digest read outside this plugin (proactive_agent,
+            # stock_tracker, timeline, world_map, mcp news tools), so it only
+            # follows the accumulation while the day is not yet finalized.
+            acc = day.get("summary_raw") or day.get("summary", "")
+            day["summary_raw"] = (acc + "\n" + summary).strip() if acc else summary
+            if not day.get("finalized"):
+                day["summary"] = day["summary_raw"]
+            summary_changed = True
         incoming_articles = incoming.get("articles", [])
         existing_links = {a.get("link") for a in day.get("articles", []) if a.get("link")}
+        articles_changed = False
         for art in incoming_articles:
             if art.get("link") and art["link"] in existing_links:
                 continue
             if art.get("link"):
                 existing_links.add(art["link"])
             day.setdefault("articles", []).append(art)
+            articles_changed = True
+
+        # Re-derive the digest only when something actually changed, and always
+        # from summary_raw - which has grown, so nothing is ever lost. A round
+        # that adds nothing must not force a wasted AI finalization.
+        if summary_changed or articles_changed:
+            day["finalized"] = False
+        if articles_changed:
+            day["cat_finalized"] = False
 
         # Cap articles per day
         max_events = self._config["max_events_per_day"]
@@ -672,14 +692,16 @@ class WorldEventsPlugin:
         return data
 
     def _extract_summary(self, data):
+        """Accumulation so far for the current day: used as the dedup context
+        handed back to the model, so it must include every elaboration."""
         if not data or not isinstance(data, dict):
             return None
         events = data.get("events", {})
-        if self._today_str in events:
-            return events[self._today_str].get("summary", "")
-        # If AI used a different date key, take the first one
-        for day_key in events:
-            return events[day_key].get("summary", "")
+        # Prefer today; if AI used a different date key, take the first one.
+        for key in (self._today_str, next(iter(events), None)):
+            if key and key in events:
+                day = events[key]
+                return day.get("summary_raw") or day.get("summary", "")
         return None
 
     def _merge_batch_results(self, base, incoming):
@@ -749,6 +771,7 @@ class WorldEventsPlugin:
                 day = events[d]
                 events[d] = {
                     "summary": day.get("summary", ""),
+                    "summary_raw": day.get("summary_raw", ""),
                     "articles": [],
                     "categories": [],
                     "category_summaries": day.get("category_summaries", []),
@@ -761,6 +784,7 @@ class WorldEventsPlugin:
                 day = events[d]
                 events[d] = {
                     "summary": day.get("summary", ""),
+                    "summary_raw": day.get("summary_raw", ""),
                     "articles": [],
                     "categories": [],
                     "events_fixed": self._dedup_events(
@@ -881,7 +905,11 @@ Rules:
         events = data.get("events", {})
         days = sorted(d for d in events if d < today and not events[d].get("finalized"))
         for day in days:
-            summary = (events[day].get("summary") or "").strip()
+            # Read the append-only accumulation, never the digest: the digest
+            # was derived from an earlier, smaller accumulation, so finalizing
+            # from it would drop everything elaborated after that point.
+            summary = (events[day].get("summary_raw")
+                       or events[day].get("summary") or "").strip()
             if not summary:
                 events[day]["finalized"] = True
                 continue
