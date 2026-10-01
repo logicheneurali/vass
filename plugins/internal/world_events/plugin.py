@@ -137,6 +137,9 @@ class WorldEventsPlugin:
             if len(self._pending) > 100:
                 self._pending = self._pending[-50:]
 
+    # Batch size shared by today's flow and past-day reprocessing.
+    BATCH_SIZE = 10
+
     def _events_loop(self):
         last_skip = ""
         while self._running:
@@ -194,11 +197,17 @@ class WorldEventsPlugin:
             wiki_new = []
 
         if not new_items and not wiki_new:
-            return "Skip: no new items to process"
+            # Today's elaboration is consumed: spend this idle cycle on the most
+            # recent past day that still needs work (one day per cycle, so the
+            # loop never holds the machine for long).
+            past = self._reprocess_past_days(data, today)
+            if past is None:
+                return None
+            return past
 
-        # Process RSS items in batches of 10
-        BATCH_SIZE = 10
-        batches = [new_items[i:i + BATCH_SIZE] for i in range(0, len(new_items), BATCH_SIZE)]
+        # Process RSS items in batches of BATCH_SIZE
+        batches = [new_items[i:i + self.BATCH_SIZE]
+                   for i in range(0, len(new_items), self.BATCH_SIZE)]
         if not batches:
             batches = [[]]
 
@@ -475,11 +484,14 @@ class WorldEventsPlugin:
         return [item for item in wiki_items
                 if item.get("title", "").lower() not in seen_titles]
 
-    def _build_prompt(self, rss_items, wiki_items, existing_summary=None):
+    def _build_prompt(self, rss_items, wiki_items, existing_summary=None, day=None):
+        """Build the digest prompt. `day` is the ISO date the output must cover;
+        it defaults to today so the existing call site is unchanged."""
+        target = day or self._today_str or date.today().isoformat()
         parts = []
         if existing_summary:
             parts.append(
-                "=== Current Day Summary (already written) ===\n"
+                f"=== Summary for {target} (already written) ===\n"
                 f"{existing_summary}\n\n"
                 "Add new articles below without duplicating events already covered above. "
                 "Update the summary to incorporate these new events alongside existing ones."
@@ -492,13 +504,13 @@ class WorldEventsPlugin:
                 summary = item.get("summary", "")[:300]
                 link = item.get("link", "")
                 lines.append(f"[{source}] {title}\n  Summary: {summary}\n  Link: {link}")
-            parts.append("=== RSS Articles (today) ===\n" + "\n\n".join(lines))
+            parts.append(f"=== RSS Articles ({target}) ===\n" + "\n\n".join(lines))
 
         if wiki_items:
             lines = []
             for item in wiki_items[:10]:
                 lines.append(f"{item['title']}\n  {item['summary'][:300]}")
-            parts.append("=== Wikipedia Current Events (today) ===\n" + "\n\n".join(lines))
+            parts.append(f"=== Wikipedia Current Events ({target}) ===\n" + "\n\n".join(lines))
 
         if not parts:
             return ""
@@ -532,7 +544,7 @@ class WorldEventsPlugin:
             "  }\n"
             "}\n\n"
             "Rules:\n"
-            "- Only include events from TODAY's date.\n"
+            f"- Only include events dated {target}.\n"
             "- Merge duplicate events from different sources into a single article entry.\n"
             "- Categorize each article accurately.\n"
             "- location: use 'global' if event affects multiple nations or the entire planet.\n"
@@ -1145,6 +1157,103 @@ Articles:
                  f"({sum(1 for a in articles if self._article_complete(a))}"
                  f"/{len(articles)})")
         return got_any
+
+    def _reprocess_past_days(self, data, today):
+        """Re-elaborate ONE past day, newest first, for this idle cycle.
+
+        Called only once today's elaboration is consumed, so it runs under the
+        gates the caller already passed: input idle time, CPU, RAM, GPU and VRAM
+        thresholds, plus BATCH_SIZE, rss_limit and max_tokens. It raises no
+        notification - a past day is not news.
+
+        Returns None when a day was processed, otherwise the skip reason for
+        _events_loop to log.
+        """
+        events = data.get("events", {})
+        history = max(1, self._config.get("history_days", 365))
+        cutoff = (date.today() - timedelta(days=history)).isoformat()
+
+        cache = self._load_rss_cache_index()
+        if not cache:
+            return "Skip: RSS cache unavailable for past-day reprocessing"
+
+        seen = self._get_seen_links(data)
+        target = None
+        round_items = []
+        total_unseen = 0
+        # Newest first: the user's ordering, and the days closest to falling
+        # out of the RSS cache are handled before the older ones.
+        for day in sorted(cache, reverse=True):
+            if not (cutoff <= day < today):
+                continue
+            if events.get(day, {}).get("rss_done"):
+                continue
+            unseen = [i for i in cache[day] if i["link"] not in seen]
+            if not unseen:
+                continue
+            target = day
+            round_items = unseen[:self._config["rss_limit"]]
+            total_unseen = len(unseen)
+            break
+
+        if target is None:
+            return "Skip: no past days need processing"
+
+        before = len(events.get(target, {}).get("articles", []))
+        _log(f" Reprocessing past day {target}: {len(round_items)} of "
+             f"{total_unseen} unseen item(s), {before} article(s) stored")
+
+        batches = [round_items[i:i + self.BATCH_SIZE]
+                   for i in range(0, len(round_items), self.BATCH_SIZE)]
+        acc = (events.get(target, {}).get("summary_raw")
+               or events.get(target, {}).get("summary") or None)
+
+        got_result = False
+        for n, batch in enumerate(batches):
+            prompt = self._build_prompt(batch, None, existing_summary=acc,
+                                        day=target)
+            if not prompt:
+                continue
+            _log(f" Past-day batch {n + 1}/{len(batches)} for {target}: "
+                 f"{len(prompt)} chars, calling AI...")
+            result = self._call_ai(prompt)
+            if not (isinstance(result, dict) and "error" not in result):
+                # Leave the day retryable: this is an outage, not exhaustion.
+                _log(f" Past-day batch {n + 1}/{len(batches)} for {target}: "
+                     f"no usable AI result (reason logged above), "
+                     f"will retry next cycle")
+                break
+            got_result = True
+            data = self._merge_events(data, result, target)
+            data = self._clean_old_events(data)
+            data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+            self._save_data(data)
+            events = data.get("events", {})
+            acc = (events.get(target, {}).get("summary_raw")
+                   or events.get(target, {}).get("summary") or None)
+            _log(f" Past-day batch {n + 1}/{len(batches)} for {target}: OK (saved)")
+
+        after = len(data.get("events", {}).get(target, {}).get("articles", []))
+
+        if got_result and after <= before:
+            # The model answered but stored nothing new: every remaining item
+            # was dropped by it or already present. Without retiring the day it
+            # would be re-picked on every cycle and block all older ones.
+            data["events"].setdefault(target, {
+                "summary": "", "summary_raw": "",
+                "articles": [], "categories": [],
+            })
+            data["events"][target]["rss_done"] = True
+            data["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+            self._save_data(data)
+            _log(f" Past day {target}: no new articles, marked rss_done")
+            return None
+
+        if not got_result:
+            return f"Skip: past-day reprocessing of {target} failed"
+
+        _log(f" Reprocessed {target}: {before} -> {after} article(s)")
+        return None
 
     @staticmethod
     def _resolve_root():
