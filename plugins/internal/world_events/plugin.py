@@ -323,6 +323,50 @@ class WorldEventsPlugin:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
+    def _load_rss_cache_index(self):
+        """One pass over the RSS cache returning {iso_day: [item, ...]}.
+
+        world_events already reads Allowed_root directly for its own store
+        (_load_data/_save_data), so it does the same here instead of widening
+        the shared `rss_items` protocol command: that command is also consumed
+        by proactive_agent and news_publisher and is documented in nine
+        PLUGIN_DEV language files. An unreadable or unexpected file yields an
+        empty index, mirroring PluginServer._load_rss_cache.
+        """
+        path = os.path.join(self._resolve_root(), "Allowed_root", "rss_cache.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            return {}
+        feeds = data.get("feeds", {})
+        if not isinstance(feeds, dict):
+            return {}
+        index = {}
+        for entry in feeds.values():
+            if not isinstance(entry, dict):
+                continue
+            for item in entry.get("items", []):
+                if not isinstance(item, dict):
+                    continue
+                # pubDate is ISO with a time component; the day is the prefix.
+                day = (item.get("pubDate") or "")[:10]
+                link = item.get("link", "")
+                # Dedup in _merge_events is keyed on link, so an item without
+                # one could never be recognised as already stored and would be
+                # appended again on every pass.
+                if len(day) != 10 or not link:
+                    continue
+                index.setdefault(day, []).append({
+                    "title": item.get("title", ""),
+                    "source": item.get("source", ""),
+                    "summary": (item.get("summary") or "")[:300],
+                    "guid": item.get("guid", ""),
+                    "link": link,
+                    "pubDate": item.get("pubDate", ""),
+                })
+        return index
+
     def _get_seen_links(self, data):
         """Get all links already present in saved articles."""
         links = set()
