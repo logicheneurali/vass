@@ -228,7 +228,8 @@ class WorldEventsPlugin:
             elif result and isinstance(result, dict) and "error" in result:
                 _log(f" Batch {batch_num + 1}/{len(batches)}: AI error: {result.get('error')}")
             else:
-                _log(f" Batch {batch_num + 1}/{len(batches)}: timeout/error, skipping")
+                _log(f" Batch {batch_num + 1}/{len(batches)}: no usable AI "
+                     f"result (reason logged above), skipping")
 
         if all_new_events is None:
             return "Skip: all batches failed"
@@ -522,18 +523,82 @@ class WorldEventsPlugin:
         }) + "\n"
         resp = self._send_and_wait(rid, msg, "ai_response", timeout=1800)
         if resp is None:
+            _log(" No ai_response within 1800s (timeout or server unreachable)")
             return None
-        raw = (resp.get("response", "") or "").strip()
-        if raw.startswith("```"):
-            raw = raw.strip("`").strip()
-            if raw.startswith("json"):
-                raw = raw[4:]
+        raw = resp.get("response", "") or ""
         if not parse_json:
-            return raw
+            # _finalize_summaries expects plain text; keep the old fence
+            # stripping it has always received on this path.
+            return self._strip_code_fence(raw)
+        return self._parse_ai_json(raw)
+
+    @staticmethod
+    def _strip_code_fence(text):
+        """Remove an optional ```json fence the model sometimes wraps a reply in."""
+        text = (text or "").strip()
+        if text.startswith("```"):
+            text = text.strip("`").strip()
+            if text.startswith("json"):
+                text = text[4:]
+        return text.strip()
+
+    @staticmethod
+    def _brace_balance(text):
+        """Open minus close braces, ignoring anything inside a string literal.
+
+        Returns None when a string literal is left unterminated: the text was
+        cut mid-string, so a balance computed from it would be meaningless and
+        must not be used to invent a repair.
+        """
+        depth = 0
+        in_str = False
+        esc = False
+        for ch in text:
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+        return None if in_str else depth
+
+    def _parse_ai_json(self, raw):
+        """Parse a model reply, tolerating exactly one defect: a reply that stops
+        before its closing root braces (observed on MiMo-V2.6-Distill, 4/4 runs,
+        finish_reason=stop, content otherwise schema-correct).
+
+        A repair is applied ONLY when the brace balance is computable and
+        strictly positive, and ONLY when the repaired text actually parses as
+        JSON. Everything else is rejected untouched. The real reason is logged
+        here, so callers never have to guess between a timeout and bad output.
+        """
+        text = self._strip_code_fence(raw)
         try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            first = f"{e.msg} at {e.pos}/{len(text)}"
+        bal = self._brace_balance(text)
+        if not bal or bal <= 0:
+            _log(f" JSON parse failed ({first}); brace balance {bal}, not "
+                 f"repairable; head={text[:160]!r}")
             return None
+        try:
+            parsed = json.loads(text + "}" * bal)
+        except json.JSONDecodeError as e:
+            _log(f" JSON parse failed ({first}); adding {bal} closing brace(s) "
+                 f"is still invalid ({e.msg} at {e.pos}); head={text[:160]!r}")
+            return None
+        _log(f" JSON repaired: added {bal} closing brace(s), "
+             f"original error {first}")
+        return parsed
 
     def _merge_events(self, data, new_events, today):
         events = data.get("events", {})
