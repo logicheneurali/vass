@@ -48,17 +48,18 @@ SLIDER_CONFIG = {
     "paused_opacity": {"min": 10, "max": 100, "scale": 0.01, "default": 50},
 }
 
+# Kokoro voice list - verified against the real voice files in hexgrad/Kokoro-82M.
+# Each entry must be an existing .pt voice (e.g. "af_heart", "if_sara").
 _KOKORO_VOICES = {
-    "en": ["af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_korea", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky", "af_sol", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa", "am_wick"],
-    "en (British)": ["bf_emma", "bf_isabella", "bf_lily", "bm_daniel", "bm_fable", "bm_george", "bm_lewis"],
+    "en": ["af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky", "af_sol", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa"],
+    "en (British)": ["bf_alice", "bf_emma", "bf_isabella", "bf_lily", "bm_daniel", "bm_fable", "bm_george", "bm_lewis"],
     "es": ["ef_dora", "em_alex", "em_santa"],
-    "fr": ["ff_siwis", "fm_pablito"],
-    "hi": ["hf_alpha", "hf_beta", "hf_gamma"],
-    "it": ["if_ada", "if_jen", "if_liam", "if_marc", "if_nicola", "if_ragusa", "if_sara"],
-    "ja": ["jf_alpha", "jf_ghibli", "jf_heart", "jf_kana", "jf_kumo", "jf_sora", "jf_kokoro", "jm_alpha", "jm_kumo"],
-    "ko": ["kf_alpha", "km_alpha"],
+    "fr": ["ff_siwis"],
+    "it": ["if_sara", "im_nicola"],
+    "ja": ["jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo"],
+    "ko": ["af_heart"],  # No native Korean Kokoro voices exist; fall back to English
     "pt": ["pf_dora", "pm_alex", "pm_santa"],
-    "zh": ["zf_xiaobei", "zf_xiaoniu", "zf_xiaoxiao", "zf_xiaoyi"],
+    "zh": ["zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi"],
 }
 
 

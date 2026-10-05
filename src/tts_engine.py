@@ -254,6 +254,14 @@ class TtsEngine:
                     self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code)
                 else:
                     self._kokoro_pipeline = KPipeline(lang_code=self._kokoro_code, device=device)
+                # Pre-load the voice .pt file so it's available before first use.
+                # This avoids a runtime download that may fail on first TTS call.
+                print(f"[TTS] Preloading voice file: {self._kokoro_voice}...")
+                try:
+                    self._kokoro_pipeline.load_voice(self._kokoro_voice)
+                    print(f"[TTS] Voice file loaded: {self._kokoro_voice}")
+                except Exception as voice_err:
+                    print(f"[TTS] Voice file preload failed (will retry on first use): {voice_err}")
                 print("[TTS] Kokoro pipeline ready")
             except ImportError as e:
                 print(f"[TTS] Kokoro preload failed (missing dependency): {e}")
