@@ -1029,9 +1029,27 @@ class VassApp:
             f.write(text)
         self._process_command()
 
+    def _has_speech(self, audio_data):
+        """Check if audio contains speech using the VAD model."""
+        vad = self.audio_handler.vad
+        vad.reset()
+        chunk_size = 320  # 20ms at 16kHz
+        has_speech = False
+        for i in range(0, len(audio_data), chunk_size):
+            chunk = audio_data[i:i+chunk_size]
+            if vad.process(chunk) >= vad.threshold:
+                has_speech = True
+                break
+        return has_speech
+
     def _transcribe_and_process(self):
         audio_data = self.audio_handler.get_recorded_audio()
         self.audio_handler.recorded_buffer.clear()
+        
+        # Gate: only transcribe if the recording actually contains speech
+        if len(audio_data) > 0 and not self._has_speech(audio_data):
+            print("[Audio] Recording ended but no speech detected — skipping")
+            return
         
         if len(audio_data) > 0:
             transcription = self.voice_recognition.transcribe_audio(audio_data)
