@@ -567,7 +567,7 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             "content": _result_text(result)
         })
 
-    MAX_TURNS = 15
+    MAX_TURNS = 30
     _seen_paths = set()
     _allowed_root = os.path.join(get_project_root(), "Allowed_root")
     _last_call = None                  # (tool_name, tool_args) of previous turn
