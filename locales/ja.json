@@ -640,7 +640,8 @@
     "files_extensions": "有効な拡張子（カンマ区切り、空=すべて）：",
     "sources_max_entries": "AIコンテキストの最大エントリ数：",
     "sources_max_entries_desc": "タグに基づいて最も関連性の高いもののみが含まれます",
-    "delete_confirm_multi": "{n}件のエントリを削除しますか？"
+    "delete_confirm_multi": "{n}件のエントリを削除しますか？",
+    "filter_placeholder": "キーワードで検索..."
   },
   "tag_manager": {
     "title": "タグマネージャー",

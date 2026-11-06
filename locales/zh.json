@@ -640,7 +640,8 @@
     "files_extensions": "有效扩展名（逗号分隔，空=全部）：",
     "sources_max_entries": "AI上下文最大条目：",
     "sources_max_entries_desc": "仅包含基于标签的最相关条目",
-    "delete_confirm_multi": "删除{n}个条目？"
+    "delete_confirm_multi": "删除{n}个条目？",
+    "filter_placeholder": "按关键词搜索..."
   },
   "tag_manager": {
     "title": "标签管理器",

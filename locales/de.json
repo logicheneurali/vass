@@ -639,7 +639,8 @@
     "files_extensions": "Gultige Erweiterungen (durch Komma getrennt, leer = alle):",
     "sources_max_entries": "Max Einträge im AI-Kontext:",
     "sources_max_entries_desc": "Nur die relevantesten werden basierend auf Tags einbezogen",
-    "delete_confirm_multi": "{n} ausgewahlte Eintrage loschen?"
+    "delete_confirm_multi": "{n} ausgewahlte Eintrage loschen?",
+    "filter_placeholder": "Nach Stichwort suchen..."
   },
   "tag_manager": {
     "title": "Tag-Verwaltung",

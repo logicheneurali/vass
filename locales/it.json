@@ -639,7 +639,8 @@
     "map_tooltip": "<b>{tag}</b><br>{count} voci &middot; ril. media {rel}",
     "map_sidebar": "Tags",
     "map_items": "{count} voci",
-    "delete_confirm_multi": "Eliminare {n} voci selezionate?"
+    "delete_confirm_multi": "Eliminare {n} voci selezionate?",
+    "filter_placeholder": "Cerca per parola chiave..."
   },
   "tag_manager": {
     "title": "Gestione Tags",

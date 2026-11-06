@@ -308,7 +308,13 @@ class MemoryEditor(QMainWindow):
     def _tl(self, key):
         return _t(key, self.lang)
 
+    def _on_filter_changed(self, text):
+        """Re-render the entry list keeping only matches for the current keyword."""
+        self._filter_text = text.strip()
+        self._rebuild_content()
+
     def _build_ui(self):
+        self._filter_text = ""
         self.setWindowTitle(self._tl("memory_editor.title"))
         self.resize(800, 600)
         self.setStyleSheet(BASE_STYLESHEET)
@@ -319,6 +325,13 @@ class MemoryEditor(QMainWindow):
         layout = QVBoxLayout(central)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
+
+        # Keyword search box: filters the entry list by content + tags.
+        self._filter_edit = QLineEdit()
+        self._filter_edit.setPlaceholderText(self._tl("memory_editor.filter_placeholder"))
+        self._filter_edit.setStyleSheet("padding:6px; border:1px solid #3a3a3a; border-radius:4px; background:#1e1e1e; color:" + FG + ";")
+        self._filter_edit.textChanged.connect(self._on_filter_changed)
+        layout.addWidget(self._filter_edit)
 
         page = _MemPage(self)
         page.set_callback(self._on_vass_link)
@@ -396,6 +409,11 @@ class MemoryEditor(QMainWindow):
             content, _role = _load_entry_content(eid)
             if content == "(not available)":
                 content = entry.get("content", "(nessun contenuto)")
+            # Apply keyword filter against full content and tags.
+            if self._filter_text:
+                hay = content + " " + " ".join(tags)
+                if self._filter_text.lower() not in hay.lower():
+                    continue
             safe_content = self._escape_html(content[:600])
 
             lines.append(f'<div class="entry-card">')

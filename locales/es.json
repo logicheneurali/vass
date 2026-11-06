@@ -639,7 +639,8 @@
     "files_extensions": "Extensiones validas (separadas por comas, vacio = todas):",
     "sources_max_entries": "Máx entradas en contexto AI:",
     "sources_max_entries_desc": "Solo se incluirán las más relevantes según las etiquetas",
-    "delete_confirm_multi": "Eliminar {n} entradas?"
+    "delete_confirm_multi": "Eliminar {n} entradas?",
+    "filter_placeholder": "Buscar por palabra clave..."
   },
   "tag_manager": {
     "title": "Gestor de Tags",

@@ -640,7 +640,8 @@
     "files_extensions": "유효한 확장자（쉼표로 구분, 비어 있음 = 모두）：",
     "sources_max_entries": "AI 컨텍스트 최대 항목:",
     "sources_max_entries_desc": "태그에 따라 가장 관련성 높은 항목만 포함됩니다",
-    "delete_confirm_multi": "{n}개 항목을 삭제하시겠습니까?"
+    "delete_confirm_multi": "{n}개 항목을 삭제하시겠습니까?",
+    "filter_placeholder": "키워드로 검색..."
   },
   "tag_manager": {
     "title": "태그 관리자",

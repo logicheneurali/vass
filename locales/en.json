@@ -639,7 +639,8 @@
     "map_tooltip": "<b>{tag}</b><br>{count} entries &middot; avg rel {rel}",
     "map_sidebar": "Tags",
     "map_items": "{count} entries",
-    "delete_confirm_multi": "Delete {n} selected entries?"
+    "delete_confirm_multi": "Delete {n} selected entries?",
+    "filter_placeholder": "Search by keyword..."
   },
   "tag_manager": {
     "title": "Tag Manager",
