@@ -469,7 +469,14 @@
       "add": "추가",
       "update": "업데이트",
       "delete": "삭제",
-      "save": "저장"
+      "save": "저장",
+      "run_now": "지금 실행"
+    },
+    "run_now": {
+      "started": "{description} 시작됨.",
+      "done_ok": "{description} 완료됨.",
+      "failed": "{description} 실패.",
+      "timeout": "VASS가 응답하지 않습니다: 실행이 확인되지 않았습니다."
     },
     "dialog": {
       "error": "오류",

@@ -468,7 +468,14 @@
       "add": "Hinzufügen",
       "update": "Aktualisieren",
       "delete": "Löschen",
-      "save": "Speichern"
+      "save": "Speichern",
+      "run_now": "Jetzt ausführen"
+    },
+    "run_now": {
+      "started": "{description} gestartet.",
+      "done_ok": "{description} erfolgreich abgeschlossen.",
+      "failed": "{description} fehlgeschlagen.",
+      "timeout": "VASS antwortet nicht: Ausführung nicht bestätigt."
     },
     "dialog": {
       "error": "Fehler",

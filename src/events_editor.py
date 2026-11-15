@@ -3,6 +3,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import uuid
 from utils import get_project_root, get_path
@@ -239,6 +240,7 @@ class EventsEditor(QMainWindow):
         else:
             self._clear_form()
             self.date_edit.setText(selected_date)
+        self._update_run_btn()
 
     def _highlight_calendar(self):
         event_fmt = QTextCharFormat()
@@ -444,6 +446,14 @@ class EventsEditor(QMainWindow):
         btn_del.clicked.connect(self._delete_item)
         btn_row.addWidget(btn_del)
 
+        # Manual execution of a saved schedule (schedules category only).
+        self._run_now_btn = QPushButton(self._t("events_editor.buttons.run_now"))
+        self._run_now_btn.setStyleSheet(f"background-color: {BTN_BG}; color: {BTN_FG};")
+        self._run_now_btn.clicked.connect(self._run_now)
+        self._run_now_btn.setVisible(False)
+        self._run_now_btn.setEnabled(False)
+        btn_row.addWidget(self._run_now_btn)
+
         btn_row.addStretch()
         form_grid.addLayout(btn_row)
 
@@ -474,6 +484,15 @@ class EventsEditor(QMainWindow):
             self._wait_cb.setChecked(False)
             self._run_on_startup_cb.setChecked(False)
             self._check_running_cb.setChecked(False)
+        self._update_run_btn()
+
+    def _update_run_btn(self):
+        """Show 'Run now' only for schedules and only with a valid saved entry selected."""
+        is_schedule = self._current_category == "schedules"
+        idx = self._selected_idx
+        valid = idx is not None and 0 <= idx < len(self._current_items)
+        self._run_now_btn.setVisible(is_schedule)
+        self._run_now_btn.setEnabled(is_schedule and valid)
 
     def _on_cmd_changed(self, text=""):
         cmd = text or self.cmd_edit.text().strip()
@@ -512,6 +531,7 @@ class EventsEditor(QMainWindow):
         item_widget = self.day_list.item(row)
         if item_widget is None:
             self._selected_idx = None
+            self._update_run_btn()
             return
         actual_idx = item_widget.data(Qt.UserRole)
         if actual_idx is None or actual_idx < 0 or actual_idx >= len(self._current_items):
@@ -519,6 +539,7 @@ class EventsEditor(QMainWindow):
                 self._selected_idx = None
             else:
                 self._selected_idx = None
+            self._update_run_btn()
             return
         self._selected_idx = actual_idx
         item = self._current_items[actual_idx]
@@ -537,6 +558,7 @@ class EventsEditor(QMainWindow):
         self._wait_cb.setChecked(str(item.get("wait_for_completion", "false")).lower() == "true")
         self._run_on_startup_cb.setChecked(str(item.get("run_on_startup", "false")).lower() == "true")
         self._check_running_cb.setChecked(str(item.get("check_already_running", "false")).lower() == "true")
+        self._update_run_btn()
 
     def _navigate_to_date(self, date_str):
         y, m, d = map(int, date_str.split("-"))
@@ -666,6 +688,7 @@ class EventsEditor(QMainWindow):
         self.day_list.clearSelection()
         today_str = self.calendar.selectedDate().toString("yyyy-MM-dd")
         self.date_edit.setText(today_str)
+        self._update_run_btn()
 
     def _save_item(self):
         if not self._validate():
@@ -700,6 +723,126 @@ class EventsEditor(QMainWindow):
         del self._current_items[self._selected_idx]
         self._selected_idx = None
         self._refresh_list()
+
+    def _run_now(self):
+        """Execute the selected saved schedule immediately; never alters its stored state."""
+        idx = self._selected_idx
+        if idx is None or not (0 <= idx < len(self._current_items)):
+            return
+        item = self._current_items[idx]
+        command = (item.get("command") or "").strip()
+        if not command:
+            return
+        self._run_now_btn.setEnabled(False)
+        try:
+            if command.lower().endswith(".vass"):
+                self._run_vass_now(item, command)
+            else:
+                self._run_cmd_now(item, command)
+        finally:
+            self._update_run_btn()
+
+    def _run_vass_now(self, item, command):
+        """Run a .vass script via the main app's exec queue (same protocol as the script editor)."""
+        import time
+        script_name = os.path.splitext(os.path.basename(command))[0]
+        queue_path = os.path.join(BASE, "scripts", "exec_queue.json")
+        result_path = os.path.join(BASE, "scripts", "exec_result.json")
+        request_id = uuid.uuid4().hex[:12]
+        os.makedirs(os.path.dirname(queue_path), exist_ok=True)
+        for path in (queue_path, result_path):
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+        with open(queue_path, "w", encoding="utf-8") as f:
+            json.dump({"id": request_id, "script": script_name}, f)
+
+        # Wait for the running VASS app to consume the request and report back.
+        result = None
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            QApplication.processEvents()
+            if os.path.exists(result_path):
+                try:
+                    with open(result_path, encoding="utf-8") as f:
+                        data = json.load(f)
+                    if data.get("id") == request_id:
+                        result = data.get("result", {})
+                        break
+                except (json.JSONDecodeError, OSError):
+                    pass
+            time.sleep(0.3)
+        for path in (queue_path, result_path):
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
+        desc = item.get("description", "")
+        if result is None:
+            QMessageBox.warning(self, self._t("events_editor.dialog.error"),
+                                self._t("events_editor.run_now.timeout"))
+        elif result.get("status") == "ok":
+            QMessageBox.information(self, "OK",
+                                    self._t("events_editor.run_now.done_ok").replace("{description}", desc))
+        else:
+            detail = result.get("detail", result.get("message", ""))
+            text = self._t("events_editor.run_now.failed").replace("{description}", desc)
+            if detail:
+                text += f"\n\n{detail}"
+            QMessageBox.critical(self, self._t("events_editor.dialog.error"), text)
+
+    def _run_cmd_now(self, item, command):
+        """Launch a regular command directly, honoring arguments/workingdir/wait_for_completion."""
+        from event_reminder import _validate_command
+        desc = item.get("description", "")
+        args = item.get("arguments", "")
+        if not _validate_command(command, args):
+            QMessageBox.warning(self, self._t("events_editor.dialog.error"),
+                                self._t("events_editor.errors.command_not_found").replace("{cmd}", command.split()[0]))
+            return
+
+        cmd_parts = [command]
+        if args:
+            import shlex
+            try:
+                cmd_parts += shlex.split(args)
+            except ValueError:
+                cmd_parts.append(args)
+        wd = item.get("workingdir", "") or None
+        if wd and not os.path.isdir(wd):
+            wd = None
+        dur = int(item.get("duration", 0) or 0)
+        cmd_timeout = max(dur * 60, 60) if dur > 0 else 3600
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        wait = str(item.get("wait_for_completion", "false")).lower() == "true"
+
+        try:
+            if wait:
+                r = subprocess.run(cmd_parts, capture_output=True, text=True,
+                                   creationflags=creationflags, timeout=cmd_timeout, cwd=wd)
+                ok = r.returncode == 0
+                detail = "" if ok else (r.stderr or r.stdout or "").strip()[-500:]
+            else:
+                subprocess.Popen(cmd_parts, creationflags=creationflags, cwd=wd)
+                ok = True
+                detail = ""
+        except Exception as e:
+            ok = False
+            detail = str(e)
+
+        if ok:
+            key = "events_editor.run_now.done_ok" if wait else "events_editor.run_now.started"
+            QMessageBox.information(self, "OK",
+                                    self._t(key).replace("{description}", desc))
+        else:
+            text = self._t("events_editor.run_now.failed").replace("{description}", desc)
+            if detail:
+                text += f"\n\n{detail}"
+            QMessageBox.critical(self, self._t("events_editor.dialog.error"), text)
 
     @staticmethod
     def _item_fallback_key(item):

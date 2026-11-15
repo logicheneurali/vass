@@ -469,7 +469,14 @@
       "add": "追加",
       "update": "更新",
       "delete": "削除",
-      "save": "保存"
+      "save": "保存",
+      "run_now": "今すぐ実行"
+    },
+    "run_now": {
+      "started": "{description} を開始しました。",
+      "done_ok": "{description} が正常に完了しました。",
+      "failed": "{description} に失敗しました。",
+      "timeout": "VASSが応答しません：実行が確認されませんでした。"
     },
     "dialog": {
       "error": "エラー",

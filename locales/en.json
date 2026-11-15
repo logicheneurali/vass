@@ -468,7 +468,14 @@
       "add": "Add",
       "update": "Update",
       "delete": "Delete",
-      "save": "Save"
+      "save": "Save",
+      "run_now": "Run now"
+    },
+    "run_now": {
+      "started": "{description} started.",
+      "done_ok": "{description} completed successfully.",
+      "failed": "{description} failed.",
+      "timeout": "VASS is not responding: execution not confirmed."
     },
     "dialog": {
       "error": "Error",
