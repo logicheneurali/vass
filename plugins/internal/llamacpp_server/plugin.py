@@ -17,6 +17,30 @@ from datetime import datetime
 _LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log.txt")
 _MAX_LOG = 100_000
 
+# Matches llama.cpp's own default port, used when settings.ini has no usable value.
+DEFAULT_PORT = 9931
+
+
+def _inject_port(args: str, port: int) -> list:
+    """Split the advanced arguments and append --port unless the user already set it.
+
+    Without this the configured port only drives health checks: llama-server
+    would keep listening on its own default and the two could drift apart.
+    """
+    parts = args.split() if args else []
+    if any(p == "--port" or p.startswith("--port=") for p in parts):
+        return parts
+    return parts + ["--port", str(port)]
+
+
+def _read_port(cfg) -> int:
+    """Read [server] port as a valid TCP port (the GUI field is free text)."""
+    try:
+        port = cfg.getint("server", "port", fallback=DEFAULT_PORT)
+    except (ValueError, configparser.Error):
+        port = DEFAULT_PORT
+    return max(1, min(65535, port))
+
 
 def _log(msg):
     ts = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -105,7 +129,7 @@ class LlmacppServerPlugin:
             "llama_server_arguments": cfg.get("server", "llama_server_arguments", fallback="").strip(),
             "llama_autostart": cfg.getboolean("server", "llama_autostart", fallback=False),
             "model_auto_select": cfg.getboolean("server", "model_auto_select", fallback=True),
-            "port": cfg.getint("server", "port", fallback=8080),
+            "port": _read_port(cfg),
             "health_poll_interval": cfg.getint("health", "poll_interval", fallback=10),
             "health_ready_timeout": cfg.getint("health", "ready_timeout", fallback=60),
             "health_max_restarts": cfg.getint("health", "max_restarts", fallback=3),
@@ -167,7 +191,7 @@ class LlmacppServerPlugin:
         """True if a llama-server is already listening on the configured port.
 
         Detects servers started outside this plugin (e.g. an external router on
-        the default 8080) so we can monitor instead of launching a conflicting
+        its default port) so we can monitor instead of launching a conflicting
         second instance. Uses /v1/health first (router always answers it), then
         falls back to /v1/models.
         """
@@ -209,8 +233,10 @@ class LlmacppServerPlugin:
         If a llama-server is already running (externally started), detects the
         model via /v1/models API without restarting the server — same as legacy.
         """
+        # Re-read settings.ini so a port edited in the GUI applies on restart.
+        self._config = self._load_config()
         path = self._config["llama_server_path"]
-        _log(f"Config: path={path}, enabled={self._config['enabled']}")
+        _log(f"Config: path={path}, port={self._config['port']}, enabled={self._config['enabled']}")
 
         if not path:
             return None, "path not configured"
@@ -262,7 +288,9 @@ class LlmacppServerPlugin:
 
         cwd = self._config["llama_server_working_directory"].strip() or base_path
         args = self._config["llama_server_arguments"].strip()
-        cmd = [exe] + (args.split() if args else [])
+        # Pin the listening port to the configured one: llama-server would
+        # otherwise use its own default, which no longer matches the settings.
+        cmd = [exe] + _inject_port(args, self._config["port"])
 
         _log(f"Starting: {' '.join(cmd)} (cwd={cwd})")
 
