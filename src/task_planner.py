@@ -164,3 +164,138 @@ def make_plan(prompt, history, tools, *, ask, max_steps=12):
               {"role": "user", "content": user + "\n\nYour previous reply was "
                "not valid plan JSON. Output ONLY the JSON object."}]
     return _normalise(_extract_json(ask(repair, max_tokens=1200)), max_steps)
+
+
+def _state_block(state):
+    """Compact outcome of the steps already executed (never the raw chat)."""
+    if not state:
+        return "- (none yet)"
+    return "\n".join(f"- {s['id']}: {s['action']} -> {s['outcome']}"
+                     for s in state)
+
+
+def _step_messages(goal, state, step):
+    """Fresh messages for one step: role + goal + compact state + instruction.
+
+    The user's conversation history is deliberately absent: a plan of a dozen
+    steps must never grow past the context window.
+    """
+    user = (f"Goal: {goal}\n\nCompleted steps:\n{_state_block(state)}\n\n"
+            f"Now execute ONLY this step ({step['id']}): {step['action']}\n"
+            f"Expected result: {step.get('expect', '')}")
+    return [{"role": "system", "content": STEP_SYSTEM},
+            {"role": "user", "content": user}]
+
+
+def _verdict(text):
+    """'done'|'continue'|'replan'|'fail' from a review reply."""
+    if not text:
+        return _DEFAULT_VERDICT
+    data = _extract_json(text)
+    if isinstance(data, dict):
+        status = str(data.get("status", "")).lower()
+        if status in ("done", "continue", "replan", "fail"):
+            return status
+    found = re.search(r"\b(done|continue|replan|fail)\b", text.lower())
+    return found.group(1) if found else _DEFAULT_VERDICT
+
+
+def _review(ask, goal, state, index, total):
+    """Ask whether the plan is finished. A broken review never kills a plan."""
+    user = (f"Goal: {goal}\n\nSteps executed: {index}/{total}\n\n"
+            f"{_state_block(state)}")
+    try:
+        text = ask([{"role": "system", "content": REVIEW_SYSTEM},
+                    {"role": "user", "content": user}], max_tokens=120)
+    except Exception as e:
+        print(f"[Plan] review failed ({e}) -> continue")
+        return _DEFAULT_VERDICT
+    return _verdict(text)
+
+
+def _replan(ask, goal, state, steps, max_steps):
+    """Rebuild the remaining steps from the current state. None = give up."""
+    user = (f"Goal: {goal}\n\nSteps already executed:\n{_state_block(state)}\n\n"
+            f"Steps still planned: "
+            f"{', '.join(str(s['id']) for s in steps) or '(none)'}\n\n"
+            "Produce the remaining plan as JSON only, starting from the "
+            "current state (do not repeat completed steps).")
+    messages = [{"role": "system",
+                 "content": PLAN_SYSTEM.format(max_steps=max_steps)},
+                {"role": "user", "content": user}]
+    try:
+        data = _extract_json(ask(messages, max_tokens=1200))
+    except Exception as e:
+        print(f"[Plan] replan failed: {e}")
+        return None
+    return _normalise(data, max_steps)
+
+
+def _outcome(status, goal, state, done, total):
+    return {"status": status, "goal": goal, "state": state,
+            "steps_done": done, "steps_total": total}
+
+
+def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
+             max_steps=12, max_replans=3, budget_seconds=600, start=None):
+    """Execute a plan step by step with fresh context per step.
+
+    ask(messages, max_tokens) -> str        one main-model completion
+    execute(messages, step) -> str          run one step (tool or elaboration)
+    on_step(i, n, action)                   progress callback (UI)
+    should_abort() -> bool                  checked before step and review
+
+    Returns an _outcome() dict; "aborted" means the user stopped us,
+    "stopped" a hard limit (steps/time), "failed" the plan itself.
+    """
+    start = time.time() if start is None else start
+    goal = plan.get("goal", "")
+    steps = list(plan.get("steps") or [])
+    state = []
+    replans = 0
+    consecutive_failures = 0
+    done_index = 0
+    while True:
+        total = len(steps)
+        broke_for_replan = False
+        for index, step in enumerate(steps, 1):
+            if index > max_steps or time.time() - start > budget_seconds:
+                return _outcome("stopped", goal, state, done_index, total)
+            if should_abort and should_abort():
+                return _outcome("aborted", goal, state, done_index, total)
+            if on_step:
+                on_step(index, total, step.get("action", ""))
+            try:
+                result = execute(_step_messages(goal, state, step), step)
+            except Exception as e:
+                result = f"step failed: {e}"
+                print(f"[Plan] step {index} raised: {e}")
+            result = str(result or "").strip()
+            state.append({"id": step.get("id", index),
+                          "action": step.get("action", ""),
+                          "outcome": result[:400]})
+            done_index = index
+            consecutive_failures = 0 if result else consecutive_failures + 1
+            if consecutive_failures >= 3:
+                return _outcome("failed", goal, state, done_index, total)
+            if should_abort and should_abort():
+                return _outcome("aborted", goal, state, done_index, total)
+            verdict = _review(ask, goal, state, index, total)
+            if verdict == "done":
+                return _outcome("done", goal, state, done_index, total)
+            if verdict == "fail":
+                return _outcome("failed", goal, state, done_index, total)
+            if verdict == "replan":
+                if replans >= max_replans:
+                    return _outcome("failed", goal, state, done_index, total)
+                replans += 1
+                new_plan = _replan(ask, goal, state, steps, max_steps)
+                if not new_plan:
+                    return _outcome("failed", goal, state, done_index, total)
+                steps = list(new_plan["steps"])
+                goal = new_plan.get("goal") or goal
+                broke_for_replan = True
+                break
+        if not broke_for_replan:
+            # Every step ran but the reviewer never said "done".
+            return _outcome("failed", goal, state, done_index, total)
