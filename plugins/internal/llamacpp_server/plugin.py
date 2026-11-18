@@ -14,6 +14,13 @@ import threading
 import time
 from datetime import datetime
 
+# Allow importing project modules (log_utils) from this standalone plugin.
+_PROJECT_SRC = os.path.abspath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "src"))
+if _PROJECT_SRC not in sys.path:
+    sys.path.insert(0, _PROJECT_SRC)
+from log_utils import rotate_if_needed  # noqa: E402
+
 _LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log.txt")
 _MAX_LOG = 100_000
 
@@ -299,6 +306,8 @@ class LlmacppServerPlugin:
         log_dir = os.path.join(self._resolve_root(), "log")
         os.makedirs(log_dir, exist_ok=True)
         log_path = os.path.join(log_dir, "llamacpp.log")
+        # llama-server writes its whole stdout here: cap it or it grows forever.
+        rotate_if_needed(log_path, max_bytes=2_000_000, backups=2)
         log_file = open(log_path, "a", encoding="utf-8")
         log_file.write(f"--- llama.cpp started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n")
         log_file.write(f"Command: {' '.join(cmd)}\nWorking dir: {cwd}\n\n")

@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import threading
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 _MCP_LOG = None
@@ -22,7 +23,8 @@ def _setup_mcp_log():
     log_path = os.path.join(log_dir, "mcp.log")
     with open(log_path, "w", encoding="utf-8") as _f:
         _f.write("")
-    fh = logging.FileHandler(log_path, encoding="utf-8")
+    fh = RotatingFileHandler(log_path, maxBytes=2_000_000, backupCount=2,
+                             encoding="utf-8")
     fh.setLevel(logging.INFO)
     fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
     _MCP_LOG.addHandler(fh)

@@ -9,6 +9,8 @@ import unicodedata
 from difflib import SequenceMatcher
 from urllib.parse import urlparse
 
+from log_utils import open_crash_log
+
 SCRIPT_PREFIXES = ("vasscript:", "script:")
 
 # ── Project path utilities ────────────────────────────────────────────────────
@@ -186,7 +188,7 @@ def log_exc(msg=""):
         ts = time.strftime("[%Y-%m-%d %H:%M:%S]")
         os.makedirs(os.path.join(get_project_root(), "log"), exist_ok=True)
         path = os.path.join(get_project_root(), "log", "crash.log")
-        with open(path, "a", encoding="utf-8") as f:
+        with open_crash_log(path) as f:
             if msg:
                 f.write(f"\n{ts} {msg}\n")
             traceback.print_exc(file=f)

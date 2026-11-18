@@ -97,18 +97,29 @@ from tts_engine import TtsEngine
 from event_reminder import EventReminder
 from idle_tracker import IdleTracker
 from state_manager import StateManager
+from log_utils import open_crash_log
 
 import builtins as _builtins
 _original_print = _builtins.print
 _debug_log_file = None
+_debug_log_bytes = 0           # bytes written since the last debug.log rotation
+_DEBUG_LOG_MAX = 1024 * 1024   # replaced in run() from [gui] debug_log_max_kb
 
 def _ts_print(*args, **kwargs):
     ts = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]"
     msg = ts + " " + " ".join(str(a) for a in args)
+    global _debug_log_file, _debug_log_bytes
     if _debug_log_file is not None:
         try:
             _debug_log_file.write(msg + "\n")
             _debug_log_file.flush()
+            # Rotate mid-session too, otherwise debug.log grows until restart.
+            _debug_log_bytes += len(msg) + 1
+            if _debug_log_bytes >= _DEBUG_LOG_MAX:
+                _debug_log_file.close()
+                _rotate_debug_log("log/debug.log", _DEBUG_LOG_MAX)
+                _debug_log_file = open("log/debug.log", "a", encoding="utf-8")
+                _debug_log_bytes = os.path.getsize("log/debug.log")
         except Exception:
             log_exc()
     try:
@@ -121,7 +132,7 @@ _builtins.print = _ts_print
 def _rotate_debug_log(path, max_bytes):
     if not os.path.exists(path):
         return
-    if os.path.getsize(path) <= max_bytes:
+    if os.path.getsize(path) < max_bytes:
         return
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -367,7 +378,7 @@ class VassApp:
                     })
                 self.gui.set_state(new_state, detail)
             except Exception as e:
-                with open("log/crash.log", "a") as f:
+                with open_crash_log("log/crash.log") as f:
                     f.write(f"gui.set_state failed: {e}\n")
 
     def _verify_stream_state(self, expected_listening):
@@ -557,8 +568,10 @@ class VassApp:
             os.makedirs("log", exist_ok=True)
             max_bytes = int(self.settings.get("debug_log_max_kb", 1024)) * 1024
             _rotate_debug_log("log/debug.log", max_bytes)
-            global _debug_log_file
+            global _debug_log_file, _debug_log_bytes, _DEBUG_LOG_MAX
+            _DEBUG_LOG_MAX = max_bytes
             _debug_log_file = open("log/debug.log", "a", encoding="utf-8")
+            _debug_log_bytes = os.path.getsize("log/debug.log")
 
         print(f"VASS v{__version__} - Voice assistant software")
         self.gui.set_loading_progress(5, 100, "Voice models...")
@@ -678,7 +691,7 @@ class VassApp:
                             try:
                                 beep(self.app_volume)
                             except Exception as ex:
-                                with open("log/crash.log", "a") as f:
+                                with open_crash_log("log/crash.log") as f:
                                     f.write(f"Beep error: {ex}\n")
                             self.audio_handler.clear_queue()
                             self.stop_playback()
@@ -691,7 +704,7 @@ class VassApp:
                             if wake:
                                 self._audio_stats_wake += 1
                         except Exception as ex:
-                            with open("log/crash.log", "a") as f:
+                            with open_crash_log("log/crash.log") as f:
                                 f.write(f"detect_wake_word error: {ex}\n")
                             print(f"[WakeWord] detect_wake_word error: {ex}")
                             wake = False
@@ -700,7 +713,7 @@ class VassApp:
                             try:
                                 beep(self.app_volume)
                             except Exception as ex:
-                                with open("log/crash.log", "a") as f:
+                                with open_crash_log("log/crash.log") as f:
                                     f.write(f"Beep error: {ex}\n")
                             self.audio_handler.clear_queue()
                             self.stop_playback()
@@ -745,7 +758,7 @@ class VassApp:
                 break
             except Exception as e:
                 import traceback
-                with open("log/crash.log", "a") as f:
+                with open_crash_log("log/crash.log") as f:
                     f.write(f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
                     traceback.print_exc(file=f)
                 print(f"\n[CRASH] Loop error. Restarting in 3 seconds. Details in crash.log")
@@ -2011,7 +2024,7 @@ def main():
                     _state["app"].run()
                 except BaseException as e:
                     import traceback
-                    with open("log/crash.log", "a") as f:
+                    with open_crash_log("log/crash.log") as f:
                         f.write(f"\n=== CRASH in _run_safe ({time.strftime('%Y-%m-%d %H:%M:%S')}) ===\n")
                         traceback.print_exc(file=f)
                     print(f"\n[FATAL] Unrecoverable error: {e}")
