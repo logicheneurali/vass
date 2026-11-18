@@ -168,7 +168,11 @@
       "work_start_hour": "工作开始",
       "work_end_hour": "工作结束",
       "lunch_start": "午休开始",
-      "lunch_end": "午休结束"
+      "lunch_end": "午休结束",
+      "planning_enabled": "多步骤规划",
+      "plan_max_steps": "计划最大步数",
+      "plan_max_replans": "最大重新规划次数",
+      "plan_budget_seconds": "计划时间预算（秒）"
     },
     "field_descriptions": {
       "x": "屏幕 X 位置",
@@ -230,7 +234,11 @@
       "auto_context_selection": "当请求不需要上下文时（如计算、时间、翻译），跳过内存注入。",
       "compact_mode": "将窗口缩小为36x36像素，显示同心圆和透明背景",
       "force_x11": "使用X11 (XWayland) 保存窗口位置/大小。需要重启。",
-      "app_autostart": "在系统启动时注册或移除VASS。显示的状态反映系统注册表。"
+      "app_autostart": "在系统启动时注册或移除VASS。显示的状态反映系统注册表。",
+      "planning_enabled": "主模型判断请求是否需要多步骤计划。",
+      "plan_max_steps": "计划的最大步数（默认 12）。",
+      "plan_max_replans": "放弃前的最大重新规划次数（默认 3）。",
+      "plan_budget_seconds": "计划执行时间预算（秒，默认 600）。"
     },
     "section_labels": {
       "gui": "窗口",

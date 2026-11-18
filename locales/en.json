@@ -168,7 +168,11 @@
       "work_start_hour": "Work start",
       "work_end_hour": "Work end",
       "lunch_start": "Lunch break start",
-      "lunch_end": "Lunch break end"
+      "lunch_end": "Lunch break end",
+      "planning_enabled": "Multi-step planning",
+      "plan_max_steps": "Plan max steps",
+      "plan_max_replans": "Plan max replans",
+      "plan_budget_seconds": "Plan time budget (seconds)"
     },
     "field_descriptions": {
       "x": "Screen X position",
@@ -230,7 +234,11 @@
       "auto_context_selection": "Skip memory injection when the request does not need context (e.g. calculations, time, translations).",
       "compact_mode": "Reduces the window to 36x36 pixels with concentric circles and transparent background",
       "force_x11": "Use X11 (XWayland) for window position/size persistence. Requires restart.",
-      "app_autostart": "Registers or removes VASS from OS startup. The displayed state reflects the system registry."
+      "app_autostart": "Registers or removes VASS from OS startup. The displayed state reflects the system registry.",
+      "planning_enabled": "The main model decides whether a request needs a multi-step plan.",
+      "plan_max_steps": "Maximum number of steps in a plan (default 12).",
+      "plan_max_replans": "Maximum replans before giving up (default 3).",
+      "plan_budget_seconds": "Time budget for running a plan, in seconds (default 600)."
     },
     "section_labels": {
       "gui": "Window",

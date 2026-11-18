@@ -168,7 +168,11 @@
       "work_start_hour": "근무 시작",
       "work_end_hour": "근무 종료",
       "lunch_start": "점심 시작",
-      "lunch_end": "점심 종료"
+      "lunch_end": "점심 종료",
+      "planning_enabled": "다단계 계획",
+      "plan_max_steps": "계획 최대 단계 수",
+      "plan_max_replans": "재계획 최대 횟수",
+      "plan_budget_seconds": "계획 시간 예산 (초)"
     },
     "field_descriptions": {
       "x": "화면 X 위치",
@@ -230,7 +234,11 @@
       "auto_context_selection": "요청이 컨텍스트를 필요로 하지 않는 경우(계산, 시간, 번역 등) 메모리 주입을 건너뜁니다.",
       "compact_mode": "창을 36x36 픽셀로 축소하고 동심원과 투명 배경을 표시합니다",
       "force_x11": "X11 (XWayland)를 사용하여 창 위치/크기 저장. 다시 시작이 필요합니다.",
-      "app_autostart": "시스템 시작 시 VASS를 등록하거나 제거합니다. 표시된 상태는 시스템 레지스트리를 반영합니다."
+      "app_autostart": "시스템 시작 시 VASS를 등록하거나 제거합니다. 표시된 상태는 시스템 레지스트리를 반영합니다.",
+      "planning_enabled": "기본 모델이 요청에 다단계 계획이 필요한지 판단합니다。",
+      "plan_max_steps": "계획의 최대 단계 수(기본값 12)。",
+      "plan_max_replans": "포기하기 전 최대 재계획 횟수(기본값 3)。",
+      "plan_budget_seconds": "계획 실행 시간 예산(초, 기본값 600)。"
     },
     "section_labels": {
       "gui": "창",

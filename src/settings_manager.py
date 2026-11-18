@@ -41,6 +41,12 @@ def load_settings(settings_file):
         result["auto_context_selection"] = config.get("ai", "auto_context_selection", fallback="false").lower() == "true"
         result["context_length"] = config.getint("ai", "context_length", fallback=0)
         result["overflow_strategy"] = config.get("ai", "overflow_strategy", fallback="truncate")
+        # Multi-step planning (spec: docs/superpowers/specs/
+        # 2026-11-18-ai-routing-planning-design.md).
+        result["planning_enabled"] = config.get("ai", "planning_enabled", fallback="true").lower() == "true"
+        result["plan_max_steps"] = config.getint("ai", "plan_max_steps", fallback=12)
+        result["plan_max_replans"] = config.getint("ai", "plan_max_replans", fallback=3)
+        result["plan_budget_seconds"] = config.getint("ai", "plan_budget_seconds", fallback=600)
         result["compress_context"] = config.get("ai", "compress_context", fallback="false")
 
         result["gui_font_family"] = config.get("gui", "font_family", fallback="Segoe UI")

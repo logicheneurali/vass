@@ -168,7 +168,11 @@
       "work_start_hour": "Inicio trabajo",
       "work_end_hour": "Fin trabajo",
       "lunch_start": "Inicio almuerzo",
-      "lunch_end": "Fin almuerzo"
+      "lunch_end": "Fin almuerzo",
+      "planning_enabled": "Planificación multi-paso",
+      "plan_max_steps": "Pasos máximos del plan",
+      "plan_max_replans": "Replanificaciones máximas",
+      "plan_budget_seconds": "Presupuesto de tiempo del plan (segundos)"
     },
     "field_descriptions": {
       "x": "Posición X en pantalla",
@@ -230,7 +234,11 @@
       "auto_context_selection": "Omite la inyección de memoria cuando la solicitud no necesita contexto (ej. cálculos, hora, traducciones).",
       "compact_mode": "Reduce la ventana a 36x36 píxeles con círculos concéntricos y fondo transparente",
       "force_x11": "Usar X11 (XWayland) para guardar posición/tamaño de ventana. Requiere reinicio.",
-      "app_autostart": "Registra o elimina VASS del inicio del sistema. El estado mostrado refleja el registro del sistema."
+      "app_autostart": "Registra o elimina VASS del inicio del sistema. El estado mostrado refleja el registro del sistema.",
+      "planning_enabled": "El modelo principal decide si una solicitud necesita un plan multi-paso.",
+      "plan_max_steps": "Número máximo de pasos de un plan (predeterminado 12).",
+      "plan_max_replans": "Máximo de replanificaciones antes de rendirse (predeterminado 3).",
+      "plan_budget_seconds": "Presupuesto de tiempo para ejecutar un plan en segundos (predeterminado 600)."
     },
     "section_labels": {
       "gui": "Ventana",

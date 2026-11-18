@@ -226,7 +226,11 @@
       "work_start_hour": "Inizio orario lavorativo",
       "work_end_hour": "Fine orario lavorativo",
       "lunch_start": "Inizio pausa pranzo",
-      "lunch_end": "Fine pausa pranzo"
+      "lunch_end": "Fine pausa pranzo",
+      "planning_enabled": "Pianificazione multi-step",
+      "plan_max_steps": "Passi massimi del piano",
+      "plan_max_replans": "Ripianificazioni massime",
+      "plan_budget_seconds": "Budget tempo piano (secondi)"
     },
     "field_descriptions": {
       "x": "Posizione X sullo schermo",
@@ -288,7 +292,11 @@
       "auto_context_selection": "Salta l'iniezione della memoria quando la richiesta non necessita del contesto (es. calcoli, ora, traduzioni).",
       "compact_mode": "Riduce la finestra a 36x36 pixel con cerchi concentrici e sfondo trasparente",
       "force_x11": "Usa X11 (XWayland) per salvare posizione/dimensione finestra. Richiede riavvio.",
-      "app_autostart": "Registra o rimuove VASS dall'avvio del sistema operativo. Lo stato mostrato riflette il registro di sistema."
+      "app_autostart": "Registra o rimuove VASS dall'avvio del sistema operativo. Lo stato mostrato riflette il registro di sistema.",
+      "planning_enabled": "Il modello principale decide se una richiesta ha bisogno di un piano a più passi.",
+      "plan_max_steps": "Numero massimo di passi per un piano (default 12).",
+      "plan_max_replans": "Numero massimo di ripianificazioni prima di arrendersi (default 3).",
+      "plan_budget_seconds": "Tempo massimo per l'esecuzione di un piano, in secondi (default 600)."
     },
     "section_labels": {
       "gui": "Finestra",

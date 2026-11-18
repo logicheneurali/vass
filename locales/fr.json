@@ -168,7 +168,11 @@
       "work_start_hour": "Début travail",
       "work_end_hour": "Fin travail",
       "lunch_start": "Début déjeuner",
-      "lunch_end": "Fin déjeuner"
+      "lunch_end": "Fin déjeuner",
+      "planning_enabled": "Planification multi-étapes",
+      "plan_max_steps": "Étapes max du plan",
+      "plan_max_replans": "Replans max",
+      "plan_budget_seconds": "Budget temps du plan (secondes)"
     },
     "field_descriptions": {
       "x": "Position X à l'écran",
@@ -230,7 +234,11 @@
       "auto_context_selection": "Ignore l'injection de mémoire lorsque la requête n'a pas besoin de contexte (ex. calculs, heure, traductions).",
       "compact_mode": "Réduit la fenêtre à 36x36 pixels avec des cercles concentriques et fond transparent",
       "force_x11": "Utiliser X11 (XWayland) pour la position/taille de la fenêtre. Redémarrage requis.",
-      "app_autostart": "Enregistre ou retire VASS au démarrage du système. L'état affiché reflète le registre système."
+      "app_autostart": "Enregistre ou retire VASS au démarrage du système. L'état affiché reflète le registre système.",
+      "planning_enabled": "Le modèle principal décide si une demande nécessite un plan multi-étapes.",
+      "plan_max_steps": "Nombre maximum d'étapes d'un plan (par défaut 12).",
+      "plan_max_replans": "Nombre maximum de replans avant d'abandonner (par défaut 3).",
+      "plan_budget_seconds": "Budget d'exécution d'un plan en secondes (par défaut 600)."
     },
     "section_labels": {
       "gui": "Fenêtre",

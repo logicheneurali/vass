@@ -168,7 +168,11 @@
       "work_start_hour": "勤務開始",
       "work_end_hour": "勤務終了",
       "lunch_start": "昼休み開始",
-      "lunch_end": "昼休み終了"
+      "lunch_end": "昼休み終了",
+      "planning_enabled": "マルチステップ計画",
+      "plan_max_steps": "計画の最大ステップ数",
+      "plan_max_replans": "再計画の最大回数",
+      "plan_budget_seconds": "計画の時間予算（秒）"
     },
     "field_descriptions": {
       "x": "画面上のX位置",
@@ -230,7 +234,11 @@
       "auto_context_selection": "リクエストがコンテキストを必要としない場合（計算、時刻、翻訳など）、メモリの注入をスキップします。",
       "compact_mode": "ウィンドウを36x36ピクセルに縮小し、同心円と透明な背景を表示します",
       "force_x11": "X11 (XWayland) を使用してウィンドウの位置/サイズを保存。再起動が必要です。",
-      "app_autostart": "システム起動時にVASSを登録または削除します。表示される状態はシステムレジストリを反映します。"
+      "app_autostart": "システム起動時にVASSを登録または削除します。表示される状態はシステムレジストリを反映します。",
+      "planning_enabled": "メインモデルがリクエストにマルチステップの計画が必要かどうかを判断します。",
+      "plan_max_steps": "計画の最大ステップ数（既定 12）。",
+      "plan_max_replans": "あきらめるまでの再計画の最大回数（既定 3）。",
+      "plan_budget_seconds": "計画の実行時間予算（秒、既定 600）。"
     },
     "section_labels": {
       "gui": "ウィンドウ",

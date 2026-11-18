@@ -168,7 +168,11 @@
       "work_start_hour": "Arbeitsbeginn",
       "work_end_hour": "Arbeitsende",
       "lunch_start": "Mittagspause Beginn",
-      "lunch_end": "Mittagspause Ende"
+      "lunch_end": "Mittagspause Ende",
+      "planning_enabled": "Multi-Schritt-Planung",
+      "plan_max_steps": "Max. Schritte im Plan",
+      "plan_max_replans": "Max. Neuplanungen",
+      "plan_budget_seconds": "Zeitbudget des Plans (Sekunden)"
     },
     "field_descriptions": {
       "x": "Bildschirm X-Position",
@@ -230,7 +234,11 @@
       "auto_context_selection": "Überspringt die Speicherinjektion, wenn die Anfrage keinen Kontext benötigt (z.B. Berechnungen, Uhrzeit, Übersetzungen).",
       "compact_mode": "Reduziert das Fenster auf 36x36 Pixel mit konzentrischen Kreisen und transparentem Hintergrund",
       "force_x11": "X11 (XWayland) für Fensterposition/-größe verwenden. Neustart erforderlich.",
-      "app_autostart": "Registriert oder entfernt VASS beim Systemstart. Der angezeigte Status spiegelt die Systemregistrierung wider."
+      "app_autostart": "Registriert oder entfernt VASS beim Systemstart. Der angezeigte Status spiegelt die Systemregistrierung wider.",
+      "planning_enabled": "Das Hauptmodell entscheidet, ob eine Anfrage einen Multi-Schritt-Plan braucht.",
+      "plan_max_steps": "Maximale Anzahl von Schritten in einem Plan (Standard 12).",
+      "plan_max_replans": "Maximale Neuplanungen bis zum Abbruch (Standard 3).",
+      "plan_budget_seconds": "Zeitbudget für die Ausführung eines Plans in Sekunden (Standard 600)."
     },
     "section_labels": {
       "gui": "Fenster",
