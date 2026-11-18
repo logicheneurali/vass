@@ -40,6 +40,24 @@ def _extract_json(text):
         return None
 
 
+_PLACEHOLDER = re.compile(r"\{\{|\}\}|\w+\([^()]*\)\s*$")
+
+
+def clean_args(args):
+    """Args a real tool may receive.
+
+    The plan model sometimes emits template placeholders ({{tomorrow_date}})
+    or pseudo-calls (tomorrow_date(current_date)) as argument values; passing
+    those to a real tool silently corrupts the call (live evidence: the
+    weather tool resolved Rome to the wrong city). Such values are dropped:
+    model output is not trusted input.
+    """
+    if not isinstance(args, dict):
+        return None
+    return {k: v for k, v in args.items()
+            if not (isinstance(v, str) and _PLACEHOLDER.search(v))}
+
+
 def _plan_flag(data):
     """Strict-ish bool from the model's {"plan": ...}; None when unusable."""
     if not isinstance(data, dict):
@@ -90,7 +108,9 @@ PLAN_SYSTEM = (
     'produce"}}]}}\n'
     "Rules: between 2 and {max_steps} steps; each step does ONE thing; "
     "'tool' must be one of the listed tools or null when the step is pure "
-    "text work; 'args' must be a complete JSON object when 'tool' is set; "
+    "text work; 'args' must be a complete JSON object when 'tool' is set, "
+    "with literal values only: never templates like {{today}}, never "
+    "function calls like tomorrow_date(x); "
     "no prose, no markdown, no comments outside the JSON."
 )
 

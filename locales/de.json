@@ -397,7 +397,9 @@
     "blacklisted": "Anfrage blockiert: enthält verbotene Wörter.",
     "tool_no_reply": "Ich habe die Suchwerkzeuge ausgeführt, konnte aber keine Antwort formulieren. Versuchen Sie, die Frage umzuformulieren.",
     "tool_no_reply_links": "Ich habe die Werkzeuge ausgeführt und einige Ergebnisse erzeugt, konnte aber keine Textantwort formulieren. Versuchen Sie, die Frage umzuformulieren.",
-    "lang_instruction": "Respondi always in German. If the user writes in German, reply in German. If the user writes in another language, still reply in German."
+    "lang_instruction": "Respondi always in German. If the user writes in German, reply in German. If the user writes in another language, still reply in German.",
+    "plan_step": "Plan {i}/{n}: {action}",
+    "plan_stopped": "Plan bei Schritt {i}/{n} gestoppt."
   },
   "tts": {
     "fallback_language": "de-DE"

@@ -92,6 +92,7 @@ from utils import get_project_root, call_with_retry, execute_mcp_tool_calls, ini
 from activity_tracker import get_tracker
 from gui import VassGUI
 from i18n import t
+import task_planner
 from script_engine import VASScript
 from tts_engine import TtsEngine
 from event_reminder import EventReminder
@@ -1615,6 +1616,135 @@ class VassApp:
         escalate = bool(_max_turns_hit or _tool_empty or _ctx_trimmed)
         return ai_response, response_from_tool_calls, file_links, script_called, escalate
 
+    def _planning_enabled(self):
+        """True when the multi-step planner is on. Tolerates the raw 'true'
+        string that settings.ini holds before settings_manager parses it."""
+        v = self.settings.get("planning_enabled", True)
+        return v if isinstance(v, bool) else str(v).lower() == "true"
+
+    def _run_plan(self, prompt, metrics):
+        """Build and run a multi-step plan for a complex request.
+
+        Returns the same 5-tuple as _chat_once (escalate always False), or
+        None when no plan could be started - the caller then falls back to
+        the reactive pipeline.
+        """
+        try:
+            mcp, tools = init_mcp(self.mcp_server_url, timeout=600)
+            if not self.allow_ai_scripts and tools:
+                tools = [t for t in tools
+                         if t["function"]["name"] not in ("interact", "script")]
+            plan = task_planner.make_plan(
+                prompt, self.conversation_history, tools,
+                ask=lambda msgs, max_tokens=1024: self._plan_ask(msgs, metrics, max_tokens),
+                max_steps=int(self.settings.get("plan_max_steps", 12) or 12))
+            if not plan:
+                print("[Plan] no usable plan -> reactive pipeline")
+                return None
+            print(f"[Plan] {plan.get('goal', '')[:80]} "
+                  f"({len(plan['steps'])} steps)")
+
+            file_links = []
+
+            def _execute(messages, step):
+                """One step: a direct tool call through the standard loop
+                (gate, rate limit, audit, web fallback all stay inside), or a
+                plain model elaboration when the step names no usable tool."""
+                name, raw_args = step.get("tool"), step.get("args")
+                args = task_planner.clean_args(raw_args)
+                # A step whose arguments were only placeholders/pseudo-code
+                # is no longer a tool call: let the model do it in text.
+                dropped = bool(raw_args) and not args
+                usable = (name and args is not None and not dropped and mcp and
+                          any(t["function"]["name"] == name for t in tools))
+                if not usable:
+                    return self._plan_ask(messages, metrics, 800)
+                tool = next(t for t in tools if t["function"]["name"] == name)
+                tc = type("", (), {
+                    "id": f"plan_{step.get('id')}", "content": None,
+                    "function": type("", (), {"name": name,
+                                              "arguments": json.dumps(args)})(),
+                    "type": "function"})()
+                pseudo = type("", (), {"tool_calls": [tc], "content": None})()
+                msg = execute_mcp_tool_calls(
+                    messages, pseudo, mcp, [tool], self.openai_client, self.ai_model,
+                    gui=self.gui, max_turns=3,
+                    context_limit=self._effective_context_length(),
+                    file_links=file_links, usage=metrics)
+                return (msg.content or "").strip()
+
+            def _on_step(i, n, action):
+                # Reuses the existing 'waiting' state: no new GUI state.
+                self.set_state("waiting",
+                               t("ai.plan_step", self.language)
+                               .format(i=i, n=n, action=action[:60]))
+
+            outcome = task_planner.run_plan(
+                plan,
+                ask=lambda msgs, max_tokens=1024: self._plan_ask(msgs, metrics, max_tokens),
+                execute=_execute,
+                on_step=_on_step,
+                # The GUI stop button and the wake word both move the state
+                # out of 'waiting' -> the plan stops at the next boundary.
+                should_abort=lambda: self.state != "waiting",
+                max_steps=int(self.settings.get("plan_max_steps", 12) or 12),
+                max_replans=int(self.settings.get("plan_max_replans", 3) or 3),
+                budget_seconds=int(self.settings.get("plan_budget_seconds", 600) or 600))
+        except Exception:
+            log_exc()
+            return None
+
+        status = outcome.get("status")
+        print(f"[Plan] status={status} steps={outcome.get('steps_done')}/"
+              f"{outcome.get('steps_total')}")
+        if status == "aborted":
+            # script_called=True suppresses the history write: an exchange the
+            # user stopped must not leave an empty assistant message behind.
+            return "", True, file_links, True, False
+        if status == "done":
+            summary = self._plan_summary(outcome, metrics)
+            if summary:
+                # Streamed to the TTS by _stream_answer -> do not enqueue twice.
+                return summary, False, file_links, False, False
+            status = "stopped"
+        if status in ("stopped", "failed"):
+            msg = t("ai.plan_stopped", self.language).format(
+                i=outcome.get("steps_done", 0), n=outcome.get("steps_total", 0))
+            return msg, True, file_links, False, False  # spoken by the tail
+        return "", True, file_links, False, False
+
+    def _plan_ask(self, messages, metrics, max_tokens):
+        """One non-streaming main-model completion for the planner."""
+        kwargs = dict(model=self.ai_model, messages=messages,
+                      max_tokens=max_tokens, temperature=0.3,
+                      extra_body={"disable_thinking": True})
+        resp = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs))
+        metrics.add(getattr(resp, "usage", None))
+        return (resp.choices[0].message.content or "").strip()
+
+    def _plan_summary(self, outcome, metrics):
+        """Final spoken summary of a finished plan, streamed to the TTS."""
+        state_txt = "\n".join(
+            f"- {s['id']}: {s['action']} -> {s['outcome']}"
+            for s in outcome.get("state", []))
+        messages = [
+            {"role": "system", "content":
+             "You are VASS, a voice assistant. Write the final spoken summary "
+             "of a completed plan: 2 to 4 plain sentences in the user's "
+             "language, no markdown, no list of steps, just what was found "
+             "or done and what it means for the user."},
+            {"role": "user", "content":
+             f"Goal: {outcome.get('goal', '')}\n\nSteps:\n{state_txt or '-'}"},
+        ]
+        kwargs = dict(model=self.ai_model, messages=messages, max_tokens=600,
+                      temperature=0.4, extra_body={"disable_thinking": True})
+        try:
+            content, _acc, _fr, _start = self._stream_answer(kwargs, metrics)
+        except Exception:
+            log_exc()
+            return ""
+        return (content or "").strip()
+
     def _handle_ai_fallback(self, prompt_original):
         self.set_state("waiting")
         if self.blacklist:
@@ -1668,7 +1798,19 @@ class VassApp:
         try:
             metrics = UsageCollector()
             self._ai_t_start = self._ai_t_end = None
-            result = self._chat_once(prompt, metrics)
+            # Short-circuit: with planning off, needs_plan is never called.
+            plan_wanted = self._planning_enabled() and task_planner.needs_plan(
+                prompt, self.openai_client, self.ai_model,
+                history=self.conversation_history, usage=metrics)
+            print(f"[Plan] needs_plan={plan_wanted}")
+            result = self._run_plan(prompt, metrics) if plan_wanted else None
+            if result is None:
+                result = self._chat_once(prompt, metrics)
+                # Escalation: the reactive loop ran out of road (turns,
+                # empty result or a saturated context) -> run a plan once,
+                # without paying a second classification call.
+                if result[4] and not plan_wanted and self._planning_enabled():
+                    result = self._run_plan(prompt, metrics) or result
             ai_response, response_from_tool_calls, file_links, script_called, _ = result
             ai_response = strip_think_tags(ai_response or "")
 

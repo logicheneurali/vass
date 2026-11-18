@@ -398,7 +398,9 @@
     "blacklisted": "요청이 차단되었습니다: 금지어가 포함되어 있습니다.",
     "tool_no_reply": "검색 도구를 실행했지만 답변을 구성할 수 없었습니다. 질문을 다시 표현해 보세요.",
     "tool_no_reply_links": "도구를 실행하고 일부 결과를 생성했지만 텍스트 답변을 구성할 수 없었습니다. 질문을 다시 표현해 보세요.",
-    "lang_instruction": "Always respond in Korean. When user writes in Korean, reply in Korean. When user writes in another language, still reply in Korean."
+    "lang_instruction": "Always respond in Korean. When user writes in Korean, reply in Korean. When user writes in another language, still reply in Korean.",
+    "plan_step": "계획 {i}/{n}: {action}",
+    "plan_stopped": "계획 {i}/{n}단계에서 중지했습니다."
   },
   "tts": {
     "fallback_language": "ko-KR"

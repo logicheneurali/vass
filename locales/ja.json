@@ -398,7 +398,9 @@
     "blacklisted": "リクエストがブロックされました：禁止ワードが含まれています。",
     "tool_no_reply": "検索ツールを実行しましたが、回答をまとめることができませんでした。質問を言い換えてみてください。",
     "tool_no_reply_links": "ツールを実行していくつかの結果を生成しましたが、テキスト回答をまとめることができませんでした。質問を言い換えてみてください。",
-    "lang_instruction": "常に用 Japanese 来 respond. 当 user 用 Japanese 写时，reply in Japanese. When user writes in another language, still reply in Japanese."
+    "lang_instruction": "常に用 Japanese 来 respond. 当 user 用 Japanese 写时，reply in Japanese. When user writes in another language, still reply in Japanese.",
+    "plan_step": "計画 {i}/{n}: {action}",
+    "plan_stopped": "計画をステップ {i}/{n} で停止しました。"
   },
   "tts": {
     "fallback_language": "ja-JP"

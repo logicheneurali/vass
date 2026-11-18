@@ -397,7 +397,9 @@
     "blacklisted": "Requête bloquée : contient des mots interdits.",
     "tool_no_reply": "J'ai exécuté les outils de recherche mais je n'ai pas pu formuler de réponse. Essayez de reformuler votre question.",
     "tool_no_reply_links": "J'ai exécuté les outils et généré des résultats, mais je n'ai pas pu formuler de réponse textuelle. Essayez de reformuler votre question.",
-    "lang_instruction": "Respondi always in French. Si the user writes in French, reply in French. Si the user writes in another langue, still reply in French."
+    "lang_instruction": "Respondi always in French. Si the user writes in French, reply in French. Si the user writes in another langue, still reply in French.",
+    "plan_step": "Plan {i}/{n} : {action}",
+    "plan_stopped": "Plan arrêté à l'étape {i}/{n}."
   },
   "tts": {
     "fallback_language": "fr-FR"
