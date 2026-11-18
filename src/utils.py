@@ -429,7 +429,7 @@ class UsageCollector:
         return self.prompt_tokens + self.completion_tokens
 
 
-def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=None, log_prefix="[AI]", gui=None, context_limit=0, file_links=None, usage=None):
+def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temperature=None, log_prefix="[AI]", gui=None, context_limit=0, file_links=None, usage=None, max_turns=30):
     if not (msg.tool_calls and mcp and tools):
         return msg
 
@@ -569,15 +569,17 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             "content": _result_text(result)
         })
 
-    MAX_TURNS = 30
+    MAX_TURNS = max_turns
     _seen_paths = set()
     _allowed_root = os.path.join(get_project_root(), "Allowed_root")
     _last_call = None                  # (tool_name, tool_args) of previous turn
     # Names of tools actually available to this loop (for fallback decisions).
     _available_tool_names = {t.get("function", {}).get("name") for t in tools if isinstance(t, dict)}
+    _exhausted = True                  # cleared by every normal exit below
     for _ in range(MAX_TURNS):
         called_this_turn = set()
         if not msg.tool_calls:
+            _exhausted = False
             break
         # Loop guard: if the model repeats the exact same single tool call that
         # just produced a result, stop instead of spinning (e.g. webfetch the
@@ -588,6 +590,7 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             if (tc0.function.name, tc0.function.arguments) == _last_call:
                 print(f"[AI] Loop guard: repeated tool call "
                       f"{tc0.function.name}() with identical args — stopping")
+                _exhausted = False
                 break
         _last_call = None
         if len(msg.tool_calls) == 1:
@@ -721,8 +724,12 @@ def execute_mcp_tool_calls(messages, msg, mcp, tools, openai_client, model, temp
             usage.add(getattr(resp, "usage", None))
         msg = resp.choices[0].message
         if not msg.tool_calls:
+            _exhausted = False
             break
 
+    # Escalation signal for the caller: True only when the loop ran out of
+    # turns with tool calls still pending (getattr: early returns skip this).
+    msg.max_turns_hit = _exhausted
     return msg
 
 

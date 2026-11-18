@@ -1268,6 +1268,353 @@ class VassApp:
             return i18n.t("ai.tool_no_reply_links", self.language)
         return i18n.t("ai.tool_no_reply", self.language)
 
+    def _stream_answer(self, kwargs, metrics):
+        """Stream one completion, enqueueing finished sentences to the TTS.
+
+        Returns (full_content, tool_calls_acc, finish_reason, stream_start).
+        The caller supplies kwargs (model/messages/max_tokens/...); the stream
+        flags are set here so every streamed answer behaves identically.
+        """
+        kwargs = dict(kwargs)
+        kwargs["stream"] = True
+        kwargs["stream_options"] = {"include_usage": True}
+        stream = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs))
+
+        content_buffer = ""
+        full_content = ""
+        tool_calls_acc = {}
+        finish_reason = None
+        MIN_TTS_WORDS = 8
+        CPS = 0.0
+        MIN_SECS_LENGTH = 5.0
+        _stream_start = time.time()
+        self._ai_t_start = _stream_start
+        # total_enqueued = 0
+
+        for chunk in stream:
+            if chunk.usage:
+                metrics.add(chunk.usage)
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            finish_reason = chunk.choices[0].finish_reason
+
+            if delta.content:
+                content_buffer += delta.content
+                full_content += delta.content
+                buf_words = len(re.sub(r'\s+', ' ', content_buffer.strip()).split())
+                if buf_words >= MIN_TTS_WORDS:
+                    n = 0
+                    while True:
+                        idx = -1
+                        for p in ('.', '!', '?'):
+                            pos = content_buffer.find(p)
+                            if pos != -1 and (idx == -1 or pos < idx):
+                                idx = pos
+                        if idx == -1:
+                            break
+                        sentence = content_buffer[:idx + 1].strip()
+                        content_buffer = content_buffer[idx + 1:]
+                        if sentence:
+                            self.tts.enqueue(sentence)
+                            n += 1
+                    if n > 0:
+                        # if total_enqueued == 0:
+                        #     self.tts.pause()    
+                        # total_enqueued += n                            
+                        # if total_enqueued + n >= 3:
+                        #     self.tts.unpause()
+                        #     total_enqueued = 0                            
+                        if self.debug_enabled:
+                            print(f"[Stream] Enqueued {n} sentences , {buf_words} buf words >= {MIN_TTS_WORDS} min)")
+
+                elapsed = time.time() - _stream_start
+                if elapsed > MIN_SECS_LENGTH:
+                    prev_cps = CPS
+                    prev_mtw = MIN_TTS_WORDS
+                    CPS = ( prev_cps + ( len(full_content) / elapsed ) ) / 2
+                    MIN_TTS_WORDS = max(5, min(100, int(CPS * MIN_SECS_LENGTH * 3 )))
+                    if self.debug_enabled and (prev_cps != CPS or prev_mtw != MIN_TTS_WORDS):
+                        print(f"[Stream] CPS={CPS:.1f} ({prev_cps:.1f}) -> MIN_TTS_WORDS={MIN_TTS_WORDS} ({prev_mtw}), tot_chars={len(full_content)}, elapsed={elapsed:.1f}s")
+
+            if delta.tool_calls:
+                for tc_delta in delta.tool_calls:
+                    idx = tc_delta.index
+                    if idx not in tool_calls_acc:
+                        tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
+                    acc = tool_calls_acc[idx]
+                    if tc_delta.id:
+                        acc["id"] += tc_delta.id
+                    if tc_delta.function:
+                        if tc_delta.function.name:
+                            acc["name"] += tc_delta.function.name
+                        if tc_delta.function.arguments:
+                            acc["arguments"] += tc_delta.function.arguments
+
+            if finish_reason:
+                break
+
+        self.tts.unpause()
+        remaining = content_buffer.strip()
+        if remaining:
+            self.tts.enqueue(remaining)
+            print(f"[Stream] Remaining enqueued: {len(remaining.split())} words, {len(remaining)} chars")
+        elapsed = time.time() - _stream_start
+        print(f"[Stream] Done: {len(full_content)} chars in {elapsed:.1f}s (CPS={CPS:.1f}), tool_calls={bool(tool_calls_acc)}, finish={finish_reason}")
+
+        if not finish_reason:
+            if not full_content:
+                print(f"[Stream] WARNING: stream ended without finish_reason and empty content — retrying once")
+                try:
+                    stream2 = call_with_retry(
+                        lambda: self.openai_client.chat.completions.create(**kwargs),
+                        log_prefix="[Stream Retry]")
+                    for chunk2 in stream2:
+                        if chunk2.usage:
+                            metrics.add(chunk2.usage)
+                        if not chunk2.choices:
+                            continue
+                        d2 = chunk2.choices[0].delta
+                        if d2.content:
+                            full_content += d2.content
+                        if d2.tool_calls:
+                            for tc_delta in d2.tool_calls:
+                                idx = tc_delta.index
+                                if idx not in tool_calls_acc:
+                                    tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
+                                acc = tool_calls_acc[idx]
+                                if tc_delta.id:
+                                    acc["id"] += tc_delta.id
+                                if tc_delta.function:
+                                    if tc_delta.function.name:
+                                        acc["name"] += tc_delta.function.name
+                                    if tc_delta.function.arguments:
+                                        acc["arguments"] += tc_delta.function.arguments
+                        fr2 = chunk2.choices[0].finish_reason
+                        if fr2:
+                            finish_reason = fr2
+                            break
+                    if full_content:
+                        self.tts.enqueue(full_content)
+                        print(f"[Stream] Retry succeeded: {len(full_content)} chars, finish={finish_reason}")
+                    else:
+                        print(f"[Stream] Retry also returned empty content")
+                except Exception as e:
+                    print(f"[Stream] Retry failed: {e}")
+            else:
+                print(f"[Stream] WARNING: stream ended without finish_reason but has {len(full_content)} chars — using partial content")
+
+        return full_content, tool_calls_acc, finish_reason, _stream_start
+
+    def _chat_once(self, prompt, metrics):
+        """Build and run one chat request end to end.
+
+        Returns (ai_response, response_from_tool_calls, file_links,
+        script_called, escalate) — `escalate` tells the caller that the
+        reactive loop ran out of road and a plan may recover it (Task 7).
+        """
+        _max_turns_hit = False   # set when the tool loop exhausts MAX_TURNS
+        _tool_empty = False      # tools ran but produced no text
+        _ctx_trimmed = False     # the context guard had to drop tools/system
+        now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
+        base = self.system_message or ""
+        date_prefix = t("ai.date_prefix", self.language)
+        system_content = f"{base}\n\n{date_prefix}{now}".strip()
+        vas_ref = _load_vascript_reference()
+
+        mcp, tools = init_mcp(self.mcp_server_url, timeout=600)
+
+        if not self.allow_ai_scripts and tools:
+            tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
+
+        import tool_groups
+        kw_groups = tool_groups.select_tool_groups(prompt, self.language)
+        ai_groups = tool_groups.select_tool_groups_ai(prompt, tools, self.openai_client, self.ai_model, usage=metrics)
+        groups = ai_groups | kw_groups
+        tools = tool_groups.resolve_tool_names(groups, tools,
+                                                getattr(self, 'debug_enabled', False))
+
+        if self.auto_context_selection and not tool_groups.needs_memory(prompt, self.language):
+            memory_content = ""
+            if self.debug_enabled:
+                print(f"[DEBUG] needs_memory({prompt[:80]}) = False  (skip memory)")
+        else:
+            memory_content = self.memory.build_content(prompt, mcp, tools)
+            if self.debug_enabled:
+                print(f"[DEBUG] needs_memory({prompt[:80]}) = True  (include memory)")
+
+        tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
+        if tools:
+            mail_tools = {t["function"]["name"] for t in tools}
+            if "reply_email" in mail_tools:
+                tools_block += (
+                    "\n\nEMAIL TOOLS: When asked to reply/send/forward an email, you MUST use these tools."
+                    "\nDO NOT write email text yourself — call the tools immediately."
+                    "\n- search_emails(keywords): find the email by sender name, get the msg_id."
+                    "\n- reply_email(msg_id, body): reply. Call search_emails() FIRST to get msg_id."
+                    "\n- send_email(to, subject, body): compose new email."
+                    "\n- forward_email(msg_id, to): forward. Find msg_id with search_emails() first."
+                )
+            elif "search_emails" in mail_tools:
+                tools_block += (
+                    "\n\nEMAIL: You can search emails with search_emails() but sending/reply is unavailable."
+                )
+            browser_tools = {t["function"]["name"] for t in tools}
+            if "browser_show" in browser_tools:
+                tools_block += (
+                    "\n\nBROWSER AUTH: If a website requires login, use browser_show() to let the user log in manually."
+                    "\nNEVER fill credentials yourself — the user handles authentication. Ask the user to log in."
+                    "\nAfter login, use browser_check_auth() to verify before proceeding."
+                )
+            if "read_news" in {t["function"]["name"] for t in tools}:
+                tools_block += (
+                    "\n\nDAILY NEWS: When asked for news on a specific date (today, yesterday, a named date),"
+                    "\nALWAYS use read_news(date='YYYY-MM-DD') with the EXACT date from the system time."
+                    "\nDo NOT use search_news or websearch for daily news — they search ALL dates"
+                    "\nand return identical results regardless of which day is asked about."
+                    "\nExamples:"
+                    "\n- 'news today' -> read_news(date='2026-09-16')"
+                    "\n- 'yesterday news' -> read_news(date='2026-09-15')"
+                    "\n- 'what happened on July 28' -> read_news(date='2026-07-28')"
+                    "\n- 'news of yesterday' -> read_news(date='2026-09-15')"
+                    "\nThe current date is provided in the system time — use it directly."
+                )
+        if self.allow_ai_scripts:
+            tools_block += VASSCRIPT_TOOLS_PROMPT + vas_ref
+        notes_block = "\n".join(self.context_notes)
+        if notes_block:
+            notes_block = f"Context notes (low priority, can be ignored if context is full):\n{notes_block}\n\n"
+        # Language reinforcement: append the language instruction right
+        # before the tools_block so it stays closest to the user message
+        # and isn't drowned out by the massive English tool descriptions.
+        lang_instruction = t("ai.lang_instruction", self.language)
+        system_content_with_lang = f"{system_content}\n{lang_instruction}".strip()
+        messages = [
+            {"role": "system", "content": system_content_with_lang + notes_block + memory_content + tools_block},
+            {"role": "user", "content": prompt}
+        ]
+        if self.compress_context:
+            lang = self.language or "en"
+            messages[0]["content"] = _compress_heuristic(messages[0]["content"], lang)
+            messages[1]["content"] = _compress_heuristic(messages[1]["content"], lang)
+        _sampling = {}
+        try:
+            import model_params
+            _sampling = model_params.sampling_kwargs("chat")
+        except Exception:
+            pass
+        kwargs = dict(
+            model=self.ai_model,
+            messages=messages,
+            max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - (self._count_tokens(json.dumps(tools)) if tools else 0) - 256, max(1024, (self.context_length or 4096) // 2))),
+            extra_body={"disable_thinking": True},
+        )
+        kwargs.update({k: v for k, v in _sampling.items() if k != "_extra"})
+        kwargs["extra_body"] = {**kwargs["extra_body"], **(_sampling.get("_extra") or {})}
+
+        if tools:
+            kwargs["tools"] = tools
+
+        ctx_available = self._effective_context_length()
+        prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
+        if tools:
+            prompt_tokens_est += self._count_tokens(json.dumps(tools))
+        if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
+            if tools and tools_block in messages[0]["content"]:
+                messages[0]["content"] = messages[0]["content"][:messages[0]["content"].rfind(tools_block)].rstrip()
+                kwargs.pop("tools", None)
+                prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
+                kwargs["max_tokens"] = max(200, min(ctx_available - prompt_tokens_est - 128, 4096))
+                print(f"[AI] Dropped MCP tools to fit context ({prompt_tokens_est} prompt est, {kwargs['max_tokens']} max_tok)")
+                _ctx_trimmed = True
+            if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
+                excess = (prompt_tokens_est + kwargs["max_tokens"] - ctx_available) * 2 + 200
+                trim_at = max(500, len(messages[0]["content"]) - excess)
+                messages[0]["content"] = messages[0]["content"][:trim_at]
+                kwargs["max_tokens"] = max(200, ctx_available - self._count_tokens(messages[0]["content"]) - self._count_tokens(messages[1]["content"]) - 128)
+                print(f"[AI] Trimmed system prompt by {excess} chars to fit context")
+                _ctx_trimmed = True
+        # Final guard (runs regardless of tools): if the request still
+        # exceeds the model context (e.g. an oversized user message or a
+        # huge tool result), trim the oversized messages to a hard budget
+        # instead of sending an overflowing prompt that llama rejects.
+        prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
+        if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
+            budget_chars = max(1200, int(ctx_available * 0.5) * 3)
+            # Trim oversized tool messages first.
+            for m in messages:
+                if m.get("role") != "tool":
+                    continue
+                content = m.get("content")
+                if isinstance(content, str) and len(content) > budget_chars:
+                    m["content"] = (content[:budget_chars // 2]
+                                    + "\n...[risultato troncato per contesto]...\n"
+                                    + content[-budget_chars // 4:])
+            # Then trim the user message to the same hard budget.
+            if len(messages[1]["content"]) > budget_chars:
+                messages[1]["content"] = (
+                    messages[1]["content"][:budget_chars // 2]
+                    + "\n...[richiesta troncata per contesto]...\n"
+                    + messages[1]["content"][-budget_chars // 4:])
+            prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
+            kwargs["max_tokens"] = max(200, ctx_available - prompt_tokens_est - 128)
+            print(f"[AI] Final context guard: trimmed oversized messages to ~{budget_chars} chars")
+            _ctx_trimmed = True
+
+        print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools) if tools else 0}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}, max_tokens={kwargs.get('max_tokens', 'N/A')}")
+
+        if self.debug_enabled:
+            sys_txt = messages[0]['content']
+            sys_len = len(sys_txt)
+            print(f"[Debug] --- AI Request ---")
+            print(f"[Debug] System ({sys_len} chars):\n{sys_txt[:1000]}{'...[truncated]' if sys_len > 1000 else ''}")
+            print(f"[Debug] User ({len(messages[1]['content'])} chars):\n{messages[1]['content']}")
+
+            full_content, tool_calls_acc, finish_reason, _stream_start = \
+                self._stream_answer(kwargs, metrics)
+
+        # ── Handle tool calls ──────────────────────────────────────────
+        script_called = False
+        ai_response = full_content
+        response_from_tool_calls = False
+        file_links = []
+        if tool_calls_acc and finish_reason == "tool_calls":
+            tool_calls_list = []
+            for idx in sorted(tool_calls_acc.keys()):
+                tc = tool_calls_acc[idx]
+                tc_obj = type("", (), {
+                    "id": tc["id"],
+                    "function": type("", (), {"name": tc["name"], "arguments": tc["arguments"]})(),
+                    "type": "function"
+                })()
+                tool_calls_list.append(tc_obj)
+                print(f"[AI] Tool call: {tc['name']}({tc['arguments'][:200]})")
+
+            script_called = any(
+                tc_obj.function.name == "script" or
+                (tc_obj.function.name == "interact" and
+                 any(kw in tc_obj.function.arguments.lower() for kw in ("addevent", "add_event", "listevents", "list_events", "removeevent", "remove_event")))
+                for tc_obj in tool_calls_list
+            )
+
+            pseudo_msg = type("", (), {"tool_calls": tool_calls_list, "content": None})()
+            msg = execute_mcp_tool_calls(messages, pseudo_msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui,
+                                         context_limit=self._effective_context_length(),
+                                         file_links=file_links,
+                                         usage=metrics)
+            _max_turns_hit = bool(getattr(msg, "max_turns_hit", False))
+            ai_response = msg.content or ""
+            response_from_tool_calls = True
+            # Honest fallback: the tool loop ran but the model produced no
+            # final text. Don't leave the user with a silent empty reply.
+            if not ai_response.strip():
+                _tool_empty = True
+                ai_response = self._tool_empty_fallback(prompt, file_links)
+
+        self._ai_t_end = time.time()
+        escalate = bool(_max_turns_hit or _tool_empty or _ctx_trimmed)
+        return ai_response, response_from_tool_calls, file_links, script_called, escalate
+
     def _handle_ai_fallback(self, prompt_original):
         self.set_state("waiting")
         if self.blacklist:
@@ -1320,326 +1667,10 @@ class VassApp:
         tracker = get_tracker(); tracker.start("AI query", "ai")
         try:
             metrics = UsageCollector()
-            _t_start = None
-            _t_end = None
-            now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
-            base = self.system_message or ""
-            date_prefix = t("ai.date_prefix", self.language)
-            system_content = f"{base}\n\n{date_prefix}{now}".strip()
-            vas_ref = _load_vascript_reference()
-
-            mcp, tools = init_mcp(self.mcp_server_url, timeout=600)
-
-            if not self.allow_ai_scripts and tools:
-                tools = [t for t in tools if t["function"]["name"] not in ("interact", "script")]
-
-            import tool_groups
-            kw_groups = tool_groups.select_tool_groups(prompt, self.language)
-            ai_groups = tool_groups.select_tool_groups_ai(prompt, tools, self.openai_client, self.ai_model, usage=metrics)
-            groups = ai_groups | kw_groups
-            tools = tool_groups.resolve_tool_names(groups, tools,
-                                                    getattr(self, 'debug_enabled', False))
-
-            if self.auto_context_selection and not tool_groups.needs_memory(prompt, self.language):
-                memory_content = ""
-                if self.debug_enabled:
-                    print(f"[DEBUG] needs_memory({prompt[:80]}) = False  (skip memory)")
-            else:
-                memory_content = self.memory.build_content(prompt, mcp, tools)
-                if self.debug_enabled:
-                    print(f"[DEBUG] needs_memory({prompt[:80]}) = True  (include memory)")
-
-            tools_block = append_tool_descriptions(MCP_PROMPT, tools) if tools else MCP_PROMPT
-            if tools:
-                mail_tools = {t["function"]["name"] for t in tools}
-                if "reply_email" in mail_tools:
-                    tools_block += (
-                        "\n\nEMAIL TOOLS: When asked to reply/send/forward an email, you MUST use these tools."
-                        "\nDO NOT write email text yourself — call the tools immediately."
-                        "\n- search_emails(keywords): find the email by sender name, get the msg_id."
-                        "\n- reply_email(msg_id, body): reply. Call search_emails() FIRST to get msg_id."
-                        "\n- send_email(to, subject, body): compose new email."
-                        "\n- forward_email(msg_id, to): forward. Find msg_id with search_emails() first."
-                    )
-                elif "search_emails" in mail_tools:
-                    tools_block += (
-                        "\n\nEMAIL: You can search emails with search_emails() but sending/reply is unavailable."
-                    )
-                browser_tools = {t["function"]["name"] for t in tools}
-                if "browser_show" in browser_tools:
-                    tools_block += (
-                        "\n\nBROWSER AUTH: If a website requires login, use browser_show() to let the user log in manually."
-                        "\nNEVER fill credentials yourself — the user handles authentication. Ask the user to log in."
-                        "\nAfter login, use browser_check_auth() to verify before proceeding."
-                    )
-                if "read_news" in {t["function"]["name"] for t in tools}:
-                    tools_block += (
-                        "\n\nDAILY NEWS: When asked for news on a specific date (today, yesterday, a named date),"
-                        "\nALWAYS use read_news(date='YYYY-MM-DD') with the EXACT date from the system time."
-                        "\nDo NOT use search_news or websearch for daily news — they search ALL dates"
-                        "\nand return identical results regardless of which day is asked about."
-                        "\nExamples:"
-                        "\n- 'news today' -> read_news(date='2026-09-16')"
-                        "\n- 'yesterday news' -> read_news(date='2026-09-15')"
-                        "\n- 'what happened on July 28' -> read_news(date='2026-07-28')"
-                        "\n- 'news of yesterday' -> read_news(date='2026-09-15')"
-                        "\nThe current date is provided in the system time — use it directly."
-                    )
-            if self.allow_ai_scripts:
-                tools_block += VASSCRIPT_TOOLS_PROMPT + vas_ref
-            notes_block = "\n".join(self.context_notes)
-            if notes_block:
-                notes_block = f"Context notes (low priority, can be ignored if context is full):\n{notes_block}\n\n"
-            # Language reinforcement: append the language instruction right
-            # before the tools_block so it stays closest to the user message
-            # and isn't drowned out by the massive English tool descriptions.
-            lang_instruction = t("ai.lang_instruction", self.language)
-            system_content_with_lang = f"{system_content}\n{lang_instruction}".strip()
-            messages = [
-                {"role": "system", "content": system_content_with_lang + notes_block + memory_content + tools_block},
-                {"role": "user", "content": prompt}
-            ]
-            if self.compress_context:
-                lang = self.language or "en"
-                messages[0]["content"] = _compress_heuristic(messages[0]["content"], lang)
-                messages[1]["content"] = _compress_heuristic(messages[1]["content"], lang)
-            _sampling = {}
-            try:
-                import model_params
-                _sampling = model_params.sampling_kwargs("chat")
-            except Exception:
-                pass
-            kwargs = dict(
-                model=self.ai_model,
-                messages=messages,
-                max_tokens=max(200, min((self.context_length or 4096) - sum(max(1, self._count_tokens(m["content"])) for m in messages) - (self._count_tokens(json.dumps(tools)) if tools else 0) - 256, max(1024, (self.context_length or 4096) // 2))),
-                extra_body={"disable_thinking": True},
-            )
-            kwargs.update({k: v for k, v in _sampling.items() if k != "_extra"})
-            kwargs["extra_body"] = {**kwargs["extra_body"], **(_sampling.get("_extra") or {})}
-
-            if tools:
-                kwargs["tools"] = tools
-
-            ctx_available = self._effective_context_length()
-            prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
-            if tools:
-                prompt_tokens_est += self._count_tokens(json.dumps(tools))
-            if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
-                if tools and tools_block in messages[0]["content"]:
-                    messages[0]["content"] = messages[0]["content"][:messages[0]["content"].rfind(tools_block)].rstrip()
-                    kwargs.pop("tools", None)
-                    prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
-                    kwargs["max_tokens"] = max(200, min(ctx_available - prompt_tokens_est - 128, 4096))
-                    print(f"[AI] Dropped MCP tools to fit context ({prompt_tokens_est} prompt est, {kwargs['max_tokens']} max_tok)")
-                if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
-                    excess = (prompt_tokens_est + kwargs["max_tokens"] - ctx_available) * 2 + 200
-                    trim_at = max(500, len(messages[0]["content"]) - excess)
-                    messages[0]["content"] = messages[0]["content"][:trim_at]
-                    kwargs["max_tokens"] = max(200, ctx_available - self._count_tokens(messages[0]["content"]) - self._count_tokens(messages[1]["content"]) - 128)
-                    print(f"[AI] Trimmed system prompt by {excess} chars to fit context")
-            # Final guard (runs regardless of tools): if the request still
-            # exceeds the model context (e.g. an oversized user message or a
-            # huge tool result), trim the oversized messages to a hard budget
-            # instead of sending an overflowing prompt that llama rejects.
-            prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
-            if prompt_tokens_est + kwargs["max_tokens"] > ctx_available:
-                budget_chars = max(1200, int(ctx_available * 0.5) * 3)
-                # Trim oversized tool messages first.
-                for m in messages:
-                    if m.get("role") != "tool":
-                        continue
-                    content = m.get("content")
-                    if isinstance(content, str) and len(content) > budget_chars:
-                        m["content"] = (content[:budget_chars // 2]
-                                        + "\n...[risultato troncato per contesto]...\n"
-                                        + content[-budget_chars // 4:])
-                # Then trim the user message to the same hard budget.
-                if len(messages[1]["content"]) > budget_chars:
-                    messages[1]["content"] = (
-                        messages[1]["content"][:budget_chars // 2]
-                        + "\n...[richiesta troncata per contesto]...\n"
-                        + messages[1]["content"][-budget_chars // 4:])
-                prompt_tokens_est = sum(max(1, self._count_tokens(m["content"])) for m in messages)
-                kwargs["max_tokens"] = max(200, ctx_available - prompt_tokens_est - 128)
-                print(f"[AI] Final context guard: trimmed oversized messages to ~{budget_chars} chars")
-
-            print(f"[AI] Payload -> model={self.ai_model}, tools={len(tools) if tools else 0}, system_len={len(messages[0]['content'])}, user_len={len(messages[1]['content'])}, max_tokens={kwargs.get('max_tokens', 'N/A')}")
-
-            if self.debug_enabled:
-                sys_txt = messages[0]['content']
-                sys_len = len(sys_txt)
-                print(f"[Debug] --- AI Request ---")
-                print(f"[Debug] System ({sys_len} chars):\n{sys_txt[:1000]}{'...[truncated]' if sys_len > 1000 else ''}")
-                print(f"[Debug] User ({len(messages[1]['content'])} chars):\n{messages[1]['content']}")
-
-            # ── Streaming API call ──────────────────────────────────────────
-            kwargs["stream"] = True
-            kwargs["stream_options"] = {"include_usage": True}
-            stream = call_with_retry(lambda: self.openai_client.chat.completions.create(**kwargs))
-
-            content_buffer = ""
-            full_content = ""
-            tool_calls_acc = {}
-            finish_reason = None
-            MIN_TTS_WORDS = 8
-            CPS = 0.0
-            MIN_SECS_LENGTH = 5.0
-            _stream_start = time.time()
-            _t_start = _stream_start
-            # total_enqueued = 0
-            
-            for chunk in stream:
-                if chunk.usage:
-                    metrics.add(chunk.usage)
-                if not chunk.choices:
-                    continue
-                delta = chunk.choices[0].delta
-                finish_reason = chunk.choices[0].finish_reason
-            
-                if delta.content:
-                    content_buffer += delta.content
-                    full_content += delta.content
-                    buf_words = len(re.sub(r'\s+', ' ', content_buffer.strip()).split())
-                    if buf_words >= MIN_TTS_WORDS:
-                        n = 0
-                        while True:
-                            idx = -1
-                            for p in ('.', '!', '?'):
-                                pos = content_buffer.find(p)
-                                if pos != -1 and (idx == -1 or pos < idx):
-                                    idx = pos
-                            if idx == -1:
-                                break
-                            sentence = content_buffer[:idx + 1].strip()
-                            content_buffer = content_buffer[idx + 1:]
-                            if sentence:
-                                self.tts.enqueue(sentence)
-                                n += 1
-                        if n > 0:
-                            # if total_enqueued == 0:
-                            #     self.tts.pause()    
-                            # total_enqueued += n                            
-                            # if total_enqueued + n >= 3:
-                            #     self.tts.unpause()
-                            #     total_enqueued = 0                            
-                            if self.debug_enabled:
-                                print(f"[Stream] Enqueued {n} sentences , {buf_words} buf words >= {MIN_TTS_WORDS} min)")
-
-                    elapsed = time.time() - _stream_start
-                    if elapsed > MIN_SECS_LENGTH:
-                        prev_cps = CPS
-                        prev_mtw = MIN_TTS_WORDS
-                        CPS = ( prev_cps + ( len(full_content) / elapsed ) ) / 2
-                        MIN_TTS_WORDS = max(5, min(100, int(CPS * MIN_SECS_LENGTH * 3 )))
-                        if self.debug_enabled and (prev_cps != CPS or prev_mtw != MIN_TTS_WORDS):
-                            print(f"[Stream] CPS={CPS:.1f} ({prev_cps:.1f}) -> MIN_TTS_WORDS={MIN_TTS_WORDS} ({prev_mtw}), tot_chars={len(full_content)}, elapsed={elapsed:.1f}s")
-
-                if delta.tool_calls:
-                    for tc_delta in delta.tool_calls:
-                        idx = tc_delta.index
-                        if idx not in tool_calls_acc:
-                            tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
-                        acc = tool_calls_acc[idx]
-                        if tc_delta.id:
-                            acc["id"] += tc_delta.id
-                        if tc_delta.function:
-                            if tc_delta.function.name:
-                                acc["name"] += tc_delta.function.name
-                            if tc_delta.function.arguments:
-                                acc["arguments"] += tc_delta.function.arguments
-
-                if finish_reason:
-                    break
-
-            self.tts.unpause()
-            remaining = content_buffer.strip()
-            if remaining:
-                self.tts.enqueue(remaining)
-                print(f"[Stream] Remaining enqueued: {len(remaining.split())} words, {len(remaining)} chars")
-            elapsed = time.time() - _stream_start
-            print(f"[Stream] Done: {len(full_content)} chars in {elapsed:.1f}s (CPS={CPS:.1f}), tool_calls={bool(tool_calls_acc)}, finish={finish_reason}")
-
-            if not finish_reason:
-                if not full_content:
-                    print(f"[Stream] WARNING: stream ended without finish_reason and empty content — retrying once")
-                    try:
-                        stream2 = call_with_retry(
-                            lambda: self.openai_client.chat.completions.create(**kwargs),
-                            log_prefix="[Stream Retry]")
-                        for chunk2 in stream2:
-                            if chunk2.usage:
-                                metrics.add(chunk2.usage)
-                            if not chunk2.choices:
-                                continue
-                            d2 = chunk2.choices[0].delta
-                            if d2.content:
-                                full_content += d2.content
-                            if d2.tool_calls:
-                                for tc_delta in d2.tool_calls:
-                                    idx = tc_delta.index
-                                    if idx not in tool_calls_acc:
-                                        tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
-                                    acc = tool_calls_acc[idx]
-                                    if tc_delta.id:
-                                        acc["id"] += tc_delta.id
-                                    if tc_delta.function:
-                                        if tc_delta.function.name:
-                                            acc["name"] += tc_delta.function.name
-                                        if tc_delta.function.arguments:
-                                            acc["arguments"] += tc_delta.function.arguments
-                            fr2 = chunk2.choices[0].finish_reason
-                            if fr2:
-                                finish_reason = fr2
-                                break
-                        if full_content:
-                            self.tts.enqueue(full_content)
-                            print(f"[Stream] Retry succeeded: {len(full_content)} chars, finish={finish_reason}")
-                        else:
-                            print(f"[Stream] Retry also returned empty content")
-                    except Exception as e:
-                        print(f"[Stream] Retry failed: {e}")
-                else:
-                    print(f"[Stream] WARNING: stream ended without finish_reason but has {len(full_content)} chars — using partial content")
-
-            # ── Handle tool calls ──────────────────────────────────────────
-            script_called = False
-            ai_response = full_content
-            response_from_tool_calls = False
-            file_links = []
-            if tool_calls_acc and finish_reason == "tool_calls":
-                tool_calls_list = []
-                for idx in sorted(tool_calls_acc.keys()):
-                    tc = tool_calls_acc[idx]
-                    tc_obj = type("", (), {
-                        "id": tc["id"],
-                        "function": type("", (), {"name": tc["name"], "arguments": tc["arguments"]})(),
-                        "type": "function"
-                    })()
-                    tool_calls_list.append(tc_obj)
-                    print(f"[AI] Tool call: {tc['name']}({tc['arguments'][:200]})")
-
-                script_called = any(
-                    tc_obj.function.name == "script" or
-                    (tc_obj.function.name == "interact" and
-                     any(kw in tc_obj.function.arguments.lower() for kw in ("addevent", "add_event", "listevents", "list_events", "removeevent", "remove_event")))
-                    for tc_obj in tool_calls_list
-                )
-
-                pseudo_msg = type("", (), {"tool_calls": tool_calls_list, "content": None})()
-                msg = execute_mcp_tool_calls(messages, pseudo_msg, mcp, tools, self.openai_client, self.ai_model, gui=self.gui,
-                                             context_limit=self._effective_context_length(),
-                                             file_links=file_links,
-                                             usage=metrics)
-                ai_response = msg.content or ""
-                response_from_tool_calls = True
-                # Honest fallback: the tool loop ran but the model produced no
-                # final text. Don't leave the user with a silent empty reply.
-                if not ai_response.strip():
-                    ai_response = self._tool_empty_fallback(prompt, file_links)
-
-            ai_response = strip_think_tags(ai_response)
-            _t_end = time.time()
+            self._ai_t_start = self._ai_t_end = None
+            result = self._chat_once(prompt, metrics)
+            ai_response, response_from_tool_calls, file_links, script_called, _ = result
+            ai_response = strip_think_tags(ai_response or "")
 
             self._consume_remote_reply(strip_markdown(ai_response) or "")
 
@@ -1746,7 +1777,8 @@ class VassApp:
             self._ai_lock.release()
             tracker.end("AI query")
             try:
-                _elapsed = (_t_end if _t_end else time.time()) - (_t_start if _t_start else time.time())
+                _elapsed = ((self._ai_t_end or time.time())
+                            - (self._ai_t_start or time.time()))
                 _total = metrics.prompt_tokens + metrics.completion_tokens
                 if _total > 0:
                     _tok_s = metrics.completion_tokens / _elapsed if _elapsed > 0 else 0.0
