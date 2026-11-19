@@ -1738,7 +1738,7 @@ class VassApp:
             # user stopped must not leave an empty assistant message behind.
             return "", True, file_links, True, False
         if status == "done":
-            summary = self._plan_summary(outcome, metrics)
+            summary = self._plan_summary(outcome, metrics, memory=memory_content)
             if summary:
                 # Streamed to the TTS by _stream_answer -> do not enqueue twice.
                 return summary, False, file_links, False, False
@@ -1761,8 +1761,14 @@ class VassApp:
         metrics.add(getattr(resp, "usage", None))
         return (resp.choices[0].message.content or "").strip()
 
-    def _plan_summary(self, outcome, metrics):
-        """Final spoken summary of a finished plan, streamed to the TTS."""
+    def _plan_summary(self, outcome, metrics, memory=""):
+        """Final spoken summary of a finished plan, streamed to the TTS.
+
+        The summary is where the answer is written, so it gets the same
+        memory as planning: a request whose facts live in memory must not be
+        answered from step outcomes alone (live: "zero euro" for a month the
+        memory recorded).
+        """
         state_txt = "\n".join(
             f"- {s['id']}: {s['action']} -> {s['outcome']}"
             for s in outcome.get("state", []))
@@ -1771,9 +1777,12 @@ class VassApp:
              "You are VASS, a voice assistant. Write the final spoken summary "
              "of a completed plan: 2 to 4 plain sentences in the user's "
              "language, no markdown, no list of steps, just what was found "
-             "or done and what it means for the user."},
+             "or done and what it means for the user. Use the user memory "
+             "below when it holds the facts the steps could not retrieve; "
+             "never answer zero or empty when the memory has the data."},
             {"role": "user", "content":
-             f"Goal: {outcome.get('goal', '')}\n\nSteps:\n{state_txt or '-'}"},
+             f"Goal: {outcome.get('goal', '')}\n\nSteps:\n{state_txt or '-'}"
+             + (f"\n\nUser memory:\n{memory[:6000]}" if memory else "")},
         ]
         kwargs = dict(model=self.ai_model, messages=messages, max_tokens=600,
                       temperature=0.4, extra_body={"disable_thinking": True})

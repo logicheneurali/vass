@@ -116,7 +116,9 @@ PLAN_SYSTEM = (
     "or query dates in the future; never use a tool to compute dates, write "
     "the literal ISO date in 'args'; "
     "'tool' must be one of the listed tools or null when the step is pure "
-    "text work; 'args' must be a complete JSON object when 'tool' is set, "
+    "text work; if no tool can retrieve what the step needs, use null and "
+    "answer from the memory and context instead of inventing a call; "
+    "'args' must be a complete JSON object when 'tool' is set, "
     "with literal values only: never templates like {{today}}, never "
     "function calls like tomorrow_date(x); "
     "no prose, no markdown, no comments outside the JSON."
@@ -250,7 +252,11 @@ def make_plan(prompt, history, tools, *, ask, max_steps=12, context="",
         if not name:
             continue
         args = list(((fn.get("parameters") or {}).get("properties") or {}))
-        sigs.append(f"{name}({', '.join(args)})" if args else name)
+        sig = f"{name}({', '.join(args)})" if args else name
+        # A one-line description lets the model tell tools apart: with names
+        # only it picked read_news_range for an expenses question.
+        desc = " ".join(str(fn.get("description") or "").split())[:120]
+        sigs.append(f"{sig}: {desc}" if desc else sig)
     tool_names = ", ".join(sorted(sigs)) or "(none)"
     hist = ""
     for m in (history or [])[-4:]:
