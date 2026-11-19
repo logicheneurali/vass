@@ -204,6 +204,7 @@ class VassApp:
         self.gui = gui
         self.state_manager = StateManager(self)
         self._ai_lock = threading.Lock()
+        self._remote_lock = threading.Lock()   # one remote request at a time
         self._remote_reply_cb = None
         self.settings_file = settings_file
         self.app_version = __version__
@@ -970,11 +971,20 @@ class VassApp:
         remote callers (e.g. Telegram bot). When reply_cb is given, state gates
         are relaxed so the request is never dropped while VASS is speaking, and
         reply_cb(response) fires when the AI response is ready."""
-        if reply_cb is not None:
-            self._remote_reply_cb = reply_cb
-        with open("lastcommands.txt", "w", encoding="utf-8") as f:
-            f.write(text)
-        self._process_command()
+        # Serialize the whole set-callback -> process -> consume cycle: the
+        # callback is one shared slot, so two concurrent remote requests would
+        # deliver A's answer to B (live: an Italy question got the Ukraine
+        # answer of the request before it).
+        with self._remote_lock:
+            if reply_cb is not None:
+                self._remote_reply_cb = reply_cb
+            try:
+                with open("lastcommands.txt", "w", encoding="utf-8") as f:
+                    f.write(text)
+                self._process_command()
+            finally:
+                # Never leave a stale callback for the next request.
+                self._remote_reply_cb = None
 
     def _consume_remote_reply(self, text=None):
         """Deliver (or discard) the pending remote reply callback. Must be called
@@ -1752,7 +1762,14 @@ class VassApp:
             # user stopped must not leave an empty assistant message behind.
             return "", True, file_links, True, False
         if status == "done":
-            summary = self._plan_summary(outcome, metrics, memory=memory_content)
+            # Memory only when the steps produced nothing: otherwise the
+            # summary must answer from THIS plan's results (live: an Italy
+            # plan was summarised with the previous Ukraine answer).
+            has_results = any((st.get("outcome") or "").strip()
+                              for st in outcome.get("state", []))
+            summary = self._plan_summary(
+                outcome, metrics,
+                memory="" if has_results else memory_content)
             if summary:
                 # Streamed to the TTS by _stream_answer -> do not enqueue twice.
                 return summary, False, file_links, False, False

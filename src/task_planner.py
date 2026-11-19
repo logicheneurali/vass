@@ -41,7 +41,8 @@ def _extract_json(text):
         return None
 
 
-_PLACEHOLDER = re.compile(r"\{\{|\}\}|\w+\([^()]*\)\s*$")
+_PLACEHOLDER = re.compile(r"\{\{|\}\}|\w+\([^()]*\)\s*$"
+                            r"|\[[^\]]{1,80}\]")
 
 
 def clean_args(args):
@@ -126,7 +127,9 @@ PLAN_SYSTEM = (
     "answer from the memory and context instead of inventing a call; "
     "'args' must be a complete JSON object when 'tool' is set, "
     "with literal values only: never templates like {{today}}, never "
-    "function calls like tomorrow_date(x); "
+    "function calls like tomorrow_date(x), never bracketed placeholders "
+    "like [main event 1] - if a value is not known yet, use null for the "
+    "tool and let that step be text work; "
     "no prose, no markdown, no comments outside the JSON."
 )
 
