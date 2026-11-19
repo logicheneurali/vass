@@ -1,7 +1,7 @@
 """World news tools — read daily events digest from private_world_events.json."""
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
@@ -214,7 +214,7 @@ async def read_news_range(from_date: str, to_date: str, max_chars: int = 20000) 
                 "categories": sorted(cats)[:10],
                 "articles": articles[:8],
             }
-        day = day.replace(day=day.day + 1)
+        day += timedelta(days=1)   # replace(day=day+1) raises at month end
 
     if result:
         return _to_json({"results": result}, max_chars)

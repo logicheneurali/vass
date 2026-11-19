@@ -11,6 +11,7 @@ without the GUI or a server.
 import json
 import re
 import time
+from datetime import date, timedelta
 
 from utils import call_with_retry
 
@@ -107,6 +108,13 @@ PLAN_SYSTEM = (
     '"tool":"tool_name"|null,"args":{{...}}|null,"expect":"what this step must '
     'produce"}}]}}\n'
     "Rules: between 2 and {max_steps} steps; each step does ONE thing; "
+    "when the request covers a long period or a large data set, split it "
+    "into successive steps - one month per step for a period, one item per "
+    "step for a list - instead of one oversized query; "
+    "'last N months/days' means the N units BEFORE the current date: always "
+    "compute those dates backward from the date in the context, never plan "
+    "or query dates in the future; never use a tool to compute dates, write "
+    "the literal ISO date in 'args'; "
     "'tool' must be one of the listed tools or null when the step is pure "
     "text work; 'args' must be a complete JSON object when 'tool' is set, "
     "with literal values only: never templates like {{today}}, never "
@@ -132,6 +140,70 @@ REVIEW_SYSTEM = (
 )
 
 _DEFAULT_VERDICT = "continue"
+# Text kept per executed step. Later steps and the final summary see only the
+# state block, so 400 chars would discard most of a tool result; 2000 keeps a
+# useful slice while 12 steps stay well inside the context window.
+_OUTCOME_CHARS = 2000
+
+
+
+def _shift_month(d, k):
+    """d shifted by k months, clamped to the target month's last day."""
+    m = d.month - 1 + k
+    y = d.year + m // 12
+    m = m % 12 + 1
+    while True:
+        try:
+            return date(y, m, d.day)
+        except ValueError:
+            d = d.replace(day=d.day - 1)
+
+
+def _split_date_ranges(steps, max_steps):
+    """One step per month for any tool call whose date range is over ~2 months.
+
+    Multi-step exists to beat the context limit, but the plan model does not
+    chunk reliably (live: one read_news_range call for six months with
+    max_chars=5000, most of the data discarded). Chunking is enforced here so
+    every step retrieves a slice the next steps and the summary can actually
+    use. At most max_steps-1 retrieval steps are produced, leaving room for
+    the analysis steps the plan already has.
+    """
+    out = []
+    for step in steps:
+        args = step.get("args") or {}
+        try:
+            d0 = date.fromisoformat(str(args.get("from_date")))
+            d1 = date.fromisoformat(str(args.get("to_date")))
+        except (TypeError, ValueError):
+            out.append(step)
+            continue
+        if d1 <= d0 or (d1 - d0).days <= 62:
+            out.append(step)
+            continue
+        months = []
+        start = d0
+        while start < d1:
+            months.append(start)
+            start = _shift_month(start, 1)
+        budget = max(1, max_steps - 1)
+        group = -(-len(months) // budget)          # ceil
+        merged = [months[i] for i in range(0, len(months), group)]
+        pieces = []
+        for i, start in enumerate(merged):
+            end = (merged[i + 1] - timedelta(days=1)
+                   if i + 1 < len(merged) else d1)
+            pieces.append((start, end))
+        for i, (start, end) in enumerate(pieces, 1):
+            piece = dict(step)
+            piece["args"] = {**args,
+                             "from_date": start.isoformat(),
+                             "to_date": end.isoformat()}
+            piece["action"] = f"{step['action']} [{i}/{len(pieces)}]"
+            out.append(piece)
+    for i, step in enumerate(out, 1):
+        step["id"] = i
+    return out
 
 
 def _normalise(data, max_steps):
@@ -155,6 +227,7 @@ def _normalise(data, max_steps):
                       "expect": str(s.get("expect", "")).strip()[:300]})
     if not steps:
         return None
+    steps = _split_date_ranges(steps, max_steps)
     return {"goal": str(data.get("goal", "")).strip()[:500], "steps": steps}
 
 
@@ -236,10 +309,18 @@ def _verdict(text):
     return found.group(1) if found else _DEFAULT_VERDICT
 
 
-def _review(ask, goal, state, index, total):
-    """Ask whether the plan is finished. A broken review never kills a plan."""
+def _review(ask, goal, state, index, total, remaining=None):
+    """Ask whether the plan is finished. A broken review never kills a plan.
+
+    `remaining` lists the planned steps not yet executed: the reviewer must
+    see them, otherwise it replans away retrieval steps that are still valid
+    (live: six monthly reads were replaced by one oversized search).
+    """
+    rest = "\n".join(f"- {s.get('id')}: {s.get('action', '')} "
+                      f"(tool={s.get('tool')})"
+                      for s in (remaining or [])) or "- (none)"
     user = (f"Goal: {goal}\n\nSteps executed: {index}/{total}\n\n"
-            f"{_state_block(state)}")
+            f"{_state_block(state)}\n\nRemaining planned steps:\n{rest}")
     try:
         text = ask([{"role": "system", "content": REVIEW_SYSTEM},
                     {"role": "user", "content": user}], max_tokens=120)
@@ -319,7 +400,7 @@ def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
             failed = failed or not result or result.startswith(("Error:", "step failed:"))
             state.append({"id": step.get("id", index),
                           "action": step.get("action", ""),
-                          "outcome": result[:400]})
+                          "outcome": result[:_OUTCOME_CHARS]})
             executed += 1
             done_index = executed
             consecutive_failures = consecutive_failures + 1 if failed else 0
@@ -327,7 +408,14 @@ def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
                 return _outcome("failed", goal, state, done_index, total)
             if should_abort and should_abort():
                 return _outcome("aborted", goal, state, done_index, total)
-            verdict = _review(ask, goal, state, index, total)
+            verdict = _review(ask, goal, state, index, total, steps[index:])
+            print(f"[Plan] review after step {index}: {verdict}")
+            if verdict == "replan" and any(s.get("tool") for s in steps[index:]):
+                # Planned tool steps are still pending: replanning now would
+                # discard them (live: remaining months dropped for one
+                # oversized search). Replan is allowed once they have run.
+                print("[Plan] replan deferred: tool steps remain")
+                verdict = "continue"
             if verdict == "done":
                 return _outcome("done", goal, state, done_index, total)
             if verdict == "fail":
