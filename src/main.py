@@ -1721,11 +1721,16 @@ class VassApp:
                 if removed:
                     # Tell the step model what the tool refused to take: with
                     # weather(location) and a dropped date it kept describing
-                    # current conditions as tomorrow's forecast.
-                    messages = messages + [{"role": "system", "content":
-                        f"The tool '{name}' does not accept "
-                        f"{', '.join(removed)}; report only what it returns, "
-                        "never as a forecast or for another date."}]
+                    # current conditions as tomorrow's forecast. Appended to
+                    # the step instruction, never as a mid-conversation system
+                    # message (the chat template rejects those).
+                    messages = [dict(m) for m in messages]
+                    if messages and messages[-1].get("role") == "user":
+                        messages[-1]["content"] = (
+                            messages[-1]["content"]
+                            + f"\n\nNote: the tool '{name}' does not accept "
+                            f"{', '.join(removed)}; report only what it "
+                            "returns, never as a forecast or another date.")
                 usable = (name and tool is not None and args is not None
                           and not dropped and mcp)
                 if not usable:
@@ -1835,7 +1840,8 @@ class VassApp:
              "and what was not. Never present news from a different period "
              "as if it belonged to the requested one. Never invent numbers, "
              "names, dates or sources that the steps do not contain: if a "
-             "figure is missing, say it is missing."},
+             "figure is missing, say it is missing. When a step reports "
+             "current data, never turn it into a forecast for another day."},
             {"role": "user", "content":
              f"Goal: {outcome.get('goal', '')}\n\nSteps:\n{state_txt or '-'}"
              + (f"\n\nUser memory:\n{memory[:6000]}" if memory else "")},
