@@ -108,9 +108,13 @@ PLAN_SYSTEM = (
     '"tool":"tool_name"|null,"args":{{...}}|null,"expect":"what this step must '
     'produce"}}]}}\n'
     "Rules: between 2 and {max_steps} steps; each step does ONE thing; "
-    "when the request covers a long period or a large data set, split it "
-    "into successive steps - one month per step for a period, one item per "
-    "step for a list - instead of one oversized query; "
+    "always pick the narrowest tool that answers the step, and judge by its "
+    "description: to find news about a TOPIC or a person use the keyword "
+    "search (e.g. search_news), not a date-range scan; use a date-range tool "
+    "only when the step is about a PERIOD itself; "
+    "when a step genuinely needs a period, split it into successive steps - "
+    "one month per step - instead of one oversized query, and when a step "
+    "needs several items, one item per step; "
     "'last N months/days' means the N units BEFORE the current date: always "
     "compute those dates backward from the date in the context, never plan "
     "or query dates in the future; never use a tool to compute dates, write "
