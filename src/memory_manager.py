@@ -46,9 +46,14 @@ class MemoryManager:
     def start_deferred_loop(self):
         threading.Thread(target=self._classify_deferred_loop, daemon=True).start()
 
-    def build_content(self, prompt, mcp=None, tools=None):
-        """Return conversation history + external tagged data as context string."""
-        content = self._build_memory_content(mcp, tools)
+    def build_content(self, prompt, mcp=None, tools=None, include_history=True):
+        """Return conversation history + external tagged data as context string.
+
+        include_history=False keeps the facts (profile, summary, external
+        entries) and drops the "Previous conversations" block: the planner
+        must not inherit topics, dates or periods from earlier exchanges.
+        """
+        content = self._build_memory_content(mcp, tools, include_history)
         external = self._build_external_memory_content(prompt)
         if external:
             content += external
@@ -116,7 +121,7 @@ class MemoryManager:
 
     # ── Internal methods ────────────────────────────────────────────────
 
-    def _build_memory_content(self, mcp=None, tools=None):
+    def _build_memory_content(self, mcp=None, tools=None, include_history=True):
         if self._app.memory_mode == "none":
             return ""
         root = get_project_root()
@@ -157,7 +162,7 @@ class MemoryManager:
                         if summary_text:
                             self._summary_cache[summary_id] = summary_text
             parts.append(f"summary : {summary_text}")
-        for vid in mem_data.get("history", []):
+        for vid in (mem_data.get("history", []) if include_history else []):
             hf_path = os.path.join(root, "Allowed_root", "memory", f"{vid}.json")
             if os.path.exists(hf_path):
                 try:

@@ -1675,7 +1675,8 @@ class VassApp:
             if self.auto_context_selection and not tool_groups.needs_memory(prompt, self.language):
                 memory_content = ""
             else:
-                memory_content = self.memory.build_content(prompt, mcp, tools)
+                memory_content = self.memory.build_content(
+                    prompt, mcp, tools, include_history=False)
             plan = task_planner.make_plan(
                 # No raw conversation history: it contaminated the plan with
                 # the previous exchange (live: a Ukraine request inherited
