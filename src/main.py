@@ -1651,6 +1651,13 @@ class VassApp:
             # Same gate as _chat_once. Memory informs the plan only: the steps
             # keep their fresh, compact context.
             import tool_groups
+            # Same tool selection as _chat_once: the planner must not see every
+            # MCP tool (live: a Meloni news request saw email/browser tools).
+            kw_groups = tool_groups.select_tool_groups(prompt, self.language)
+            ai_groups = tool_groups.select_tool_groups_ai(
+                prompt, tools, self.openai_client, self.ai_model, usage=metrics)
+            tools = tool_groups.resolve_tool_names(
+                ai_groups | kw_groups, tools, getattr(self, "debug_enabled", False))
             if self.auto_context_selection and not tool_groups.needs_memory(prompt, self.language):
                 memory_content = ""
             else:
