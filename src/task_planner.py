@@ -41,8 +41,9 @@ def _extract_json(text):
         return None
 
 
-_PLACEHOLDER = re.compile(r"\{\{|\}\}|\w+\([^()]*\)\s*$"
-                            r"|\[[^\]]{1,80}\]")
+# Placeholder fragments the plan model leaves inside argument values.
+_PLACEHOLDER = re.compile(r"\{\{[^}]*\}\}|\[[^\]]{1,80}\]")
+_PSEUDO_CALL = re.compile(r"^\w+\([^()]*\)\s*$")
 
 
 def clean_args(args):
@@ -56,8 +57,14 @@ def clean_args(args):
     """
     if not isinstance(args, dict):
         return None
-    return {k: v for k, v in args.items()
-            if not (isinstance(v, str) and _PLACEHOLDER.search(v))}
+    cleaned = {}
+    for k, v in args.items():
+        if isinstance(v, str):
+            v = " ".join(_PLACEHOLDER.sub(" ", v).split())   # "Italia [x]" -> "Italia"
+            if not v or _PSEUDO_CALL.match(v):
+                continue                                      # nothing usable
+        cleaned[k] = v
+    return cleaned
 
 
 def _plan_flag(data):
