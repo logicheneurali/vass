@@ -399,7 +399,8 @@
     "tool_no_reply_links": "I ran the tools and generated some results, but could not formulate a text reply. Try rephrasing your question.",
     "lang_instruction": "Always respond in English. If the user writes in English, reply in English. If the user writes in another language, still reply in English.",
     "plan_step": "Plan {i}/{n}: {action}",
-    "plan_stopped": "Plan stopped at step {i}/{n}."
+    "plan_stopped": "Plan stopped at step {i}/{n}.",
+    "plan_started": "OK, I'll work on this step by step."
   },
   "tts": {
     "fallback_language": "en-US"

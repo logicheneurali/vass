@@ -399,7 +399,8 @@
     "tool_no_reply_links": "Ho eseguito gli strumenti e generato alcuni risultati, ma non sono riuscito a formulare una risposta testuale. Prova a riformulare la domanda.",
     "lang_instruction": "Respondi sempre in Italian. Se user writes in Italian, reply in Italian. Se user writes in another language, still reply in Italian.",
     "plan_step": "Piano {i}/{n}: {action}",
-    "plan_stopped": "Piano interrotto al passo {i}/{n}."
+    "plan_stopped": "Piano interrotto al passo {i}/{n}.",
+    "plan_started": "Va bene, preparo un piano."
   },
   "tts": {
     "fallback_language": "it-IT"

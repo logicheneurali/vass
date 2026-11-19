@@ -1665,6 +1665,13 @@ class VassApp:
                 return None
             print(f"[Plan] {plan.get('goal', '')[:80]} "
                   f"({len(plan['steps'])} steps)")
+            if self.debug_enabled:
+                for s in plan["steps"]:
+                    print(f"[Plan]   step {s['id']}: tool={s.get('tool')} "
+                          f"args={s.get('args')} action={s.get('action', '')[:80]}")
+            # Spoken acknowledgment: a plan can run for a minute, and silence
+            # made a stale previous answer look like the reply.
+            self.tts.enqueue(t("ai.plan_started", self.language))
 
             file_links = []
 
@@ -1677,6 +1684,9 @@ class VassApp:
                 # A step whose arguments were only placeholders/pseudo-code
                 # is no longer a tool call: let the model do it in text.
                 dropped = bool(raw_args) and not args
+                if dropped:
+                    print(f"[Plan] step {step.get('id')}: placeholder args "
+                          f"{raw_args} dropped -> text elaboration")
                 usable = (name and args is not None and not dropped and mcp and
                           any(t["function"]["name"] == name for t in tools))
                 if not usable:
@@ -1706,12 +1716,12 @@ class VassApp:
                 ask=lambda msgs, max_tokens=1024: self._plan_ask(msgs, metrics, max_tokens),
                 execute=_execute,
                 on_step=_on_step,
-                # The GUI stop button and the wake word both move the state
-                # out of 'waiting' -> the plan stops at the next boundary.
+                # 'playing' is the plan's own acknowledgment being spoken; the
+                # GUI stop button and the wake word move the state elsewhere.
                 # shortcut: abort is keyed on the app state, so a notification's
                 # TTS finishing mid-plan can abort the plan; upgrade to a
                 # dedicated stop event when the GUI gets a stop control.
-                should_abort=lambda: self.state != "waiting",
+                should_abort=lambda: self.state not in ("waiting", "playing"),
                 max_steps=int(self.settings.get("plan_max_steps", 12) or 12),
                 max_replans=int(self.settings.get("plan_max_replans", 3) or 3),
                 budget_seconds=int(self.settings.get("plan_budget_seconds", 600) or 600),

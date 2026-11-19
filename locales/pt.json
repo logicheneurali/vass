@@ -399,7 +399,8 @@
     "tool_no_reply_links": "Executei as ferramentas e gerei alguns resultados, mas não consegui formular uma resposta em texto. Tente reformular sua pergunta.",
     "lang_instruction": "Respondi always in Portuguese. If user writes in Portuguese, reply in Portuguese. If user writes in another language, still reply in Portuguese.",
     "plan_step": "Plano {i}/{n}: {action}",
-    "plan_stopped": "Plano interrompido na etapa {i}/{n}."
+    "plan_stopped": "Plano interrompido na etapa {i}/{n}.",
+    "plan_started": "Certo, preparo um plano."
   },
   "tts": {
     "fallback_language": "pt-BR"

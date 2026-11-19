@@ -168,9 +168,17 @@ def make_plan(prompt, history, tools, *, ask, max_steps=12, context="",
     inform the plan only: steps see compact outcomes, never the raw history.
     None means "no usable plan": the caller falls back to the reactive loop.
     """
-    tool_names = ", ".join(sorted(
-        t.get("function", {}).get("name", "") for t in (tools or [])
-        if t.get("function", {}).get("name"))) or "(none)"
+    # Signatures, not bare names: without parameter names the model guesses
+    # them (live: read_news_range(start_date, end_date) vs from_date/to_date).
+    sigs = []
+    for t in (tools or []):
+        fn = t.get("function", {}) or {}
+        name = fn.get("name")
+        if not name:
+            continue
+        args = list(((fn.get("parameters") or {}).get("properties") or {}))
+        sigs.append(f"{name}({', '.join(args)})" if args else name)
+    tool_names = ", ".join(sorted(sigs)) or "(none)"
     hist = ""
     for m in (history or [])[-4:]:
         hist += f"{m.get('role', '?')}: {str(m.get('content', ''))[:200]}\n"
