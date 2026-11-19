@@ -1571,8 +1571,8 @@ class VassApp:
             print(f"[Debug] System ({sys_len} chars):\n{sys_txt[:1000]}{'...[truncated]' if sys_len > 1000 else ''}")
             print(f"[Debug] User ({len(messages[1]['content'])} chars):\n{messages[1]['content']}")
 
-            full_content, tool_calls_acc, finish_reason, _stream_start = \
-                self._stream_answer(kwargs, metrics)
+        full_content, tool_calls_acc, finish_reason, _stream_start = \
+            self._stream_answer(kwargs, metrics)
 
         # ── Handle tool calls ──────────────────────────────────────────
         script_called = False
@@ -1622,6 +1622,17 @@ class VassApp:
         v = self.settings.get("planning_enabled", True)
         return v if isinstance(v, bool) else str(v).lower() == "true"
 
+    def _plan_context(self):
+        """Compact session context for planner prompts.
+
+        The reactive prompt always carries the persona and the current date
+        (ai.date_prefix); plan steps must not lose them. Live evidence: a
+        plan step asked the user for today's date.
+        """
+        now = time.strftime("%Y-%m-%d (%A) %H:%M:%S")
+        base = self.system_message or ""
+        return f"{base}\n\n{t('ai.date_prefix', self.language)}{now}".strip()
+
     def _run_plan(self, prompt, metrics):
         """Build and run a multi-step plan for a complex request.
 
@@ -1629,6 +1640,9 @@ class VassApp:
         None when no plan could be started - the caller then falls back to
         the reactive pipeline.
         """
+        # Re-assert: a request queued behind another can inherit "listening"
+        # from the previous answer and would abort the plan at step 0.
+        self.set_state("waiting")
         try:
             mcp, tools = init_mcp(self.mcp_server_url, timeout=600)
             if not self.allow_ai_scripts and tools:
@@ -1637,7 +1651,8 @@ class VassApp:
             plan = task_planner.make_plan(
                 prompt, self.conversation_history, tools,
                 ask=lambda msgs, max_tokens=1024: self._plan_ask(msgs, metrics, max_tokens),
-                max_steps=int(self.settings.get("plan_max_steps", 12) or 12))
+                max_steps=int(self.settings.get("plan_max_steps", 12) or 12),
+                context=self._plan_context())
             if not plan:
                 print("[Plan] no usable plan -> reactive pipeline")
                 return None
@@ -1686,10 +1701,14 @@ class VassApp:
                 on_step=_on_step,
                 # The GUI stop button and the wake word both move the state
                 # out of 'waiting' -> the plan stops at the next boundary.
+                # shortcut: abort is keyed on the app state, so a notification's
+                # TTS finishing mid-plan can abort the plan; upgrade to a
+                # dedicated stop event when the GUI gets a stop control.
                 should_abort=lambda: self.state != "waiting",
                 max_steps=int(self.settings.get("plan_max_steps", 12) or 12),
                 max_replans=int(self.settings.get("plan_max_replans", 3) or 3),
-                budget_seconds=int(self.settings.get("plan_budget_seconds", 600) or 600))
+                budget_seconds=int(self.settings.get("plan_budget_seconds", 600) or 600),
+                context=self._plan_context())
         except Exception:
             log_exc()
             return None
@@ -1706,7 +1725,10 @@ class VassApp:
             if summary:
                 # Streamed to the TTS by _stream_answer -> do not enqueue twice.
                 return summary, False, file_links, False, False
-            status = "stopped"
+            # No summary: report the last step's own result, never a
+            # "stopped" message for a plan that actually finished.
+            last = (outcome.get("state") or [{}])[-1].get("outcome", "")
+            return (last or ""), True, file_links, False, False
         if status in ("stopped", "failed"):
             msg = t("ai.plan_stopped", self.language).format(
                 i=outcome.get("steps_done", 0), n=outcome.get("steps_total", 0))
@@ -1806,11 +1828,13 @@ class VassApp:
             result = self._run_plan(prompt, metrics) if plan_wanted else None
             if result is None:
                 result = self._chat_once(prompt, metrics)
-                # Escalation: the reactive loop ran out of road (turns,
-                # empty result or a saturated context) -> run a plan once,
-                # without paying a second classification call.
-                if result[4] and not plan_wanted and self._planning_enabled():
-                    result = self._run_plan(prompt, metrics) or result
+                # Escalation only when the reactive answer is unusable: a real
+                # answer must never be replaced nor its side effects redone.
+                if (result[4] and not plan_wanted and self._planning_enabled()
+                        and not (result[0] or "").strip()):
+                    plan_result = self._run_plan(prompt, metrics)
+                    if plan_result and (plan_result[0] or "").strip():
+                        result = plan_result
             ai_response, response_from_tool_calls, file_links, script_called, _ = result
             ai_response = strip_think_tags(ai_response or "")
 
@@ -1921,6 +1945,7 @@ class VassApp:
             try:
                 _elapsed = ((self._ai_t_end or time.time())
                             - (self._ai_t_start or time.time()))
+                _elapsed = max(0.0, _elapsed)
                 _total = metrics.prompt_tokens + metrics.completion_tokens
                 if _total > 0:
                     _tok_s = metrics.completion_tokens / _elapsed if _elapsed > 0 else 0.0

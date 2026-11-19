@@ -47,10 +47,10 @@ def clean_args(args):
     """Args a real tool may receive.
 
     The plan model sometimes emits template placeholders ({{tomorrow_date}})
-    or pseudo-calls (tomorrow_date(current_date)) as argument values; passing
-    those to a real tool silently corrupts the call (live evidence: the
-    weather tool resolved Rome to the wrong city). Such values are dropped:
-    model output is not trusted input.
+    or pseudo-calls (tomorrow_date(current_date)) as argument values. A real
+    tool must never execute those (observed: calculate() failed with
+    "Unsupported syntax: Call"), so such values are dropped: model output is
+    not trusted input.
     """
     if not isinstance(args, dict):
         return None
@@ -158,10 +158,12 @@ def _normalise(data, max_steps):
     return {"goal": str(data.get("goal", "")).strip()[:500], "steps": steps}
 
 
-def make_plan(prompt, history, tools, *, ask, max_steps=12):
+def make_plan(prompt, history, tools, *, ask, max_steps=12, context=""):
     """Build a multi-step plan for a request. Returns a plan dict or None.
 
     ask(messages, max_tokens) -> str is supplied by the caller (main model).
+    `context` is the compact session context the reactive prompt always has
+    (persona + current date): a plan must not lose it.
     None means "no usable plan": the caller falls back to the reactive loop.
     """
     tool_names = ", ".join(sorted(
@@ -170,7 +172,8 @@ def make_plan(prompt, history, tools, *, ask, max_steps=12):
     hist = ""
     for m in (history or [])[-4:]:
         hist += f"{m.get('role', '?')}: {str(m.get('content', ''))[:200]}\n"
-    user = (f"Tools available: {tool_names}\n"
+    user = ((f"Context:\n{context}\n\n" if context else "")
+            + f"Tools available: {tool_names}\n"
             f"Conversation so far:\n{hist or '(none)'}\n"
             f"User request: {prompt[:2000]}")
     messages = [{"role": "system",
@@ -194,15 +197,17 @@ def _state_block(state):
                      for s in state)
 
 
-def _step_messages(goal, state, step):
-    """Fresh messages for one step: role + goal + compact state + instruction.
+def _step_messages(goal, state, step, context=""):
+    """Fresh messages for one step: role + context + goal + compact state.
 
     The user's conversation history is deliberately absent: a plan of a dozen
-    steps must never grow past the context window.
+    steps must never grow past the context window. The session context
+    (persona + date) is identical in every step.
     """
     user = (f"Goal: {goal}\n\nCompleted steps:\n{_state_block(state)}\n\n"
             f"Now execute ONLY this step ({step['id']}): {step['action']}\n"
-            f"Expected result: {step.get('expect', '')}")
+            f"Expected result: {step.get('expect', '')}"
+            + (f"\n\nSession context:\n{context}" if context else ""))
     return [{"role": "system", "content": STEP_SYSTEM},
             {"role": "user", "content": user}]
 
@@ -233,9 +238,10 @@ def _review(ask, goal, state, index, total):
     return _verdict(text)
 
 
-def _replan(ask, goal, state, steps, max_steps):
+def _replan(ask, goal, state, steps, max_steps, context=""):
     """Rebuild the remaining steps from the current state. None = give up."""
-    user = (f"Goal: {goal}\n\nSteps already executed:\n{_state_block(state)}\n\n"
+    user = ((f"Context:\n{context}\n\n" if context else "")
+            + f"Goal: {goal}\n\nSteps already executed:\n{_state_block(state)}\n\n"
             f"Steps still planned: "
             f"{', '.join(str(s['id']) for s in steps) or '(none)'}\n\n"
             "Produce the remaining plan as JSON only, starting from the "
@@ -252,12 +258,15 @@ def _replan(ask, goal, state, steps, max_steps):
 
 
 def _outcome(status, goal, state, done, total):
+    # With replans the executed count can exceed one segment's length: the
+    # reported total must never read "7/5".
     return {"status": status, "goal": goal, "state": state,
-            "steps_done": done, "steps_total": total}
+            "steps_done": done, "steps_total": max(total, done)}
 
 
 def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
-             max_steps=12, max_replans=3, budget_seconds=600, start=None):
+             max_steps=12, max_replans=3, budget_seconds=600, start=None,
+             context=""):
     """Execute a plan step by step with fresh context per step.
 
     ask(messages, max_tokens) -> str        one main-model completion
@@ -274,28 +283,34 @@ def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
     state = []
     replans = 0
     consecutive_failures = 0
+    executed = 0                 # total across replans: max_steps is a hard cap
     done_index = 0
     while True:
         total = len(steps)
         broke_for_replan = False
         for index, step in enumerate(steps, 1):
-            if index > max_steps or time.time() - start > budget_seconds:
+            if executed >= max_steps or time.time() - start > budget_seconds:
                 return _outcome("stopped", goal, state, done_index, total)
             if should_abort and should_abort():
                 return _outcome("aborted", goal, state, done_index, total)
             if on_step:
                 on_step(index, total, step.get("action", ""))
+            failed = False
             try:
-                result = execute(_step_messages(goal, state, step), step)
+                result = execute(_step_messages(goal, state, step, context), step)
             except Exception as e:
                 result = f"step failed: {e}"
+                failed = True
                 print(f"[Plan] step {index} raised: {e}")
             result = str(result or "").strip()
+            # A raised step or a tool error is a failure too, not a result.
+            failed = failed or not result or result.startswith(("Error:", "step failed:"))
             state.append({"id": step.get("id", index),
                           "action": step.get("action", ""),
                           "outcome": result[:400]})
-            done_index = index
-            consecutive_failures = 0 if result else consecutive_failures + 1
+            executed += 1
+            done_index = executed
+            consecutive_failures = consecutive_failures + 1 if failed else 0
             if consecutive_failures >= 3:
                 return _outcome("failed", goal, state, done_index, total)
             if should_abort and should_abort():
@@ -309,7 +324,7 @@ def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
                 if replans >= max_replans:
                     return _outcome("failed", goal, state, done_index, total)
                 replans += 1
-                new_plan = _replan(ask, goal, state, steps, max_steps)
+                new_plan = _replan(ask, goal, state, steps, max_steps, context)
                 if not new_plan:
                     return _outcome("failed", goal, state, done_index, total)
                 steps = list(new_plan["steps"])
@@ -317,5 +332,6 @@ def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
                 broke_for_replan = True
                 break
         if not broke_for_replan:
-            # Every step ran but the reviewer never said "done".
-            return _outcome("failed", goal, state, done_index, total)
+            # The reviewer said "continue" after the last step: there is
+            # nothing left to continue with, so the plan is finished.
+            return _outcome("done", goal, state, done_index, total)
