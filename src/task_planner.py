@@ -46,19 +46,22 @@ _PLACEHOLDER = re.compile(r"\{\{[^}]*\}\}|\[[^\]]{1,80}\]")
 _PSEUDO_CALL = re.compile(r"^\w+\([^()]*\)\s*$")
 
 
-def clean_args(args):
+def clean_args(args, allowed=None):
     """Args a real tool may receive.
 
     The plan model sometimes emits template placeholders ({{tomorrow_date}})
-    or pseudo-calls (tomorrow_date(current_date)) as argument values. A real
-    tool must never execute those (observed: calculate() failed with
-    "Unsupported syntax: Call"), so such values are dropped: model output is
-    not trusted input.
+    or pseudo-calls (tomorrow_date(current_date)) as argument values, and
+    parameters the tool does not declare (live: weather(location) received a
+    date it does not accept, and the model called the result a forecast).
+    Model output is not trusted input: placeholders are stripped and
+    undeclared keys are dropped.
     """
     if not isinstance(args, dict):
         return None
     cleaned = {}
     for k, v in args.items():
+        if allowed is not None and k not in allowed:
+            continue
         if isinstance(v, str):
             v = " ".join(_PLACEHOLDER.sub(" ", v).split())   # "Italia [x]" -> "Italia"
             if not v or _PSEUDO_CALL.match(v):
@@ -126,13 +129,16 @@ PLAN_SYSTEM = (
     "'last N months/days' means the N units BEFORE the current date: always "
     "compute those dates backward from the date in the context, never plan "
     "or query dates in the future; never use a tool to compute dates, write "
-    "the literal ISO date in 'args'; if a tool reports that data is missing "
+    "the literal ISO date in 'args'; calculate only evaluates plain "
+    "arithmetic on literal numbers, never data processing or variable "
+    "names; if a tool reports that data is missing "
     "for part of the period, plan what is available and say in the final "
     "answer which part is not covered; "
     "'tool' must be one of the listed tools or null when the step is pure "
     "text work; if no tool can retrieve what the step needs, use null and "
     "answer from the memory and context instead of inventing a call; "
-    "'args' must be a complete JSON object when 'tool' is set, "
+    "'args' must be a complete JSON object when 'tool' is set and must use "
+    "only the arguments listed in the tool signature, "
     "with literal values only: never templates like {{today}}, never "
     "function calls like tomorrow_date(x), never bracketed placeholders "
     "like [main event 1] - if a value is not known yet, use null for the "
@@ -143,8 +149,9 @@ PLAN_SYSTEM = (
 STEP_SYSTEM = (
     "You are executing one step of a plan for VASS, a voice assistant. "
     "Work only on the step given. Report the concrete result of this step in "
-    "a few plain sentences, in the user's language. No preamble, no plan "
-    "review, no markdown."
+    "a few plain sentences, in the user's language. Report only what the "
+    "tool actually returned: if it returns current data, never describe it "
+    "as a forecast for another day. No preamble, no plan review, no markdown."
 )
 
 REVIEW_SYSTEM = (
@@ -176,6 +183,29 @@ def _shift_month(d, k):
             return date(y, m, d.day)
         except ValueError:
             d = d.replace(day=d.day - 1)
+
+
+
+_DATE_WORDS = re.compile(r"\b(date|day|days|week|weeks|month|months|year|years)\b",
+                         re.IGNORECASE)
+
+
+def _drop_date_math_steps(steps):
+    """No tool may be asked to do date arithmetic.
+
+    The plan model keeps writing calculate({"expression": "date(2026-11-19)
+    - 7 days"}) although the prompt forbids it; the tool only evaluates plain
+    arithmetic, so such a step always fails. Turning it into a text step makes
+    the model compute the date from the context it already has.
+    """
+    for step in steps:
+        if step.get("tool") != "calculate":
+            continue
+        expr = str((step.get("args") or {}).get("expression", ""))
+        if _DATE_WORDS.search(expr):
+            step["tool"] = None
+            step["args"] = None
+    return steps
 
 
 def _split_date_ranges(steps, max_steps):
@@ -257,6 +287,7 @@ def _normalise(data, max_steps):
                       "expect": str(s.get("expect", "")).strip()[:300]})
     if not steps:
         return None
+    steps = _drop_date_math_steps(steps)
     steps = _split_date_ranges(steps, max_steps)[:max_steps]
     for i, step in enumerate(steps, 1):
         step["id"] = i

@@ -1,6 +1,7 @@
 import json
 import subprocess
 import time
+import collections
 import threading
 import re
 import datetime
@@ -204,8 +205,9 @@ class VassApp:
         self.gui = gui
         self.state_manager = StateManager(self)
         self._ai_lock = threading.Lock()
-        self._remote_lock = threading.Lock()   # one remote request at a time
-        self._remote_reply_cb = None
+        # One callback per pending remote request, in submission order: the
+        # answer must reach the request that asked, not the latest one.
+        self._remote_reply_cbs = collections.deque()
         self.settings_file = settings_file
         self.app_version = __version__
         self.settings = self._load_settings()
@@ -971,28 +973,20 @@ class VassApp:
         remote callers (e.g. Telegram bot). When reply_cb is given, state gates
         are relaxed so the request is never dropped while VASS is speaking, and
         reply_cb(response) fires when the AI response is ready."""
-        # Serialize the whole set-callback -> process -> consume cycle: the
-        # callback is one shared slot, so two concurrent remote requests would
-        # deliver A's answer to B (live: an Italy question got the Ukraine
-        # answer of the request before it).
-        with self._remote_lock:
-            if reply_cb is not None:
-                self._remote_reply_cb = reply_cb
-            try:
-                with open("lastcommands.txt", "w", encoding="utf-8") as f:
-                    f.write(text)
-                self._process_command()
-            finally:
-                # Never leave a stale callback for the next request.
-                self._remote_reply_cb = None
+        # The AI answer is produced on a worker thread, so the callback must
+        # outlive this call: queue it and let _consume_remote_reply pop it.
+        if reply_cb is not None:
+            self._remote_reply_cbs.append(reply_cb)
+        with open("lastcommands.txt", "w", encoding="utf-8") as f:
+            f.write(text)
+        self._process_command()
 
     def _consume_remote_reply(self, text=None):
         """Deliver (or discard) the pending remote reply callback. Must be called
         in every outcome of the command pipeline so a stale callback can never
         steal the response of a later, unrelated chat request."""
-        cb = self._remote_reply_cb
+        cb = self._remote_reply_cbs.popleft() if self._remote_reply_cbs else None
         if cb:
-            self._remote_reply_cb = None
             if text:
                 try:
                     cb(text)
@@ -1161,7 +1155,7 @@ class VassApp:
             self._input_mode = False
 
     def _process_command(self):
-        if self.state in ("recording", "playing") and self._remote_reply_cb is None:
+        if self.state in ("recording", "playing") and not self._remote_reply_cbs:
             print(f"[ProcessCommand] Blocked: state={self.state}")
             return
         try:
@@ -1711,18 +1705,22 @@ class VassApp:
                 (gate, rate limit, audit, web fallback all stay inside), or a
                 plain model elaboration when the step names no usable tool."""
                 name, raw_args = step.get("tool"), step.get("args")
-                args = task_planner.clean_args(raw_args)
+                tool = next((t for t in tools if t["function"]["name"] == name),
+                            None) if name else None
+                # Only the parameters the tool actually declares.
+                declared = set(((tool or {}).get("function", {})
+                                .get("parameters") or {}).get("properties") or {})
+                args = task_planner.clean_args(raw_args, allowed=declared or None)
                 # A step whose arguments were only placeholders/pseudo-code
                 # is no longer a tool call: let the model do it in text.
                 dropped = bool(raw_args) and not args
                 if dropped:
                     print(f"[Plan] step {step.get('id')}: placeholder args "
                           f"{raw_args} dropped -> text elaboration")
-                usable = (name and args is not None and not dropped and mcp and
-                          any(t["function"]["name"] == name for t in tools))
+                usable = (name and tool is not None and args is not None
+                          and not dropped and mcp)
                 if not usable:
                     return self._plan_ask(messages, metrics, 800)
-                tool = next(t for t in tools if t["function"]["name"] == name)
                 tc = type("", (), {
                     "id": f"plan_{step.get('id')}", "content": None,
                     "function": type("", (), {"name": name,
@@ -1826,7 +1824,9 @@ class VassApp:
              "never answer zero or empty when the memory has the data. If the "
              "plan stopped before covering everything, say what was covered "
              "and what was not. Never present news from a different period "
-             "as if it belonged to the requested one."},
+             "as if it belonged to the requested one. Never invent numbers, "
+             "names, dates or sources that the steps do not contain: if a "
+             "figure is missing, say it is missing."},
             {"role": "user", "content":
              f"Goal: {outcome.get('goal', '')}\n\nSteps:\n{state_txt or '-'}"
              + (f"\n\nUser memory:\n{memory[:6000]}" if memory else "")},
