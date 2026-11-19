@@ -1648,11 +1648,18 @@ class VassApp:
             if not self.allow_ai_scripts and tools:
                 tools = [t for t in tools
                          if t["function"]["name"] not in ("interact", "script")]
+            # Same gate as _chat_once. Memory informs the plan only: the steps
+            # keep their fresh, compact context.
+            import tool_groups
+            if self.auto_context_selection and not tool_groups.needs_memory(prompt, self.language):
+                memory_content = ""
+            else:
+                memory_content = self.memory.build_content(prompt, mcp, tools)
             plan = task_planner.make_plan(
                 prompt, self.conversation_history, tools,
                 ask=lambda msgs, max_tokens=1024: self._plan_ask(msgs, metrics, max_tokens),
                 max_steps=int(self.settings.get("plan_max_steps", 12) or 12),
-                context=self._plan_context())
+                context=self._plan_context(), memory=memory_content)
             if not plan:
                 print("[Plan] no usable plan -> reactive pipeline")
                 return None
@@ -1708,7 +1715,7 @@ class VassApp:
                 max_steps=int(self.settings.get("plan_max_steps", 12) or 12),
                 max_replans=int(self.settings.get("plan_max_replans", 3) or 3),
                 budget_seconds=int(self.settings.get("plan_budget_seconds", 600) or 600),
-                context=self._plan_context())
+                context=self._plan_context(), plan_memory=memory_content)
         except Exception:
             log_exc()
             return None

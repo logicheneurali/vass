@@ -158,12 +158,14 @@ def _normalise(data, max_steps):
     return {"goal": str(data.get("goal", "")).strip()[:500], "steps": steps}
 
 
-def make_plan(prompt, history, tools, *, ask, max_steps=12, context=""):
+def make_plan(prompt, history, tools, *, ask, max_steps=12, context="",
+              memory=""):
     """Build a multi-step plan for a request. Returns a plan dict or None.
 
     ask(messages, max_tokens) -> str is supplied by the caller (main model).
     `context` is the compact session context the reactive prompt always has
-    (persona + current date): a plan must not lose it.
+    (persona + current date); `memory` is the gated memory/profile text. Both
+    inform the plan only: steps see compact outcomes, never the raw history.
     None means "no usable plan": the caller falls back to the reactive loop.
     """
     tool_names = ", ".join(sorted(
@@ -173,6 +175,7 @@ def make_plan(prompt, history, tools, *, ask, max_steps=12, context=""):
     for m in (history or [])[-4:]:
         hist += f"{m.get('role', '?')}: {str(m.get('content', ''))[:200]}\n"
     user = ((f"Context:\n{context}\n\n" if context else "")
+            + (f"Memory:\n{memory}\n\n" if memory else "")
             + f"Tools available: {tool_names}\n"
             f"Conversation so far:\n{hist or '(none)'}\n"
             f"User request: {prompt[:2000]}")
@@ -238,9 +241,10 @@ def _review(ask, goal, state, index, total):
     return _verdict(text)
 
 
-def _replan(ask, goal, state, steps, max_steps, context=""):
+def _replan(ask, goal, state, steps, max_steps, context="", memory=""):
     """Rebuild the remaining steps from the current state. None = give up."""
     user = ((f"Context:\n{context}\n\n" if context else "")
+            + (f"Memory:\n{memory}\n\n" if memory else "")
             + f"Goal: {goal}\n\nSteps already executed:\n{_state_block(state)}\n\n"
             f"Steps still planned: "
             f"{', '.join(str(s['id']) for s in steps) or '(none)'}\n\n"
@@ -266,7 +270,7 @@ def _outcome(status, goal, state, done, total):
 
 def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
              max_steps=12, max_replans=3, budget_seconds=600, start=None,
-             context=""):
+             context="", plan_memory=""):
     """Execute a plan step by step with fresh context per step.
 
     ask(messages, max_tokens) -> str        one main-model completion
@@ -324,7 +328,8 @@ def run_plan(plan, *, ask, execute, on_step=None, should_abort=None,
                 if replans >= max_replans:
                     return _outcome("failed", goal, state, done_index, total)
                 replans += 1
-                new_plan = _replan(ask, goal, state, steps, max_steps, context)
+                new_plan = _replan(ask, goal, state, steps, max_steps,
+                                   context, plan_memory)
                 if not new_plan:
                     return _outcome("failed", goal, state, done_index, total)
                 steps = list(new_plan["steps"])
