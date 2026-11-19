@@ -1677,14 +1677,20 @@ class VassApp:
             else:
                 memory_content = self.memory.build_content(
                     prompt, mcp, tools, include_history=False)
+            # Only the previous USER request: it resolves follow-ups like
+            # "rifai la richiesta precedente" without ever handing the model
+            # the previous answer (whose periods and topics were copied into
+            # unrelated plans).
+            prev_user = next(
+                (m.get("content", "") for m in reversed(self.conversation_history)
+                 if m.get("role") == "user" and (m.get("content") or "").strip()),
+                "")
             plan = task_planner.make_plan(
-                # No raw conversation history: it contaminated the plan with
-                # the previous exchange (live: a Ukraine request inherited
-                # "the last five years" from the previous Meloni answer).
                 prompt, [], tools,
                 ask=lambda msgs, max_tokens=1024: self._plan_ask(msgs, metrics, max_tokens),
                 max_steps=int(self.settings.get("plan_max_steps", 12) or 12),
-                context=self._plan_context(), memory=memory_content)
+                context=self._plan_context(), memory=memory_content,
+                previous_request=prev_user)
             if not plan:
                 print("[Plan] no usable plan -> reactive pipeline")
                 return None

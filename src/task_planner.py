@@ -150,7 +150,8 @@ STEP_SYSTEM = (
 REVIEW_SYSTEM = (
     "You review the progress of a plan for VASS. Reply ONLY with JSON: "
     '{"status":"done"|"continue"|"replan"|"fail","reason":"one short line"}\n'
-    "- done: the goal is reached, no further step is needed.\n"
+    "- done: the goal is fully reached, including every part of the user's "
+    "request; if any requested part is still uncovered, reply continue.\n"
     "- continue: the next planned step is still the right one.\n"
     "- replan: the remaining steps are wrong or obsolete for the current "
     "state.\n"
@@ -263,7 +264,7 @@ def _normalise(data, max_steps):
 
 
 def make_plan(prompt, history, tools, *, ask, max_steps=12, context="",
-              memory=""):
+              memory="", previous_request=""):
     """Build a multi-step plan for a request. Returns a plan dict or None.
 
     ask(messages, max_tokens) -> str is supplied by the caller (main model).
@@ -292,6 +293,9 @@ def make_plan(prompt, history, tools, *, ask, max_steps=12, context="",
         hist += f"{m.get('role', '?')}: {str(m.get('content', ''))[:200]}\n"
     user = ((f"Context:\n{context}\n\n" if context else "")
             + (f"Memory:\n{memory}\n\n" if memory else "")
+            + (f"Previous user request (use it only if the current request "
+               f"refers back to it):\n{previous_request[:600]}\n\n"
+               if previous_request else "")
             + f"Tools available: {tool_names}\n"
             f"Conversation so far:\n{hist or '(none)'}\n"
             f"User request: {prompt[:2000]}")
