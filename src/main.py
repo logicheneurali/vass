@@ -1718,6 +1718,21 @@ class VassApp:
                     print(f"[Plan] step {step.get('id')}: placeholder args "
                           f"{raw_args} dropped -> text elaboration")
                 removed = sorted(set(raw_args or {}) - declared) if declared else []
+                dated = [k for k in removed
+                         if "date" in k.lower() or k.lower() in ("day", "when")]
+                if dated:
+                    # The tool cannot answer for that date (weather has no
+                    # forecast): a text step saying so beats a forced call
+                    # that the summary later turns into a made-up forecast.
+                    messages = [dict(m) for m in messages]
+                    if messages and messages[-1].get("role") == "user":
+                        messages[-1]["content"] = (
+                            messages[-1]["content"]
+                            + f"\n\nNote: '{name}' cannot take "
+                            f"{', '.join(dated)}; if the request needs data "
+                            "for that date, state plainly that it is not "
+                            "available and why.")
+                    return self._plan_ask(messages, metrics, 800)
                 if removed:
                     # Tell the step model what the tool refused to take: with
                     # weather(location) and a dropped date it kept describing
