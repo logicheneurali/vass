@@ -1663,7 +1663,10 @@ class VassApp:
             else:
                 memory_content = self.memory.build_content(prompt, mcp, tools)
             plan = task_planner.make_plan(
-                prompt, self.conversation_history, tools,
+                # No raw conversation history: it contaminated the plan with
+                # the previous exchange (live: a Ukraine request inherited
+                # "the last five years" from the previous Meloni answer).
+                prompt, [], tools,
                 ask=lambda msgs, max_tokens=1024: self._plan_ask(msgs, metrics, max_tokens),
                 max_steps=int(self.settings.get("plan_max_steps", 12) or 12),
                 context=self._plan_context(), memory=memory_content)
