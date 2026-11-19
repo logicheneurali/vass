@@ -105,24 +105,28 @@ _original_print = _builtins.print
 _debug_log_file = None
 _debug_log_bytes = 0           # bytes written since the last debug.log rotation
 _DEBUG_LOG_MAX = 1024 * 1024   # replaced in run() from [gui] debug_log_max_kb
+_debug_log_lock = threading.Lock()   # rotation must not race other writers
 
 def _ts_print(*args, **kwargs):
     ts = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]"
     msg = ts + " " + " ".join(str(a) for a in args)
     global _debug_log_file, _debug_log_bytes
-    if _debug_log_file is not None:
-        try:
-            _debug_log_file.write(msg + "\n")
-            _debug_log_file.flush()
+    try:
+        with _debug_log_lock:
+            f = _debug_log_file
+            if f is None or f.closed:   # closed at shutdown or by rotation
+                return
+            f.write(msg + "\n")
+            f.flush()
             # Rotate mid-session too, otherwise debug.log grows until restart.
             _debug_log_bytes += len(msg) + 1
             if _debug_log_bytes >= _DEBUG_LOG_MAX:
-                _debug_log_file.close()
+                f.close()
                 _rotate_debug_log("log/debug.log", _DEBUG_LOG_MAX)
                 _debug_log_file = open("log/debug.log", "a", encoding="utf-8")
                 _debug_log_bytes = os.path.getsize("log/debug.log")
-        except Exception:
-            log_exc()
+    except Exception:
+        pass        # a logger must never raise (log_exc() here caused a loop)
     try:
         _original_print(msg, **kwargs)
     except Exception:
