@@ -1746,6 +1746,12 @@ class VassApp:
             # "stopped" message for a plan that actually finished.
             last = (outcome.get("state") or [{}])[-1].get("outcome", "")
             return (last or ""), True, file_links, False, False
+        if status in ("stopped", "failed") and outcome.get("state"):
+            # Hit the step/time cap after doing real work: report what was
+            # covered instead of a bare "plan stopped" message.
+            summary = self._plan_summary(outcome, metrics, memory=memory_content)
+            if summary:
+                return summary, False, file_links, False, False
         if status in ("stopped", "failed"):
             msg = t("ai.plan_stopped", self.language).format(
                 i=outcome.get("steps_done", 0), n=outcome.get("steps_total", 0))
@@ -1779,7 +1785,10 @@ class VassApp:
              "language, no markdown, no list of steps, just what was found "
              "or done and what it means for the user. Use the user memory "
              "below when it holds the facts the steps could not retrieve; "
-             "never answer zero or empty when the memory has the data."},
+             "never answer zero or empty when the memory has the data. If the "
+             "plan stopped before covering everything, say what was covered "
+             "and what was not. Never present news from a different period "
+             "as if it belonged to the requested one."},
             {"role": "user", "content":
              f"Goal: {outcome.get('goal', '')}\n\nSteps:\n{state_txt or '-'}"
              + (f"\n\nUser memory:\n{memory[:6000]}" if memory else "")},

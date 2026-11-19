@@ -114,7 +114,9 @@ PLAN_SYSTEM = (
     "'last N months/days' means the N units BEFORE the current date: always "
     "compute those dates backward from the date in the context, never plan "
     "or query dates in the future; never use a tool to compute dates, write "
-    "the literal ISO date in 'args'; "
+    "the literal ISO date in 'args'; the local news archive only holds the "
+    "most recent months, so if the requested period is older, plan what is "
+    "available and say in the final answer which part is not covered; "
     "'tool' must be one of the listed tools or null when the step is pure "
     "text work; if no tool can retrieve what the step needs, use null and "
     "answer from the memory and context instead of inventing a call; "
@@ -171,8 +173,17 @@ def _split_date_ranges(steps, max_steps):
     use. At most max_steps-1 retrieval steps are produced, leaving room for
     the analysis steps the plan already has.
     """
+    others = sum(1 for st in steps
+                 if not (isinstance(st.get("args"), dict)
+                         and st["args"].get("from_date")
+                         and st["args"].get("to_date")))
     out = []
     for step in steps:
+        if not step.get("tool"):
+            # A text step whose args merely mention dates must not be split:
+            # live, eight do-nothing steps ate the budget of the retrieval.
+            out.append(step)
+            continue
         args = step.get("args") or {}
         try:
             d0 = date.fromisoformat(str(args.get("from_date")))
@@ -188,7 +199,9 @@ def _split_date_ranges(steps, max_steps):
         while start < d1:
             months.append(start)
             start = _shift_month(start, 1)
-        budget = max(1, max_steps - 1)
+        # Reserve the plan's own non-date steps: the whole plan must stay
+        # within max_steps (live: 14 steps against a cap of 12).
+        budget = max(1, max_steps - others)
         group = -(-len(months) // budget)          # ceil
         merged = [months[i] for i in range(0, len(months), group)]
         pieces = []
@@ -229,7 +242,9 @@ def _normalise(data, max_steps):
                       "expect": str(s.get("expect", "")).strip()[:300]})
     if not steps:
         return None
-    steps = _split_date_ranges(steps, max_steps)
+    steps = _split_date_ranges(steps, max_steps)[:max_steps]
+    for i, step in enumerate(steps, 1):
+        step["id"] = i
     return {"goal": str(data.get("goal", "")).strip()[:500], "steps": steps}
 
 

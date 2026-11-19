@@ -180,14 +180,27 @@ async def read_news_range(from_date: str, to_date: str, max_chars: int = 20000) 
                   for d in days}
         return _to_json({"results": result}, max_chars)
 
-    # No archive data: try RSS cache across the range
+    # No archive data: try RSS cache across the range.
+    # Index the cache ONCE: the previous per-day lookup re-read the 20 MB
+    # file and rescanned every feed item for every day (~60 s per 9 months).
     result = {}
     from_dt = datetime.strptime(from_date, "%Y-%m-%d")
     to_dt = datetime.strptime(to_date, "%Y-%m-%d")
+    feeds = _load_rss_cache().get("feeds", {})
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    is_fresh = any((fd.get("last_poll") or "")[:10] == today
+                   for fd in feeds.values())
+    by_day = {}
+    for fd in feeds.values():
+        for item in fd.get("items", []):
+            pub = (item.get("pubDate") or "").strip()
+            pub_day = pub[:10] if len(pub) >= 10 else ""
+            if pub_day:
+                by_day.setdefault(pub_day, []).append(item)
     day = from_dt
     while day <= to_dt:
         date_str = day.strftime("%Y-%m-%d")
-        rss_items, is_fresh = _rss_items_for_date(date_str)
+        rss_items = by_day.get(date_str, [])
         if is_fresh and rss_items:
             summary_parts = []
             articles = []
@@ -219,13 +232,23 @@ async def read_news_range(from_date: str, to_date: str, max_chars: int = 20000) 
     if result:
         return _to_json({"results": result}, max_chars)
 
-    # Fallback to websearch
-    fallback = await _fallback_search(f"world news from {from_date} to {to_date}")
-    if fallback:
-        return _to_json({"results": fallback}, max_chars)
+    # Fallback to websearch only when the range reaches the present: for a
+    # historical range there is no archive data, and current news returned
+    # under a past date is worse than an honest "no data" (live: every
+    # 2021-2025 chunk came back as today's news).
+    if (datetime.now() - to_dt).days <= 2:
+        fallback = await _fallback_search(f"world news from {from_date} to {to_date}")
+        if fallback:
+            return _to_json({"results": fallback}, max_chars)
 
+    # Tell the user what the archive does cover: a bare "no data" leaves the
+    # model guessing (and a 5-year ask cannot be answered from a few months).
+    covered = sorted(events) + sorted(by_day)
+    span = (f" (archive covers {covered[0]} to {covered[-1]})"
+            if covered else " (archive is empty)")
     return json.dumps(
-        {"results": {}, "message": f"No events found between {from_date} and {to_date}"},
+        {"results": {}, "message":
+         f"No archived news between {from_date} and {to_date}{span}"},
         ensure_ascii=False)
 
 
@@ -401,26 +424,38 @@ def _to_json(obj, max_chars):
                 half = max(1, half // 2)
             out = json.dumps(obj, ensure_ascii=False)
             return out
-        # Iterative truncation of summaries/lists per day.
-        changed = True
-        while len(out) > max_chars and changed:
-            changed = False
-            for d in sorted(res):
-                day = res[d]
-                if not isinstance(day, dict):
-                    continue
-                s = day.get("summary", "")
-                if isinstance(s, str) and len(s) > 200:
-                    day["summary"] = s[:len(s) * 3 // 4]
-                    changed = True
-                if not changed:
-                    for key in ("articles", "topics"):
-                        if isinstance(day.get(key), list) and len(day[key]) > 1:
-                            day[key] = day[key][:max(1, len(day[key]) // 2)]
-                            changed = True
-                            break
-                if changed:
-                    break
-            if changed:
+        # One bulk pass (the old per-day loop re-serialized the whole object
+        # for every day: O(days) passes over megabytes). For a range the
+        # point is coverage, so every day keeps one summary trimmed to the
+        # per-day share of the budget; the halving loop below is the net.
+        n = max(1, len(res))
+        per_day = max(80, max_chars // n - 80)   # leave room for keys/categories
+        compact = {}
+        for k, day in res.items():
+            if not isinstance(day, dict):
+                compact[k] = day
+                continue
+            trimmed = {"summary": str(day.get("summary", ""))[:per_day]}
+            cats = day.get("categories")
+            if cats:
+                trimmed["categories"] = cats[:6]
+            compact[k] = trimmed
+        obj["results"] = res = compact
+        out = json.dumps(obj, ensure_ascii=False)
+        while len(res) > 1 and len(out) > max_chars:
+            keep = sorted(res)[-max(1, len(res) // 2):]
+            obj["results"] = res = {k: res[k] for k in keep}
+            out = json.dumps(obj, ensure_ascii=False)
+        if len(out) > max_chars and len(res) == 1:
+            # One day still too big: keep its summary, drop the lists.
+            day = next(iter(res.values()))
+            if isinstance(day, dict):
+                for key in ("events", "articles", "topics"):
+                    day.pop(key, None)
+                day["summary"] = str(day.get("summary", ""))[:max(200, max_chars - 200)]
                 out = json.dumps(obj, ensure_ascii=False)
+        if len(out) > max_chars:
+            out = json.dumps(
+                {"results": {}, "message": "range too large; narrow it"},
+                ensure_ascii=False)
     return out
