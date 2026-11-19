@@ -1717,6 +1717,15 @@ class VassApp:
                 if dropped:
                     print(f"[Plan] step {step.get('id')}: placeholder args "
                           f"{raw_args} dropped -> text elaboration")
+                removed = sorted(set(raw_args or {}) - declared) if declared else []
+                if removed:
+                    # Tell the step model what the tool refused to take: with
+                    # weather(location) and a dropped date it kept describing
+                    # current conditions as tomorrow's forecast.
+                    messages = messages + [{"role": "system", "content":
+                        f"The tool '{name}' does not accept "
+                        f"{', '.join(removed)}; report only what it returns, "
+                        "never as a forecast or for another date."}]
                 usable = (name and tool is not None and args is not None
                           and not dropped and mcp)
                 if not usable:
